@@ -307,7 +307,7 @@ namespace Signalizer
 		glFrustum(-1, 1, -1, 1, 0, 5);
 		//antiAlias ? glShadeModel(GL_SMOOTH) : glShadeModel(GL_FLAT);
 		//antiAlias ? glEnable(GL_LINE_SMOOTH) : glDisable((GL_LINE_SMOOTH));
-		antiAlias ? glEnable(GL_MULTISAMPLE) : glDisable((GL_MULTISAMPLE));
+		//antiAlias ? glEnable(GL_MULTISAMPLE) : glDisable((GL_MULTISAMPLE));
 		fillPath ? glBegin(GL_LINE_STRIP) : glBegin(GL_POINTS);
 
 		cpl::CAudioBuffer::CChannelBuffer * leftChannel, *rightChannel;
@@ -350,7 +350,6 @@ namespace Signalizer
 					sright = rightChannel->singleCheckAccess(i);
 				#endif
 				// todo: check here for 0, 0 coordinates
-
 				xn = sleft * cosrol - sright * sinrol;
 				yn = sleft * sinrol + sright * cosrol;
 
@@ -379,7 +378,7 @@ namespace Signalizer
 		loadColour(kskeletonColour.getColour());
 		glBegin(GL_LINES);
 		// draw skeleton
-		int nlines = 15;
+		int nlines = 14;
 		auto rel = 1.0f / nlines;
 
 		// front
@@ -535,7 +534,7 @@ namespace Signalizer
 			// needed to balance opengl coordinate system
 			//ydrag = (-event.getDistanceFromDragStartY() / 500.0f) * factor;
 			matrix.position.x += deltaDifference.x / 500.f;
-			matrix.position.y += -deltaDifference.y / 500.f;
+			matrix.position.y += factor * -deltaDifference.y / 500.f;
 		}
 		ktransform.syncEditor();
 		
@@ -564,7 +563,7 @@ namespace Signalizer
 		if (ctrl == &kgain)
 		{
 			sprintf(buf, "%.2f dB (%d%%)", cpl::Math::fractionToDB(getGain()), (int)cpl::Misc::Round(getGain() * 100));
-			kgain.bSetText(buf);
+			buffer = buf;
 			return true;
 		}
 		else if (ctrl == &kwindow)
@@ -675,7 +674,8 @@ namespace Signalizer
 	}
 	void CVectorScope::repaintMainContent()
 	{
-		repaint();
+		//repaint();
+		//oglc->triggerRepaint();
 	}
 
 
