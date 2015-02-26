@@ -25,13 +25,13 @@ SignalizerAudioProcessor::~SignalizerAudioProcessor()
 {
 }
 
-void SignalizerAudioProcessor::onViewConstruction(cpl::View * view)
+void SignalizerAudioProcessor::onViewConstruction(cpl::CView * view)
 {
 	
 	
 }
 
-void SignalizerAudioProcessor::onViewDestruction(cpl::View * view)
+void SignalizerAudioProcessor::onViewDestruction(cpl::CView * view)
 {
 	serializedData.clear();
 	view->save(serializedData, 1);

@@ -4,9 +4,11 @@
 
 	#include <cpl/Common.h>
 	#include <cpl/CAudioBuffer.h>
+	#include <cpl/CViews.h>
 	#include <cpl/GraphicComponents.h>
 	#include <cpl/Utility.h>
 	#include <cpl/gui/Controls.h>
+
 	#include <memory>
 
 	namespace Signalizer
@@ -15,8 +17,7 @@
 
 		class CVectorScope 
 		: 
-			public cpl::SubView, 
-			public juce::OpenGLRenderer,
+			public cpl::COpenGLView, 
 			protected cpl::CBaseControl::PassiveListener,
 			protected cpl::CBaseControl::ValueFormatter,
 			public cpl::Utility::CNoncopyable
@@ -36,9 +37,7 @@
 			void mouseDown(const MouseEvent& event) override;
 			void resized() override;
 			// OpenGLRender overrides
-			void newOpenGLContextCreated() override;
 			void renderOpenGL() override;
-			void openGLContextClosing() override;
 
 			// View overrides
 			juce::Component * getWindow() override;
@@ -46,9 +45,7 @@
 			void resume() override;
 			void freeze() override;
 			void unfreeze() override;
-			void repaintMainContent() override;
-			void attachToOpenGL(juce::OpenGLContext & ctx) override;
-			void detachFromOpenGL(juce::OpenGLContext & ctx) override;
+
 			std::unique_ptr<juce::Component> createEditor() override;
 			// CSerializer overrides
 			void load(cpl::CSerializer::Builder & builder, long long int version) override;

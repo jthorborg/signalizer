@@ -17,6 +17,7 @@
 #include <cpl/GraphicComponents.h>
 #include <cpl/lib/AlignedAllocator.h>
 #include <cpl/CSerializer.h>
+#include <cpl/CViews.h>
 
 //==============================================================================
 /**
@@ -26,10 +27,10 @@ class SignalizerAudioProcessorEditor;
 namespace Signalizer
 {
 	class MainEditor;
-}
+};
 
 
-class SignalizerAudioProcessor  : public AudioProcessor, cpl::View::EventListener
+class SignalizerAudioProcessor  : public AudioProcessor, cpl::CView::EventListener
 {
 	friend class SignalizerAudioProcessorEditor;
 	friend class Signalizer::MainEditor;
@@ -80,8 +81,8 @@ public:
     void getStateInformation (MemoryBlock& destData);
     void setStateInformation (const void* data, int sizeInBytes);
 	
-	void onViewConstruction(cpl::View * view) override;
-	void onViewDestruction(cpl::View * view) override;
+	void onViewConstruction(cpl::CView * view) override;
+	void onViewDestruction(cpl::CView * view) override;
 	
 private:
     //==============================================================================

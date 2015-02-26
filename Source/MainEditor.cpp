@@ -99,7 +99,7 @@ namespace Signalizer
 	:
 		engine(e),
 		AudioProcessorEditor(e),
-		TopView(this),
+		CTopView(this),
 		rcc(this, this),
 		krenderEngine("Rendering Engine", RenderingEnginesList),
 		krefreshRate("Refresh Rate"),
@@ -259,7 +259,7 @@ namespace Signalizer
 		while (!editorStack.empty())
 			editorStack.pop();
 	}
-	cpl::View * MainEditor::viewFromIndex(std::size_t index)
+	cpl::CView * MainEditor::viewFromIndex(std::size_t index)
 	{
 		auto it = views.end();
 		if ((ViewTypes)index < ViewTypes::end)
@@ -409,7 +409,7 @@ namespace Signalizer
 					if (currentView && !currentView->isOpenGL())
 					{
 						// ?? freaky
-						if (cpl::View * unknownView = dynamic_cast<cpl::View *>(oglc.getTargetComponent()))
+						if (cpl::CView * unknownView = dynamic_cast<cpl::CView *>(oglc.getTargetComponent()))
 							unknownView->detachFromOpenGL(oglc);
 						oglc.detach();
 					}
@@ -509,7 +509,7 @@ namespace Signalizer
 	void MainEditor::panelOpened(cpl::CTextTabBar<> * obj)
 	{
 		isEditorVisible = true;
-		if (cpl::View * view = viewFromIndex(selTab))
+		if (cpl::CView * view = viewFromIndex(selTab))
 		{
 			pushEditor(view->createEditor());
 		}
@@ -587,7 +587,7 @@ namespace Signalizer
 		auto const & mappedView = Signalizer::ViewIndexToMap[index];
 		auto it = views.find(mappedView);
 
-		cpl::SubView * view = nullptr;
+		cpl::CSubView * view = nullptr;
 
 		if (it == views.end())
 		{
@@ -609,7 +609,7 @@ namespace Signalizer
 			}
 			if (!view)
 				return;
-			views.emplace(mappedView, std::unique_ptr<cpl::SubView>(view));
+			views.emplace(mappedView, std::unique_ptr<cpl::CSubView>(view));
 			auto & key = viewSettings.getKey("Serialized Views").getKey(mappedView);
 			if (!key.isEmpty())
 				view->load(key, key.getMasterVersion());

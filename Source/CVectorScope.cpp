@@ -105,7 +105,6 @@ namespace Signalizer
 
 	CVectorScope::~CVectorScope()
 	{
-		cpl::View::detachFromOpenGL();
 		notifyDestruction();
 	}
 
@@ -671,35 +670,6 @@ namespace Signalizer
 		{
 		}
 	}
-	void CVectorScope::repaintMainContent()
-	{
-		repaint();
-		if (bufferSwapInterval < 0)
-			oglc->triggerRepaint();
-	}
 
-
-	void CVectorScope::newOpenGLContextCreated()
-	{
-		if (bufferSwapInterval > 0)
-			oglc->setSwapInterval(bufferSwapInterval); 
-	}
-	void CVectorScope::openGLContextClosing()
-	{
-		
-	}
-	void CVectorScope::attachToOpenGL(juce::OpenGLContext & ctx)
-	{
-		ctx.setRenderer(this);
-		cpl::View::attachToOpenGL(ctx);
-		ctx.attachTo(*this);
-
-	}
-	void CVectorScope::detachFromOpenGL(juce::OpenGLContext & ctx)
-	{
-		cpl::View::detachFromOpenGL(ctx);
-		ctx.setRenderer(nullptr);
-
-	}
 
 };

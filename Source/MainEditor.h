@@ -16,7 +16,7 @@
 	#include <cpl/GraphicComponents.h>
 	#include <cpl/ComponentContainers.h>
 	#include <cpl/CBaseControl.h>
-	//#include <cpl/NewStuffAndLook.h>
+	#include <cpl/CViews.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"
@@ -32,7 +32,7 @@
 			private		juce::HighResolutionTimer,
 			protected	cpl::CBaseControl::PassiveListener,
 			private		cpl::CBaseControl::ValueFormatter,
-			public		cpl::TopView, 
+			public		cpl::CTopView, 
 			protected	cpl::CTextTabBar<>::CTabBarListener,
 			private		juce::ComponentBoundsConstrainer
 		{
@@ -84,7 +84,7 @@
 			void popEditor();
 			void clearEditors();
 
-			cpl::View * viewFromIndex(std::size_t index);
+			cpl::CView * viewFromIndex(std::size_t index);
 			void addTab(const std::string & name);
 			void restoreTab();
 
@@ -97,11 +97,11 @@
 			cpl::CSerializer viewSettings;
 			SignalizerAudioProcessor * engine;
 			ResizableCornerComponent rcc;
-			cpl::View * currentView;
+			cpl::CView * currentView;
 			juce::Path rightButtonOutlines;
 			int refreshRate;
 			std::size_t selTab, oldTab;
-			std::map<std::string, std::unique_ptr<cpl::SubView>> views;
+			std::map<std::string, std::unique_ptr<cpl::CSubView>> views;
 			std::stack<std::unique_ptr<juce::Component>> editorStack;
 
 			juce::OpenGLContext oglc;
