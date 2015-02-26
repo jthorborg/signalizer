@@ -112,6 +112,7 @@ namespace Signalizer
 		oldTab(0),
 		currentView(nullptr),
 		kstableFps("Stable FPS"),
+		kvsync("Vertical Sync"),
 		ksavePreset("Save current..."),
 		kloadPreset("Load preset..."),
 		ksaveDefaultPreset("Save as default"),
@@ -126,6 +127,7 @@ namespace Signalizer
 		updatePresetList();
 		kpresetList.bInterpretAndSet("default", true);
 		oglc.setContinuousRepainting(false);
+
 	}
 
 
@@ -135,13 +137,19 @@ namespace Signalizer
 		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
+			{				
 				section->addControl(&krefreshRate, 0);
-				section->addControl(&krenderEngine, 0);
 				section->addControl(&kstableFps, 1);
+				section->addControl(&kvsync, 2);
+				page->addSection(section, "Update");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&krenderEngine, 0);
+
 				section->addControl(&kantialias, 1);
 
-				page->addSection(section, "Control");
+				page->addSection(section, "Quality");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/painting.svg"))
@@ -265,12 +273,10 @@ namespace Signalizer
 		refreshRate = cpl::Math::confineTo(rate, 10, 1000);
 		if (kstableFps.bGetValue() > 0.5)
 		{
-			juce::Timer::stopTimer();
 			juce::HighResolutionTimer::startTimer(refreshRate);
 		}
 		else
 		{
-			juce::HighResolutionTimer::stopTimer();
 			juce::Timer::startTimer(refreshRate);
 		}
 		if (currentView)
@@ -338,6 +344,39 @@ namespace Signalizer
 			{
 				// -- remove it
 				popEditor();
+			}
+		}
+		else if (c == &kstableFps)
+		{
+			if (kstableFps.bGetValue() > 0.5)
+			{
+				juce::Timer::stopTimer();
+				juce::HighResolutionTimer::startTimer(refreshRate);
+			}
+			else
+			{
+				juce::HighResolutionTimer::stopTimer();
+				juce::Timer::startTimer(refreshRate);
+			}
+		}
+		else if (c == &kvsync)
+		{
+			if (kvsync.bGetValue() > 0.5)
+			{
+				if (currentView)
+				{
+					currentView->setSwapInterval(1);
+					oglc.setContinuousRepainting(true);
+					oglc.setSwapInterval(1);
+				}
+			}
+			else
+			{
+				if (currentView)
+				{
+					currentView->setSwapInterval(-1);
+					oglc.setContinuousRepainting(false);
+				}
 			}
 		}
 		// change of refresh rate
@@ -603,6 +642,8 @@ namespace Signalizer
 			setAntialiasing();
 			
 			view->attachToOpenGL(oglc);
+			view->setSwapInterval(kvsync.bGetValue() > 0.5 ? 1 : -1);
+			//oglc.setSwapInterval(0);
 		}
 		resized();
 		oldTab = selTab;
@@ -632,7 +673,7 @@ namespace Signalizer
 		data << isEditorVisible;
 		data << selTab;
 		data << kantialias;
-
+		data << kvsync;
 		for (auto & colour : colourControls)
 		{
 			data.getKey("Colours").getKey(colour.bGetTitle()) << colour;
@@ -660,6 +701,7 @@ namespace Signalizer
 		data >> isEditorVisible;
 		data >> selTab;
 		data >> kantialias;
+		data >> kvsync;
 
 		for (auto & colour : colourControls)
 		{
@@ -720,6 +762,9 @@ namespace Signalizer
 		notifyDestruction();
 		if (oglc.isAttached())
 			oglc.detach();
+
+		juce::Timer::stopTimer();
+		juce::HighResolutionTimer::stopTimer();
 
 	}
 	void MainEditor::resizeEnd()
@@ -833,10 +878,11 @@ namespace Signalizer
 	{
 		if (currentView)
 		{
-			const MessageManagerLock mml;
+			
 
 			if (idleInBack)
 			{
+				const MessageManagerLock mml;
 				if (!hasKeyboardFocus(true))
 					focusLost(FocusChangeType::focusChangedDirectly);
 				else if (unFocused)
@@ -877,6 +923,8 @@ namespace Signalizer
 		krenderEngine.bAddPassiveChangeListener(this);
 		krefreshRate.bAddPassiveChangeListener(this);
 		ksettings.bAddPassiveChangeListener(this);
+		kstableFps.bAddPassiveChangeListener(this);
+		kvsync.bAddPassiveChangeListener(this);
 		tabs.addListener(this);
 		kloadPreset.bAddPassiveChangeListener(this);
 		ksavePreset.bAddPassiveChangeListener(this);
@@ -890,13 +938,14 @@ namespace Signalizer
 		ksettings.setImage("icons/svg/gears.svg");
 		ksync.setImage("icons/svg/sync2.svg");
 
-		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height);
+		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
+		kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kloadPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		ksavePreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		ksaveDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kloadDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
-
+		kvsync.setToggleable(true);
 		kpresetList.bSetTitle("Preset from list:");
 		kantialias.bSetTitle("Antialiasing");
 		// setup
@@ -933,6 +982,7 @@ namespace Signalizer
 
 		// descriptions
 		kstableFps.bSetDescription("Stabilize frame rate using a high precision timer.");
+		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
 		kloadPreset.bSetDescription("Load a preset from a file.");
 		ksavePreset.bSetDescription("Save the current state as a preset to a file.");

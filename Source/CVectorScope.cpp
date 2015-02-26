@@ -80,7 +80,7 @@ namespace Signalizer
 		isFrozen(false),
 		lastMousePos()
 	{
-		
+		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
@@ -674,13 +674,15 @@ namespace Signalizer
 	void CVectorScope::repaintMainContent()
 	{
 		repaint();
-		//oglc->triggerRepaint();
+		if (bufferSwapInterval < 0)
+			oglc->triggerRepaint();
 	}
 
 
 	void CVectorScope::newOpenGLContextCreated()
 	{
-
+		if (bufferSwapInterval > 0)
+			oglc->setSwapInterval(bufferSwapInterval); 
 	}
 	void CVectorScope::openGLContextClosing()
 	{
@@ -695,8 +697,9 @@ namespace Signalizer
 	}
 	void CVectorScope::detachFromOpenGL(juce::OpenGLContext & ctx)
 	{
-		ctx.setRenderer(nullptr);
 		cpl::View::detachFromOpenGL(ctx);
+		ctx.setRenderer(nullptr);
+
 	}
 
 };

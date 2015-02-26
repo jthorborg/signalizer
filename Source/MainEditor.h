@@ -110,7 +110,7 @@
 			cpl::CKnobSlider krefreshRate;
 			cpl::CComboBox krenderEngine, kpresetList, kantialias;
 			cpl::CSVGButton ksettings, kfreeze, ksync, kidle;
-			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset;
+			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync;
 			// other UI stuff
 			cpl::CTextTabBar<> tabs;
 
