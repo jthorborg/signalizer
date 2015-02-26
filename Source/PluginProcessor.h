@@ -10,7 +10,7 @@
 
 #ifndef PLUGINPROCESSOR_H_INCLUDED
 #define PLUGINPROCESSOR_H_INCLUDED
-#define JUCE_ENABLE_REPAINT_DEBUGGING 1
+//#define JUCE_ENABLE_REPAINT_DEBUGGING 1
 #include "../JuceLibraryCode/JuceHeader.h"
 
 #include <cpl/CAudioBuffer.h>

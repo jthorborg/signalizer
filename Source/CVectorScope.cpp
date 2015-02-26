@@ -183,7 +183,7 @@ namespace Signalizer
 	void CVectorScope::paint(juce::Graphics & g)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
-		auto colour = juce::Colour(kgraphColour.getColour());
+		auto colour = juce::Colour(kgraphColour.getControlColourAsColour());
 		
 		auto & matrix = ktransform.getTransform3D();
 		
@@ -242,7 +242,7 @@ namespace Signalizer
 			return;
 
 		auto cStart = cpl::Misc::ClockCounter();
-		OpenGLHelpers::clear(juce::Colour(kbackgroundColour.getColour()));
+		OpenGLHelpers::clear(kbackgroundColour.getControlColourAsColour());
 
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
@@ -253,9 +253,8 @@ namespace Signalizer
 		cpl::AudioBuffer * buffer;
 		juce::Colour colour;
 		float red = 0, blue = 0, green = 0, alpha = 0;
-		auto loadColour = [&](std::uint32_t c)
+		auto loadColour = [&](juce::Colour colour)
 		{
-			colour = juce::Colour(c);
 			red = colour.getFloatRed(); green = colour.getFloatGreen(); blue = colour.getFloatBlue(); alpha = colour.getFloatAlpha();
 			glColor4f(red, green, blue, alpha);
 		};
@@ -295,7 +294,7 @@ namespace Signalizer
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 
-		loadColour(kdrawingColour.getColour());
+		loadColour(kdrawingColour.getControlColourAsColour());
 
 		
 		//glTranslatef(xoffset + xdrag, yoffset + ydrag, numSamples / audioStream[0].sampleRate);
@@ -375,7 +374,7 @@ namespace Signalizer
 		*/
 		glEnd();
 		
-		loadColour(kskeletonColour.getColour());
+		loadColour(kskeletonColour.getControlColourAsColour());
 		glBegin(GL_LINES);
 		// draw skeleton
 		int nlines = 14;
@@ -674,7 +673,7 @@ namespace Signalizer
 	}
 	void CVectorScope::repaintMainContent()
 	{
-		//repaint();
+		repaint();
 		//oglc->triggerRepaint();
 	}
 

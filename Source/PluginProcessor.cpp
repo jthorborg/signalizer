@@ -59,21 +59,26 @@ void SignalizerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuff
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
 	std::vector<cpl::CFastMutex> locks;
+	
+	
+	int minNumberOfChannels = std::min((int)audioBuffer.size(), (int)buffer.getNumChannels());
+	
+	
 	auto buffers = buffer.getArrayOfWritePointers();
 
 	std::size_t numSamples = buffer.getNumSamples();
 
-	for (unsigned i = 0; i < audioBuffer.size(); ++i)
+	for (unsigned i = 0; i < minNumberOfChannels; ++i)
 	{
 		audioBuffer[i].raiseAudioEvent(buffers, audioBuffer.size(),  numSamples);
 		locks.emplace_back(audioBuffer[i]);
 
 	}
 
-
+	
 	for (unsigned i = 0; i < numSamples; ++i)
 	{
-		for (unsigned channel = 0; channel < audioBuffer.size(); ++channel)
+		for (unsigned channel = 0; channel < minNumberOfChannels; ++channel)
 		{
 			audioBuffer[channel].setNextSample(buffers[channel][i]);
 

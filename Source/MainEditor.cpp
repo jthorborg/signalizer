@@ -118,6 +118,7 @@ namespace Signalizer
 		kloadDefaultPreset("Load default")
 
 	{
+		setOpaque(true);
 		setMinimumSize(50, 50);
 		setBounds(0, 0, defaultLength, defaultHeight);
 		initUI();
@@ -451,7 +452,7 @@ namespace Signalizer
 			if (c == &colourControls[i])
 			{
 				// change colour and broadcast event.
-				cpl::CLookAndFeel_CPL::defaultLook().getSchemeColour(i).colour = juce::Colour(colourControls[i].getColour());
+				cpl::CLookAndFeel_CPL::defaultLook().getSchemeColour(i).colour = colourControls[i].getControlColourAsColour();
 				cpl::CLookAndFeel_CPL::defaultLook().updateColours();
 				repaint();
 			}
@@ -627,7 +628,7 @@ namespace Signalizer
 		data << ksync;
 		data << kfreeze;
 		data << kidle;
-		data << getBounds();
+		data << getBounds().withZeroOrigin();
 		data << isEditorVisible;
 		data << selTab;
 		data << kantialias;
@@ -670,7 +671,7 @@ namespace Signalizer
 		// sanitize bounds...
 		setBounds(bounds.constrainedWithin(
 			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
-		));
+		).withZeroOrigin());
 		// will take care of opening the correct view
 		tabs.setSelectedTab(selTab);
 
@@ -906,7 +907,7 @@ namespace Signalizer
 		for (unsigned i = 0; i < colourControls.size(); ++i)
 		{
 			auto & schemeColour = lnf.getSchemeColour(i);
-			colourControls[i].setColour(schemeColour.colour.getARGB());
+			colourControls[i].setControlColour(schemeColour.colour.getPixelARGB());
 			colourControls[i].bSetTitle(schemeColour.name);
 			colourControls[i].bSetDescription(schemeColour.description);
 			colourControls[i].bAddPassiveChangeListener(this);
