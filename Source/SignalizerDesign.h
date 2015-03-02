@@ -347,8 +347,10 @@
 		{
 		public:
 			CDefaultView()
-				: lastTime(cpl::Misc::TimeCounter())
+				: lastTime(cpl::Misc::TimeCounter()),
+				fractionateMoves(0)
 			{
+				setOpaque(true);
 				addAndMakeVisible(bouncer);
 				bouncer.setText("No view selected");
 				bouncer.collision();
@@ -373,8 +375,9 @@
 				if (msSinceLastCall > timerSpeed)
 				{
 					lastTime = cpl::Misc::TimeCounter();
-
-					auto numMoves = static_cast<int>(msSinceLastCall / timerSpeed);
+					auto preciseMoves = fractionateMoves + msSinceLastCall / timerSpeed;
+					auto numMoves = static_cast<int>(floor(preciseMoves));
+					fractionateMoves = preciseMoves - numMoves;
 					for (int i = 0; i < numMoves; ++i)
 					{
 						move();
@@ -473,6 +476,7 @@
 			int vx = 1, vy = 1;
 			int timerSpeed = 10;
 			long long lastTime;
+			double fractionateMoves;
 			juce::Rectangle<int> bounds;
 			Bouncer bouncer;
 		};

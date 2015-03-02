@@ -109,14 +109,17 @@ namespace Signalizer
 		idleInBack(false),
 		isEditorVisible(false),
 		selTab(0),
-		oldTab(0),
 		currentView(nullptr),
 		kstableFps("Stable FPS"),
 		kvsync("Vertical Sync"),
 		ksavePreset("Save current..."),
 		kloadPreset("Load preset..."),
 		ksaveDefaultPreset("Save as default"),
-		kloadDefaultPreset("Load default")
+		kloadDefaultPreset("Load default"),
+		kioskCoords(-1, -1),
+		firstKioskMode(false),
+		hasAnyTabBeenSelected(false),
+		viewTopCoord(0)
 
 	{
 		setOpaque(true);
@@ -294,6 +297,49 @@ namespace Signalizer
 		juce::Timer::stopTimer();
 	}
 
+	// these handle cases where our component is being throw off the kiosk mode by (possibly)
+	// another JUCE plugin.
+	void MainEditor::componentMovedOrResized(Component& component, bool wasMoved, bool wasResized)
+	{
+		if (&component == currentView->getWindow())
+		{
+			if (currentView->getIsFullScreen() && component.isOnDesktop())
+			{
+				if (juce::ComponentPeer * peer = component.getPeer())
+				{
+					if (!peer->isKioskMode())
+					{
+						exitFullscreen();
+						if (kkiosk.bGetValue() > 0.5)
+						{
+							kkiosk.bSetInternal(0.0);
+						}
+					}
+				}
+			}
+		}
+	}
+	void MainEditor::componentParentHierarchyChanged(Component& component)
+	{
+		if (&component == currentView->getWindow())
+		{
+			if (currentView->getIsFullScreen() && component.isOnDesktop())
+			{
+				if (juce::ComponentPeer * peer = component.getPeer())
+				{
+					if (!peer->isKioskMode())
+					{
+						exitFullscreen();
+						if (kkiosk.bGetValue() > 0.5)
+						{
+							kkiosk.bSetInternal(0.0);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	void MainEditor::valueChanged(const cpl::CBaseControl * c)
 	{
 		// bail out early if we aren't showing anything.
@@ -344,6 +390,46 @@ namespace Signalizer
 			{
 				// -- remove it
 				popEditor();
+			}
+		}
+		else if (c == &kkiosk)
+		{
+			if (currentView)
+			{
+				if (value > 0.5 && currentView)
+				{
+					// set a window to fullscreen.
+					if (firstKioskMode)
+					{
+						// dont fetch the current coords if we set the view the first time..
+						firstKioskMode = false;
+					}
+					else
+					{
+						if (juce::Desktop::getInstance().getKioskModeComponent() == currentView->getWindow())
+							return;
+						kioskCoords = currentView->getWindow()->getScreenPosition();
+					}
+
+					removeChildComponent(currentView->getWindow());
+					currentView->getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
+
+					currentView->getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
+
+					juce::Desktop::getInstance().setKioskModeComponent(currentView->getWindow(), false);
+					currentView->setFullScreenMode(true);
+					currentView->getWindow()->setWantsKeyboardFocus(true);
+					currentView->getWindow()->grabKeyboardFocus();
+					// add listeners.
+
+					currentView->getWindow()->addKeyListener(this);
+					currentView->getWindow()->addComponentListener(this);
+
+				}
+				else
+				{
+					exitFullscreen();
+				}
 			}
 		}
 		else if (c == &kstableFps)
@@ -577,13 +663,71 @@ namespace Signalizer
 		return (int)cpl::distribute<RenderTypes>(krenderEngine.bGetValue());
 	}
 
+	void MainEditor::suspendView(cpl::CView * view)
+	{
+		if (view)
+		{
+			if (oglc.isAttached())
+			{
+				view->detachFromOpenGL(oglc);
+				oglc.detach();
+			}
+			if (kkiosk.bGetValue() > 0.5 && juce::Desktop::getInstance().getKioskModeComponent() == view->getWindow())
+			{
+				exitFullscreen();
+			}
+			removeChildComponent(currentView->getWindow());
+			view->suspend();
+		}
+
+	}
+
+	void MainEditor::initiateView(cpl::CView * view)
+	{
+		if (view)
+		{
+			if (view != currentView)
+			{
+				// trying to add the same window twice without suspending it?
+				jassertfalse;
+			}
+			view->resume();
+			currentView = view;
+			addAndMakeVisible(view->getWindow());
+
+			if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
+			{
+				// init all openGL stuff.
+				setAntialiasing();
+				view->attachToOpenGL(oglc);
+				view->setSwapInterval(kvsync.bGetValue() > 0.5 ? 1 : -1);
+			}
+			if (kkiosk.bGetValue() > 0.5)
+			{
+				if (firstKioskMode)
+					enterFullscreenIfNeeded(kioskCoords);
+				else
+					enterFullscreenIfNeeded();
+			}
+			resized();
+
+		}
+		else
+		{
+			// adding non-existant window?
+			jassertfalse;
+		}
+	}
+
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
-		if (ksettings.getToggleState())
-			ksettings.setToggleState(false, NotificationType::sendNotification);
+
+		hasAnyTabBeenSelected = true;
+		// these lines disable the global editor if you switch view.
+		//if (ksettings.getToggleState())
+		//	ksettings.setToggleState(false, NotificationType::sendNotification);
 
 		// see if the new view exists.
-
 		auto const & mappedView = Signalizer::ViewIndexToMap[index];
 		auto it = views.find(mappedView);
 
@@ -622,39 +766,19 @@ namespace Signalizer
 		// deattach old view
 		if (currentView)
 		{
-			if (oglc.isAttached())
-			{
-				currentView->detachFromOpenGL(oglc);
-				oglc.detach();
-			}
-			removeChildComponent(currentView->getWindow());
-			currentView->suspend();
+			suspendView(currentView);
+			currentView = nullptr;
 		}
 
-		view->resume();
 		currentView = view;
-		addAndMakeVisible(view);
-
-		if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
+		if (currentView)
 		{
-			// init all openGL stuff.
-			
-			setAntialiasing();
-			
-			view->attachToOpenGL(oglc);
-			view->setSwapInterval(kvsync.bGetValue() > 0.5 ? 1 : -1);
-			//oglc.setSwapInterval(0);
+			initiateView(currentView);
 		}
-		resized();
-		oldTab = selTab;
-
+		
 		selTab = index;
 	}
 
-	void MainEditor::restoreTab()
-	{
-		tabSelected(&tabs, oldTab);
-	}
 
 	void MainEditor::addTab(const std::string & name)
 	{
@@ -672,8 +796,14 @@ namespace Signalizer
 		data << getBounds().withZeroOrigin();
 		data << isEditorVisible;
 		data << selTab;
+		data << kioskCoords;
+		data << hasAnyTabBeenSelected;
+		data << kkiosk;
+
+		// stuff that gets set the last.
 		data << kantialias;
 		data << kvsync;
+
 		for (auto & colour : colourControls)
 		{
 			data.getKey("Colours").getKey(colour.bGetTitle()) << colour;
@@ -684,6 +814,56 @@ namespace Signalizer
 			data.getKey("Serialized Views").getKey(viewPair.first) << viewPair.second.get();
 			//viewPair.second->save(data.getKey("Serialized Views").getKey(viewPair.first), version);
 
+	}
+
+	void MainEditor::enterFullscreenIfNeeded(juce::Point<int> where)
+	{
+		// full screen set?
+		if (kkiosk.bGetValue() > 0.5)
+		{
+
+			// avoid storing the current window position into kioskCoords
+			// the first time we spawn the view.
+			firstKioskMode = true;
+			currentView->getWindow()->setTopLeftPosition(where.x, where.y);
+			kkiosk.bForceEvent();
+		}
+	}
+
+	void MainEditor::enterFullscreenIfNeeded()
+	{
+		// full screen set?
+		if (currentView && !currentView->getIsFullScreen() && kkiosk.bGetValue() > 0.5)
+		{
+			// avoid storing the current window position into kioskCoords
+			// the first time we spawn the view.
+			firstKioskMode = false;
+			kkiosk.bForceEvent();
+		}
+	}
+
+	void MainEditor::exitFullscreen()
+	{
+		juce::Desktop & instance = juce::Desktop::getInstance();
+		if (currentView && currentView->getIsFullScreen() && !this->isParentOf(currentView->getWindow()))
+		{
+			currentView->getWindow()->removeKeyListener(this);
+			currentView->getWindow()->removeComponentListener(this);
+			if (currentView->getWindow() == instance.getKioskModeComponent())
+			{
+				juce::Desktop::getInstance().setKioskModeComponent(nullptr);
+			}
+
+			currentView->getWindow()->setTopLeftPosition(0, 0);
+			addChildComponent(currentView->getWindow());
+			currentView->setFullScreenMode(false);
+			resized();
+
+		}
+		else
+		{
+			jassertfalse;
+		}
 	}
 
 	void MainEditor::load(cpl::CSerializer & data, long long version)
@@ -700,9 +880,12 @@ namespace Signalizer
 		data >> bounds;
 		data >> isEditorVisible;
 		data >> selTab;
-		data >> kantialias;
-		data >> kvsync;
-
+		data >> kioskCoords;
+		data >> hasAnyTabBeenSelected;
+		// kind of a hack, but we don't really want to enter kiosk mode immediately.
+		kkiosk.bRemovePassiveChangeListener(this);
+		data >> kkiosk;
+		kkiosk.bAddPassiveChangeListener(this);
 		for (auto & colour : colourControls)
 		{
 			auto & content = viewSettings.getKey("Colours").getKey(colour.bGetTitle());
@@ -715,7 +898,25 @@ namespace Signalizer
 			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
 		).withZeroOrigin());
 		// will take care of opening the correct view
-		tabs.setSelectedTab(selTab);
+		if (hasAnyTabBeenSelected)
+		{
+			// settings this will cause setSelectedTab to 
+			// enter fullscreen at kioskCoords
+			if (kkiosk.bGetValue() > 0.5)
+				firstKioskMode = true;
+			tabs.setSelectedTab(selTab);
+		}
+		else
+		{
+			// if not, make sure we entered full screen if needed.
+			enterFullscreenIfNeeded(kioskCoords);
+		}
+
+
+		// set this kind of stuff after view is initiated. note, these cause events to be fired!
+		data >> kantialias;
+		data >> kvsync;
+
 
 	}
 
@@ -756,13 +957,25 @@ namespace Signalizer
 		return false;
 	}
 
+	bool MainEditor::keyPressed(const KeyPress &key, Component *originatingComponent)
+	{
+		if (currentView && (currentView->getWindow() == originatingComponent))
+		{
+			if (key.isKeyCode(key.escapeKey) && kkiosk.bGetValue() > 0.5)
+			{
+				exitFullscreen();
 
+				kkiosk.bSetInternal(0.0);
+				return true;
+			}
+		}
+		return false;
+	}
 	MainEditor::~MainEditor()
 	{
 		notifyDestruction();
-		if (oglc.isAttached())
-			oglc.detach();
-
+		suspendView(currentView);
+		exitFullscreen();
 		juce::Timer::stopTimer();
 		juce::HighResolutionTimer::stopTimer();
 
@@ -777,9 +990,6 @@ namespace Signalizer
 	{
 		suspend();
 	}
-
-
-
 
 	void MainEditor::resized()
 	{
@@ -801,6 +1011,8 @@ namespace Signalizer
 		ksync.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kidle.setBounds(leftBorder, 1, buttonSize, buttonSize);
+		leftBorder -= elementSize - elementBorder;
+		kkiosk.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		tabs.setBounds(ksettings.getBounds().getRight() + elementBorder, 0, 
 			getWidth() - (ksettings.getWidth() + getWidth() - leftBorder + elementBorder * 3),
 			elementSize - elementBorder);
@@ -831,12 +1043,16 @@ namespace Signalizer
 				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize().second));
 			}
 			editor->setBounds(elementBorder, tabs.getBottom(), getWidth() - elementBorder * 2, maxHeight);
-
+			viewTopCoord = tabs.getHeight() + editor->getHeight() + elementBorder;
 		}
-		if (currentView)
+		else
 		{
-			auto y = tabs.getHeight() + (editor ? editor->getHeight() : 0) + elementBorder;
-			currentView->getWindow()->setBounds(0, y, getWidth(), getHeight() - y);
+			viewTopCoord = tabs.getHeight() + elementBorder;
+		}
+		// full screen components resize themselves.
+		if (currentView && !currentView->getIsFullScreen())
+		{
+			currentView->getWindow()->setBounds(0, viewTopCoord, getWidth(), getHeight() - viewTopCoord);
 		}
 
 		//rightButtonOutlines.addRectangle(juce::Rectangle<float>(0.5f, 0.5f, getWidth() - 1.5f, editor ? editor->getBottom() : elementSize - 1.5f));
@@ -899,19 +1115,18 @@ namespace Signalizer
 	//==============================================================================
 	void MainEditor::paint(Graphics& g)
 	{
-		//if (::IsDebuggerPresent())
-		//	DebugBreak();
-		g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
-		g.fillAll();
+		// make sure to paint everything completely opaque.
+		g.setColour(cpl::GetColour(cpl::ColourEntry::separator).withAlpha(1.0f));
+		g.fillRect(getBounds().withZeroOrigin().withBottom(viewTopCoord));
+		if (kkiosk.bGetValue() > 0.5)
+		{
+			g.setColour(cpl::GetColour(cpl::ColourEntry::deactivated).withAlpha(1.0f));
+			g.fillRect(getBounds().withZeroOrigin().withTop(viewTopCoord));
+			g.setColour(cpl::GetColour(cpl::ColourEntry::auxfont));
+			g.drawText("View is fullscreen", getBounds().withZeroOrigin().withTop(viewTopCoord), juce::Justification::centred, true);
+		}
 	}
 
-	void MainEditor::paintOverChildren(Graphics & g)
-	{
-		juce::PathStrokeType pst(1, PathStrokeType::JointStyle::beveled);
-		g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
-		//g.strokePath(rightButtonOutlines, pst);
-
-	}
 
 	void MainEditor::initUI()
 	{
@@ -919,6 +1134,7 @@ namespace Signalizer
 		// add listeners
 		krefreshRate.bAddFormatter(this);
 		kfreeze.bAddPassiveChangeListener(this);
+		kkiosk.bAddPassiveChangeListener(this);
 		kidle.bAddPassiveChangeListener(this);
 		krenderEngine.bAddPassiveChangeListener(this);
 		krefreshRate.bAddPassiveChangeListener(this);
@@ -937,7 +1153,7 @@ namespace Signalizer
 		kidle.setImage("icons/svg/idle.svg");
 		ksettings.setImage("icons/svg/gears.svg");
 		ksync.setImage("icons/svg/sync2.svg");
-
+		kkiosk.setImage("icons/svg/fullscreen.svg");
 		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kloadPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
@@ -967,6 +1183,7 @@ namespace Signalizer
 		addAndMakeVisible(ksettings);
 		addAndMakeVisible(kfreeze);
 		addAndMakeVisible(ksync);
+		addAndMakeVisible(kkiosk);
 		addAndMakeVisible(tabs);
 		addAndMakeVisible(kidle);
 		tabs.setOrientation(tabs.Horizontal);
@@ -991,6 +1208,7 @@ namespace Signalizer
 		kpresetList.bSetDescription("Load a preset from the preset directory...");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
 		ksync.bSetDescription("Synchronizes audio streams with view drawing; may incur buffer underruns for low settings.");
+		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");

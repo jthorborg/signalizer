@@ -2403,7 +2403,7 @@ private:
             //==============================================================================
             case WM_PAINT:
                 handlePaintMessage();
-                return 0;
+				return DefWindowProcW(h, message, wParam, lParam);
 
             case WM_NCPAINT:
                 if (wParam != 1) // (1 = a repaint of the entire NC region)
@@ -2520,8 +2520,8 @@ private:
                 // so this forces an update when the app is brought to the front
                 if (wParam != FALSE)
                     juce_repeatLastProcessPriority();
-                else
-                    Desktop::getInstance().setKioskModeComponent (nullptr); // turn kiosk mode off if we lose focus
+                //else
+                //    Desktop::getInstance().setKioskModeComponent (nullptr); // turn kiosk mode off if we lose focus
 
                 juce_checkCurrentlyFocusedTopLevelWindow();
                 modifiersAtLastCallback = -1;
@@ -3276,13 +3276,26 @@ String SystemClipboard::getTextFromClipboard()
 }
 
 //==============================================================================
-void Desktop::setKioskComponent (Component* kioskModeComponent, bool enableOrDisable, bool /*allowMenusAndBars*/)
+void Desktop::setKioskComponent(Component* kioskModeComponent, bool enableOrDisable, bool /*allowMenusAndBars*/)
 {
-    if (TopLevelWindow* tlw = dynamic_cast<TopLevelWindow*> (kioskModeComponent))
-        tlw->setUsingNativeTitleBar (! enableOrDisable);
+	if (TopLevelWindow* tlw = dynamic_cast<TopLevelWindow*> (kioskModeComponent))
+		tlw->setUsingNativeTitleBar(!enableOrDisable);
 
-    if (enableOrDisable)
-        kioskModeComponent->setBounds (getDisplays().getMainDisplay().totalArea);
+	if (enableOrDisable)
+	{	// fullscreen kiosk in current display, instead of main display, always.
+
+		RECT windowPos = { 0 };
+		HWND child = static_cast<HWND>(kioskModeComponent->getWindowHandle());
+
+
+		if (GetWindowRect(child, &windowPos))
+		{
+				kioskModeComponent->setBounds(
+					getDisplays().getDisplayContaining(juce::Point<int>(windowPos.left, windowPos.top)).totalArea);
+
+		}
+
+	}
 }
 
 //==============================================================================

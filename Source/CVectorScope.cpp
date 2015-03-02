@@ -646,7 +646,6 @@ namespace Signalizer
 	void CVectorScope::onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject)
 	{
 		// hmmm.....
-		jassertfalse;
 	}
 	void CVectorScope::valueChanged(const cpl::CBaseControl * ctrl)
 	{

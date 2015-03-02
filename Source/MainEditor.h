@@ -34,7 +34,9 @@
 			private		cpl::CBaseControl::ValueFormatter,
 			public		cpl::CTopView, 
 			protected	cpl::CTextTabBar<>::CTabBarListener,
-			private		juce::ComponentBoundsConstrainer
+			private		juce::ComponentBoundsConstrainer,
+			protected	juce::KeyListener,
+			public		juce::ComponentListener
 		{
 
 		public:
@@ -42,26 +44,34 @@
 			MainEditor(SignalizerAudioProcessor * e);
 			~MainEditor();
 
-			// overrides
+			// CView overrides
 			juce::Component * getWindow() override { return this; }
-			void valueChanged(const cpl::CBaseControl * cbc) override;
 			void load(cpl::CSerializer & se, long long int version) override;
 			void save(cpl::CSerializer & se, long long int version) override;
-			void paint(Graphics& g) override;
-			void paintOverChildren(Graphics & g) override;
-			void resized() override;
-			void timerCallback() override;
-			void hiResTimerCallback() override;
-			void resizeEnd() override;
-			void resizeStart() override;
-			void focusGained(FocusChangeType cause) override;
-			void focusLost(FocusChangeType cause) override;
 			std::unique_ptr<juce::Component> createEditor() override;
 			void panelOpened(cpl::CTextTabBar<> * obj) override;
 			void panelClosed(cpl::CTextTabBar<> * obj) override;
 			void tabSelected(cpl::CTextTabBar<> * obj, int index) override;
 			void suspend() override;
 			void resume() override;
+
+			// Components and listeners.
+			virtual bool keyPressed(const KeyPress &key, Component *originatingComponent) override;
+			void paint(Graphics& g) override;
+			void resized() override;
+			void resizeEnd() override;
+			void resizeStart() override;
+			void focusGained(FocusChangeType cause) override;
+			void focusLost(FocusChangeType cause) override;
+
+			void componentMovedOrResized(Component& component,
+				bool wasMoved,
+				bool wasResized) override;
+			void componentParentHierarchyChanged(Component& component) override;
+
+			// timers
+			void timerCallback() override;
+			void hiResTimerCallback() override;
 
 			// functionality
 			void setRefreshRate(int rateInMs);
@@ -70,11 +80,13 @@
 			void setAntialiasing(int multiSamplingLevel = -1);
 			// doesn't actually change anything - only updates the selected value in the preset list.
 			void setSelectedPreset(juce::File newPreset);
+
 		protected:
+			// cpl::CBaseControl interface
+			void valueChanged(const cpl::CBaseControl * cbc) override;
 			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val) override;
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & valString, cpl::iCtrlPrec_t val) override;
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
-
 		private:
 
 			// the z-ordering system ensures this is basically a FIFO system
@@ -83,41 +95,49 @@
 			juce::Component * getTopEditor() const;
 			void popEditor();
 			void clearEditors();
-
 			cpl::CView * viewFromIndex(std::size_t index);
 			void addTab(const std::string & name);
 			void restoreTab();
-
 			int getRenderEngine();
-
 			void initUI();
 
-			cpl::iCtrlPrec_t oldRefreshRate;
-			bool unFocused, idleInBack, isEditorVisible;
-			cpl::CSerializer viewSettings;
+			void suspendView(cpl::CView * view);
+			void initiateView(cpl::CView * view);
+			void enterFullscreenIfNeeded(juce::Point<int> where);
+			void enterFullscreenIfNeeded();
+			void exitFullscreen();
+
+
+			// Relations
 			SignalizerAudioProcessor * engine;
-			ResizableCornerComponent rcc;
-			cpl::CView * currentView;
-			juce::Path rightButtonOutlines;
-			int refreshRate;
-			std::size_t selTab, oldTab;
-			std::map<std::string, std::unique_ptr<cpl::CSubView>> views;
-			std::stack<std::unique_ptr<juce::Component>> editorStack;
 
-			juce::OpenGLContext oglc;
+			// Constant UI
+			cpl::CTextTabBar<> tabs;
+			cpl::CSVGButton ksettings, kfreeze, ksync, kidle, kkiosk;
 
-			// controls
+			// Editor controls
+			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync;
 			cpl::CKnobSlider krefreshRate;
 			cpl::CComboBox krenderEngine, kpresetList, kantialias;
-			cpl::CSVGButton ksettings, kfreeze, ksync, kidle;
-			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync;
-			// other UI stuff
-			cpl::CTextTabBar<> tabs;
-
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours>  colourControls;
 
-			// default view
+			// state variables.
+			int refreshRate;
+			int viewTopCoord;
+			std::size_t selTab;
+			cpl::iCtrlPrec_t oldRefreshRate;
+			bool unFocused, idleInBack, isEditorVisible, firstKioskMode, hasAnyTabBeenSelected;
+			juce::Point<int> kioskCoords;
+
+			// View related data
 			Signalizer::CDefaultView defaultView;
+			juce::OpenGLContext oglc;
+			std::map<std::string, std::unique_ptr<cpl::CSubView>> views;
+			std::stack<std::unique_ptr<juce::Component>> editorStack;
+			cpl::CView * currentView;
+			ResizableCornerComponent rcc;
+			cpl::CSerializer viewSettings;
+
 		};
 	};
 

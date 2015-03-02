@@ -90,6 +90,7 @@ private:
 	cpl::CSerializer serializedData;
 	Signalizer::MainEditor * editor;
 	cpl::AudioBuffer audioBuffer;
+	bool hasDefaultPresetBeenLoaded;
 };
 
 #endif  // PLUGINPROCESSOR_H_INCLUDED
