@@ -453,7 +453,6 @@ namespace Signalizer
 				{
 					currentView->setSwapInterval(1);
 					oglc.setContinuousRepainting(true);
-					oglc.setSwapInterval(1);
 				}
 			}
 			else
@@ -646,7 +645,7 @@ namespace Signalizer
 					reattach = true;
 				}
 			}
-			
+			oglc.setMultisamplingEnabled(true);
 			oglc.setPixelFormat(fmt);
 			
 			if(reattach)
@@ -654,6 +653,10 @@ namespace Signalizer
 				currentView->attachToOpenGL(oglc);
 			}
 			
+		}
+		else
+		{
+			oglc.setMultisamplingEnabled(false);
 		}
 		
 	}
@@ -677,6 +680,7 @@ namespace Signalizer
 				exitFullscreen();
 			}
 			removeChildComponent(currentView->getWindow());
+			view->getWindow()->removeMouseListener(this);
 			view->suspend();
 		}
 
@@ -710,7 +714,7 @@ namespace Signalizer
 					enterFullscreenIfNeeded();
 			}
 			resized();
-
+			view->getWindow()->addMouseListener(this, true);
 		}
 		else
 		{
@@ -719,6 +723,34 @@ namespace Signalizer
 		}
 	}
 
+	void MainEditor::mouseUp(const MouseEvent& event)
+	{
+		if (currentView && event.eventComponent == currentView->getWindow())
+		{
+			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
+			{
+				kfreeze.setToggleState(!kfreeze.getToggleState(), juce::NotificationType::sendNotification);
+			}
+		}
+		else
+		{
+			AudioProcessorEditor::mouseUp(event);
+		}
+	}
+	void  MainEditor::mouseDown(const MouseEvent& event)
+	{
+		if (currentView && event.eventComponent == currentView->getWindow())
+		{
+			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
+			{
+				kfreeze.setToggleState(!kfreeze.getToggleState(), juce::NotificationType::sendNotification);
+			}
+		}
+		else
+		{
+			AudioProcessorEditor::mouseUp(event);
+		}
+	}
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
 

@@ -4,6 +4,8 @@
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include "SignalizerDesign.h"
+#include <cpl/rendering/OpenGLRasterizers.h>
+
 
 namespace Signalizer
 {
@@ -33,6 +35,7 @@ namespace Signalizer
 			{
 				section->addControl(&kgain, 0);
 				section->addControl(&kwindow, 1);
+				section->addControl(&krotation, 0);
 				page->addSection(section, "Utility");
 			}
 		}
@@ -52,8 +55,6 @@ namespace Signalizer
 				section->addControl(&kgraphColour, 0);
 				section->addControl(&kbackgroundColour, 0);
 				section->addControl(&kskeletonColour, 0);
-				section->addControl(&krotation, 1);
-				section->addControl(&kzrotation, 1);
 				section->addControl(&kdrawGraph, 1);
 				page->addSection(section, "Look");
 			}
@@ -65,15 +66,13 @@ namespace Signalizer
 	CVectorScope::CVectorScope(cpl::AudioBuffer & data)
 	:
 		audioStream(data),
-		windowSize(1000),
 		kwindow("Window Size", cpl::CKnobSlider::ControlType::ms),
-		krotation("Matrix Rotation"),
-		kgain("Gain"),
+		krotation("Wave z-rotation"),
+		kgain("Input Gain"),
 		kgraphColour("Graph colour"),
 		kbackgroundColour("Background colour"),
 		kdrawingColour("Drawing colour"),
 		kskeletonColour("Skeleton colour"),
-		kzrotation("z-plane"),
 		processorSpeed(0), 
 		audioStreamCopy(2),
 		lastFrameTick(0), 
@@ -114,10 +113,7 @@ namespace Signalizer
 		kwindow.bAddPassiveChangeListener(this);
 		kwindow.bAddFormatter(this);
 		kgain.bAddFormatter(this);
-		krotation.bAddPassiveChangeListener(this);
 		krotation.bAddFormatter(this);
-		kzrotation.bAddFormatter(this);
-		ktransform.bAddPassiveChangeListener(this);
 		// buttons
 		kantiAlias.bSetTitle("Antialias lines");
 		kantiAlias.setToggleable(true);
@@ -129,9 +125,11 @@ namespace Signalizer
 		kdrawGraph.setToggleable(true);
 		// descriptions.
 		kwindow.bSetDescription("The size of the displayed time window.");
-		kgain.bSetDescription("How much the input is scaled (or the input gain), effectively zooms the view.");
-		krotation.bSetDescription("The amount of degrees to rotate the x/y points around the origin.");
-		kantiAlias.bSetDescription("Antialiases lines (if set). May slow down rendering.");
+		kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
+							 " - additional transform that only affects the waveform, and not the graph");
+		krotation.bSetDescription("The amount of degrees to rotate the waveform around the origin (z-rotation)"\
+			" - additional transform that only affects the waveform, and not the graph.");
+		kantiAlias.bSetDescription("Antialiases lines (if set - see global settings for amount). May slow down rendering.");
 		kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
 		kdrawLines.bSetDescription("If set, interconnect samples linearly.");
 		kdrawingColour.bSetDescription("The main colour to paint with.");
@@ -246,17 +244,16 @@ namespace Signalizer
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
-
+		const float gain = getGain();
 		const std::size_t numSamples = audioStream[0].size - 1;
+		float sleft(0.0f), sright(0.0f);
+		#ifdef SWAP_RIGHT
+			const float rightSignSwap = -1.0f;
+		#else
+			const float rightSignSwap = 1.0f;
+		#endif
 
 		cpl::AudioBuffer * buffer;
-		juce::Colour colour;
-		float red = 0, blue = 0, green = 0, alpha = 0;
-		auto loadColour = [&](juce::Colour colour)
-		{
-			red = colour.getFloatRed(); green = colour.getFloatGreen(); blue = colour.getFloatBlue(); alpha = colour.getFloatAlpha();
-			glColor4f(red, green, blue, alpha);
-		};
 
 		if (isFrozen)
 		{
@@ -286,150 +283,118 @@ namespace Signalizer
 		/*	http://www.juce.com/forum/topic/how-do-i-draw-text-over-openglcomponent?page=1
 			Set up rendering
 		*/
-		float xn, yn, sleft, sright;
-		float gain = getGain();
-		xn = yn = sleft = sright = 0.0f;
-		float sampleFade = 1.0 / numSamples;
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 
-		loadColour(kdrawingColour.getControlColourAsColour());
 
-		
-		//glTranslatef(xoffset + xdrag, yoffset + ydrag, numSamples / audioStream[0].sampleRate);
+		cpl::OpenGLEngine::COpenGLStack openGLStack;
+		// set up openGL
+		openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+		openGLStack.loadIdentityMatrix();
+		openGLStack.applyTransform3D(ktransform.getTransform3D());
+		antiAlias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
-		glLoadIdentity();
-		glMatrixMode(GL_PROJECTION);
-		auto & matrix = ktransform.getTransform3D();
-		matrix.applyToOpenGL();
-		glFrustum(-1, 1, -1, 1, 0, 5);
-		//antiAlias ? glShadeModel(GL_SMOOTH) : glShadeModel(GL_FLAT);
-		//antiAlias ? glEnable(GL_LINE_SMOOTH) : glDisable((GL_LINE_SMOOTH));
-		//antiAlias ? glEnable(GL_MULTISAMPLE) : glDisable((GL_MULTISAMPLE));
-		fillPath ? glBegin(GL_LINE_STRIP) : glBegin(GL_POINTS);
-
-		cpl::CAudioBuffer::CChannelBuffer * leftChannel, *rightChannel;
+		cpl::CAudioBuffer::CChannelBuffer * leftChannel, * rightChannel;
 		leftChannel = &((*buffer)[0]);
 		rightChannel = &((*buffer)[1]);
-		float fade = 0;
-		float z = kzrotation.bGetValue();
-		
-		if (fadeHistory)
+
+		// add a stack scope for transformations.
 		{
-			for (std::size_t i = 0; i < numSamples; ++i)
+			cpl::OpenGLEngine::MatrixModification matrixMod;
+			// apply the custom rotation to the waveform
+			matrixMod.rotate(krotation.bGetValue() * 360, 0, 0, 1);
+			// and apply the gain:
+			matrixMod.scale(gain, gain, 1);
+
+			float sampleFade = 1.0 / numSamples;
+
+			if (!fadeHistory)
 			{
-				sleft = leftChannel->singleCheckAccess(i);
-				#ifdef SWAP_RIGHT
-					sright = -rightChannel->singleCheckAccess(i);
-				#else
-					sright = rightChannel->singleCheckAccess(i);
-				#endif
-				//fade = i * sampleFade * 0.5f;
-				//glColor3f(fade * red, fade * green, fade * blue);
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+				drawer.addColour(kdrawingColour.getControlColourAsColour());
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					// use glDrawArrays instead here
+					sleft = leftChannel->singleCheckAccess(i);
+					sright = rightSignSwap * rightChannel->singleCheckAccess(i);
 
-				xn = sleft * cosrol - sright * sinrol;
-				yn = sleft * sinrol + sright * cosrol;
-				glVertex3f(xn * gain, yn * gain, i * sampleFade - 1);
-				//glVertex2d(xn * gain, yn * gain);
-
+					drawer.addVertex(sleft, sright, i * sampleFade - 1);
+				}
 			}
-			//if (numSamples & 0x1) // we need to supply an even pair of vertices when drawing lines
-			//	glVertex2d(xn, yn);
-		}
-		else
-		{
-			for (std::size_t i = 0; i < numSamples; ++i)
+			else
 			{
-				// use glDrawArrays instead here
-				sleft = leftChannel->singleCheckAccess(i);
-				#ifdef SWAP_RIGHT
-					sright = -rightChannel->singleCheckAccess(i);
-				#else
-					sright = rightChannel->singleCheckAccess(i);
-				#endif
-				// todo: check here for 0, 0 coordinates
-				xn = sleft * cosrol - sright * sinrol;
-				yn = sleft * sinrol + sright * cosrol;
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+				
+				auto jcolour = kdrawingColour.getControlColourAsColour();
+				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
+					green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
 
-				glVertex2f(xn * gain, yn * gain);
+				float fade = 0;
 
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					sleft = leftChannel->singleCheckAccess(i);
+					sright = rightSignSwap * rightChannel->singleCheckAccess(i);
+
+					fade = i * sampleFade;
+
+					drawer.addColour(fade * red, fade * green, fade * blue, alpha);
+					drawer.addVertex(sleft, sright, i * sampleFade - 1);
+				
+				}
 			}
 		}
-		glEnd();
-		glBegin(GL_LINE_STRIP);
 
-		glColor3f(1.f, 1.f, 1.f);
-		
-		glVertex3f(0.0f, 0.0f, 0.0f);  glVertex3f(-1.0f, 0.0f, 0.0f);
-		glVertex3f(1.0f, 0.0f, 0.0f); glVertex3f(0.0f, 0.0f, 0.0f);
-		glVertex3f(0.0f, 0.0f, 0.0f);	glVertex3f(0.0f, -1.0f, 0.0f);
-		glVertex3f(0.0f, 1.0f, 0.0f); glVertex3f(0.0f, 0.0f, 0.0f);
-		
-		glColor3f(1.0f, 0.0f, 0.0f);
-		glVertex3f(0.0f, 0.0f, 0.0f); glVertex3f(0.0f, 0.0f, -1.0f);
-		glVertex3f(0.0f, 0.0f, 0.0f); //glVertex3f(0.0f, 0.0f, 0.0f);
-		/*
-			Stop rendering
-		*/
-		glEnd();
-		
-		loadColour(kskeletonColour.getControlColourAsColour());
-		glBegin(GL_LINES);
-		// draw skeleton
-		int nlines = 14;
-		auto rel = 1.0f / nlines;
-
-		// front
-		for (int i = 0; i <= nlines; ++i)
+		// Draw basic graph
 		{
-			glVertex3f(i * rel * 2 - 1, -1.f, 0.0f);
-			glVertex3f(i * rel * 2 - 1, 1.f, 0.0f);
-			//glVertex3f((i + 1) * rel * 2 - 1, 1.f, 0.0f);
+			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+
+			// front white x, y axii
+			drawer.addColour(1.0f, 1.0f, 1.0f);
+			drawer.addVertex(-1.0f, 0.0f, 0.0f);
+			drawer.addVertex(1.0f, 0.0f, 0.0f);
+			drawer.addVertex(0.0f, 1.0f, 0.0f);
+			drawer.addVertex(0.0f, -1.0f, 0.0f);
+
+			// red Z axis
+			drawer.addColour(1.0f, 0.0f, 0.0f);
+			drawer.addVertex(0.0f, 0.0f, 0.0f);
+			drawer.addVertex(0.0f, 0.0f, -1.0f);
+
 		}
 
-		for (int i = 0; i <= nlines; ++i)
+		// draw skeleton graph
 		{
-			glVertex3f(-1.0f, i * rel * 2 - 1, 0.0f);
-			glVertex3f(1.0f, i * rel * 2 - 1, 0.0f);
-			//glVertex3f(1.0f, (i + 1) * rel * 2 - 1, 0.0f);
+			cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
+			drawer.addColour(kskeletonColour.getControlColourAsColour());
+			int nlines = 14;
+			auto rel = 1.0f / nlines;
+
+			// front vertival
+			for (int i = 0; i <= nlines; ++i)
+			{
+				drawer.addVertex(i * rel * 2 - 1, -1.f, 0.0f);
+				drawer.addVertex(i * rel * 2 - 1, 1.f, 0.0f);
+			}
+			// front horizontal
+			for (int i = 0; i <= nlines; ++i)
+			{
+				drawer.addVertex(-1.0f, i * rel * 2 - 1, 0.0f);
+				drawer.addVertex(1.0f, i * rel * 2 - 1, 0.0f);
+			}
+			// back vertical
+			for (int i = 0; i <= nlines; ++i)
+			{
+				drawer.addVertex(i * rel * 2 - 1, -1.f, -1.0f);
+				drawer.addVertex(i * rel * 2 - 1, 1.f, -1.0f);
+			}
+			// back horizontal
+			for (int i = 0; i <= nlines; ++i)
+			{
+				drawer.addVertex(-1.0f, i * rel * 2 - 1, -1.0f);
+				drawer.addVertex(1.0f, i * rel * 2 - 1, -1.0f);
+			}
 		}
-		// back
-		for (int i = 0; i <= nlines; ++i)
-		{
-			glVertex3f(i * rel * 2 - 1, -1.f, -1.0f);
-			glVertex3f(i * rel * 2 - 1, 1.f, -1.0f);
-			//glVertex3f((i + 1) * rel * 2 - 1, 1.f, -1.0f);
-		}
-
-		for (int i = 0; i <= nlines; ++i)
-		{
-			glVertex3f(-1.0f, i * rel * 2 - 1, -1.0f);
-			glVertex3f(1.0f, i * rel * 2 - 1, -1.0f);
-			//glVertex3f(1.0f, (i + 1) * rel * 2 - 1, -1.0f);
-		}
-
-		glEnd();
-
-		//glScalef(-0.25f, -0.25f, -0.25f);
-		//glBegin(GL_LINE_STRIP);
-
-
-		// face
-		/*glVertex3f(0, 0, 0); glVertex3f(0, 0, 1); glVertex3f(0, 0, 0);
-		glVertex3f(1, 0, 0); glVertex3f(1, 0, 1); glVertex3f(1, 0, 0);
-		glVertex3f(1, 1, 0); glVertex3f(1, 1, 1); glVertex3f(1, 1, 0);
-		glVertex3f(0, 1, 0); glVertex3f(0, 1, 1); glVertex3f(0, 1, 0);
-		glVertex3f(0, 0, 0); glVertex3f(0, 0, 1); glVertex3f(0, 0, 0);
-
-		glVertex3f(0, 0, 1);
-		glVertex3f(1, 0, 1);
-		glVertex3f(1, 1, 1);
-		glVertex3f(0, 1, 1);
-		glVertex3f(0, 0, 1);*/
-		cpl::GraphicsND::Transform3D<float>::revert();
 
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
-
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
 		lastFrameTick = tickNow;
@@ -515,22 +480,12 @@ namespace Signalizer
 		auto deltaDifference = event.position - lastMousePos;
 		if (event.mods.isCtrlDown())
 		{
-			
 			auto deltaDifference = event.position - lastMousePos;
-			
 			matrix.rotation.y = std::fmod(deltaDifference.x * 0.3f + matrix.rotation.y, 360.f);
-			
 			matrix.rotation.x = std::fmod(deltaDifference.y * 0.3f + matrix.rotation.x, 360.f);
-			//matrix.rotation.x = quat.vector.x * 180;
-			//matrix.rotation.y = quat.vector.y * 180;
-			//matrix.rotation.z = quat.vector.z * 90;
-
-
 		}
 		else
 		{
-			// needed to balance opengl coordinate system
-			//ydrag = (-event.getDistanceFromDragStartY() / 500.0f) * factor;
 			matrix.position.x += deltaDifference.x / 500.f;
 			matrix.position.y += factor * -deltaDifference.y / 500.f;
 		}
@@ -541,17 +496,10 @@ namespace Signalizer
 	}
 	void CVectorScope::mouseUp(const MouseEvent& event)
 	{
-		if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
-		{
-			unfreeze();
-		}
+
 	}
 	void CVectorScope::mouseDown(const MouseEvent& event)
 	{
-		if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
-		{
-			freeze();
-		}
 		lastMousePos = event.position;
 	}
 
@@ -571,7 +519,7 @@ namespace Signalizer
 			buffer = buf;
 			return true;
 		}
-		else if (ctrl == &krotation || ctrl == &kzrotation)
+		else if (ctrl == &krotation)
 		{
 			sprintf(buf, "%.2f degs", value * 360);
 			buffer = buf;
@@ -630,7 +578,7 @@ namespace Signalizer
 				return true;
 			}
 		}
-		else if (ctrl == &krotation || ctrl == &kzrotation)
+		else if (ctrl == &krotation)
 		{
 			double newValue;
 			char * endPtr = nullptr;
@@ -657,16 +605,6 @@ namespace Signalizer
 				buffer.setLength(bufLength);
 			}
 			return;
-		}
-		else if (ctrl == &krotation)
-		{
-			double phase = ctrl->bGetValue() * 2 * M_PI;
-			cosrol = (float)std::cos(phase);
-			sinrol = (float)std::sin(phase);
-			return;
-		}	
-		else if (ctrl == &ktransform)
-		{
 		}
 	}
 

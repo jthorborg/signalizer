@@ -67,17 +67,15 @@
 			cpl::CBoxFilter<double, 60> avgFps;
 
 			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdrawGraph;
-			cpl::CKnobSlider kwindow, krotation, kzrotation, kgain;
+			cpl::CKnobSlider kwindow, krotation, kgain;
 			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 			cpl::CTransformWidget ktransform;
 
 			juce::MouseCursor displayCursor;
 			// vars
 			long long lastFrameTick, renderCycles;
-			float cosrol;
-			float sinrol;
-			bool firstResize, isFrozen;
-			int windowSize;
+
+			bool isFrozen;
 
 			// data
 			cpl::AudioBuffer & audioStream;
@@ -86,7 +84,6 @@
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
-			bool debug;
 			juce::Point<float> lastMousePos;
 		};
 	

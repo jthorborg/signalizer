@@ -1,0 +1,3 @@
+Program maxing out a whole core with VSync enabled? If you are using NVidia graphics, it is a driver issue.. Or, "feature", as they call it. Check this out: http://www.retrocopy.com/blog/29/nvidia-threaded-optimization-oxymoron.aspx
+
+Notice, that it is not actually using all of the CPU, it is merely busywaiting (but yielding). What this means in reality is, that your core will be maxed out, but everything will remain as responsive. See this: http://forum.openscenegraph.org/viewtopic.php?t=3653#18283

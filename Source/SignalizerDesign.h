@@ -22,7 +22,7 @@
 
 	namespace Signalizer
 	{
-		#ifdef _DEBUG
+		#if _DEBUG
 			typedef cpl::CGreenLineTester DummyComponent;
 		#else
 			typedef juce::Component DummyComponent;
