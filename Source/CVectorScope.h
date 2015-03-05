@@ -35,10 +35,10 @@
 			void mouseDrag(const MouseEvent& event) override;
 			void mouseUp(const MouseEvent& event) override;
 			void mouseDown(const MouseEvent& event) override;
-			void resized() override;
 			// OpenGLRender overrides
 			void renderOpenGL() override;
-
+			void initOpenGL() override;
+			void closeOpenGL() override;
 			// View overrides
 			juce::Component * getWindow() override;
 			void suspend() override;
@@ -66,8 +66,8 @@
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
-			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdrawGraph;
-			cpl::CKnobSlider kwindow, krotation, kgain;
+			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
+			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize;
 			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 			cpl::CTransformWidget ktransform;
 
@@ -85,6 +85,7 @@
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
+			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 		};
 	
 	};

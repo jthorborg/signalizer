@@ -5,19 +5,20 @@
 #include <cpl/Mathext.h>
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
-
+#include <cpl/simd.h>
 
 namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
-	#define SWAP_RIGHT
 
-	enum RenderButtons
+		static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R" };
+
+	enum Textures
 	{
-		fillLines,
-		antiAlias,
-		fadeHistory,
-		rgbHistory
+		LPlus,
+		RPlus,
+		LMinus,
+		RMinus
 	};
 
 	std::unique_ptr<juce::Component> CVectorScope::createEditor()
@@ -47,6 +48,7 @@ namespace Signalizer
 				section->addControl(&kantiAlias, 0);
 				section->addControl(&kfadeOld, 1);
 				section->addControl(&kdrawLines, 2);
+				section->addControl(&kdiagnostics, 3);
 				page->addSection(section, "Options");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -55,7 +57,7 @@ namespace Signalizer
 				section->addControl(&kgraphColour, 0);
 				section->addControl(&kbackgroundColour, 0);
 				section->addControl(&kskeletonColour, 0);
-				section->addControl(&kdrawGraph, 1);
+				section->addControl(&kprimitiveSize, 1);
 				page->addSection(section, "Look");
 			}
 		}
@@ -66,13 +68,14 @@ namespace Signalizer
 	CVectorScope::CVectorScope(cpl::AudioBuffer & data)
 	:
 		audioStream(data),
-		kwindow("Window Size", cpl::CKnobSlider::ControlType::ms),
-		krotation("Wave z-rotation"),
-		kgain("Input Gain"),
+		kwindow("Window size", cpl::CKnobSlider::ControlType::ms),
+		krotation("Wave Z-rotation"),
+		kgain("Input gain"),
 		kgraphColour("Graph colour"),
 		kbackgroundColour("Background colour"),
 		kdrawingColour("Drawing colour"),
 		kskeletonColour("Skeleton colour"),
+		kprimitiveSize("Primitive size"),
 		processorSpeed(0), 
 		audioStreamCopy(2),
 		lastFrameTick(0), 
@@ -114,29 +117,31 @@ namespace Signalizer
 		kwindow.bAddFormatter(this);
 		kgain.bAddFormatter(this);
 		krotation.bAddFormatter(this);
+		kprimitiveSize.bAddFormatter(this);
 		// buttons
-		kantiAlias.bSetTitle("Antialias lines");
+		kantiAlias.bSetTitle("Antialias");
 		kantiAlias.setToggleable(true);
 		kfadeOld.bSetTitle("Fade older points");
 		kfadeOld.setToggleable(true);
-		kdrawLines.bSetTitle("Draw lines");
+		kdrawLines.bSetTitle("Interconnect samples");
 		kdrawLines.setToggleable(true);
-		kdrawGraph.bSetTitle("Draw graph");
-		kdrawGraph.setToggleable(true);
+		kdiagnostics.bSetTitle("Diagnostics");
+		kdiagnostics.setToggleable(true);
 		// descriptions.
 		kwindow.bSetDescription("The size of the displayed time window.");
 		kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
 							 " - additional transform that only affects the waveform, and not the graph");
 		krotation.bSetDescription("The amount of degrees to rotate the waveform around the origin (z-rotation)"\
 			" - additional transform that only affects the waveform, and not the graph.");
-		kantiAlias.bSetDescription("Antialiases lines (if set - see global settings for amount). May slow down rendering.");
+		kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
 		kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
 		kdrawLines.bSetDescription("If set, interconnect samples linearly.");
 		kdrawingColour.bSetDescription("The main colour to paint with.");
 		kgraphColour.bSetDescription("The colour of the graph.");
-		kbackgroundColour.bSetDescription("The background colour of the view");
-		kdrawGraph.bSetDescription("Draws a graph in the view, if enabled.");
+		kbackgroundColour.bSetDescription("The background colour of the view.");
+		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
+		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -148,13 +153,14 @@ namespace Signalizer
 		archive << krotation;
 		archive << kantiAlias;
 		archive << kfadeOld;
-		archive << kdrawGraph;
+		archive << kdiagnostics;
 		archive << kdrawLines;
 		archive << kgraphColour;
 		archive << kbackgroundColour;
 		archive << kdrawingColour;
 		archive << ktransform.getTransform3D();
 		archive << kskeletonColour;
+		archive << kprimitiveSize;
 	}
 
 	void CVectorScope::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -164,14 +170,14 @@ namespace Signalizer
 		builder >> krotation;
 		builder >> kantiAlias;
 		builder >> kfadeOld;
-		builder >> kdrawGraph;
+		builder >> kdiagnostics;
 		builder >> kdrawLines;
 		builder >> kgraphColour;
 		builder >> kbackgroundColour;
 		builder >> kdrawingColour;
 		builder >> ktransform.getTransform3D();
 		builder >> kskeletonColour;
-
+		builder >> kprimitiveSize;
 
 		ktransform.syncEditor();
 
@@ -180,49 +186,11 @@ namespace Signalizer
 	void CVectorScope::paint(juce::Graphics & g)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
-		auto colour = juce::Colour(kgraphColour.getControlColourAsColour());
-		
-		auto & matrix = ktransform.getTransform3D();
-		
-		auto currentXOffset = (matrix.position.x) * getWidth() / 2.0f;
-		auto currentYOffset = (matrix.position.y) * -getHeight() / 2.0f; // invert
 
-		if (kdrawGraph.bGetValue() > 0.5)
+		if (kdiagnostics.bGetValue() > 0.5)
 		{
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-			auto middleHeight = getHeight() / 2.0f;
-			auto middleWidth = getWidth() / 2.0f;
 
-
-			g.setColour(colour);
-
-			g.drawLine(0.f, middleHeight + currentYOffset, (float)getWidth(), middleHeight + currentYOffset);
-			g.drawLine(middleWidth + currentXOffset, 0.f, middleWidth + currentXOffset, (float)getHeight());
-
-			g.addTransform(juce::AffineTransform::translation(currentXOffset, currentYOffset));
-
-
-
-			#ifdef SWAP_RIGHT
-				static const char * channels[] = { "+L", "+R", "-L", "-R" };
-			#else
-				static const char * channels[] = { "+L", "-R", "-L", "+R" };
-			#endif
-
-			const auto rotation = krotation.bGetValue() * 2 * M_PI;
-			for (int i = 0; i < 4; ++i)
-			{
-				auto ycoord = sin(i * M_PI * 0.5 + -rotation);
-				auto xcoord = sin(i * M_PI * 0.5 + -rotation + M_PI / 2);
-
-				g.drawSingleLineText(channels[i],
-					cpl::Math::round<int>(middleWidth * 0.05 + (xcoord * middleWidth + middleWidth) * 0.9), // make the ellipsis a bit smaller to make space for text
-					cpl::Math::round<int>(middleHeight * 0.05 + (ycoord * middleHeight + middleHeight) * 0.9));
-
-			}
-
-			// revert
-			g.addTransform(juce::AffineTransform::translation(-currentXOffset, -currentYOffset));
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
@@ -231,6 +199,33 @@ namespace Signalizer
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 			
 		}
+	}
+
+	void CVectorScope::initOpenGL()
+	{
+		const int imageSize = 128;
+		const float fontToPixelScale = 90 / 64.0f;
+		
+		textures.clear();
+
+		for (int i = 0; i < ArraySize(ChannelDescriptions); ++i)
+		{
+
+			juce::Image letter(juce::Image::ARGB, imageSize, imageSize, true);
+			{
+				juce::Graphics g(letter);
+				g.fillAll(juce::Colours::transparentBlack);
+				g.setColour(Colours::white);
+				g.setFont(letter.getHeight() * fontToPixelScale * 0.5);
+				g.drawText(ChannelDescriptions[i], letter.getBounds().toFloat(), juce::Justification::centred, false);
+			}
+			textures.push_back(std::unique_ptr<juce::OpenGLTexture>((new juce::OpenGLTexture())));
+			textures[i]->loadImage(letter);
+		}
+	}
+	void CVectorScope::closeOpenGL()
+	{
+
 	}
 
 	void CVectorScope::renderOpenGL()
@@ -244,14 +239,11 @@ namespace Signalizer
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
+		const float psize = kprimitiveSize.bGetValue() * 10;
 		const float gain = getGain();
+		const bool isPolar = false;
 		const std::size_t numSamples = audioStream[0].size - 1;
 		float sleft(0.0f), sright(0.0f);
-		#ifdef SWAP_RIGHT
-			const float rightSignSwap = -1.0f;
-		#else
-			const float rightSignSwap = 1.0f;
-		#endif
 
 		cpl::AudioBuffer * buffer;
 
@@ -289,6 +281,8 @@ namespace Signalizer
 		// set up openGL
 		openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		openGLStack.loadIdentityMatrix();
+
+
 		openGLStack.applyTransform3D(ktransform.getTransform3D());
 		antiAlias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
@@ -296,7 +290,57 @@ namespace Signalizer
 		leftChannel = &((*buffer)[0]);
 		rightChannel = &((*buffer)[1]);
 
+		openGLStack.setLineSize(psize);
+		openGLStack.setPointSize(psize);
+
 		// add a stack scope for transformations.
+		if (isPolar)
+		{
+			using namespace cpl::simd;
+
+			cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+
+			drawer.addColour(kdrawingColour.getControlColourAsColour());
+
+			const v4sf vPiHalf = set1<v4sf>(M_PI / 2);
+			const v4sf vSignBit = set1<v4sf>(-0.0f);
+			const v4sf vHalf = set1<v4sf>(0.5f);
+			const v4sf vOne = set1<v4sf>(1.0f);
+			v4sf vcorrelation;
+
+			v4sf vXPhases, vYPhases;
+			float sampleFade = 1.0 / numSamples;
+
+			suitable_container<v4sf> outX, outY;
+
+			for (std::size_t i = 0; i < numSamples; i += elements_of<v4sf>::value)
+			{
+				const v4sf vleft = cpl::simd::load<v4sf>(leftChannel->buffer + i);
+				const v4sf vright = cpl::simd::load<v4sf>(rightChannel->buffer + i);
+
+				const v4sf vcorrelation = (vleft - vright);
+				//const v4sf vAbsVal = (abs<v4sf>(vleft) +abs<v4sf>(vright)) * vHalf;
+				const v4sf vAbsVal = ((vleft) +(vright)) ;
+				const v4sf vphaseCancellation = vcorrelation / vAbsVal;
+				// cap vcorreleration to [-1, 1]
+
+				// calculate trigonometrical positions - notice swapped X/Y pairs
+
+				cpl::sse::sincos_ps(vphaseCancellation * vPiHalf, &vYPhases, &vXPhases);
+
+				// scale volume.
+				outX = vXPhases * vAbsVal;
+				outY = vYPhases * vAbsVal;
+
+				// draw vertices
+				drawer.addVertex(outX[0], outY[0], i * sampleFade - 1);
+				drawer.addVertex(outX[1], outY[1], i * sampleFade - 1);
+				drawer.addVertex(outX[2], outY[2], i * sampleFade - 1);
+				drawer.addVertex(outX[3], outY[3], i * sampleFade - 1);
+			}
+
+		}
+		else
 		{
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -309,12 +353,13 @@ namespace Signalizer
 			if (!fadeHistory)
 			{
 				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+
 				drawer.addColour(kdrawingColour.getControlColourAsColour());
 				for (std::size_t i = 0; i < numSamples; ++i)
 				{
 					// use glDrawArrays instead here
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightSignSwap * rightChannel->singleCheckAccess(i);
+					sright = rightChannel->singleCheckAccess(i);
 
 					drawer.addVertex(sleft, sright, i * sampleFade - 1);
 				}
@@ -332,7 +377,7 @@ namespace Signalizer
 				for (std::size_t i = 0; i < numSamples; ++i)
 				{
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightSignSwap * rightChannel->singleCheckAccess(i);
+					sright = rightChannel->singleCheckAccess(i);
 
 					fade = i * sampleFade;
 
@@ -343,23 +388,7 @@ namespace Signalizer
 			}
 		}
 
-		// Draw basic graph
-		{
-			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
-
-			// front white x, y axii
-			drawer.addColour(1.0f, 1.0f, 1.0f);
-			drawer.addVertex(-1.0f, 0.0f, 0.0f);
-			drawer.addVertex(1.0f, 0.0f, 0.0f);
-			drawer.addVertex(0.0f, 1.0f, 0.0f);
-			drawer.addVertex(0.0f, -1.0f, 0.0f);
-
-			// red Z axis
-			drawer.addColour(1.0f, 0.0f, 0.0f);
-			drawer.addVertex(0.0f, 0.0f, 0.0f);
-			drawer.addVertex(0.0f, 0.0f, -1.0f);
-
-		}
+		openGLStack.setLineSize(1.0f);
 
 		// draw skeleton graph
 		{
@@ -394,6 +423,65 @@ namespace Signalizer
 			}
 		}
 
+		// Draw basic graph
+		{
+			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+			drawer.addColour(kgraphColour.getControlColourAsColour());
+			// front x, y axii
+			drawer.addVertex(-1.0f, 0.0f, 0.0f);
+			drawer.addVertex(1.0f, 0.0f, 0.0f);
+			drawer.addVertex(0.0f, 1.0f, 0.0f);
+			drawer.addVertex(0.0f, -1.0f, 0.0f);
+
+		}
+
+
+		// draw channel rotations letters.
+		{
+			auto rotation = krotation.bGetValue() * 2 * M_PI;
+			const float heightToWidthFactor = float(getHeight()) / getWidth();
+			using namespace cpl::simd;
+
+			cpl::OpenGLEngine::MatrixModification m;
+			// this undoes the text squashing due to variable aspect ratios.
+			m.scale(heightToWidthFactor, 1.0f, 1.0f);
+
+			// calculate coordinates using sin/cos simd pairs.
+			suitable_container<v4sf> phases, xcoords, ycoords;
+
+			// set phases (we rotate L/R etc. text around in a circle)
+			phases[0] = rotation;
+			phases[1] = M_PI * 0.5f + rotation;
+			phases[2] = M_PI + rotation;
+			phases[3] = M_PI * 1.5f + rotation;
+
+			const float circleScaleFactor = 1.1f;
+
+			// some registers
+			v4sf 
+				vsines, 
+				vcosines, 
+				vscale = set1<v4sf>(circleScaleFactor), 
+				vadd = set1<v4sf>(1.0f - circleScaleFactor),
+				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
+
+			// do 8 trig functions in one go!
+			cpl::sse::sincos_ps(phases, &vsines, &vcosines);
+
+			// place the circle just outside the graph, and offset it.
+			xcoords = vsines * vscale * vheightToWidthFactor + vadd;
+			ycoords = vcosines * vscale + vadd;
+
+			auto jcolour = kgraphColour.getControlColourAsColour();
+			// render texture text at coordinates.
+			for (int i = 0; i < 4; ++i)
+			{
+				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[i]);
+				text.setColour(jcolour);
+				text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
+			}
+		}
+
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
@@ -425,11 +513,6 @@ namespace Signalizer
 	}
 
 
-	void CVectorScope::resized()
-	{
-
-
-	}
 	void CVectorScope::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 	{
 		auto amount = wheel.deltaY;
@@ -524,9 +607,13 @@ namespace Signalizer
 			sprintf(buf, "%.2f degs", value * 360);
 			buffer = buf;
 			return true;
-
 		}
-
+		else if (ctrl == &kprimitiveSize)
+		{
+			sprintf(buf, "%.2f pts", value * 10);
+			buffer = buf;
+			return true;
+		}
 		return false;
 	}
 
@@ -586,6 +673,17 @@ namespace Signalizer
 			if (endPtr > 0)
 			{
 				value = cpl::Math::confineTo(fmod(newValue, 360) / 360.0, 0.0, 1.0);
+				return true;
+			}
+		}
+		else if (ctrl == &kprimitiveSize)
+		{
+			double newValue;
+			char * endPtr = nullptr;
+			newValue = strtod(buffer.c_str(), &endPtr);
+			if (endPtr > 0)
+			{
+				value = cpl::Math::confineTo(newValue / 10.0, 0.0, 1.0);
 				return true;
 			}
 		}
