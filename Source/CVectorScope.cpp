@@ -368,10 +368,25 @@ namespace Signalizer
 
 				auto const sectionSamples = lit.sizes[section];
 
-				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
+				for (std::size_t i = 0; i < sectionSamples; i++)
+				{
+					sleft = lit.getIndex(section)[i];
+					sright = lit.getIndex(section)[i];
+
+					auto angle = std::atan2(sleft, sright);
+
+					auto sine = std::sin(angle);
+					auto cosine = std::cos(angle);
+					drawer.addVertex(sine, cosine , depthCounter++ * sampleFade - 1);
+				}
+
+				/*for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
 				{
 					const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
-					const v4sf vRight = vxor(loadu<v4sf>(rit.getIndex(section) + i), vSignBit);
+					const v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
+
+
+
 
 					// rotate our view manually (it needs to be fixed on y axis for the next math to work)
 					const v4sf vY = vLeft * vCosine - vRight * vSine;
@@ -388,7 +403,7 @@ namespace Signalizer
 					drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
 					drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
 					drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
-				}
+				}*/
 			}
 
 
