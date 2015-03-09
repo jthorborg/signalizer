@@ -11,7 +11,7 @@ namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
 
-		static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R" };
+	static const char * ChannelDescriptions[] = { "+L", "-R", "-L", "+R" };
 
 	enum Textures
 	{
@@ -20,6 +20,44 @@ namespace Signalizer
 		LMinus,
 		RMinus
 	};
+
+
+	template<typename T, std::size_t size>
+	class LookupTable
+	{
+	public:
+		typedef T Ty;
+		static const std::size_t tableSize = size;
+
+		inline Ty linearLookup(Ty dx) const noexcept
+		{
+			Ty scaled = dx * tableSize;
+			std::size_t x1 = std::size_t(scaled);
+			std::size_t x2 = x1 + 1;
+			Ty fraction = scaled - x1;
+
+			return table[x1] * (Ty(1) - fraction) + table[x2] * fraction;
+		}
+
+		Ty table[tableSize + 1];
+	};
+	template<typename T, std::size_t size>
+		class QuarterCircleLut : public LookupTable<T, size>
+		{
+		public:
+			QuarterCircleLut()
+			{
+				double increase = 1.0 / (size - 1);
+				for (int i = 0; i < size; ++i)
+				{
+					// describe frist left upper part of circle
+					table[i] = (T)std::sin(std::acos(1.0 - increase * i));
+				}
+				table[tableSize] = (T)1;
+			}
+
+
+		};
 
 	std::unique_ptr<juce::Component> CVectorScope::createEditor()
 	{
@@ -86,6 +124,7 @@ namespace Signalizer
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
+		
 	}
 
 	void CVectorScope::suspend()
@@ -241,8 +280,8 @@ namespace Signalizer
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
 		const float psize = kprimitiveSize.bGetValue() * 10;
 		const float gain = getGain();
-		const bool isPolar = false;
-		const std::size_t numSamples = audioStream[0].size - 1;
+		const bool isPolar = true;
+
 		float sleft(0.0f), sright(0.0f);
 
 		cpl::AudioBuffer * buffer;
@@ -271,11 +310,7 @@ namespace Signalizer
 			buffer = &audioStream;
 
 		}
-
-		/*	http://www.juce.com/forum/topic/how-do-i-draw-text-over-openglcomponent?page=1
-			Set up rendering
-		*/
-
+		const std::size_t numSamples = (*buffer)[0].size - 1;
 
 		cpl::OpenGLEngine::COpenGLStack openGLStack;
 		// set up openGL
@@ -297,47 +332,62 @@ namespace Signalizer
 		if (isPolar)
 		{
 			using namespace cpl::simd;
+			cpl::OpenGLEngine::MatrixModification matrixMod;
+			// fixate the rotation to fit.
+			//matrixMod.rotate(135, 0, 0, 1);
+			// and apply the gain:
+			matrixMod.scale(gain, gain, 1);
 
 			cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
 
 			drawer.addColour(kdrawingColour.getControlColourAsColour());
 
-			const v4sf vPiHalf = set1<v4sf>(M_PI / 2);
-			const v4sf vSignBit = set1<v4sf>(-0.0f);
-			const v4sf vHalf = set1<v4sf>(0.5f);
-			const v4sf vOne = set1<v4sf>(1.0f);
-			v4sf vcorrelation;
+			static const v4sf vPiHalf = set1<v4sf>(M_PI / 2);
+			static const v4sf vSignBit = set1<v4sf>(-0.0f);
+			static const v4sf vHalf = set1<v4sf>(0.5f);
+			static const v4sf vOne = set1<v4sf>(1.0f);
+			static const v4sf vZero = set1<v4sf>(0.0f);
+			static const v4sf vCosine = set1<v4sf>((float)std::cos(M_PI * 135.0 / 180));
+			static const v4sf vSine = set1<v4sf>((float)std::sin(M_PI * 135.0 / 180));
 
-			v4sf vXPhases, vYPhases;
 			float sampleFade = 1.0 / numSamples;
 
 			suitable_container<v4sf> outX, outY;
 
-			for (std::size_t i = 0; i < numSamples; i += elements_of<v4sf>::value)
+			// iterate front of buffer, then back.
+			// this feels awkward, but that's kinda how circular 
+			// buffers work.
+			std::size_t depthCounter = 0;
+			for (int section = 0; section < 2; ++section)
 			{
-				const v4sf vleft = cpl::simd::load<v4sf>(leftChannel->buffer + i);
-				const v4sf vright = cpl::simd::load<v4sf>(rightChannel->buffer + i);
+				auto const lit = leftChannel->getIterator<4>();
+				auto const rit = rightChannel->getIterator<4>();
 
-				const v4sf vcorrelation = (vleft - vright);
-				//const v4sf vAbsVal = (abs<v4sf>(vleft) +abs<v4sf>(vright)) * vHalf;
-				const v4sf vAbsVal = ((vleft) +(vright)) ;
-				const v4sf vphaseCancellation = vcorrelation / vAbsVal;
-				// cap vcorreleration to [-1, 1]
+				auto const sectionSamples = lit.sizes[section];
 
-				// calculate trigonometrical positions - notice swapped X/Y pairs
+				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
+				{
+					const v4sf vLeft = cpl::simd::loadu<v4sf>(lit.getIndex(section) + i);
+					const v4sf vRight = cpl::simd::loadu<v4sf>(rit.getIndex(section) + i) ^ vSignBit;
 
-				cpl::sse::sincos_ps(vphaseCancellation * vPiHalf, &vYPhases, &vXPhases);
+					// rotate our view manually (it needs to be fixed on y axis for the next math to work)
+					const v4sf vX = vLeft * vCosine - vRight * vSine;
+					const v4sf vY = vLeft * vSine + vRight * vCosine;
 
-				// scale volume.
-				outX = vXPhases * vAbsVal;
-				outY = vYPhases * vAbsVal;
+					// the polar display does a max on the y-coordinate (so everything stays over the line)
+					// and swaps the sign of the x-coordinate if y crosses zero.
+					auto const vSignMask = (vY < vZero) & vSignBit;
+					outX = vX ^ vSignMask; // x = y < 0 ? -x : x
+					outY = abs(vY); // y = |y|
 
-				// draw vertices
-				drawer.addVertex(outX[0], outY[0], i * sampleFade - 1);
-				drawer.addVertex(outX[1], outY[1], i * sampleFade - 1);
-				drawer.addVertex(outX[2], outY[2], i * sampleFade - 1);
-				drawer.addVertex(outX[3], outY[3], i * sampleFade - 1);
+					// draw vertices
+					drawer.addVertex(outX[0], outY[0], depthCounter++ * sampleFade - 1);
+					drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
+					drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
+					drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
+				}
 			}
+
 
 		}
 		else
@@ -359,7 +409,7 @@ namespace Signalizer
 				{
 					// use glDrawArrays instead here
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightChannel->singleCheckAccess(i);
+					sright = -rightChannel->singleCheckAccess(i);
 
 					drawer.addVertex(sleft, sright, i * sampleFade - 1);
 				}
@@ -377,7 +427,7 @@ namespace Signalizer
 				for (std::size_t i = 0; i < numSamples; ++i)
 				{
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightChannel->singleCheckAccess(i);
+					sright = -rightChannel->singleCheckAccess(i);
 
 					fade = i * sampleFade;
 
@@ -391,6 +441,7 @@ namespace Signalizer
 		openGLStack.setLineSize(1.0f);
 
 		// draw skeleton graph
+		if (!isPolar)
 		{
 			cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
 			drawer.addColour(kskeletonColour.getControlColourAsColour());
@@ -422,8 +473,43 @@ namespace Signalizer
 				drawer.addVertex(1.0f, i * rel * 2 - 1, -1.0f);
 			}
 		}
+		else
+		{
+			auto lut = circleData.get();
+
+			int numInt = lut->tableSize;
+			float advance = 1.0f / (numInt - 1);
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINE_STRIP);
+				drawer.addColour(kskeletonColour.getControlColourAsColour());
+
+				for (int i = 0; i < numInt; ++i)
+				{
+					auto fraction = advance * i;
+					auto yCoordinate = lut->linearLookup(fraction);
+
+					drawer.addVertex(-1 + fraction, yCoordinate, 0);
+					//drawer.addVertex(1 - fraction, yCoordinate, 0);
+				}
+			}
+
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINE_STRIP);
+				drawer.addColour(kskeletonColour.getControlColourAsColour());
+
+				for (int i = 0; i < numInt; ++i)
+				{
+					auto fraction = advance * i;
+					auto yCoordinate = lut->linearLookup(fraction);
+
+					//drawer.addVertex(-1 + fraction, yCoordinate, 0);
+					drawer.addVertex(1 - fraction, yCoordinate, 0);
+				}
+			}
+		}
 
 		// Draw basic graph
+		if (isPolar)
 		{
 			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
 			drawer.addColour(kgraphColour.getControlColourAsColour());
@@ -438,7 +524,7 @@ namespace Signalizer
 
 		// draw channel rotations letters.
 		{
-			auto rotation = krotation.bGetValue() * 2 * M_PI;
+			auto rotation = -krotation.bGetValue() * 2 * M_PI;
 			const float heightToWidthFactor = float(getHeight()) / getWidth();
 			using namespace cpl::simd;
 

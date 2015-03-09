@@ -13,7 +13,8 @@
 
 	namespace Signalizer
 	{
-
+		template<class T, std::size_t size>
+			class QuarterCircleLut;
 
 		class CVectorScope 
 		: 
@@ -80,6 +81,7 @@
 			// data
 			cpl::AudioBuffer & audioStream;
 			cpl::AudioBuffer audioStreamCopy;
+			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 
 			// unused.
 			std::unique_ptr<char> textbuf;
