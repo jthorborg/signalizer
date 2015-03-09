@@ -11,8 +11,10 @@ namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
 
-	static const char * ChannelDescriptions[] = { "+L", "-R", "-L", "+R" };
-
+	//static const char * ChannelDescriptions[] = { "+R", "+L", "-R", "-L" };
+	
+	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R" };
+	
 	enum Textures
 	{
 		LPlus,
@@ -50,10 +52,11 @@ namespace Signalizer
 				double increase = 1.0 / (size - 1);
 				for (int i = 0; i < size; ++i)
 				{
+					
 					// describe frist left upper part of circle
-					table[i] = (T)std::sin(std::acos(1.0 - increase * i));
+					this->table[i] = (T)std::sin(std::acos(1.0 - increase * i));
 				}
-				table[tableSize] = (T)1;
+				this->table[this->tableSize] = (T)1;
 			}
 
 
@@ -280,7 +283,7 @@ namespace Signalizer
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
 		const float psize = kprimitiveSize.bGetValue() * 10;
 		const float gain = getGain();
-		const bool isPolar = true;
+		const bool isPolar = false;
 
 		float sleft(0.0f), sright(0.0f);
 
@@ -367,17 +370,17 @@ namespace Signalizer
 
 				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
 				{
-					const v4sf vLeft = cpl::simd::loadu<v4sf>(lit.getIndex(section) + i);
-					const v4sf vRight = cpl::simd::loadu<v4sf>(rit.getIndex(section) + i) ^ vSignBit;
+					const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
+					const v4sf vRight = vxor(loadu<v4sf>(rit.getIndex(section) + i), vSignBit);
 
 					// rotate our view manually (it needs to be fixed on y axis for the next math to work)
-					const v4sf vX = vLeft * vCosine - vRight * vSine;
-					const v4sf vY = vLeft * vSine + vRight * vCosine;
+					const v4sf vY = vLeft * vCosine - vRight * vSine;
+					const v4sf vX = vLeft * vSine + vRight * vCosine;
 
 					// the polar display does a max on the y-coordinate (so everything stays over the line)
 					// and swaps the sign of the x-coordinate if y crosses zero.
-					auto const vSignMask = (vY < vZero) & vSignBit;
-					outX = vX ^ vSignMask; // x = y < 0 ? -x : x
+					auto const vSignMask = vand((vY < vZero), vSignBit);
+					outX = vxor(vX, vSignMask); // x = y < 0 ? -x : x
 					outY = abs(vY); // y = |y|
 
 					// draw vertices
@@ -409,9 +412,9 @@ namespace Signalizer
 				{
 					// use glDrawArrays instead here
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = -rightChannel->singleCheckAccess(i);
+					sright = rightChannel->singleCheckAccess(i);
 
-					drawer.addVertex(sleft, sright, i * sampleFade - 1);
+					drawer.addVertex(sright, sleft, i * sampleFade - 1);
 				}
 			}
 			else
@@ -427,23 +430,23 @@ namespace Signalizer
 				for (std::size_t i = 0; i < numSamples; ++i)
 				{
 					sleft = leftChannel->singleCheckAccess(i);
-					sright = -rightChannel->singleCheckAccess(i);
+					sright = rightChannel->singleCheckAccess(i);
 
 					fade = i * sampleFade;
 
 					drawer.addColour(fade * red, fade * green, fade * blue, alpha);
-					drawer.addVertex(sleft, sright, i * sampleFade - 1);
+					drawer.addVertex(sright, sleft, i * sampleFade - 1);
 				
 				}
 			}
 		}
 
-		openGLStack.setLineSize(1.0f);
+		openGLStack.setLineSize(2.0f);
 
 		// draw skeleton graph
 		if (!isPolar)
 		{
-			cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
+			cpl::OpenGLEngine::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
 			drawer.addColour(kskeletonColour.getControlColourAsColour());
 			int nlines = 14;
 			auto rel = 1.0f / nlines;
@@ -475,41 +478,42 @@ namespace Signalizer
 		}
 		else
 		{
+			// draw two half circles
 			auto lut = circleData.get();
-
+			
 			int numInt = lut->tableSize;
 			float advance = 1.0f / (numInt - 1);
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINE_STRIP);
+				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
 				drawer.addColour(kskeletonColour.getControlColourAsColour());
 
-				for (int i = 0; i < numInt; ++i)
+				float oldY = 0.0f;
+				for (int i = 1; i < numInt; ++i)
 				{
 					auto fraction = advance * i;
 					auto yCoordinate = lut->linearLookup(fraction);
-
-					drawer.addVertex(-1 + fraction, yCoordinate, 0);
+					auto leftX = -1.0f + fraction;
+					auto rightX = 1.0f - fraction;
+					// left part
+					drawer.addVertex(leftX - advance, oldY, 0);
+					drawer.addVertex(leftX, yCoordinate, 0);
+					drawer.addVertex(leftX - advance, oldY, -1);
+					drawer.addVertex(leftX, yCoordinate, -1);
+					
+					// right part
+					drawer.addVertex(rightX + advance, oldY, 0);
+					drawer.addVertex(rightX, yCoordinate, 0);
+					drawer.addVertex(rightX + advance, oldY, -1);
+					drawer.addVertex(rightX, yCoordinate, -1);
 					//drawer.addVertex(1 - fraction, yCoordinate, 0);
-				}
-			}
-
-			{
-				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINE_STRIP);
-				drawer.addColour(kskeletonColour.getControlColourAsColour());
-
-				for (int i = 0; i < numInt; ++i)
-				{
-					auto fraction = advance * i;
-					auto yCoordinate = lut->linearLookup(fraction);
-
-					//drawer.addVertex(-1 + fraction, yCoordinate, 0);
-					drawer.addVertex(1 - fraction, yCoordinate, 0);
+					
+					oldY = yCoordinate;
 				}
 			}
 		}
 
 		// Draw basic graph
-		if (isPolar)
+
 		{
 			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
 			drawer.addColour(kgraphColour.getControlColourAsColour());
@@ -517,7 +521,7 @@ namespace Signalizer
 			drawer.addVertex(-1.0f, 0.0f, 0.0f);
 			drawer.addVertex(1.0f, 0.0f, 0.0f);
 			drawer.addVertex(0.0f, 1.0f, 0.0f);
-			drawer.addVertex(0.0f, -1.0f, 0.0f);
+			drawer.addVertex(0.0f, isPolar ? 0.0f : -1.0f, 0.0f);
 
 		}
 
