@@ -61,22 +61,24 @@
 		private:
 			
 			double getGain();
+			double setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
 		
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
-			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
+			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kenvelopeFollow;
 			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize;
 			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 			cpl::CTransformWidget ktransform;
-
+			cpl::CComboBox kopMode;
 			juce::MouseCursor displayCursor;
 			// vars
 			long long lastFrameTick, renderCycles;
 
 			bool isFrozen;
+			double envelopeGain;
 
 			// data
 			cpl::AudioBuffer & audioStream;

@@ -34,7 +34,7 @@ namespace cpl
 namespace Signalizer
 {
 	const static int defaultLength = 700, defaultHeight = 480;
-	const static std::vector<std::string> RenderingEnginesList = { "openGL", "Software" };
+	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 
 	const char * ViewIndexToMap[] = 
 	{
@@ -63,8 +63,8 @@ namespace Signalizer
 	};
 	enum class RenderTypes
 	{
-		openGL,
 		Software,
+		openGL,
 		end
 	};
 
@@ -675,6 +675,21 @@ namespace Signalizer
 				view->detachFromOpenGL(oglc);
 				oglc.detach();
 			}
+			else
+			{
+				// check if view is still attached to a dead context:
+				if(view->isOpenGL())
+				{
+					// something else must have killed the context, check if it's the same
+					
+					if(view->getAttachedContext() == &oglc)
+					{
+						// okay, so we detach it anyway and eat the exceptions:
+						view->detachFromOpenGL(oglc);
+					}
+				}
+				
+			}
 			if (kkiosk.bGetValue() > 0.5 && juce::Desktop::getInstance().getKioskModeComponent() == view->getWindow())
 			{
 				exitFullscreen();
@@ -892,10 +907,7 @@ namespace Signalizer
 			resized();
 
 		}
-		else
-		{
-			jassertfalse;
-		}
+
 	}
 
 	void MainEditor::load(cpl::CSerializer & data, long long version)

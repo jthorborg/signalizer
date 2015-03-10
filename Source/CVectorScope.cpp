@@ -14,6 +14,14 @@ namespace Signalizer
 	//static const char * ChannelDescriptions[] = { "+R", "+L", "-R", "-L" };
 	
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R" };
+	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
+	
+	enum class OperationalModes
+	{
+		Lissajous,
+		Polar
+		
+	};
 	
 	enum Textures
 	{
@@ -75,9 +83,11 @@ namespace Signalizer
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&kgain, 0);
-				section->addControl(&kwindow, 1);
 				section->addControl(&krotation, 0);
+				section->addControl(&kwindow, 1);
+				section->addControl(&kgain, 0);
+				section->addControl(&kenvelopeFollow, 1);
+				section->addControl(&kopMode, 0);
 				page->addSection(section, "Utility");
 			}
 		}
@@ -160,6 +170,8 @@ namespace Signalizer
 		kgain.bAddFormatter(this);
 		krotation.bAddFormatter(this);
 		kprimitiveSize.bAddFormatter(this);
+		kenvelopeFollow.bAddPassiveChangeListener(this);
+		kopMode.bAddPassiveChangeListener(this);
 		// buttons
 		kantiAlias.bSetTitle("Antialias");
 		kantiAlias.setToggleable(true);
@@ -169,6 +181,14 @@ namespace Signalizer
 		kdrawLines.setToggleable(true);
 		kdiagnostics.bSetTitle("Diagnostics");
 		kdiagnostics.setToggleable(true);
+		kenvelopeFollow.bSetTitle("Auto gain");
+		kenvelopeFollow.setToggleable(true);
+		
+		// design
+		kopMode.setValues(OperationalModeNames);
+		kopMode.bSetTitle("Operational mode");
+		
+		
 		// descriptions.
 		kwindow.bSetDescription("The size of the displayed time window.");
 		kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -184,6 +204,8 @@ namespace Signalizer
 		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
 		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
+		kenvelopeFollow.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity");
+		kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -227,8 +249,26 @@ namespace Signalizer
 
 	void CVectorScope::paint(juce::Graphics & g)
 	{
-		auto cStart = cpl::Misc::ClockCounter();
 
+		
+		auto cStart = cpl::Misc::ClockCounter();
+		
+
+		
+		// do software rendering
+		if(!isOpenGL())
+		{
+			g.fillAll(kbackgroundColour.getControlColourAsColour().withAlpha(1.0f));
+			g.setColour(kbackgroundColour.getControlColourAsColour().withAlpha(1.0f).contrasting());
+			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
+			
+			// post fps
+			auto tickNow = juce::Time::getHighResolutionTicks();
+			avgFps.setNext(tickNow - lastFrameTick);
+			lastFrameTick = tickNow;
+			
+		}
+		
 		if (kdiagnostics.bGetValue() > 0.5)
 		{
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
@@ -267,7 +307,7 @@ namespace Signalizer
 	}
 	void CVectorScope::closeOpenGL()
 	{
-
+		textures.clear();
 	}
 
 	void CVectorScope::renderOpenGL()
@@ -283,7 +323,7 @@ namespace Signalizer
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
 		const float psize = kprimitiveSize.bGetValue() * 10;
 		const float gain = getGain();
-		const bool isPolar = false;
+		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
 
 		float sleft(0.0f), sright(0.0f);
 
@@ -368,19 +408,8 @@ namespace Signalizer
 
 				auto const sectionSamples = lit.sizes[section];
 
-				for (std::size_t i = 0; i < sectionSamples; i++)
-				{
-					sleft = lit.getIndex(section)[i];
-					sright = lit.getIndex(section)[i];
 
-					auto angle = std::atan2(sleft, sright);
-
-					auto sine = std::sin(angle);
-					auto cosine = std::cos(angle);
-					drawer.addVertex(sine, cosine , depthCounter++ * sampleFade - 1);
-				}
-
-				/*for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
+				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
 				{
 					const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
 					const v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
@@ -392,6 +421,8 @@ namespace Signalizer
 					const v4sf vY = vLeft * vCosine - vRight * vSine;
 					const v4sf vX = vLeft * vSine + vRight * vCosine;
 
+					
+					
 					// the polar display does a max on the y-coordinate (so everything stays over the line)
 					// and swaps the sign of the x-coordinate if y crosses zero.
 					auto const vSignMask = vand((vY < vZero), vSignBit);
@@ -403,7 +434,39 @@ namespace Signalizer
 					drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
 					drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
 					drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
-				}*/
+				}
+				
+				/*for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
+				 {
+				 const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
+				 const v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
+				 
+				 
+				 
+				 
+				 // rotate our view manually (it needs to be fixed on y axis for the next math to work)
+				 const v4sf vY = vLeft * vCosine - vRight * vSine;
+				 const v4sf vX = vLeft * vSine + vRight * vCosine;
+				 
+				 //cart to polar:
+				// abs(x,y) * e^i*atan2f(x, y)
+				
+					 
+					 
+				 
+				 // the polar display does a max on the y-coordinate (so everything stays over the line)
+				 // and swaps the sign of the x-coordinate if y crosses zero.
+				 auto const vSignMask = vand((vY < vZero), vSignBit);
+				 outX = cpl::sse::sin_ps(vX); // x = y < 0 ? -x : x
+				outY = cpl::sse::sin_ps(vY); // y = |y|
+				 
+				 // draw vertices
+				 drawer.addVertex(outX[0], outY[0], depthCounter++ * sampleFade - 1);
+				 drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
+				 drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
+				 drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
+				 }*/
+				
 			}
 
 
@@ -524,6 +587,24 @@ namespace Signalizer
 					
 					oldY = yCoordinate;
 				}
+				
+				// add front and back horizontal lines.
+				drawer.addVertex(-1.0f, 0.0f, 0.0f);
+				drawer.addVertex(1.0f, 0.0f, 0.0f);
+				drawer.addVertex(-1.0f, 0.0f, -1.0f);
+				drawer.addVertex(1.0f, 0.0f, -1.0f);
+				
+				// add critical diagonal phase lines.
+				const float quarterPISinCos = 0.707106781186547f;
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(quarterPISinCos, quarterPISinCos, 0.0f);
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(-quarterPISinCos, quarterPISinCos, 0.0f);
+				
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(quarterPISinCos, quarterPISinCos, -1.0f);
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(-quarterPISinCos, quarterPISinCos, -1.0f);;
 			}
 		}
 
@@ -537,6 +618,7 @@ namespace Signalizer
 			drawer.addVertex(1.0f, 0.0f, 0.0f);
 			drawer.addVertex(0.0f, 1.0f, 0.0f);
 			drawer.addVertex(0.0f, isPolar ? 0.0f : -1.0f, 0.0f);
+			
 
 		}
 
