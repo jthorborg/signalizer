@@ -89,6 +89,7 @@ namespace Signalizer
 				section->addControl(&kenvelopeFollow, 1);
 				section->addControl(&kopMode, 0);
 				page->addSection(section, "Utility");
+				//
 			}
 		}
 
@@ -321,7 +322,7 @@ namespace Signalizer
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
-		const float psize = kprimitiveSize.bGetValue() * 10;
+		const float psize = static_cast<GLfloat>(kprimitiveSize.bGetValue() * 10);
 		const float gain = getGain();
 		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
 
@@ -378,21 +379,19 @@ namespace Signalizer
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			// fixate the rotation to fit.
 			//matrixMod.rotate(135, 0, 0, 1);
+			//matrixMod.rotate(krotation.bGetValue() * 360, 0, 0, 1);
 			// and apply the gain:
 			matrixMod.scale(gain, gain, 1);
 
+			typedef v4sf V;
 			cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
 
 			drawer.addColour(kdrawingColour.getControlColourAsColour());
 
-			static const v4sf vPiHalf = set1<v4sf>(M_PI / 2);
-			static const v4sf vSignBit = set1<v4sf>(-0.0f);
-			static const v4sf vHalf = set1<v4sf>(0.5f);
-			static const v4sf vOne = set1<v4sf>(1.0f);
-			static const v4sf vZero = set1<v4sf>(0.0f);
 			static const v4sf vCosine = set1<v4sf>((float)std::cos(M_PI * 135.0 / 180));
 			static const v4sf vSine = set1<v4sf>((float)std::sin(M_PI * 135.0 / 180));
-
+			const v4sf vZero = zero<v4sf>();
+			const v4sf vSign = consts<v4sf>::sign_bit;
 			float sampleFade = 1.0 / numSamples;
 
 			suitable_container<v4sf> outX, outY;
@@ -408,26 +407,32 @@ namespace Signalizer
 
 				auto const sectionSamples = lit.sizes[section];
 
-
 				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
 				{
-					const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
-					const v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
+					v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
+					v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
 
+					// the length of the hypotenuse of the triangle, we 
+					// convert the unit square to.
+					auto const length = max(abs(vLeft), abs(vRight));
 
+					// rotate our view manually (to center on Y-axis)
+					v4sf vY = vLeft * vCosine - vRight * vSine;
+					v4sf vX = vLeft * vSine + vRight * vCosine;
 
+					// check for any zero elements.
+					auto mask = vand(vLeft == vZero, vRight == vZero);
+					mask = vnot(mask);
+					// get the phase angle. use atan2 if you want to draw the full circle.
+					auto angle = atan(vX / vY);
+					// replace nan elements of angle with zero
+					angle = vand(mask, angle);
+					// calcuate x,y coordinates for the right triangle
+					sincos(angle, &vX, &vY);
 
-					// rotate our view manually (it needs to be fixed on y axis for the next math to work)
-					const v4sf vY = vLeft * vCosine - vRight * vSine;
-					const v4sf vX = vLeft * vSine + vRight * vCosine;
-
-					
-					
-					// the polar display does a max on the y-coordinate (so everything stays over the line)
-					// and swaps the sign of the x-coordinate if y crosses zero.
-					auto const vSignMask = vand((vY < vZero), vSignBit);
-					outX = vxor(vX, vSignMask); // x = y < 0 ? -x : x
-					outY = abs(vY); // y = |y|
+					// construct triangle.
+					outX = vX * length;
+					outY = vY * length;
 
 					// draw vertices
 					drawer.addVertex(outX[0], outY[0], depthCounter++ * sampleFade - 1);
@@ -435,40 +440,7 @@ namespace Signalizer
 					drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
 					drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
 				}
-				
-				/*for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
-				 {
-				 const v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
-				 const v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
-				 
-				 
-				 
-				 
-				 // rotate our view manually (it needs to be fixed on y axis for the next math to work)
-				 const v4sf vY = vLeft * vCosine - vRight * vSine;
-				 const v4sf vX = vLeft * vSine + vRight * vCosine;
-				 
-				 //cart to polar:
-				// abs(x,y) * e^i*atan2f(x, y)
-				
-					 
-					 
-				 
-				 // the polar display does a max on the y-coordinate (so everything stays over the line)
-				 // and swaps the sign of the x-coordinate if y crosses zero.
-				 auto const vSignMask = vand((vY < vZero), vSignBit);
-				 outX = cpl::sse::sin_ps(vX); // x = y < 0 ? -x : x
-				outY = cpl::sse::sin_ps(vY); // y = |y|
-				 
-				 // draw vertices
-				 drawer.addVertex(outX[0], outY[0], depthCounter++ * sampleFade - 1);
-				 drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
-				 drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
-				 drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
-				 }*/
-				
 			}
-
 
 		}
 		else
@@ -750,7 +722,6 @@ namespace Signalizer
 		auto deltaDifference = event.position - lastMousePos;
 		if (event.mods.isCtrlDown())
 		{
-			auto deltaDifference = event.position - lastMousePos;
 			matrix.rotation.y = std::fmod(deltaDifference.x * 0.3f + matrix.rotation.y, 360.f);
 			matrix.rotation.x = std::fmod(deltaDifference.y * 0.3f + matrix.rotation.x, 360.f);
 		}

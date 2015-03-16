@@ -994,8 +994,8 @@ namespace Signalizer
 	{
 		if (ctrl == &krefreshRate)
 		{
-			auto refreshRate = cpl::Math::round<int>(cpl::Math::UnityScale::exp(val, 10.0, 1000.0));
-			valString = std::to_string(refreshRate) + " ms";
+			auto refreshRateVal = cpl::Math::round<int>(cpl::Math::UnityScale::exp(val, 10.0, 1000.0));
+			valString = std::to_string(refreshRateVal) + " ms";
 			return true;
 		}
 		return false;
