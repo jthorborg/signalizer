@@ -11,10 +11,55 @@
 
 	#include <memory>
 
+	namespace cpl
+	{
+		namespace OpenGLEngine
+		{
+			class COpenGLStack;
+			
+		};
+	};
+
+
 	namespace Signalizer
 	{
-		template<class T, std::size_t size>
-			class QuarterCircleLut;
+		
+		template<typename T, std::size_t size>
+			class LookupTable
+			{
+			public:
+				typedef T Ty;
+				static const std::size_t tableSize = size;
+				
+				inline Ty linearLookup(Ty dx) const noexcept
+				{
+					Ty scaled = dx * tableSize;
+					std::size_t x1 = std::size_t(scaled);
+					std::size_t x2 = x1 + 1;
+					Ty fraction = scaled - x1;
+					
+					return table[x1] * (Ty(1) - fraction) + table[x2] * fraction;
+				}
+				
+				Ty table[tableSize + 1];
+			};
+		
+		template<typename T, std::size_t size>
+			class QuarterCircleLut : public LookupTable<T, size>
+			{
+			public:
+				QuarterCircleLut()
+				{
+					double increase = 1.0 / (size - 1);
+					for (int i = 0; i < size; ++i)
+					{
+						
+						// describe frist left upper part of circle
+						this->table[i] = (T)std::sin(std::acos(1.0 - increase * i));
+					}
+					this->table[this->tableSize] = (T)1;
+				}
+			};
 
 		class CVectorScope 
 		: 
@@ -59,6 +104,13 @@
 			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
 
 		private:
+			// rendering
+			
+			void drawWireframe(cpl::OpenGLEngine::COpenGLStack &);
+			void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &);
+			void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &);
+			
+			
 			
 			double getGain();
 			double setGainAsFraction(double newFraction);

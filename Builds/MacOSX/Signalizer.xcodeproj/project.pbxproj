@@ -17,6 +17,7 @@
 		165278E21A9B3662003E1953 /* SignalizerDesign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278DD1A9B3662003E1953 /* SignalizerDesign.cpp */; };
 		165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278E31A9B3675003E1953 /* CPLSource.cpp */; };
 		165278E61A9B36AD003E1953 /* MacSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = 165278E51A9B36AD003E1953 /* MacSupport.mm */; };
+		16B6897A1AB7228600170EE6 /* CVectorScopeRendering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */; };
 		1BDB768996BF39F6D83070A2 /* AUEffectBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3177FDC74A3F3A30961620D6 /* AUEffectBase.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		2BD287D1E7CA9D97721B8161 /* juce_AU_Wrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3A6021B42D210342E83E1FE4 /* juce_AU_Wrapper.mm */; };
 		2ECBB4F4BE0687E74E635383 /* juce_gui_extra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7642A5577832F6C6CE8191AC /* juce_gui_extra.mm */; };
@@ -180,6 +181,7 @@
 		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../../SDKs/cpl/CPLSource.cpp; sourceTree = "<group>"; };
 		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../../SDKs/cpl/MacSupport.mm; sourceTree = "<group>"; };
 		16A08833959E1D0DBAB33CD7 /* juce_ShapeButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ShapeButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ShapeButton.h; sourceTree = SOURCE_ROOT; };
+		16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CVectorScopeRendering.cpp; path = ../../Source/CVectorScopeRendering.cpp; sourceTree = "<group>"; };
 		175BB856301EC10A3CBA0643 /* juce_RectangleList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_RectangleList.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_RectangleList.h; sourceTree = SOURCE_ROOT; };
 		1776BE295A658BC7F0C0F92A /* juce_Path.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_Path.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_Path.h; sourceTree = SOURCE_ROOT; };
 		179F56554F4C5CA3A512069C /* juce_ApplicationCommandInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ApplicationCommandInfo.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandInfo.h; sourceTree = SOURCE_ROOT; };
@@ -2810,6 +2812,7 @@
 		EA24685F8B6142E3520D09E9 /* Signalizer */ = {
 			isa = PBXGroup;
 			children = (
+				16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */,
 				165278D71A9B3662003E1953 /* CVectorScope.cpp */,
 				165278D81A9B3662003E1953 /* CVectorScope.h */,
 				165278D91A9B3662003E1953 /* MainEditor.cpp */,
@@ -3063,6 +3066,7 @@
 				165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */,
 				C9A73D79BA65A3ED502F30FD /* juce_data_structures.mm in Sources */,
 				D406F2FB807646E49DAE5672 /* juce_events.mm in Sources */,
+				16B6897A1AB7228600170EE6 /* CVectorScopeRendering.cpp in Sources */,
 				73CE391D21EA72BD12875A47 /* juce_graphics.mm in Sources */,
 				B01450827D33C5B4D3907AAE /* juce_gui_basics.mm in Sources */,
 				2ECBB4F4BE0687E74E635383 /* juce_gui_extra.mm in Sources */,
