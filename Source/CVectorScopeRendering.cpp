@@ -6,7 +6,7 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
-
+#include <cpl/dsp/filterdesign.h>
 namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
@@ -481,7 +481,7 @@ namespace Signalizer
 
 						// get the phase angle. use atan2 if you want to draw the full circle.
 						// x and y are swapped at this point, btw.
-						auto angle = atan(vX / vY);
+						auto angle = std::atan(vX / vY);
 						// replace nan elements of angle with zero
 						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
 						// calcuate x,y coordinates for the right triangle
@@ -589,7 +589,7 @@ namespace Signalizer
 
 						// get the phase angle. use atan2 if you want to draw the full circle.
 						// x and y are swapped at this point, btw.
-						auto angle = atan(vX / vY);
+						auto angle = std::atan(vX / vY);
 						// replace nan elements of angle with zero
 						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
 						// calcuate x,y coordinates for the right triangle
