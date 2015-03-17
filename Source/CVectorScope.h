@@ -71,6 +71,7 @@
 
 		public:
 
+
 			CVectorScope(cpl::AudioBuffer & data);
 			virtual ~CVectorScope();
 
@@ -103,16 +104,23 @@
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value) override;
 			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
 
+			double getGain();
+
 		private:
 			// rendering
-			
-			void drawWireframe(cpl::OpenGLEngine::COpenGLStack &);
-			void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &);
-			void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &);
-			
-			
-			
-			double getGain();
+
+			template<typename V>
+				void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+
+			template<typename V>
+				void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+
+			template<typename V>
+				void drawWireFrame(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+
+			template<typename V>
+				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+
 			double setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
@@ -142,6 +150,7 @@
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
+
 		};
 	
 	};

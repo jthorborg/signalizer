@@ -10,10 +10,8 @@
 namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
-
-	//static const char * ChannelDescriptions[] = { "+R", "+L", "-R", "-L" };
 	
-	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R" };
+	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "C"};
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	
 	enum class OperationalModes
@@ -28,21 +26,16 @@ namespace Signalizer
 		LPlus,
 		RPlus,
 		LMinus,
-		RMinus
+		RMinus, 
+		Center
 	};
-
-
-
 
 
 	void CVectorScope::paint(juce::Graphics & g)
 	{
 
-		
 		auto cStart = cpl::Misc::ClockCounter();
-		
 
-		
 		// do software rendering
 		if(!isOpenGL())
 		{
@@ -50,7 +43,7 @@ namespace Signalizer
 			g.setColour(kbackgroundColour.getControlColourAsColour().withAlpha(1.0f).contrasting());
 			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
 			
-			// post fps
+			// post fps anyway
 			auto tickNow = juce::Time::getHighResolutionTicks();
 			avgFps.setNext(tickNow - lastFrameTick);
 			lastFrameTick = tickNow;
@@ -98,28 +91,26 @@ namespace Signalizer
 		textures.clear();
 	}
 
+
 	void CVectorScope::renderOpenGL()
 	{
 		if (audioStream.empty())
 			return;
 
 		auto cStart = cpl::Misc::ClockCounter();
-		OpenGLHelpers::clear(kbackgroundColour.getControlColourAsColour());
+		juce::OpenGLHelpers::clear(kbackgroundColour.getControlColourAsColour());
 
+		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
+		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
+		auto const gain = (GLfloat)getGain();
+		const float psize = static_cast<GLfloat>(kprimitiveSize.bGetValue() * 10);
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
-		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
-		const float psize = static_cast<GLfloat>(kprimitiveSize.bGetValue() * 10);
-		const float gain = getGain();
-		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
-
-		float sleft(0.0f), sright(0.0f);
-
+		float sleft, sright;
 		cpl::AudioBuffer * buffer;
 
 		if (isFrozen)
 		{
-
 			buffer = &audioStreamCopy;
 		}
 		else if (isSynced)
@@ -162,77 +153,9 @@ namespace Signalizer
 		// add a stack scope for transformations.
 		if (isPolar)
 		{
-			using namespace cpl::simd;
-			cpl::OpenGLEngine::MatrixModification matrixMod;
-			// fixate the rotation to fit.
-			//matrixMod.rotate(135, 0, 0, 1);
-			//matrixMod.rotate(krotation.bGetValue() * 360, 0, 0, 1);
-			// and apply the gain:
-			matrixMod.scale(gain, gain, 1);
-
-			typedef v4sf V;
-			cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
-
-			drawer.addColour(kdrawingColour.getControlColourAsColour());
-
-			static const v4sf vCosine = set1<v4sf>((float)std::cos(M_PI * 135.0 / 180));
-			static const v4sf vSine = set1<v4sf>((float)std::sin(M_PI * 135.0 / 180));
-			const v4sf vZero = zero<v4sf>();
-			const v4sf vSign = consts<v4sf>::sign_bit;
-			float sampleFade = 1.0 / numSamples;
-
-			suitable_container<v4sf> outX, outY;
-
-			// iterate front of buffer, then back.
-			// this feels awkward, but that's kinda how circular 
-			// buffers work.
-			std::size_t depthCounter = 0;
-			for (int section = 0; section < 2; ++section)
-			{
-				auto const lit = leftChannel->getIterator<4>();
-				auto const rit = rightChannel->getIterator<4>();
-
-				auto const sectionSamples = lit.sizes[section];
-
-				for (std::size_t i = 0; i < sectionSamples; i += elements_of<v4sf>::value)
-				{
-					v4sf vLeft = loadu<v4sf>(lit.getIndex(section) + i);
-					v4sf vRight = loadu<v4sf>(rit.getIndex(section) + i);
-
-					// the length of the hypotenuse of the triangle, we 
-					// convert the unit square to.
-					auto const length = max(abs(vLeft), abs(vRight));
-
-					// rotate our view manually (to center on Y-axis)
-					v4sf vY = vLeft * vCosine - vRight * vSine;
-					v4sf vX = vLeft * vSine + vRight * vCosine;
-
-					// check for any zero elements.
-					V leftIsZero = vLeft == vZero;
-					V rightIsZero = vRight == vZero;
-					auto mask = vand(leftIsZero, rightIsZero);
-					mask = vnot(mask);
-					// get the phase angle. use atan2 if you want to draw the full circle.
-					auto angle = atan(vX / vY);
-					// replace nan elements of angle with zero
-					angle = vand(mask, angle);
-					// calcuate x,y coordinates for the right triangle
-					sincos(angle, &vX, &vY);
-
-					// construct triangle.
-					outX = vX * length;
-					outY = vY * length;
-
-					// draw vertices
-					drawer.addVertex(outX[0], outY[0], depthCounter++ * sampleFade - 1);
-					drawer.addVertex(outX[1], outY[1], depthCounter++ * sampleFade - 1);
-					drawer.addVertex(outX[2], outY[2], depthCounter++ * sampleFade - 1);
-					drawer.addVertex(outX[3], outY[3], depthCounter++ * sampleFade - 1);
-				}
-			}
-
+			drawPolarPlot<cpl::simd::v8sf>(openGLStack, *buffer);
 		}
-		else
+		else // is Lissajous
 		{
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -436,6 +359,253 @@ namespace Signalizer
 		lastFrameTick = tickNow;
 	}
 
+
+
+	template<typename V>
+		void CVectorScope::drawPolarPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		{
+			using namespace cpl::simd;
+			typedef typename scalar_of<V>::type Ty;
+
+			cpl::OpenGLEngine::MatrixModification matrixMod;
+			auto const gain = (GLfloat)getGain();
+			auto const numSamples = buf[0].size;
+			const bool fillPath = kdrawLines.bGetValue() > 0.5;
+			const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
+			static const long long vectorLength = elements_of<V>::value;
+			matrixMod.scale(gain, gain, 1);
+			auto const colour = kdrawingColour.getControlColourAsColour();
+			suitable_container<V> outX, outY, outFade;
+
+			// simd consts
+			static const Ty cosineRotation = (Ty)std::cos(M_PI * 135.0 / 180);
+			static const Ty sineRotation = (Ty)std::sin(M_PI * 135.0 / 180);
+			static const V vCosine = set1<V>(cosineRotation);
+			static const V vSine = set1<V>(sineRotation);
+			const V vZero = zero<V>();
+			const V vOne = consts<V>::one;
+			const V vSign = consts<V>::sign_bit;
+			auto const fadePerSample = (Ty)1.0 / numSamples;
+			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
+
+			const float
+				red = colour.getFloatRed(),
+				green = colour.getFloatGreen(),
+				blue = colour.getFloatBlue();
+
+			for (int i = 0; i < vectorLength; ++i)
+			{
+				outFade[i] = fadePerSample * i;
+			}
+
+			V vSampleFade = outFade;
+
+
+			auto const lit = buf[0].getIterator<vectorLength>();
+			auto const rit = buf[1].getIterator<vectorLength>();
+			if(!fadeHistory)
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+				drawer.addColour(red, green, blue);
+				// iterate front of buffer, then back.
+				for (int section = 0; section < 2; ++section)
+				{
+
+					// using long longs to safely jump out of loops with elements_of<V> > sectionSamples
+					long long i = 0;
+
+					const Ty * left = lit.getIndex(section);
+					const Ty * right = rit.getIndex(section);
+					const long long sectionSamples = lit.sizes[section];
+
+					for (; i < (sectionSamples - vectorLength); i += vectorLength)
+					{
+						V vLeft = loadu<V>(left + i);
+						V vRight = loadu<V>(right + i);
+
+						// the length of the hypotenuse of the triangle, we 
+						// convert the unit square to.
+						auto const vLength = max(abs(vLeft), abs(vRight));
+
+						// rotate our view manually (to center on Y-axis)
+						V vY = vLeft * vCosine - vRight * vSine;
+						V vX = vLeft * vSine + vRight * vCosine;
+
+						// check for any zero elements.
+						vLeft = (vLeft == vZero);
+						vRight = (vRight == vZero);
+						auto vMask = vnot(vand(vLeft, vRight));
+
+						// get the phase angle. use atan2 if you want to draw the full circle.
+						// x and y are swapped at this point, btw.
+						auto vAngle = atan(vX / vY);
+						// replace nan elements of angle with zero
+						vAngle = vand(vMask, vAngle);
+						// calcuate x,y coordinates for the right triangle
+						sincos(vAngle, &vX, &vY);
+
+						// construct triangle.
+						outX = vX * vLength;
+						outY = vY * vLength;
+
+						outFade = vSampleFade - vOne;
+
+						// draw vertices.
+						for (cpl::Types::fint_t n = 0; n < vectorLength; ++n)
+						{
+							drawer.addVertex(outX[n], outY[n], outFade[n]);
+						}
+
+						vSampleFade += vIncrementalFade;
+
+					}
+					//continue;
+					// deal with remainder, scalar route
+					long long remaindingSamples = 0;
+					auto currentSampleFade = outFade[vectorLength - 1];
+
+					for (; i < sectionSamples; i++, remaindingSamples++)
+					{
+						Ty vLeft = left[i];
+						Ty vRight = right[i];
+
+						// the length of the hypotenuse of the triangle, we 
+						// convert the unit square to.
+						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
+
+						// rotate our view manually (to center on Y-axis)
+						Ty vY = vLeft * cosineRotation - vRight * sineRotation;
+						Ty vX = vLeft * sineRotation + vRight * cosineRotation;
+
+						// check for any zero elements.
+
+						// get the phase angle. use atan2 if you want to draw the full circle.
+						// x and y are swapped at this point, btw.
+						auto angle = atan(vX / vY);
+						// replace nan elements of angle with zero
+						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
+						// calcuate x,y coordinates for the right triangle
+						sincos(angle, &vX, &vY);
+
+						drawer.addVertex(vX * length, vY * length, (currentSampleFade - remaindingSamples * fadePerSample));
+
+
+
+					}
+					// fractionally increase sample fade levels
+					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
+				}
+			}
+			else // apply fading
+			{
+
+				const V 
+					vRed = set1<V>(red), 
+					vGreen = set1<V>(green),
+					vBlue = set1<V>(blue);
+
+				suitable_container<V> outRed, outGreen, outBlue;
+				// iterate front of buffer, then back.
+
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+
+				for (int section = 0; section < 2; ++section)
+				{
+
+					// using long longs to safely jump out of loops with elements_of<V> > sectionSamples
+					long long i = 0;
+
+					const Ty * left = lit.getIndex(section);
+					const Ty * right = rit.getIndex(section);
+					const long long sectionSamples = lit.sizes[section];
+
+					for (; i < (sectionSamples - vectorLength); i += vectorLength)
+					{
+						V vLeft = loadu<V>(left + i);
+						V vRight = loadu<V>(right + i);
+
+						// the length of the hypotenuse of the triangle, we 
+						// convert the unit square to.
+						auto const vLength = max(abs(vLeft), abs(vRight));
+
+						// rotate our view manually (to center on Y-axis)
+						V vY = vLeft * vCosine - vRight * vSine;
+						V vX = vLeft * vSine + vRight * vCosine;
+
+						// check for any zero elements.
+						vLeft = (vLeft == vZero);
+						vRight = (vRight == vZero);
+						auto vMask = vnot(vand(vLeft, vRight));
+
+						// get the phase angle. use atan2 if you want to draw the full circle.
+						// x and y are swapped at this point, btw.
+						auto vAngle = atan(vX / vY);
+						// replace nan elements of angle with zero
+						vAngle = vand(vMask, vAngle);
+						// calcuate x,y coordinates for the right triangle
+						sincos(vAngle, &vX, &vY);
+
+						// construct triangle.
+						outX = vX * vLength;
+						outY = vY * vLength;
+
+						outFade = vSampleFade - vOne;
+
+						// set colours
+
+						outRed = vRed * vSampleFade;
+						outBlue = vBlue * vSampleFade;
+						outGreen = vGreen * vSampleFade;
+
+						// draw vertices.
+						for (cpl::Types::fint_t n = 0; n < vectorLength; ++n)
+						{
+							drawer.addColour(outRed[n], outGreen[n], outBlue[n]);
+							drawer.addVertex(outX[n], outY[n], outFade[n]);
+						}
+
+						vSampleFade += vIncrementalFade;
+
+					}
+					//continue;
+					// deal with remainder, scalar route
+					long long remaindingSamples = 0;
+					auto currentSampleFade = outFade[vectorLength - 1];
+
+					for (; i < sectionSamples; i++, remaindingSamples++)
+					{
+						Ty vLeft = left[i];
+						Ty vRight = right[i];
+
+						// the length of the hypotenuse of the triangle, we 
+						// convert the unit square to.
+						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
+
+						// rotate our view manually (to center on Y-axis)
+						Ty vY = vLeft * cosineRotation - vRight * sineRotation;
+						Ty vX = vLeft * sineRotation + vRight * cosineRotation;
+
+						// check for any zero elements.
+
+						// get the phase angle. use atan2 if you want to draw the full circle.
+						// x and y are swapped at this point, btw.
+						auto angle = atan(vX / vY);
+						// replace nan elements of angle with zero
+						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
+						// calcuate x,y coordinates for the right triangle
+						sincos(angle, &vX, &vY);
+
+						auto currentFade = (currentSampleFade - remaindingSamples * fadePerSample);
+						drawer.addColour(red * (currentFade + 1), green * (currentFade + 1), blue * (currentFade + 1));
+						drawer.addVertex(vX * length, vY * length, currentFade);
+
+					}
+					// fractionally increase sample fade levels
+					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
+
+				}
+			}
+		}
 
 
 
