@@ -10,7 +10,8 @@
 namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
-	
+	static const double lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
+	static const double higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 	std::unique_ptr<juce::Component> CVectorScope::createEditor()
 	{
@@ -55,6 +56,10 @@ namespace Signalizer
 				page->addSection(section, "Look");
 			}
 		}
+
+		editor = content;
+		editor->addComponentListener(this);
+
 		return std::unique_ptr<juce::Component>(content);
 
 	}
@@ -74,13 +79,31 @@ namespace Signalizer
 		audioStreamCopy(2),
 		lastFrameTick(0), 
 		isFrozen(false),
-		lastMousePos()
+		lastMousePos(),
+		normalizeGain(false),
+		envelopeSmooth(0.99998),
+		envelopeFilters{},
+		envelopeGain(1),
+		editor(nullptr)
 	{
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
-		
+		listenToSource(data[0]);
+	}
+
+	void CVectorScope::componentBeingDeleted(Component & component)
+	{
+		if (&component == editor)
+		{
+			editor = nullptr;
+		}
+	}
+
+	bool CVectorScope::isEditorOpen() const
+	{
+		return editor ? true : false;
 	}
 
 	void CVectorScope::suspend()
@@ -103,6 +126,8 @@ namespace Signalizer
 	CVectorScope::~CVectorScope()
 	{
 		notifyDestruction();
+		if (editor)
+			editor->removeComponentListener(this);
 	}
 
 	void CVectorScope::initPanelAndControls()
@@ -111,6 +136,7 @@ namespace Signalizer
 		kwindow.bAddPassiveChangeListener(this);
 		kwindow.bAddFormatter(this);
 		kgain.bAddFormatter(this);
+		kgain.bAddPassiveChangeListener(this);
 		krotation.bAddFormatter(this);
 		kprimitiveSize.bAddFormatter(this);
 		kenvelopeFollow.bAddPassiveChangeListener(this);
@@ -294,7 +320,7 @@ namespace Signalizer
 		char buf[200];
 		if (ctrl == &kgain)
 		{
-			sprintf(buf, "%.2f dB (%d%%)", cpl::Math::fractionToDB(getGain()), (int)cpl::Misc::Round(getGain() * 100));
+			sprintf(buf, "%.2f dB", cpl::Math::fractionToDB(getGain()));
 			buffer = buf;
 			return true;
 		}
@@ -320,28 +346,22 @@ namespace Signalizer
 		return false;
 	}
 
+	void CVectorScope::setGainAsFraction(double newFraction)
+	{
+		auto newValue = cpl::Math::UnityScale::Inv::exp(newFraction, lowerAutoGainBounds, higherAutoGainBounds);
+		kgain.bSetValue(cpl::Math::confineTo(newValue, 0, 1));
+	}
 
 	double CVectorScope::getGain()
 	{
-		return kgain.bGetValue() * 4;
-		double val = 0;
-		if (val > 0.5)
-		{
-			return 1 + (val * 2 - 1) * 9;
-
-		}
-		else if (val < 0.5)
-		{
-			return val * 2;
-		}
-
-		return 1;
-
+		if (normalizeGain)
+			return envelopeGain;
+		return cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
 	}
 
-	double CVectorScope::mapScaleToFraction(double scale)
+	double CVectorScope::mapScaleToFraction(double valueInDBs)
 	{
-		return scale / 4;
+		return cpl::Math::UnityScale::Inv::exp(cpl::Math::dbToFraction(valueInDBs), lowerAutoGainBounds, higherAutoGainBounds);
 	}
 
 	bool CVectorScope::stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value)
@@ -353,7 +373,7 @@ namespace Signalizer
 			cpl::iCtrlPrec_t newVal = strtod(buffer.c_str(), &endPtr);
 			if (endPtr > buffer.data())
 			{
-				value = mapScaleToFraction(cpl::Math::dbToFraction(newVal));
+				value = mapScaleToFraction(newVal);
 				return true;
 			}
 		}
@@ -396,6 +416,7 @@ namespace Signalizer
 	{
 		// hmmm.....
 	}
+
 	void CVectorScope::valueChanged(const cpl::CBaseControl * ctrl)
 	{
 		if (ctrl == &kwindow)
@@ -407,6 +428,105 @@ namespace Signalizer
 			}
 			return;
 		}
+		else if (ctrl == &kenvelopeFollow)
+		{
+			normalizeGain = kenvelopeFollow.bGetValue() > 0.5;
+			if (!normalizeGain)
+				envelopeGain = kgain.bGetValue();
+		}
+		else if (ctrl == &kgain)
+		{
+			if (!normalizeGain)
+				envelopeGain = kgain.bGetValue();
+		}
+	}
+	template<typename V>
+	void CVectorScope::processAudioBuffer(float ** buffers, std::size_t channels, std::size_t samples)
+	{
+		using namespace cpl;
+		using namespace cpl::simd;
+
+		auto const loopIncrement = elements_of<V>::value;
+
+		auto const smoothPole = set1<V>(envelopeSmooth * loopIncrement);
+		auto leftFilter = 0;
+		suitable_container<V> startLeft, startRight;
+		double smoothPole = envelopeSmooth;
+
+		for (int i = 0; i < loopIncrement; ++i)
+		{
+			startLeft[i] = envelopeFilter[0] * smoothPole;
+			startRight[i] = envelopeFilter[1] * smoothPole;
+			smoothPole *= smoothPole;
+		}
+
+
+		if (isPeakDetection)
+		{
+			// doesn't matter much if a remainder is missing..
+			for (std::size_t i = 0; i < samples; i += loopIncrement)
+			{
+
+			}
+		}
+
+
+	}
+
+
+	bool CVectorScope::audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples)
+	{
+		if (normalizeGain)
+		{
+			const bool isPeakDetection = true;
+
+			if (numChannels != 2)
+				return false;
+
+			double currentEnvelope = 0;
+
+			if (isPeakDetection)
+			{
+
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					// square here.
+					double input = buffer[0][i] * buffer[0][i];
+
+					if (input > envelopeFilters[0])
+						envelopeFilters[0] = input;
+					else
+						envelopeFilters[0] *= envelopeSmooth;
+					input = buffer[1][i] * buffer[1][i];
+
+					if (input > envelopeFilters[1])
+						envelopeFilters[1] = input;
+					else
+						envelopeFilters[1] *= envelopeSmooth;
+
+				}
+			}
+			else
+			{
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					// square here.
+					double input = buffer[0][i] * buffer[0][i];
+					envelopeFilters[0] = input + envelopeSmooth * (envelopeFilters[0] - input);
+					input = buffer[1][i] * buffer[1][i];
+					envelopeFilters[1] = input + envelopeSmooth * (envelopeFilters[1] - input);
+				}
+
+			}
+
+			currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
+
+			if (std::isnormal(currentEnvelope))
+			{
+				envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+			}
+		}
+		return false;
 	}
 
 

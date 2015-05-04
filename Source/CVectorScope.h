@@ -66,6 +66,8 @@
 			public cpl::COpenGLView, 
 			protected cpl::CBaseControl::PassiveListener,
 			protected cpl::CBaseControl::ValueFormatter,
+			protected cpl::CAudioListener,
+			protected juce::ComponentListener,
 			public cpl::Utility::CNoncopyable
 		{
 
@@ -103,8 +105,11 @@
 			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value) override;
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value) override;
 			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
-
+			bool isEditorOpen() const;
 			double getGain();
+		protected:
+			bool audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			void componentBeingDeleted(Component & 	component) override;
 
 		private:
 			// rendering
@@ -121,7 +126,10 @@
 			template<typename V>
 				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
 
-			double setGainAsFraction(double newFraction);
+			template<typename V>
+				void processAudioBuffer(float ** buffers, std::size_t channels, std::size_t samples);
+
+			void setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
 		
@@ -138,13 +146,17 @@
 			long long lastFrameTick, renderCycles;
 
 			bool isFrozen;
-			double envelopeGain;
+		
+			bool normalizeGain;
+			cpl::iCtrlPrec_t envelopeGain;
+			double envelopeSmooth;
+			double envelopeFilters[2];
 
 			// data
 			cpl::AudioBuffer & audioStream;
 			cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
-
+			juce::Component * editor;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

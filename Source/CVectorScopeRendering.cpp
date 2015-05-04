@@ -11,7 +11,7 @@ namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
 	
-	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "C"};
+	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	
 	enum class OperationalModes
@@ -26,7 +26,9 @@ namespace Signalizer
 		LPlus,
 		RPlus,
 		LMinus,
-		RMinus, 
+		RMinus,
+		Left,
+		Right,
 		Center
 	};
 
@@ -35,6 +37,11 @@ namespace Signalizer
 	{
 
 		auto cStart = cpl::Misc::ClockCounter();
+
+		if (normalizeGain && isEditorOpen())
+		{
+			setGainAsFraction(envelopeGain);
+		}
 
 		// do software rendering
 		if(!isOpenGL())
@@ -99,10 +106,12 @@ namespace Signalizer
 
 		auto cStart = cpl::Misc::ClockCounter();
 		juce::OpenGLHelpers::clear(kbackgroundColour.getControlColourAsColour());
-
+		const float quarterPISinCos = 0.707106781186547f;
+		const float circleScaleFactor = 1.1f;
 		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
 		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
-		auto const gain = (GLfloat)getGain();
+		GLfloat gain = getGain();
+
 		const float psize = static_cast<GLfloat>(kprimitiveSize.bGetValue() * 10);
 		const bool fillPath = kdrawLines.bGetValue() > 0.5;
 		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
@@ -279,7 +288,6 @@ namespace Signalizer
 				drawer.addVertex(1.0f, 0.0f, -1.0f);
 				
 				// add critical diagonal phase lines.
-				const float quarterPISinCos = 0.707106781186547f;
 				drawer.addVertex(0.0f, 0.0f, 0.0f);
 				drawer.addVertex(quarterPISinCos, quarterPISinCos, 0.0f);
 				drawer.addVertex(0.0f, 0.0f, 0.0f);
@@ -308,6 +316,7 @@ namespace Signalizer
 
 
 		// draw channel rotations letters.
+		if(!isPolar)
 		{
 			auto rotation = -krotation.bGetValue() * 2 * M_PI;
 			const float heightToWidthFactor = float(getHeight()) / getWidth();
@@ -326,8 +335,6 @@ namespace Signalizer
 			phases[2] = M_PI + rotation;
 			phases[3] = M_PI * 1.5f + rotation;
 
-			const float circleScaleFactor = 1.1f;
-
 			// some registers
 			v4sf 
 				vsines, 
@@ -337,7 +344,7 @@ namespace Signalizer
 				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
 
 			// do 8 trig functions in one go!
-			cpl::sse::sincos_ps(phases, &vsines, &vcosines);
+			cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
 
 			// place the circle just outside the graph, and offset it.
 			xcoords = vsines * vscale * vheightToWidthFactor + vadd;
@@ -352,7 +359,38 @@ namespace Signalizer
 				text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
 			}
 		}
+		else
+		{
+			const float heightToWidthFactor = float(getHeight()) / getWidth();
+			using namespace cpl::simd;
 
+			cpl::OpenGLEngine::MatrixModification m;
+			// this undoes the text squashing due to variable aspect ratios.
+			m.scale(heightToWidthFactor, 1.0f, 1.0f);
+
+			auto jcolour = kgraphColour.getControlColourAsColour();
+			float nadd = 1.0f - circleScaleFactor;
+			float xcoord = quarterPISinCos * circleScaleFactor / heightToWidthFactor + nadd;
+			float ycoord = quarterPISinCos * circleScaleFactor + nadd;
+			
+			// render texture text at coordinates.
+			{
+				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Left]);
+				text.setColour(jcolour);
+				text.drawAt({ -xcoord + nadd, ycoord, 0.1f, 0.1f });
+			}
+			{
+				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Center]);
+				text.setColour(jcolour);
+				text.drawAt({ 0 + nadd * 0.5f, 1, 0.1f, 0.1f });
+			}
+			{
+				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Right]);
+				text.setColour(jcolour);
+				text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
+			}
+			
+		}
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
