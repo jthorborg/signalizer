@@ -64,8 +64,8 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu", 
-				getWidth(), getHeight(), fps, cpuTime);
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu - env: %f",
+				getWidth(), getHeight(), fps, cpuTime, envelopeSmooth);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 			
 		}
@@ -162,7 +162,7 @@ namespace Signalizer
 		// add a stack scope for transformations.
 		if (isPolar)
 		{
-			drawPolarPlot<cpl::simd::v8sf>(openGLStack, *buffer);
+			drawPolarPlot<cpl::simd::v4sf>(openGLStack, *buffer);
 		}
 		else // is Lissajous
 		{

@@ -61,6 +61,8 @@
 				}
 			};
 
+		enum class EnvelopeModes : int;
+		
 		class CVectorScope 
 		: 
 			public cpl::COpenGLView, 
@@ -136,11 +138,11 @@
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
-			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kenvelopeFollow;
-			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize;
+			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
+			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth;
 			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 			cpl::CTransformWidget ktransform;
-			cpl::CComboBox kopMode;
+			cpl::CComboBox kopMode, kenvelopeMode;
 			juce::MouseCursor displayCursor;
 			// vars
 			long long lastFrameTick, renderCycles;
@@ -157,6 +159,7 @@
 			cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
+			EnvelopeModes envelopeMode;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

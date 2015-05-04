@@ -10,6 +10,15 @@
 namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
+	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
+	
+	enum class EnvelopeModes : int
+	{
+		None,
+		RMS,
+		PeakDecay
+	};
+	
 	static const double lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	static const double higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
@@ -29,7 +38,8 @@ namespace Signalizer
 				section->addControl(&krotation, 0);
 				section->addControl(&kwindow, 1);
 				section->addControl(&kgain, 0);
-				section->addControl(&kenvelopeFollow, 1);
+				section->addControl(&kenvelopeSmooth, 1);
+				section->addControl(&kenvelopeMode, 1);
 				section->addControl(&kopMode, 0);
 				page->addSection(section, "Utility");
 				//
@@ -75,6 +85,7 @@ namespace Signalizer
 		kdrawingColour("Drawing colour"),
 		kskeletonColour("Skeleton colour"),
 		kprimitiveSize("Primitive size"),
+		kenvelopeSmooth("Env. smooth time", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
 		audioStreamCopy(2),
 		lastFrameTick(0), 
@@ -139,9 +150,10 @@ namespace Signalizer
 		kgain.bAddPassiveChangeListener(this);
 		krotation.bAddFormatter(this);
 		kprimitiveSize.bAddFormatter(this);
-		kenvelopeFollow.bAddPassiveChangeListener(this);
+		kenvelopeMode.bAddPassiveChangeListener(this);
 		kopMode.bAddPassiveChangeListener(this);
-		// buttons
+		kenvelopeSmooth.bAddPassiveChangeListener(this);
+		// buttons n controls
 		kantiAlias.bSetTitle("Antialias");
 		kantiAlias.setToggleable(true);
 		kfadeOld.bSetTitle("Fade older points");
@@ -150,8 +162,11 @@ namespace Signalizer
 		kdrawLines.setToggleable(true);
 		kdiagnostics.bSetTitle("Diagnostics");
 		kdiagnostics.setToggleable(true);
-		kenvelopeFollow.bSetTitle("Auto gain");
-		kenvelopeFollow.setToggleable(true);
+		kenvelopeMode.bSetTitle("Auto-gain mode");
+		kenvelopeMode.setValues(EnvelopeModeNames);
+		
+		kenvelopeMode.bSetValue(0);
+		kopMode.bSetValue(0);
 		
 		// design
 		kopMode.setValues(OperationalModeNames);
@@ -173,7 +188,8 @@ namespace Signalizer
 		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
 		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
-		kenvelopeFollow.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity");
+		kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
+		kenvelopeSmooth.bSetDescription("Responsiveness - or the time it takes for the envelope follower to decay.");
 		kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
@@ -194,6 +210,7 @@ namespace Signalizer
 		archive << ktransform.getTransform3D();
 		archive << kskeletonColour;
 		archive << kprimitiveSize;
+		archive << kenvelopeMode;
 	}
 
 	void CVectorScope::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -211,7 +228,8 @@ namespace Signalizer
 		builder >> ktransform.getTransform3D();
 		builder >> kskeletonColour;
 		builder >> kprimitiveSize;
-
+		builder >> kenvelopeMode;
+		
 		ktransform.syncEditor();
 
 	}
@@ -428,11 +446,16 @@ namespace Signalizer
 			}
 			return;
 		}
-		else if (ctrl == &kenvelopeFollow)
+		else if (ctrl == &kenvelopeMode)
 		{
-			normalizeGain = kenvelopeFollow.bGetValue() > 0.5;
+			envelopeMode = kenvelopeMode.getZeroBasedSelIndex<EnvelopeModes>();
+			normalizeGain = envelopeMode != EnvelopeModes::None;
 			if (!normalizeGain)
 				envelopeGain = kgain.bGetValue();
+		}
+		else if(ctrl == &kenvelopeSmooth)
+		{
+			envelopeSmooth = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream[0].sampleRate));
 		}
 		else if (ctrl == &kgain)
 		{
@@ -443,6 +466,7 @@ namespace Signalizer
 	template<typename V>
 	void CVectorScope::processAudioBuffer(float ** buffers, std::size_t channels, std::size_t samples)
 	{
+		/*
 		using namespace cpl;
 		using namespace cpl::simd;
 
@@ -455,7 +479,7 @@ namespace Signalizer
 
 		for (int i = 0; i < loopIncrement; ++i)
 		{
-			startLeft[i] = envelopeFilter[0] * smoothPole;
+			startLeft[i] = envelopeFilters[0] * smoothPole;
 			startRight[i] = envelopeFilter[1] * smoothPole;
 			smoothPole *= smoothPole;
 		}
@@ -469,7 +493,7 @@ namespace Signalizer
 
 			}
 		}
-
+		*/
 
 	}
 
@@ -485,7 +509,7 @@ namespace Signalizer
 
 			double currentEnvelope = 0;
 
-			if (isPeakDetection)
+			if (envelopeMode == EnvelopeModes::PeakDecay)
 			{
 
 				for (std::size_t i = 0; i < numSamples; ++i)
@@ -505,6 +529,7 @@ namespace Signalizer
 						envelopeFilters[1] *= envelopeSmooth;
 
 				}
+				currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
 			}
 			else
 			{
@@ -516,10 +541,12 @@ namespace Signalizer
 					input = buffer[1][i] * buffer[1][i];
 					envelopeFilters[1] = input + envelopeSmooth * (envelopeFilters[1] - input);
 				}
+				
+				currentEnvelope = 1.0 / (2 * std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1])));
 
 			}
 
-			currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
+
 
 			if (std::isnormal(currentEnvelope))
 			{
