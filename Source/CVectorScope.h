@@ -75,6 +75,8 @@
 
 		public:
 
+			static const double higherAutoGainBounds;
+			static const double lowerAutoGainBounds;
 
 			CVectorScope(cpl::AudioBuffer & data);
 			virtual ~CVectorScope();
@@ -129,12 +131,12 @@
 				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
 
 			template<typename V>
-				void processAudioBuffer(float ** buffers, std::size_t channels, std::size_t samples);
+				void runPeakFilter(cpl::AudioBuffer & buffer, std::size_t samples);
 
 			void setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
-			void runPeakFilter(cpl::AudioBuffer & buffer, std::size_t samples);
+
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 

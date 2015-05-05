@@ -1192,6 +1192,7 @@ namespace Signalizer
 		kloadDefaultPreset.bAddPassiveChangeListener(this);
 		kantialias.bAddPassiveChangeListener(this);
 		kpresetList.bAddPassiveChangeListener(this);
+		ksync.bAddPassiveChangeListener(this);
 		// design
 		kfreeze.setImage("icons/svg/snow1.svg");
 		kidle.setImage("icons/svg/idle.svg");

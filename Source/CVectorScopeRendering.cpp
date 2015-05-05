@@ -160,7 +160,7 @@ namespace Signalizer
 		// the peak filter has to run on the whole buffer each time.
 		if (state.envelopeMode == EnvelopeModes::PeakDecay)
 		{
-			runPeakFilter(*buffer, numSamples);
+			runPeakFilter<cpl::simd::v8sf>(*buffer, numSamples);
 		}
 		   
 		openGLStack.setLineSize(state.primitiveSize * 10);
@@ -678,4 +678,60 @@ namespace Signalizer
 
 
 
+	template<typename V>
+		void CVectorScope::runPeakFilter(cpl::AudioBuffer & buf, std::size_t numSamples)
+		{
+			if (state.normalizeGain)
+			{
+				double currentEnvelope = 0;
+				// since this runs in every frame, we need to scale the coefficient by how often this function runs
+				// (and the amount of samples)
+				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+
+				double coeff = std::pow(envelopeSmooth, power);
+
+				// there is a number of optimisations we can do here, mostly that we actually don't care about
+				// timing, we are only interested in the current largest value in the set.
+				using namespace cpl;
+				using namespace cpl::simd;
+				using cpl::simd::load;
+
+				V
+					vLMax = zero<V>(),
+					vRMax = zero<V>(),
+					vSign = consts<V>::sign_mask;
+
+				auto const loopIncrement = elements_of<V>::value;
+
+				auto * leftBuffer = buf[0].buffer;
+				auto * rightBuffer = buf[1].buffer;
+
+				auto stop = numSamples - (numSamples & (loopIncrement - 1));
+				if (stop <= 0)
+					stop = 0;
+
+				for (std::size_t i = 0; i < stop; i += loopIncrement)
+				{
+					auto const vLInput = loadu<V>(leftBuffer + i);
+					vLMax = max(vand(vLInput, vSign), vLMax);
+					auto const vRInput = loadu<V>(rightBuffer + i);
+					vRMax = max(vand(vRInput, vSign), vRMax);
+				}
+
+				suitable_container<V> lmax = vLMax, rmax = vRMax;
+
+				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
+				double highestRight = *std::max_element(rmax.begin(), rmax.end());
+
+				envelopeFilters[0] = std::max(envelopeFilters[0] * coeff, highestLeft  * highestLeft);
+				envelopeFilters[1] = std::max(envelopeFilters[1] * coeff, highestRight * highestRight);
+
+				currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
+
+				if (std::isnormal(currentEnvelope))
+				{
+					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+				}
+			}
+		}
 };

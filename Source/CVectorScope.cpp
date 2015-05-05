@@ -25,8 +25,8 @@ namespace Signalizer
 		Polar
 	};
 	
-	static const double lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
-	static const double higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
+	const double CVectorScope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
+	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 	std::unique_ptr<juce::Component> CVectorScope::createEditor()
 	{
@@ -520,42 +520,6 @@ namespace Signalizer
 		else if(ctrl == &kbackgroundColour)
 		{
 			state.colourBackground = kbackgroundColour.getControlColourAsColour();
-		}
-	}
-
-	
-	void CVectorScope::runPeakFilter(cpl::AudioBuffer & buf, std::size_t numSamples)
-	{
-		if(state.normalizeGain)
-		{
-			double currentEnvelope = 0;
-			
-			for (std::size_t i = 0; i < numSamples; ++i)
-			{
-				// square here.
-				double input = buf[0].singleCheckAccess(i);
-				input *= input;
-				
-				if (input > envelopeFilters[0])
-					envelopeFilters[0] = input;
-				else
-					envelopeFilters[0] *= envelopeSmooth;
-				
-				input = buf[1].singleCheckAccess(i);
-				input *= input;
-				
-				if (input > envelopeFilters[1])
-					envelopeFilters[1] = input;
-				else
-					envelopeFilters[1] *= envelopeSmooth;
-				
-			}
-			currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
-			
-			if (std::isnormal(currentEnvelope))
-			{
-				envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
-			}
 		}
 	}
 
