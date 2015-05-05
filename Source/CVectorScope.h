@@ -123,7 +123,7 @@
 				void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
 
 			template<typename V>
-				void drawWireFrame(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+				void drawWireFrame(cpl::OpenGLEngine::COpenGLStack &);
 
 			template<typename V>
 				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
@@ -134,7 +134,7 @@
 			void setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
-		
+			void runPeakFilter(cpl::AudioBuffer & buffer, std::size_t samples);
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
@@ -147,19 +147,24 @@
 			// vars
 			long long lastFrameTick, renderCycles;
 
-			bool isFrozen;
-		
-			bool normalizeGain;
 			cpl::iCtrlPrec_t envelopeGain;
 			double envelopeSmooth;
 			double envelopeFilters[2];
 
+			struct StateOptions
+			{
+				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, isEditorOpen, diagnostics;
+				float primitiveSize, rotation;
+				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
+				EnvelopeModes envelopeMode;
+			} state;
+			
 			// data
 			cpl::AudioBuffer & audioStream;
 			cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
-			EnvelopeModes envelopeMode;
+			
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

@@ -19,6 +19,12 @@ namespace Signalizer
 		PeakDecay
 	};
 	
+	enum class OperationalModes : int
+	{
+		Lissajous,
+		Polar
+	};
+	
 	static const double lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	static const double higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
@@ -69,7 +75,7 @@ namespace Signalizer
 
 		editor = content;
 		editor->addComponentListener(this);
-
+		state.isEditorOpen = editor ? true : false;
 		return std::unique_ptr<juce::Component>(content);
 
 	}
@@ -88,14 +94,13 @@ namespace Signalizer
 		kenvelopeSmooth("Env. smooth time", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
 		audioStreamCopy(2),
-		lastFrameTick(0), 
-		isFrozen(false),
+		lastFrameTick(0),
 		lastMousePos(),
-		normalizeGain(false),
 		envelopeSmooth(0.99998),
 		envelopeFilters{},
 		envelopeGain(1),
-		editor(nullptr)
+		editor(nullptr),
+		state()
 	{
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
@@ -109,13 +114,10 @@ namespace Signalizer
 		if (&component == editor)
 		{
 			editor = nullptr;
+			state.isEditorOpen = false;
 		}
 	}
 
-	bool CVectorScope::isEditorOpen() const
-	{
-		return editor ? true : false;
-	}
 
 	void CVectorScope::suspend()
 	{
@@ -145,14 +147,29 @@ namespace Signalizer
 	{
 		// listeners
 		kwindow.bAddPassiveChangeListener(this);
-		kwindow.bAddFormatter(this);
-		kgain.bAddFormatter(this);
 		kgain.bAddPassiveChangeListener(this);
-		krotation.bAddFormatter(this);
-		kprimitiveSize.bAddFormatter(this);
 		kenvelopeMode.bAddPassiveChangeListener(this);
 		kopMode.bAddPassiveChangeListener(this);
 		kenvelopeSmooth.bAddPassiveChangeListener(this);
+		krotation.bAddPassiveChangeListener(this);
+		kantiAlias.bAddPassiveChangeListener(this);
+		kfadeOld.bAddPassiveChangeListener(this);
+		kdrawLines.bAddPassiveChangeListener(this);
+		kdrawingColour.bAddPassiveChangeListener(this);
+		kgraphColour.bAddPassiveChangeListener(this);
+		kskeletonColour.bAddPassiveChangeListener(this);
+		kbackgroundColour.bAddPassiveChangeListener(this);
+		kprimitiveSize.bAddPassiveChangeListener(this);
+		kdiagnostics.bAddPassiveChangeListener(this);
+		kopMode.bAddPassiveChangeListener(this);
+		
+		// formatters
+		kwindow.bAddFormatter(this);
+		kgain.bAddFormatter(this);
+		kprimitiveSize.bAddFormatter(this);
+		krotation.bAddFormatter(this);
+
+
 		// buttons n controls
 		kantiAlias.bSetTitle("Antialias");
 		kantiAlias.setToggleable(true);
@@ -211,6 +228,8 @@ namespace Signalizer
 		archive << kskeletonColour;
 		archive << kprimitiveSize;
 		archive << kenvelopeMode;
+		archive << kenvelopeSmooth;
+		archive << kopMode;
 	}
 
 	void CVectorScope::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -229,6 +248,8 @@ namespace Signalizer
 		builder >> kskeletonColour;
 		builder >> kprimitiveSize;
 		builder >> kenvelopeMode;
+		builder >> kenvelopeSmooth;
+		builder >> kopMode;
 		
 		ktransform.syncEditor();
 
@@ -238,7 +259,7 @@ namespace Signalizer
 
 	void CVectorScope::freeze()
 	{
-		isFrozen = true;
+		state.isFrozen = true;
 		std::vector<cpl::CMutex> locks;
 		// lock streams firstly if we are synced.
 		if (isSynced)
@@ -257,14 +278,13 @@ namespace Signalizer
 
 	void CVectorScope::unfreeze()
 	{
-		isFrozen = false;
+		state.isFrozen = false;
 	}
 
 
 	void CVectorScope::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 	{
 		auto amount = wheel.deltaY;
-		auto normalizedSign = amount > 0 ? 1.0f : -1.0f;
 		if (event.mods.isCtrlDown())
 		{
 			// increase gain
@@ -272,9 +292,6 @@ namespace Signalizer
 		}
 		else /* zoom graph */
 		{
-			
-			auto mouseXCoord = (float(event.x) / getWidth()) * 2 - 1;
-			auto mouseYCoord = (float(event.y) / getHeight()) * 2 - 1;
 
 			auto & matrix = ktransform.getTransform3D();
 			//matrix.scale.x += amount;
@@ -338,7 +355,8 @@ namespace Signalizer
 		char buf[200];
 		if (ctrl == &kgain)
 		{
-			sprintf(buf, "%.2f dB", cpl::Math::fractionToDB(getGain()));
+			auto dbVal = cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
+			sprintf(buf, "%.2f dB", cpl::Math::fractionToDB(dbVal));
 			buffer = buf;
 			return true;
 		}
@@ -372,9 +390,7 @@ namespace Signalizer
 
 	double CVectorScope::getGain()
 	{
-		if (normalizeGain)
-			return envelopeGain;
-		return cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
+		return envelopeGain;
 	}
 
 	double CVectorScope::mapScaleToFraction(double valueInDBs)
@@ -448,9 +464,9 @@ namespace Signalizer
 		}
 		else if (ctrl == &kenvelopeMode)
 		{
-			envelopeMode = kenvelopeMode.getZeroBasedSelIndex<EnvelopeModes>();
-			normalizeGain = envelopeMode != EnvelopeModes::None;
-			if (!normalizeGain)
+			state.envelopeMode = kenvelopeMode.getZeroBasedSelIndex<EnvelopeModes>();
+			state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
+			if (!state.normalizeGain)
 				envelopeGain = kgain.bGetValue();
 		}
 		else if(ctrl == &kenvelopeSmooth)
@@ -459,79 +475,100 @@ namespace Signalizer
 		}
 		else if (ctrl == &kgain)
 		{
-			if (!normalizeGain)
-				envelopeGain = kgain.bGetValue();
+			envelopeGain = cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
+		}
+		else if(ctrl == &kopMode)
+		{
+			state.isPolar = kopMode.getZeroBasedSelIndex<OperationalModes>() == OperationalModes::Polar;
+		}
+		else if(ctrl == &kantiAlias)
+		{
+			state.antialias = ctrl->bGetBoolState();
+		}
+		else if(ctrl == &kfadeOld)
+		{
+			state.fadeHistory = ctrl->bGetBoolState();
+		}
+		else if(ctrl == &kdrawLines)
+		{
+			state.fillPath = ctrl->bGetBoolState();
+		}
+		else if(ctrl == &kdiagnostics)
+		{
+			state.diagnostics = ctrl->bGetBoolState();
+		}
+		else if(ctrl == &krotation)
+		{
+			state.rotation = (float)ctrl->bGetValue();
+		}
+		else if(ctrl == &kprimitiveSize)
+		{
+			state.primitiveSize = (float)ctrl->bGetValue();
+		}
+		else if(ctrl == &kdrawingColour)
+		{
+			state.colourDraw = kdrawingColour.getControlColourAsColour();
+		}
+		else if(ctrl == &kgraphColour)
+		{
+			state.colourGraph = kgraphColour.getControlColourAsColour();
+		}
+		else if(ctrl == &kskeletonColour)
+		{
+			state.colourWire = kskeletonColour.getControlColourAsColour();
+		}
+		else if(ctrl == &kbackgroundColour)
+		{
+			state.colourBackground = kbackgroundColour.getControlColourAsColour();
 		}
 	}
-	template<typename V>
-	void CVectorScope::processAudioBuffer(float ** buffers, std::size_t channels, std::size_t samples)
+
+	
+	void CVectorScope::runPeakFilter(cpl::AudioBuffer & buf, std::size_t numSamples)
 	{
-		/*
-		using namespace cpl;
-		using namespace cpl::simd;
-
-		auto const loopIncrement = elements_of<V>::value;
-
-		auto const smoothPole = set1<V>(envelopeSmooth * loopIncrement);
-		auto leftFilter = 0;
-		suitable_container<V> startLeft, startRight;
-		double smoothPole = envelopeSmooth;
-
-		for (int i = 0; i < loopIncrement; ++i)
+		if(state.normalizeGain)
 		{
-			startLeft[i] = envelopeFilters[0] * smoothPole;
-			startRight[i] = envelopeFilter[1] * smoothPole;
-			smoothPole *= smoothPole;
-		}
-
-
-		if (isPeakDetection)
-		{
-			// doesn't matter much if a remainder is missing..
-			for (std::size_t i = 0; i < samples; i += loopIncrement)
+			double currentEnvelope = 0;
+			
+			for (std::size_t i = 0; i < numSamples; ++i)
 			{
-
+				// square here.
+				double input = buf[0].singleCheckAccess(i);
+				input *= input;
+				
+				if (input > envelopeFilters[0])
+					envelopeFilters[0] = input;
+				else
+					envelopeFilters[0] *= envelopeSmooth;
+				
+				input = buf[1].singleCheckAccess(i);
+				input *= input;
+				
+				if (input > envelopeFilters[1])
+					envelopeFilters[1] = input;
+				else
+					envelopeFilters[1] *= envelopeSmooth;
+				
+			}
+			currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
+			
+			if (std::isnormal(currentEnvelope))
+			{
+				envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
 			}
 		}
-		*/
-
 	}
-
 
 	bool CVectorScope::audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (normalizeGain)
+		if (state.normalizeGain)
 		{
-			const bool isPeakDetection = true;
-
 			if (numChannels != 2)
 				return false;
 
 			double currentEnvelope = 0;
 
-			if (envelopeMode == EnvelopeModes::PeakDecay)
-			{
-
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					// square here.
-					double input = buffer[0][i] * buffer[0][i];
-
-					if (input > envelopeFilters[0])
-						envelopeFilters[0] = input;
-					else
-						envelopeFilters[0] *= envelopeSmooth;
-					input = buffer[1][i] * buffer[1][i];
-
-					if (input > envelopeFilters[1])
-						envelopeFilters[1] = input;
-					else
-						envelopeFilters[1] *= envelopeSmooth;
-
-				}
-				currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
-			}
-			else
+			if (state.envelopeMode == EnvelopeModes::RMS)
 			{
 				for (std::size_t i = 0; i < numSamples; ++i)
 				{
@@ -545,8 +582,6 @@ namespace Signalizer
 				currentEnvelope = 1.0 / (2 * std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1])));
 
 			}
-
-
 
 			if (std::isnormal(currentEnvelope))
 			{

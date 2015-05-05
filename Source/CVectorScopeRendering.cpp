@@ -14,11 +14,21 @@ namespace Signalizer
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	
+	static const float quarterPISinCos = 0.707106781186547f;
+	static const float circleScaleFactor = 1.1f;
+	
 	enum class OperationalModes
 	{
 		Lissajous,
 		Polar
 		
+	};
+	
+	enum class EnvelopeModes : int
+	{
+		None,
+		RMS,
+		PeakDecay
 	};
 	
 	enum Textures
@@ -38,7 +48,7 @@ namespace Signalizer
 
 		auto cStart = cpl::Misc::ClockCounter();
 
-		if (normalizeGain && isEditorOpen())
+		if (state.normalizeGain && state.isEditorOpen)
 		{
 			setGainAsFraction(envelopeGain);
 		}
@@ -46,8 +56,8 @@ namespace Signalizer
 		// do software rendering
 		if(!isOpenGL())
 		{
-			g.fillAll(kbackgroundColour.getControlColourAsColour().withAlpha(1.0f));
-			g.setColour(kbackgroundColour.getControlColourAsColour().withAlpha(1.0f).contrasting());
+			g.fillAll(state.colourBackground.withAlpha(1.0f));
+			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
 			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
 			
 			// post fps anyway
@@ -105,20 +115,11 @@ namespace Signalizer
 			return;
 
 		auto cStart = cpl::Misc::ClockCounter();
-		juce::OpenGLHelpers::clear(kbackgroundColour.getControlColourAsColour());
-		const float quarterPISinCos = 0.707106781186547f;
-		const float circleScaleFactor = 1.1f;
-		const bool antiAlias = kantiAlias.bGetValue() > 0.5;
-		const bool isPolar = kopMode.getZeroBasedSelIndex() == (int)OperationalModes::Polar;
-		GLfloat gain = getGain();
+		juce::OpenGLHelpers::clear(state.colourBackground);
 
-		const float psize = static_cast<GLfloat>(kprimitiveSize.bGetValue() * 10);
-		const bool fillPath = kdrawLines.bGetValue() > 0.5;
-		const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
-		float sleft, sright;
 		cpl::AudioBuffer * buffer;
 
-		if (isFrozen)
+		if (state.isFrozen)
 		{
 			buffer = &audioStreamCopy;
 		}
@@ -150,254 +151,287 @@ namespace Signalizer
 
 
 		openGLStack.applyTransform3D(ktransform.getTransform3D());
-		antiAlias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
+		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
 		cpl::CAudioBuffer::CChannelBuffer * leftChannel, * rightChannel;
 		leftChannel = &((*buffer)[0]);
 		rightChannel = &((*buffer)[1]);
 
-		openGLStack.setLineSize(psize);
-		openGLStack.setPointSize(psize);
+		// the peak filter has to run on the whole buffer each time.
+		if (state.envelopeMode == EnvelopeModes::PeakDecay)
+		{
+			runPeakFilter(*buffer, numSamples);
+		}
+		   
+		openGLStack.setLineSize(state.primitiveSize * 10);
+		openGLStack.setPointSize(state.primitiveSize * 10);
 
-		// add a stack scope for transformations.
-		if (isPolar)
+		// draw actual stereoscopic plot
+		if (state.isPolar)
 		{
 			drawPolarPlot<cpl::simd::v4sf>(openGLStack, *buffer);
 		}
 		else // is Lissajous
 		{
-			cpl::OpenGLEngine::MatrixModification matrixMod;
-			// apply the custom rotation to the waveform
-			matrixMod.rotate(krotation.bGetValue() * 360, 0, 0, 1);
-			// and apply the gain:
-			matrixMod.scale(gain, gain, 1);
-
-			float sampleFade = 1.0 / numSamples;
-
-			if (!fadeHistory)
-			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
-
-				drawer.addColour(kdrawingColour.getControlColourAsColour());
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					// use glDrawArrays instead here
-					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightChannel->singleCheckAccess(i);
-
-					drawer.addVertex(sright, sleft, i * sampleFade - 1);
-				}
-			}
-			else
-			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
-				
-				auto jcolour = kdrawingColour.getControlColourAsColour();
-				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
-					green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
-
-				float fade = 0;
-
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					sleft = leftChannel->singleCheckAccess(i);
-					sright = rightChannel->singleCheckAccess(i);
-
-					fade = i * sampleFade;
-
-					drawer.addColour(fade * red, fade * green, fade * blue, alpha);
-					drawer.addVertex(sright, sleft, i * sampleFade - 1);
-				
-				}
-			}
+			drawRectPlot<cpl::simd::v4sf>(openGLStack, *buffer);
 		}
 
 		openGLStack.setLineSize(2.0f);
+		
+		// draw graph and wireframe
+		drawWireFrame<cpl::simd::v4sf>(openGLStack);
 
-		// draw skeleton graph
-		if (!isPolar)
-		{
-			cpl::OpenGLEngine::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
-			drawer.addColour(kskeletonColour.getControlColourAsColour());
-			int nlines = 14;
-			auto rel = 1.0f / nlines;
-
-			// front vertival
-			for (int i = 0; i <= nlines; ++i)
-			{
-				drawer.addVertex(i * rel * 2 - 1, -1.f, 0.0f);
-				drawer.addVertex(i * rel * 2 - 1, 1.f, 0.0f);
-			}
-			// front horizontal
-			for (int i = 0; i <= nlines; ++i)
-			{
-				drawer.addVertex(-1.0f, i * rel * 2 - 1, 0.0f);
-				drawer.addVertex(1.0f, i * rel * 2 - 1, 0.0f);
-			}
-			// back vertical
-			for (int i = 0; i <= nlines; ++i)
-			{
-				drawer.addVertex(i * rel * 2 - 1, -1.f, -1.0f);
-				drawer.addVertex(i * rel * 2 - 1, 1.f, -1.0f);
-			}
-			// back horizontal
-			for (int i = 0; i <= nlines; ++i)
-			{
-				drawer.addVertex(-1.0f, i * rel * 2 - 1, -1.0f);
-				drawer.addVertex(1.0f, i * rel * 2 - 1, -1.0f);
-			}
-		}
-		else
-		{
-			// draw two half circles
-			auto lut = circleData.get();
-			
-			int numInt = lut->tableSize;
-			float advance = 1.0f / (numInt - 1);
-			{
-				cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
-				drawer.addColour(kskeletonColour.getControlColourAsColour());
-
-				float oldY = 0.0f;
-				for (int i = 1; i < numInt; ++i)
-				{
-					auto fraction = advance * i;
-					auto yCoordinate = lut->linearLookup(fraction);
-					auto leftX = -1.0f + fraction;
-					auto rightX = 1.0f - fraction;
-					// left part
-					drawer.addVertex(leftX - advance, oldY, 0);
-					drawer.addVertex(leftX, yCoordinate, 0);
-					drawer.addVertex(leftX - advance, oldY, -1);
-					drawer.addVertex(leftX, yCoordinate, -1);
-					
-					// right part
-					drawer.addVertex(rightX + advance, oldY, 0);
-					drawer.addVertex(rightX, yCoordinate, 0);
-					drawer.addVertex(rightX + advance, oldY, -1);
-					drawer.addVertex(rightX, yCoordinate, -1);
-					//drawer.addVertex(1 - fraction, yCoordinate, 0);
-					
-					oldY = yCoordinate;
-				}
-				
-				// add front and back horizontal lines.
-				drawer.addVertex(-1.0f, 0.0f, 0.0f);
-				drawer.addVertex(1.0f, 0.0f, 0.0f);
-				drawer.addVertex(-1.0f, 0.0f, -1.0f);
-				drawer.addVertex(1.0f, 0.0f, -1.0f);
-				
-				// add critical diagonal phase lines.
-				drawer.addVertex(0.0f, 0.0f, 0.0f);
-				drawer.addVertex(quarterPISinCos, quarterPISinCos, 0.0f);
-				drawer.addVertex(0.0f, 0.0f, 0.0f);
-				drawer.addVertex(-quarterPISinCos, quarterPISinCos, 0.0f);
-				
-				drawer.addVertex(0.0f, 0.0f, -1.0f);
-				drawer.addVertex(quarterPISinCos, quarterPISinCos, -1.0f);
-				drawer.addVertex(0.0f, 0.0f, -1.0f);
-				drawer.addVertex(-quarterPISinCos, quarterPISinCos, -1.0f);;
-			}
-		}
-
-		// Draw basic graph
-
-		{
-			cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
-			drawer.addColour(kgraphColour.getControlColourAsColour());
-			// front x, y axii
-			drawer.addVertex(-1.0f, 0.0f, 0.0f);
-			drawer.addVertex(1.0f, 0.0f, 0.0f);
-			drawer.addVertex(0.0f, 1.0f, 0.0f);
-			drawer.addVertex(0.0f, isPolar ? 0.0f : -1.0f, 0.0f);
-			
-
-		}
+		// draw channel text(ures)
+		drawGraphText<cpl::simd::v4sf>(openGLStack, *buffer);
 
 
-		// draw channel rotations letters.
-		if(!isPolar)
-		{
-			auto rotation = -krotation.bGetValue() * 2 * M_PI;
-			const float heightToWidthFactor = float(getHeight()) / getWidth();
-			using namespace cpl::simd;
 
-			cpl::OpenGLEngine::MatrixModification m;
-			// this undoes the text squashing due to variable aspect ratios.
-			m.scale(heightToWidthFactor, 1.0f, 1.0f);
-
-			// calculate coordinates using sin/cos simd pairs.
-			suitable_container<v4sf> phases, xcoords, ycoords;
-
-			// set phases (we rotate L/R etc. text around in a circle)
-			phases[0] = rotation;
-			phases[1] = M_PI * 0.5f + rotation;
-			phases[2] = M_PI + rotation;
-			phases[3] = M_PI * 1.5f + rotation;
-
-			// some registers
-			v4sf 
-				vsines, 
-				vcosines, 
-				vscale = set1<v4sf>(circleScaleFactor), 
-				vadd = set1<v4sf>(1.0f - circleScaleFactor),
-				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
-
-			// do 8 trig functions in one go!
-			cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
-
-			// place the circle just outside the graph, and offset it.
-			xcoords = vsines * vscale * vheightToWidthFactor + vadd;
-			ycoords = vcosines * vscale + vadd;
-
-			auto jcolour = kgraphColour.getControlColourAsColour();
-			// render texture text at coordinates.
-			for (int i = 0; i < 4; ++i)
-			{
-				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[i]);
-				text.setColour(jcolour);
-				text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
-			}
-		}
-		else
-		{
-			const float heightToWidthFactor = float(getHeight()) / getWidth();
-			using namespace cpl::simd;
-
-			cpl::OpenGLEngine::MatrixModification m;
-			// this undoes the text squashing due to variable aspect ratios.
-			m.scale(heightToWidthFactor, 1.0f, 1.0f);
-
-			auto jcolour = kgraphColour.getControlColourAsColour();
-			float nadd = 1.0f - circleScaleFactor;
-			float xcoord = quarterPISinCos * circleScaleFactor / heightToWidthFactor + nadd;
-			float ycoord = quarterPISinCos * circleScaleFactor + nadd;
-			
-			// render texture text at coordinates.
-			{
-				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Left]);
-				text.setColour(jcolour);
-				text.drawAt({ -xcoord + nadd, ycoord, 0.1f, 0.1f });
-			}
-			{
-				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Center]);
-				text.setColour(jcolour);
-				text.drawAt({ 0 + nadd * 0.5f, 1, 0.1f, 0.1f });
-			}
-			{
-				cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Right]);
-				text.setColour(jcolour);
-				text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
-			}
-			
-		}
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
 		lastFrameTick = tickNow;
 	}
 
-
+	
+	template<typename V>
+		void CVectorScope::drawGraphText(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer &)
+		{
+			// draw channel rotations letters.
+			if(!state.isPolar)
+			{
+				auto rotation = -state.rotation * 2 * M_PI;
+				const float heightToWidthFactor = float(getHeight()) / getWidth();
+				using namespace cpl::simd;
+				
+				cpl::OpenGLEngine::MatrixModification m;
+				// this undoes the text squashing due to variable aspect ratios.
+				m.scale(heightToWidthFactor, 1.0f, 1.0f);
+				
+				// calculate coordinates using sin/cos simd pairs.
+				suitable_container<v4sf> phases, xcoords, ycoords;
+				
+				// set phases (we rotate L/R etc. text around in a circle)
+				phases[0] = rotation;
+				phases[1] = M_PI * 0.5f + rotation;
+				phases[2] = M_PI + rotation;
+				phases[3] = M_PI * 1.5f + rotation;
+				
+				// some registers
+				v4sf
+				vsines,
+				vcosines,
+				vscale = set1<v4sf>(circleScaleFactor),
+				vadd = set1<v4sf>(1.0f - circleScaleFactor),
+				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
+				
+				// do 8 trig functions in one go!
+				cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
+				
+				// place the circle just outside the graph, and offset it.
+				xcoords = vsines * vscale * vheightToWidthFactor + vadd;
+				ycoords = vcosines * vscale + vadd;
+				
+				auto jcolour = state.colourGraph;
+				// render texture text at coordinates.
+				for (int i = 0; i < 4; ++i)
+				{
+					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[i]);
+					text.setColour(jcolour);
+					text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
+				}
+			}
+			else
+			{
+				const float heightToWidthFactor = float(getHeight()) / getWidth();
+				using namespace cpl::simd;
+				
+				cpl::OpenGLEngine::MatrixModification m;
+				// this undoes the text squashing due to variable aspect ratios.
+				m.scale(heightToWidthFactor, 1.0f, 1.0f);
+				
+				auto jcolour = state.colourGraph;
+				float nadd = 1.0f - circleScaleFactor;
+				float xcoord = quarterPISinCos * circleScaleFactor / heightToWidthFactor + nadd;
+				float ycoord = quarterPISinCos * circleScaleFactor + nadd;
+				
+				// render texture text at coordinates.
+				{
+					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Left]);
+					text.setColour(jcolour);
+					text.drawAt({ -xcoord + nadd, ycoord, 0.1f, 0.1f });
+				}
+				{
+					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Center]);
+					text.setColour(jcolour);
+					text.drawAt({ 0 + nadd * 0.5f, 1, 0.1f, 0.1f });
+				}
+				{
+					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Right]);
+					text.setColour(jcolour);
+					text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
+				}
+				
+			}
+			
+		}
+	
+	
+	template<typename V>
+		void CVectorScope::drawWireFrame(cpl::OpenGLEngine::COpenGLStack & openGLStack)
+		{
+			// draw skeleton graph
+			if (!state.isPolar)
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
+				drawer.addColour(state.colourWire);
+				int nlines = 14;
+				auto rel = 1.0f / nlines;
+				
+				// front vertival
+				for (int i = 0; i <= nlines; ++i)
+				{
+					drawer.addVertex(i * rel * 2 - 1, -1.f, 0.0f);
+					drawer.addVertex(i * rel * 2 - 1, 1.f, 0.0f);
+				}
+				// front horizontal
+				for (int i = 0; i <= nlines; ++i)
+				{
+					drawer.addVertex(-1.0f, i * rel * 2 - 1, 0.0f);
+					drawer.addVertex(1.0f, i * rel * 2 - 1, 0.0f);
+				}
+				// back vertical
+				for (int i = 0; i <= nlines; ++i)
+				{
+					drawer.addVertex(i * rel * 2 - 1, -1.f, -1.0f);
+					drawer.addVertex(i * rel * 2 - 1, 1.f, -1.0f);
+				}
+				// back horizontal
+				for (int i = 0; i <= nlines; ++i)
+				{
+					drawer.addVertex(-1.0f, i * rel * 2 - 1, -1.0f);
+					drawer.addVertex(1.0f, i * rel * 2 - 1, -1.0f);
+				}
+			}
+			else
+			{
+				// draw two half circles
+				auto lut = circleData.get();
+				
+				int numInt = lut->tableSize;
+				float advance = 1.0f / (numInt - 1);
+				{
+					cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
+					drawer.addColour(state.colourWire);
+					
+					float oldY = 0.0f;
+					for (int i = 1; i < numInt; ++i)
+					{
+						auto fraction = advance * i;
+						auto yCoordinate = lut->linearLookup(fraction);
+						auto leftX = -1.0f + fraction;
+						auto rightX = 1.0f - fraction;
+						// left part
+						drawer.addVertex(leftX - advance, oldY, 0);
+						drawer.addVertex(leftX, yCoordinate, 0);
+						drawer.addVertex(leftX - advance, oldY, -1);
+						drawer.addVertex(leftX, yCoordinate, -1);
+						
+						// right part
+						drawer.addVertex(rightX + advance, oldY, 0);
+						drawer.addVertex(rightX, yCoordinate, 0);
+						drawer.addVertex(rightX + advance, oldY, -1);
+						drawer.addVertex(rightX, yCoordinate, -1);
+						//drawer.addVertex(1 - fraction, yCoordinate, 0);
+						
+						oldY = yCoordinate;
+					}
+					
+					// add front and back horizontal lines.
+					drawer.addVertex(-1.0f, 0.0f, 0.0f);
+					drawer.addVertex(1.0f, 0.0f, 0.0f);
+					drawer.addVertex(-1.0f, 0.0f, -1.0f);
+					drawer.addVertex(1.0f, 0.0f, -1.0f);
+					
+					// add critical diagonal phase lines.
+					drawer.addVertex(0.0f, 0.0f, 0.0f);
+					drawer.addVertex(quarterPISinCos, quarterPISinCos, 0.0f);
+					drawer.addVertex(0.0f, 0.0f, 0.0f);
+					drawer.addVertex(-quarterPISinCos, quarterPISinCos, 0.0f);
+					
+					drawer.addVertex(0.0f, 0.0f, -1.0f);
+					drawer.addVertex(quarterPISinCos, quarterPISinCos, -1.0f);
+					drawer.addVertex(0.0f, 0.0f, -1.0f);
+					drawer.addVertex(-quarterPISinCos, quarterPISinCos, -1.0f);;
+				}
+			}
+			
+			
+			// Draw basic graph
+			
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+				drawer.addColour(state.colourGraph);
+				// front x, y axii
+				drawer.addVertex(-1.0f, 0.0f, 0.0f);
+				drawer.addVertex(1.0f, 0.0f, 0.0f);
+				drawer.addVertex(0.0f, 1.0f, 0.0f);
+				drawer.addVertex(0.0f, state.isPolar ? 0.0f : -1.0f, 0.0f);
+			}
+		}
+	
+	
+	template<typename V>
+		void CVectorScope::drawRectPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		{
+			cpl::OpenGLEngine::MatrixModification matrixMod;
+			// apply the custom rotation to the waveform
+			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
+			// and apply the gain:
+			GLfloat gain = getGain();
+			matrixMod.scale(gain, gain, 1);
+			std::size_t numSamples = buf[0].size - 1;
+			float sampleFade = 1.0 / numSamples, sleft, sright;
+			
+			if (!state.fadeHistory)
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				
+				drawer.addColour(state.colourDraw);
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					// use glDrawArrays instead here
+					sleft = buf[0].singleConstAccess(i);
+					sright = buf[1].singleConstAccess(i);
+					
+					drawer.addVertex(sright, sleft, i * sampleFade - 1);
+				}
+			}
+			else
+			{
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				
+				auto jcolour = state.colourDraw;
+				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
+				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
+				
+				float fade = 0;
+				
+				for (std::size_t i = 0; i < numSamples; ++i)
+				{
+					sleft = buf[0].singleConstAccess(i);
+					sright = buf[1].singleConstAccess(i);
+					
+					fade = i * sampleFade;
+					
+					drawer.addColour(fade * red, fade * green, fade * blue, alpha);
+					drawer.addVertex(sright, sleft, i * sampleFade - 1);
+					
+				}
+			}
+			
+			
+		}
+	
 
 	template<typename V>
 		void CVectorScope::drawPolarPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
@@ -408,11 +442,8 @@ namespace Signalizer
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			auto const gain = (GLfloat)getGain();
 			auto const numSamples = buf[0].size;
-			const bool fillPath = kdrawLines.bGetValue() > 0.5;
-			const bool fadeHistory = kfadeOld.bGetValue() > 0.5;
 			static const long long vectorLength = elements_of<V>::value;
 			matrixMod.scale(gain, gain, 1);
-			auto const colour = kdrawingColour.getControlColourAsColour();
 			suitable_container<V> outX, outY, outFade;
 
 			// simd consts
@@ -427,9 +458,9 @@ namespace Signalizer
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
 			const float
-				red = colour.getFloatRed(),
-				green = colour.getFloatGreen(),
-				blue = colour.getFloatBlue();
+				red = state.colourDraw.getFloatRed(),
+				green = state.colourDraw.getFloatGreen(),
+				blue = state.colourDraw.getFloatBlue();
 
 			for (int i = 0; i < vectorLength; ++i)
 			{
@@ -441,9 +472,9 @@ namespace Signalizer
 
 			auto const lit = buf[0].getIterator<vectorLength>();
 			auto const rit = buf[1].getIterator<vectorLength>();
-			if(!fadeHistory)
+			if(!state.fadeHistory)
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				drawer.addColour(red, green, blue);
 				// iterate front of buffer, then back.
 				for (int section = 0; section < 2; ++section)
@@ -545,7 +576,7 @@ namespace Signalizer
 				suitable_container<V> outRed, outGreen, outBlue;
 				// iterate front of buffer, then back.
 
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
 				for (int section = 0; section < 2; ++section)
 				{
