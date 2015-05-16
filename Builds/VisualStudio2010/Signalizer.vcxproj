@@ -66,16 +66,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Code\SDKs;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Code\SDKs;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Code\SDKs;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Code\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>

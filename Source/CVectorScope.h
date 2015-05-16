@@ -116,8 +116,8 @@
 			void componentBeingDeleted(Component & 	component) override;
 
 		private:
-			// rendering
 
+			// vector-accelerated drawing, rendering and processing
 			template<typename V>
 				void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
 
@@ -131,7 +131,13 @@
 				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
 
 			template<typename V>
+				void drawStereoMeters(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+
+			template<typename V>
 				void runPeakFilter(cpl::AudioBuffer & buffer, std::size_t samples);
+
+			template<typename V>
+				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			void setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
@@ -141,23 +147,33 @@
 			cpl::CBoxFilter<double, 60> avgFps;
 
 			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
-			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth;
-			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
+			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
+			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
 			cpl::CTransformWidget ktransform;
 			cpl::CComboBox kopMode, kenvelopeMode;
 			juce::MouseCursor displayCursor;
+
 			// vars
 			long long lastFrameTick, renderCycles;
 
 			cpl::iCtrlPrec_t envelopeGain;
-			double envelopeSmooth;
-			double envelopeFilters[2];
+
+			struct FilterStates
+			{
+				float envelope[2];
+				float balance[2][2];
+				float phase[2];
+				
+			} filters;
 
 			struct StateOptions
 			{
-				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, isEditorOpen, diagnostics;
+				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, isEditorOpen, diagnostics, doStereoMeasurements;
 				float primitiveSize, rotation;
-				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
+				float stereoCoeff;
+				float envelopeCoeff;
+				float secondStereoFilterSpeed;
+				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
 				EnvelopeModes envelopeMode;
 			} state;
 			

@@ -74,8 +74,8 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu - env: %f",
-				getWidth(), getHeight(), fps, cpuTime, envelopeSmooth);
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu",
+				getWidth(), getHeight(), fps, cpuTime);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 			
 		}
@@ -150,6 +150,7 @@ namespace Signalizer
 		openGLStack.loadIdentityMatrix();
 
 
+
 		openGLStack.applyTransform3D(ktransform.getTransform3D());
 		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
@@ -184,6 +185,9 @@ namespace Signalizer
 		// draw channel text(ures)
 		drawGraphText<cpl::simd::v4sf>(openGLStack, *buffer);
 
+		// draw 2d stuff (like stereo meters)
+
+		drawStereoMeters<cpl::simd::v4sf>(openGLStack, *buffer);
 
 
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
@@ -196,10 +200,11 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::drawGraphText(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer &)
 		{
+			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
 			if(!state.isPolar)
 			{
-				auto rotation = -state.rotation * 2 * M_PI;
+				auto rotation = -state.rotation * 2 * consts::pi;
 				const float heightToWidthFactor = float(getHeight()) / getWidth();
 				using namespace cpl::simd;
 				
@@ -212,9 +217,9 @@ namespace Signalizer
 				
 				// set phases (we rotate L/R etc. text around in a circle)
 				phases[0] = rotation;
-				phases[1] = M_PI * 0.5f + rotation;
-				phases[2] = M_PI + rotation;
-				phases[3] = M_PI * 1.5f + rotation;
+				phases[1] = consts::pi * 0.5f + rotation;
+				phases[2] = consts::pi + rotation;
+				phases[3] = consts::pi * 1.5f + rotation;
 				
 				// some registers
 				v4sf
@@ -251,8 +256,8 @@ namespace Signalizer
 				
 				auto jcolour = state.colourGraph;
 				float nadd = 1.0f - circleScaleFactor;
-				float xcoord = quarterPISinCos * circleScaleFactor / heightToWidthFactor + nadd;
-				float ycoord = quarterPISinCos * circleScaleFactor + nadd;
+				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
+				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
 				
 				// render texture text at coordinates.
 				{
@@ -279,6 +284,7 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::drawWireFrame(cpl::OpenGLEngine::COpenGLStack & openGLStack)
 		{
+			using consts = cpl::simd::consts<float>;
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
@@ -354,14 +360,14 @@ namespace Signalizer
 					
 					// add critical diagonal phase lines.
 					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(quarterPISinCos, quarterPISinCos, 0.0f);
+					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
 					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(-quarterPISinCos, quarterPISinCos, 0.0f);
+					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
 					
 					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(quarterPISinCos, quarterPISinCos, -1.0f);
+					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);
 					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(-quarterPISinCos, quarterPISinCos, -1.0f);;
+					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);;
 				}
 			}
 			
@@ -447,10 +453,10 @@ namespace Signalizer
 			suitable_container<V> outX, outY, outFade;
 
 			// simd consts
-			static const Ty cosineRotation = (Ty)std::cos(M_PI * 135.0 / 180);
-			static const Ty sineRotation = (Ty)std::sin(M_PI * 135.0 / 180);
-			static const V vCosine = set1<V>(cosineRotation);
-			static const V vSine = set1<V>(sineRotation);
+			const Ty cosineRotation = consts<Ty>::sqrt_half_two_minus;
+			const Ty sineRotation = consts<Ty>::sqrt_half_two;
+			const V vCosine = consts<V>::sqrt_half_two_minus; // equals e^i*0.75*pi
+			const V vSine = consts<V>::sqrt_half_two;
 			const V vZero = zero<V>();
 			const V vOne = consts<V>::one;
 			const V vSign = consts<V>::sign_bit;
@@ -676,6 +682,78 @@ namespace Signalizer
 			}
 		}
 
+	template<typename V>
+		void CVectorScope::drawStereoMeters(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		{
+			using namespace cpl;
+			OpenGLEngine::MatrixModification m;
+			m.loadIdentityMatrix();
+			const float heightToWidthFactor = float(getHeight()) / getWidth();
+
+			const float balanceX = -0.925f;
+			const float balanceLength = 1.8f;
+			const float stereoY = -0.8f;
+			const float stereoLength = 1.7f;
+			const float sideSize = 0.05f;
+			const float indicatorSize = 0.05f;
+
+			// remember, y / x
+			float balanceQuick = std::atan(filters.balance[0][1] / filters.balance[0][0]) / (simd::consts<float>::pi * 0.5f);
+			if (!std::isnormal(balanceQuick))
+				balanceQuick = 0.5f;
+			float balanceSlow = std::atan(filters.balance[1][1] / filters.balance[1][0]) / (simd::consts<float>::pi * 0.5f);
+			if (!std::isnormal(balanceSlow))
+				balanceSlow = 0.5f;
+
+			const float stereoQuick = filters.phase[0] * 0.5f + 0.5f;
+			const float stereoSlow = filters.phase[1] * 0.5f + 0.5f;
+			
+			// this undoes the squashing due to variable aspect ratios.
+			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
+			OpenGLEngine::RectangleDrawer2D<> rect(openGLStack);
+
+			// draw slow balance
+			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
+			rect.setBounds(balanceX + (balanceLength - indicatorSize) * balanceSlow, balanceX, indicatorSize, sideSize);
+			rect.fill();
+
+			// draw quick balance
+			rect.setColour(state.colourMeter);
+			rect.setBounds(balanceX + (balanceLength - indicatorSize * 0.25f) * balanceQuick, balanceX, indicatorSize * 0.25f, sideSize);
+			rect.fill();
+
+
+			// draw slow stereo
+			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
+			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize) * stereoSlow, sideSize, indicatorSize);
+			rect.fill();
+
+			// draw quick stereo
+			rect.setColour(state.colourMeter);
+			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize * 0.25f) * stereoQuick, sideSize, indicatorSize * 0.25f);
+			rect.fill();
+
+
+			// draw bounding rectangle of balance meter
+			rect.setBounds(balanceX, balanceX, balanceLength, sideSize);
+			rect.setColour(state.colourMeter.withMultipliedBrightness(0.5f));
+			rect.renderOutline();
+
+			// draw bounding rectangle of correlation meter
+			rect.setBounds(-balanceX, stereoY, sideSize, stereoLength);
+			rect.setColour(state.colourMeter.withMultipliedBrightness(0.5f));
+			rect.renderOutline();
+
+			auto pieceColour = state.colourBackground.contrasting().withMultipliedBrightness(state.colourMeter.getPerceivedBrightness() * 0.5f);
+			rect.setColour(pieceColour);
+			// draw contrasting center piece for balance
+			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 0.125f, balanceX, indicatorSize * 0.125f, sideSize);
+			rect.fill();
+
+			// draw contrasting center piece for stereo
+			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize, indicatorSize * 0.125f);
+			rect.fill();
+		}
 
 
 	template<typename V>
@@ -688,7 +766,7 @@ namespace Signalizer
 				// (and the amount of samples)
 				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
-				double coeff = std::pow(envelopeSmooth, power);
+				double coeff = std::pow(state.envelopeCoeff, power);
 
 				// there is a number of optimisations we can do here, mostly that we actually don't care about
 				// timing, we are only interested in the current largest value in the set.
@@ -723,10 +801,10 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				envelopeFilters[0] = std::max(envelopeFilters[0] * coeff, highestLeft  * highestLeft);
-				envelopeFilters[1] = std::max(envelopeFilters[1] * coeff, highestRight * highestRight);
+				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
+				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
 
-				currentEnvelope = 1.0 / std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1]));
+				currentEnvelope = 1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1]));
 
 				if (std::isnormal(currentEnvelope))
 				{

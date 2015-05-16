@@ -41,12 +41,18 @@ namespace Signalizer
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
+				section->addControl(&kenvelopeMode, 0);
+				section->addControl(&kenvelopeSmooth, 0);
+				section->addControl(&kgain, 0);
+				
+				section->addControl(&kopMode, 1);
+				section->addControl(&kstereoSmooth, 1);
+
+
 				section->addControl(&krotation, 0);
 				section->addControl(&kwindow, 1);
-				section->addControl(&kgain, 0);
-				section->addControl(&kenvelopeSmooth, 1);
-				section->addControl(&kenvelopeMode, 1);
-				section->addControl(&kopMode, 0);
+
+
 				page->addSection(section, "Utility");
 				//
 			}
@@ -68,6 +74,7 @@ namespace Signalizer
 				section->addControl(&kgraphColour, 0);
 				section->addControl(&kbackgroundColour, 0);
 				section->addControl(&kskeletonColour, 0);
+				section->addControl(&kmeterColour, 1);
 				section->addControl(&kprimitiveSize, 1);
 				page->addSection(section, "Look");
 			}
@@ -91,17 +98,20 @@ namespace Signalizer
 		kdrawingColour("Drawing colour"),
 		kskeletonColour("Skeleton colour"),
 		kprimitiveSize("Primitive size"),
-		kenvelopeSmooth("Env. smooth time", cpl::CKnobSlider::ControlType::ms),
+		kmeterColour("Meter colour"),
+		kenvelopeSmooth("Env. window", cpl::CKnobSlider::ControlType::ms),
+		kstereoSmooth("Stereo window", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
 		audioStreamCopy(2),
 		lastFrameTick(0),
 		lastMousePos(),
-		envelopeSmooth(0.99998),
-		envelopeFilters{},
 		envelopeGain(1),
 		editor(nullptr),
-		state()
+		state(),
+		filters()
 	{
+		state.secondStereoFilterSpeed = 0.25f;
+		state.doStereoMeasurements = true;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
@@ -162,7 +172,8 @@ namespace Signalizer
 		kprimitiveSize.bAddPassiveChangeListener(this);
 		kdiagnostics.bAddPassiveChangeListener(this);
 		kopMode.bAddPassiveChangeListener(this);
-		
+		kstereoSmooth.bAddPassiveChangeListener(this);
+		kmeterColour.bAddPassiveChangeListener(this);
 		// formatters
 		kwindow.bAddFormatter(this);
 		kgain.bAddFormatter(this);
@@ -204,10 +215,13 @@ namespace Signalizer
 		kbackgroundColour.bSetDescription("The background colour of the view.");
 		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
+		kmeterColour.bSetDescription("The colour of the stereo meters (balance and phase)");
 		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 		kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
-		kenvelopeSmooth.bSetDescription("Responsiveness - or the time it takes for the envelope follower to decay.");
+		kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 		kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
+		kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
+
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -230,6 +244,8 @@ namespace Signalizer
 		archive << kenvelopeMode;
 		archive << kenvelopeSmooth;
 		archive << kopMode;
+		archive << kstereoSmooth;
+		archive << kmeterColour;
 	}
 
 	void CVectorScope::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -250,7 +266,9 @@ namespace Signalizer
 		builder >> kenvelopeMode;
 		builder >> kenvelopeSmooth;
 		builder >> kopMode;
-		
+		builder >> kstereoSmooth;
+		builder >> kmeterColour;
+
 		ktransform.syncEditor();
 
 	}
@@ -471,7 +489,11 @@ namespace Signalizer
 		}
 		else if(ctrl == &kenvelopeSmooth)
 		{
-			envelopeSmooth = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream[0].sampleRate));
+			state.envelopeCoeff = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream[0].sampleRate));
+		}
+		else if (ctrl == &kstereoSmooth)
+		{
+			state.stereoCoeff = std::exp(-1.0 / (kstereoSmooth.bGetValue() * audioStream[0].sampleRate));
 		}
 		else if (ctrl == &kgain)
 		{
@@ -521,39 +543,119 @@ namespace Signalizer
 		{
 			state.colourBackground = kbackgroundColour.getControlColourAsColour();
 		}
+		else if (ctrl == &kmeterColour)
+		{
+			state.colourMeter = kmeterColour.getControlColourAsColour();
+		}
 	}
+
+	template<typename V>
+		void CVectorScope::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
+		{
+			using namespace cpl::simd;
+
+			if (numChannels != 2)
+				return;
+
+			// if all options are turned off, just return.
+			if ((!state.normalizeGain && state.envelopeMode != EnvelopeModes::RMS) && !state.doStereoMeasurements)
+				return;
+
+			float filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
+			float stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
+
+			const float cosineRotation = (float)std::cos(M_PI * 135 / 180);
+			const float sineRotation = (float)std::sin(M_PI * 135 / 180);
+			const V vMatrixReal = set1<V>(cosineRotation);
+			const V vMatrixImag = set1<V>(sineRotation);
+
+			const V vDummyAngle = set1<V>((float)M_PI * 0.25);
+			const V vZero = zero<V>();
+
+			auto const loopIncrement = elements_of<V>::value;
+
+			// ensure a perfect multiple and no buffer overrun
+			numSamples -= numSamples & (loopIncrement - 1);
+
+			suitable_container<V> outputPhases;
+
+			for (std::size_t n = 0; n < numSamples; n += loopIncrement)
+			{
+				// some of the heavy math done in vector mode..
+				const V vLeft = loadu<V>(buffer[0] + n);
+				const V vRight = loadu<V>(buffer[1] + n); 
+
+				// rotate 235 degrees...
+				const V vX = vLeft * vMatrixReal - vRight * vMatrixImag;
+				const V vY = vRight * vMatrixImag + vLeft * vMatrixReal;
+
+				// check if both axes are zero
+				const V vZeroAxes = vand(vX == vZero, vY == vZero);
+
+				// compute the phase angle and replace the zero vector elements with the dummy angle (to avoid nans, +/-infs are defined)
+				const V vRadians = atan(vY / vX);
+				const V vPhaseAngle = vselect(vDummyAngle, vRadians, vZeroAxes);
+
+				outputPhases = vPhaseAngle;
+				// the phase angle is discontinuous around PI, so we take the cosine
+				// to avoid the discontinuity and give a small smoothing
+				// for some arcane fucking reason, the phase response of this function IN THIS CONTEXT is wrong
+				// testing reveals no problems, it just doesn't work right here. Uncomment if you find a fix.
+#pragma cwarn("Errornous cosine output here.")
+				//outputPhases = cos(outputPhases * set1<V>(2));
+
+				// scalar code segment for recursive IIR filters..
+				for (std::size_t i = 0; i < loopIncrement; ++i)
+				{
+					auto const z = n + i;
+					// collect squared inputs (really just a cheap abs)
+					const auto lSquared = buffer[0][z] * buffer[0][z];
+					const auto rSquared = buffer[1][z] * buffer[1][z];
+					
+					// average envelope 
+					filterEnv[0] = lSquared + state.envelopeCoeff * (filterEnv[0] - lSquared);
+					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
+
+					// balance average source
+					filters.balance[0][0] = lSquared + stereoPoles[0] * (filters.balance[0][0] - lSquared);
+					filters.balance[0][1] = rSquared + stereoPoles[0] * (filters.balance[0][1] - rSquared);
+					filters.balance[1][0] = lSquared + stereoPoles[1] * (filters.balance[1][0] - lSquared);
+					filters.balance[1][1] = rSquared + stereoPoles[1] * (filters.balance[1][1] - rSquared);
+
+					// phase averaging
+					// see larger comment above.
+					outputPhases[i] = cosf(outputPhases[i] * 2.0f);
+					filters.phase[0] = outputPhases[i] + stereoPoles[0] * (filters.phase[0] - outputPhases[i]);
+					filters.phase[1] = outputPhases[i] + stereoPoles[1] * (filters.phase[1] - outputPhases[i]);
+				}
+
+
+			}
+
+			double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+
+		
+			// store calculated envelope
+			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
+			{
+				// only update filters if this mode is on.
+				filters.envelope[0] = filterEnv[0]; 
+				filters.envelope[1] = filterEnv[1];
+
+				if (std::isnormal(currentEnvelope))
+				{
+					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+				}
+			}
+
+
+
+		}
 
 	bool CVectorScope::audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.normalizeGain)
-		{
-			if (numChannels != 2)
-				return false;
-
-			double currentEnvelope = 0;
-
-			if (state.envelopeMode == EnvelopeModes::RMS)
-			{
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					// square here.
-					double input = buffer[0][i] * buffer[0][i];
-					envelopeFilters[0] = input + envelopeSmooth * (envelopeFilters[0] - input);
-					input = buffer[1][i] * buffer[1][i];
-					envelopeFilters[1] = input + envelopeSmooth * (envelopeFilters[1] - input);
-				}
-				
-				currentEnvelope = 1.0 / (2 * std::max(std::sqrt(envelopeFilters[0]), std::sqrt(envelopeFilters[1])));
-
-			}
-
-			if (std::isnormal(currentEnvelope))
-			{
-				envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
-			}
-		}
+		audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
 		return false;
 	}
-
 
 };
