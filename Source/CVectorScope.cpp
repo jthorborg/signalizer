@@ -590,7 +590,7 @@ namespace Signalizer
 				const V vY = vRight * vMatrixImag + vLeft * vMatrixReal;
 
 				// check if both axes are zero
-				const V vZeroAxes = vand(vX == vZero, vY == vZero);
+				const V vZeroAxes = vand((V)(vX == vZero), (V)(vY == vZero));
 
 				// compute the phase angle and replace the zero vector elements with the dummy angle (to avoid nans, +/-infs are defined)
 				const V vRadians = atan(vY / vX);
