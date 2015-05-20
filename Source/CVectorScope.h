@@ -82,14 +82,14 @@
 			virtual ~CVectorScope();
 
 			// Component overrides
-			void paint(Graphics & g) override;
+			void onGraphicsRendering(Graphics & g) override;
 			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const MouseEvent& event) override;
 			void mouseDrag(const MouseEvent& event) override;
 			void mouseUp(const MouseEvent& event) override;
 			void mouseDown(const MouseEvent& event) override;
 			// OpenGLRender overrides
-			void renderOpenGL() override;
+			void onOpenGLRendering() override;
 			void initOpenGL() override;
 			void closeOpenGL() override;
 			// View overrides

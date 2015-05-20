@@ -7,6 +7,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/dsp/filterdesign.h>
+
 namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
@@ -43,7 +44,7 @@ namespace Signalizer
 	};
 
 
-	void CVectorScope::paint(juce::Graphics & g)
+	void CVectorScope::onGraphicsRendering(juce::Graphics & g)
 	{
 
 		auto cStart = cpl::Misc::ClockCounter();
@@ -74,8 +75,8 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu",
-				getWidth(), getHeight(), fps, cpuTime);
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f",
+				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime());
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 			
 		}
@@ -109,7 +110,7 @@ namespace Signalizer
 	}
 
 
-	void CVectorScope::renderOpenGL()
+	void CVectorScope::onOpenGLRendering()
 	{
 		if (audioStream.empty())
 			return;
@@ -130,7 +131,7 @@ namespace Signalizer
 			for (auto & buffer : audioStream)
 				locks.emplace_back(buffer);
 
-			for (auto i = 0; i < audioStream.size(); ++i)
+			for (unsigned i = 0; i < audioStream.size(); ++i)
 			{
 				audioStream[i].clone(audioStreamCopy[i]);
 

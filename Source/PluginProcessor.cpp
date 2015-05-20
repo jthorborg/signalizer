@@ -59,7 +59,7 @@ void SignalizerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuff
 	std::vector<cpl::CFastMutex> locks;
 	
 	
-	int minNumberOfChannels = std::min((int)audioBuffer.size(), (int)buffer.getNumChannels());
+	unsigned minNumberOfChannels = std::min((unsigned)audioBuffer.size(), (unsigned)buffer.getNumChannels());
 	
 	
 	auto buffers = buffer.getArrayOfWritePointers();

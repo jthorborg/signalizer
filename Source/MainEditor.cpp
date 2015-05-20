@@ -11,7 +11,7 @@ It contains the basic startup code for a Juce application.
 #include "MainEditor.h"
 #include "CVectorScope.h"
 //#include "COscilloscope.h"
-//#include "CSpectrum.h"
+#include "CSpectrum.h"
 #include "SignalizerDesign.h"
 #include <cpl/CPresetManager.h>
 
@@ -297,7 +297,7 @@ namespace Signalizer
 		juce::Timer::stopTimer();
 	}
 
-	// these handle cases where our component is being throw off the kiosk mode by (possibly)
+	// these handle cases where our component is being thrown off the kiosk mode by (possibly)
 	// another JUCE plugin.
 	void MainEditor::componentMovedOrResized(Component& component, bool wasMoved, bool wasResized)
 	{
@@ -621,7 +621,7 @@ namespace Signalizer
 		}
 		else
 		{
-			for(int i = 0; i < AntialisingLevels.size(); ++i)
+			for(unsigned i = 0; i < AntialisingLevels.size(); ++i)
 			{
 				if(AntialisingLevels[i] == multisamplingLevel)
 				{
@@ -793,7 +793,7 @@ namespace Signalizer
 			//	view = new COscilloscope(engine->audioBuffer);
 				break;
 			case ViewTypes::Spectrum:
-			//	view = new CSpectrum(engine->audioBuffer);
+				view = new CSpectrum(engine->audioBuffer);
 				break;
 			default:
 				break;

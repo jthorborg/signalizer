@@ -249,7 +249,7 @@ private:
             jassert (n <= numElementsInArray (atts));
 
             UINT formatsCount = 0;
-            BOOL isValid = wglChoosePixelFormatARB (dc, atts, nullptr, 1, &format, &formatsCount);
+            wglChoosePixelFormatARB (dc, atts, nullptr, 1, &format, &formatsCount);
         }
 
         return format;

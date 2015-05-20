@@ -22,6 +22,16 @@
 // [END_USER_CODE_SECTION]
 
 //==============================================================================
+
+#ifdef _MSC_VER
+#pragma warning(disable:4458)
+#pragma warning(disable:4459)
+#pragma warning(disable:4456)
+#pragma warning(disable:4457)
+#pragma warning(disable:4244)
+#pragma warning(disable:4996)
+#endif
+
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics             1
 #define JUCE_MODULE_AVAILABLE_juce_audio_devices            1
 #define JUCE_MODULE_AVAILABLE_juce_audio_formats            1
