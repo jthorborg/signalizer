@@ -288,6 +288,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp" />
     <ClCompile Include="..\..\Source\CSpectrum.cpp" />
+    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp" />
     <ClCompile Include="..\..\Source\CSpectrumRendering.cpp" />
     <ClCompile Include="..\..\Source\CVectorScope.cpp" />
     <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp" />

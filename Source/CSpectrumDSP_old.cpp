@@ -402,33 +402,7 @@ namespace Signalizer
 		sdft.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), audioData[0].sampleRate);
 	}
 
-	template<typename Ty>
-		struct DualComplex
-		{
-			typedef Ty type;
 
-			std::complex<type> val[2];
-
-		};
-	template<typename Ty>
-		inline DualComplex<Ty> getZFromNFFT(Ty * tsf, std::size_t idx, std::size_t N)
-		{
-			idx <<= 1;
-			N <<= 1;
-			Ty x1 = tsf[idx];
-			Ty x2 = tsf[N - idx];
-			Ty y1 = tsf[idx + 1];
-			Ty y2 = tsf[N - idx + 1];
-
-			DualComplex<Ty> ret;
-			//ret.val[0] = std::complex<Ty>((x1 + x2) * 0.5, (y1 + y2) * 0.5);
-			//ret.val[1] = std::complex<Ty>((y1 - y2) * 0.5, -(x1 - x2) * 0.5);
-
-			ret.val[0] = std::complex<Ty>((x1 + x2) * 0.5, (y1 - y2) * 0.5);
-			ret.val[1] = std::complex<Ty>((y1 + y2) * 0.5, -(x1 - x2) * 0.5);
-
-			return ret;
-		}
 
 		/*
 

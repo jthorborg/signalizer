@@ -809,10 +809,16 @@ namespace Signalizer
 		{
 			view = it->second.get();
 		}
-
+		// if any editor is open currently, we have to close it and open the new.
+		bool openNewEditor = false;
 		// deattach old view
 		if (currentView)
 		{
+			if (getTopEditor())
+				openNewEditor = true;
+
+			clearEditors();
+
 			suspendView(currentView);
 			currentView = nullptr;
 		}
@@ -821,8 +827,17 @@ namespace Signalizer
 		if (currentView)
 		{
 			initiateView(currentView);
+			if (openNewEditor)
+				pushEditor(currentView->createEditor());
+
+			currentView->setSyncing(ksync.bGetBoolState());
 		}
 		
+		if (openNewEditor && ksettings.bGetBoolState())
+			ksettings.bSetInternal(0.0);
+
+
+
 		selTab = index;
 	}
 
