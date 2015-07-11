@@ -530,7 +530,7 @@ namespace Signalizer
 				*/
 
 				double fftBandwidth = 1.0 / numBins;
-				double pxlBandwidth = 1.0 / numPoints;
+				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x;
 
 				for (x = 0; x < numPoints - 1; ++x)
@@ -718,7 +718,7 @@ namespace Signalizer
 	void CSpectrum::mapFrequencies()
 	{
 
-		throw std::exception("Dont do this");
+		throw std::runtime_error("Dont do this");
 
 	}
 	
