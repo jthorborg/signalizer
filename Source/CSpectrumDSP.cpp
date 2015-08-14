@@ -641,7 +641,7 @@ namespace Signalizer
 				
 
 				double fftBandwidth = 1.0 / numBins;
-				double pxlBandwidth = 1.0 / numPoints;
+				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x;
 				switch (state.binPolation)
 				{
@@ -905,7 +905,7 @@ namespace Signalizer
 	void CSpectrum::mapFrequencies()
 	{
 
-		throw std::exception("Dont do this");
+		throw std::runtime_error("Dont do this");
 
 	}
 	

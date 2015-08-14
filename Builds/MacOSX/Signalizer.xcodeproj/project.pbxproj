@@ -11,6 +11,9 @@
 		0DAD76EC048AA5FA3B633999 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ABA13DCD1D115389BB8181C0 /* IOKit.framework */; };
 		0E7781C32FB5B6E02B0E6AC3 /* juce_VST3_Wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 69B2E8707A043193C1D2A4C2 /* juce_VST3_Wrapper.cpp */; };
 		0FAAB335D814E91FEC26CEDE /* DiscRecording.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0806AE937F395D947FF8D260 /* DiscRecording.framework */; };
+		1611A6CE1B518658003A3DC5 /* CSpectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1611A6CA1B518658003A3DC5 /* CSpectrum.cpp */; };
+		1611A6CF1B518658003A3DC5 /* CSpectrumDSP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1611A6CC1B518658003A3DC5 /* CSpectrumDSP.cpp */; };
+		1611A6D01B518658003A3DC5 /* CSpectrumRendering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1611A6CD1B518658003A3DC5 /* CSpectrumRendering.cpp */; };
 		165278DF1A9B3662003E1953 /* CVectorScope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278D71A9B3662003E1953 /* CVectorScope.cpp */; };
 		165278E01A9B3662003E1953 /* MainEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278D91A9B3662003E1953 /* MainEditor.cpp */; };
 		165278E11A9B3662003E1953 /* PluginProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278DB1A9B3662003E1953 /* PluginProcessor.cpp */; };
@@ -169,6 +172,10 @@
 		15AF55E274578337E88BC058 /* juce_CodeEditorComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_CodeEditorComponent.h; path = ../../JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_CodeEditorComponent.h; sourceTree = SOURCE_ROOT; };
 		15CBEC2C3CF9D4191531EF7F /* juce_FlacAudioFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_FlacAudioFormat.h; path = ../../JuceLibraryCode/modules/juce_audio_formats/codecs/juce_FlacAudioFormat.h; sourceTree = SOURCE_ROOT; };
 		15F96C34B1227C76BDDCB5A6 /* juce_ToolbarButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ToolbarButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ToolbarButton.h; sourceTree = SOURCE_ROOT; };
+		1611A6CA1B518658003A3DC5 /* CSpectrum.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CSpectrum.cpp; path = ../../Source/CSpectrum.cpp; sourceTree = "<group>"; };
+		1611A6CB1B518658003A3DC5 /* CSpectrum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSpectrum.h; path = ../../Source/CSpectrum.h; sourceTree = "<group>"; };
+		1611A6CC1B518658003A3DC5 /* CSpectrumDSP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CSpectrumDSP.cpp; path = ../../Source/CSpectrumDSP.cpp; sourceTree = "<group>"; };
+		1611A6CD1B518658003A3DC5 /* CSpectrumRendering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CSpectrumRendering.cpp; path = ../../Source/CSpectrumRendering.cpp; sourceTree = "<group>"; };
 		1650C16B3B86FBA8808D697A /* juce_AudioCDReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_AudioCDReader.h; path = ../../JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.h; sourceTree = SOURCE_ROOT; };
 		165278D71A9B3662003E1953 /* CVectorScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CVectorScope.cpp; path = ../../Source/CVectorScope.cpp; sourceTree = "<group>"; };
 		165278D81A9B3662003E1953 /* CVectorScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CVectorScope.h; path = ../../Source/CVectorScope.h; sourceTree = "<group>"; };
@@ -2812,6 +2819,10 @@
 		EA24685F8B6142E3520D09E9 /* Signalizer */ = {
 			isa = PBXGroup;
 			children = (
+				1611A6CA1B518658003A3DC5 /* CSpectrum.cpp */,
+				1611A6CB1B518658003A3DC5 /* CSpectrum.h */,
+				1611A6CC1B518658003A3DC5 /* CSpectrumDSP.cpp */,
+				1611A6CD1B518658003A3DC5 /* CSpectrumRendering.cpp */,
 				16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */,
 				165278D71A9B3662003E1953 /* CVectorScope.cpp */,
 				165278D81A9B3662003E1953 /* CVectorScope.h */,
@@ -3033,6 +3044,7 @@
 				A30F8D1650A263B575A42DAB /* AUBuffer.cpp in Sources */,
 				44587E74A110174500BB87D1 /* AUCarbonViewBase.cpp in Sources */,
 				81F08C2B937F3CA8498F7A70 /* AUCarbonViewControl.cpp in Sources */,
+				1611A6CE1B518658003A3DC5 /* CSpectrum.cpp in Sources */,
 				9C5936917A9D533D9EAB1E13 /* AUCarbonViewDispatch.cpp in Sources */,
 				6BA8F0986D0B3F58441C9358 /* AUDispatch.cpp in Sources */,
 				1BDB768996BF39F6D83070A2 /* AUEffectBase.cpp in Sources */,
@@ -3057,6 +3069,7 @@
 				5AAE09CBEDC8036BE15AF2BE /* juce_AAX_Wrapper.cpp in Sources */,
 				372011347BFB434EE625306B /* juce_AAX_Wrapper.mm in Sources */,
 				2BD287D1E7CA9D97721B8161 /* juce_AU_Wrapper.mm in Sources */,
+				1611A6CF1B518658003A3DC5 /* CSpectrumDSP.cpp in Sources */,
 				53EB393517095936C0E4D107 /* juce_audio_basics.mm in Sources */,
 				65BEDC90D0076C568CEBDC2A /* juce_audio_devices.mm in Sources */,
 				9A921FCEC3D33C974558DD25 /* juce_audio_formats.mm in Sources */,
@@ -3077,6 +3090,7 @@
 				453AF1946E25E7C7401AFEBB /* juce_RTAS_DigiCode3.cpp in Sources */,
 				8882BBDBD6FF18F58541E75B /* juce_RTAS_MacUtilities.mm in Sources */,
 				FCA1CB7DC1DED2D9A0852562 /* juce_RTAS_Wrapper.cpp in Sources */,
+				1611A6D01B518658003A3DC5 /* CSpectrumRendering.cpp in Sources */,
 				BA7D51760F34E93A8F8A18AE /* juce_video.mm in Sources */,
 				0E7781C32FB5B6E02B0E6AC3 /* juce_VST3_Wrapper.cpp in Sources */,
 				EE2AA1609ADB846CBDCFFBAA /* juce_VST3_Wrapper.mm in Sources */,
