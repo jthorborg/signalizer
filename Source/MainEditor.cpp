@@ -25,7 +25,7 @@ namespace cpl
 		"Janus Thorborg",
 		"sgn",
 		false,
-		""
+		nullptr
 
 	};
 
@@ -119,7 +119,8 @@ namespace Signalizer
 		kioskCoords(-1, -1),
 		firstKioskMode(false),
 		hasAnyTabBeenSelected(false),
-		viewTopCoord(0)
+		viewTopCoord(0),
+		krefreshState("Reset state")
 
 	{
 		setOpaque(true);
@@ -153,6 +154,12 @@ namespace Signalizer
 				section->addControl(&kantialias, 1);
 
 				page->addSection(section, "Quality");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&krefreshState, 0);
+
+				page->addSection(section, "Utility");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/painting.svg"))
@@ -570,6 +577,11 @@ namespace Signalizer
 		{
 			setAntialiasing();
 		}
+		else if (c == &krefreshState)
+		{
+			if (currentView)
+				currentView->resetState();
+		}
 		// check if it was one of the colours
 		for (unsigned i = 0; i < colourControls.size(); ++i)
 		{
@@ -956,6 +968,15 @@ namespace Signalizer
 		setBounds(bounds.constrainedWithin(
 			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
 		).withZeroOrigin());
+
+		// reinitiaty any current views (will not be done through tab selection further down)
+		for (auto & viewPair : views)
+		{
+			auto & key = viewSettings.getKey("Serialized Views").getKey(viewPair.first);
+			if (!key.isEmpty())
+				viewPair.second->load(key, key.getMasterVersion());
+		}
+
 		// will take care of opening the correct view
 		if (hasAnyTabBeenSelected)
 		{
@@ -1208,6 +1229,7 @@ namespace Signalizer
 		kantialias.bAddPassiveChangeListener(this);
 		kpresetList.bAddPassiveChangeListener(this);
 		ksync.bAddPassiveChangeListener(this);
+		krefreshState.bAddPassiveChangeListener(this);
 		// design
 		kfreeze.setImage("icons/svg/snow1.svg");
 		kidle.setImage("icons/svg/idle.svg");
@@ -1220,6 +1242,7 @@ namespace Signalizer
 		ksavePreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		ksaveDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kloadDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
+		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
 		kpresetList.bSetTitle("Preset from list:");
@@ -1272,7 +1295,7 @@ namespace Signalizer
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");
-
+		krefreshState.bSetDescription("Resets any processing state in the active view to the default.");
 		resized();
 	}
 };

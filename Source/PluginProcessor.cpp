@@ -135,7 +135,7 @@ void SignalizerAudioProcessor::setStateInformation (const void* data, int sizeIn
 	try
 	{
 		serializedData.clear();
-		serializedData.build(cpl::CSerializer::WeakContentWrapper(data, sizeInBytes));
+		serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
 		if (editor)
 		{
 			editor->load(serializedData, 1);

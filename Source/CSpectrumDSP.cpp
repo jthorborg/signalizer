@@ -1,6 +1,9 @@
 #include "CSpectrum.h"
 #include <cpl/ffts.h>
 #include <cpl/SysStats.h>
+#include <cpl/lib/LockFreeDataQueue.h>
+
+//#define _ZERO_PHASE
 
 namespace Signalizer
 {
@@ -8,6 +11,7 @@ namespace Signalizer
 	template<typename T>
 		T * CSpectrum::getAudioMemory()
 		{
+
 			return reinterpret_cast<T*>(audioMemory.data());
 		}
 
@@ -30,11 +34,104 @@ namespace Signalizer
 			return workingMemory.size() / sizeof(T);
 		}
 
+	int CSpectrum::getBlobSamples() const noexcept
+	{
+		return state.audioBlobSizeMs * 0.001 * getSampleRate();
+	}
+
+	void CSpectrum::resetState()
+	{
+		flags.resetStateBuffers = true;
+	}
+
+	void CSpectrum::audioConsumerThread()
+	{
+		// signal that we exist.
+		audioThreadIsInitiated.store(true);
+
+		AudioFrame recv;
+		int pops(20);
+		std::vector<fpoint> audioInput[2];
+
+		typedef decltype(cpl::Misc::ClockCounter()) ctime_t;
+
+		// when it returns false, its time to quit this thread.
+		while (audioFifo.popElementBlocking(recv))
+		{
+			ctime_t then = cpl::Misc::ClockCounter();
+
+			// each time we get into here, it's very likely there's abunch of messages waiting.
+			auto numExtraEntries = audioFifo.enqueuededElements();
+
+			// always resize queue before emptying
+			if (pops++ > 10)
+			{
+				audioFifo.grow(0, true, 0.3f, 2);
+				pops = 0;
+			}
+
+			for (auto & ai : audioInput)
+				ai.resize(AudioFrame::capacity * (1 + numExtraEntries)); // worst case possible
+
+			audioInput[0].insert(audioInput[0].begin(), recv.begin(), recv.end());
+			std::size_t numSamples = recv.size;
+
+			for (size_t i = 0; i < numExtraEntries; i++)
+			{
+				if (!audioFifo.popElementBlocking(recv))
+					return;
+				audioInput[0].insert(audioInput[0].begin() + numSamples, recv.begin(), recv.end());
+				numSamples += recv.size;
+			}
+
+			// process
+
+			if (!flags.firstChange)
+			{
+				float * buffers[2] = { audioInput[0].data(), audioInput[1].data() };
+
+				auto & cpuinfo = cpl::SysStats::CProcessorInfo::instance();
+
+				_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+
+				if (cpuinfo.test(cpuinfo.AVX))
+				{
+					// size of magic here to support floats and doubles through changing the typename
+					audioProcessing<typename cpl::simd::vector_of<fpoint, 8 / (sizeof(fpoint) / 4)>::type>(buffers, 2, numSamples);
+				}
+				else if (cpuinfo.test(cpuinfo.SSE2))
+				{
+					audioProcessing<typename cpl::simd::vector_of<fpoint, 4 / (sizeof(fpoint) / 4)>::type>(buffers, 2, numSamples);
+				}
+				else
+				{
+					audioProcessing<typename cpl::simd::vector_of<fpoint, 1 / (sizeof(fpoint) / 4)>::type>(buffers, 2, numSamples);
+				}
+			}
+
+
+			// clear buffers.
+
+
+			ctime_t elapsed = cpl::Misc::ClockCounter() - then;
+
+
+			double fractionOfSecond = numSamples / getSampleRate();
+			double cpuUsedOfSecond = (elapsed * 1e-4) / processorSpeed;
+
+			double cpuUsedCurrently = cpuUsedOfSecond / fractionOfSecond;
+
+			// lowpass it a bit.
+			//this->audioThreadUsage = cpuUsedCurrently + 0.9 * (this->audioThreadUsage - cpuUsedCurrently);
+			this->audioThreadUsage = cpuUsedCurrently;
+		}
+
+	}
 
 	void CSpectrum::computeWindowKernel()
 	{
 		size_t sampleSize = getWindowSize();
-		int i = 0;
+		std::size_t i = 0;
 
 
 		switch (state.dspWindow)
@@ -44,7 +141,7 @@ namespace Signalizer
 			{
 				for (; i < sampleSize; ++i)
 				{
-					windowKernel[i] = 1.0 - std::cos(TAU * i / (sampleSize - 1));
+					windowKernel[i] = 1.0 - std::cos(TAU * i / (sampleSize));
 				}
 				break;
 			}
@@ -139,6 +236,7 @@ namespace Signalizer
 					channel = 0;
 				case ChannelConfiguration::Right:
 				{
+#ifdef _ZERO_PHASE
 					for (; i < halfInputSize; ++i)
 					{
 						buffer[i + offset] = audioStream[channel].singleCheckAccess(i) * windowKernel[i];
@@ -150,6 +248,12 @@ namespace Signalizer
 						buffer[i - offset] = audioStream[channel].singleCheckAccess(i) * windowKernel[i];
 					}
 					break;
+#else
+					for (; i < size; ++i)
+					{
+						buffer[i] = audioStream[channel].singleCheckAccess(i) * windowKernel[i];
+					}
+#endif
 				}
 				case ChannelConfiguration::Phase:
 				case ChannelConfiguration::Separate:
@@ -190,13 +294,18 @@ namespace Signalizer
 				/*
 				zero-pad until buffer is filled
 				*/
-
+#ifdef _ZERO_PHASE
 				offset = halfSize + halfPadding;
 				for (size_t pad = halfSize - halfPadding; pad < offset; ++pad)
 				{
 					buffer[pad] = 0;
 				}
-
+#else
+				for (size_t pad = i; pad < fullSize; ++pad)
+				{
+					buffer[pad] = 0;
+				}
+#endif
 
 				break;
 			}
@@ -515,38 +624,73 @@ namespace Signalizer
 			case ChannelConfiguration::Merge:
 			{
 				oldBin = mappedFrequencies[0] * freqToBin;
-				/*
+
+				
+
+				
 				// following is needed if 'bad' zero-padding is present
 				// bad zeropadding (not in the middle) screws with the phase
 				// so we replace the complex number with the absolute, so the interpolation
 				// works. pretty bad though.
 
-				auto vp = getAudioMemory<std::complex<ftype>>();
-				auto vn = getNumAudioElements<std::complex<ftype>>();
-				for (int i = 0; i < vn; ++i)
+#pragma message cwarn("SIMD")
+				for (int i = 0; i < numBins; ++i)
 				{
-				vp[i] = std::abs(vp[i]);
+					csf[i] = std::abs(csf[i]);
 				}
-				*/
+				
 
 				double fftBandwidth = 1.0 / numBins;
 				double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x;
-
-				for (x = 0; x < numPoints - 1; ++x)
+				switch (state.binPolation)
 				{
-					// bandwidth of the filter for this 'line', or point
-					double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
-					// as long as the bandwidth is smaller than our fft resolution, we interpolate the points
-					// otherwise, break out and sample the max values of the bins inside the bandwidth
-					if (bwForLine > fftBandwidth)
-						break;
+				case BinInterpolation::None:
+					for (x = 0; x < numPoints - 1; ++x)
+					{
+						// bandwidth of the filter for this 'line', or point
+						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						// as long as the bandwidth is smaller than our fft resolution, we interpolate the points
+						// otherwise, break out and sample the max values of the bins inside the bandwidth
+						if (bwForLine > fftBandwidth)
+							break;
+						// +0.5 to centerly space bins.
+						auto index = cpl::Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto interpolatedFilter = csf[index];
 
-					auto interpolatedFilter = cpl::lfilter<std::complex<ftype>, true>(csf, N, mappedFrequencies[x] * freqToBin, 5);
+						wsp[x * 2] = interpolatedFilter.real() * invSize;
+						wsp[x * 2 + 1] = interpolatedFilter.imag() * invSize;
+					}
+					break;
+				case BinInterpolation::Linear:
+					for (x = 0; x < numPoints - 1; ++x)
+					{
+						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						if (bwForLine > fftBandwidth)
+							break;
 
-					wsp[x * 2] = interpolatedFilter.real() * invSize;
-					wsp[x * 2 + 1] = interpolatedFilter.imag() * invSize;
+						auto interpolatedFilter = cpl::linearFilter<std::complex<ftype>>(csf, N, mappedFrequencies[x] * freqToBin);
+
+						wsp[x * 2] = interpolatedFilter.real() * invSize;
+						wsp[x * 2 + 1] = interpolatedFilter.imag() * invSize;
+					}
+					break;
+				case BinInterpolation::Lanczos:
+					for (x = 0; x < numPoints - 1; ++x)
+					{
+						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						if (bwForLine > fftBandwidth)
+							break;
+
+						auto interpolatedFilter = cpl::lanczosFilter<std::complex<ftype>, true>(csf, N, mappedFrequencies[x] * freqToBin, 5);
+						wsp[x * 2] = interpolatedFilter.real() * invSize;
+						wsp[x * 2 + 1] = interpolatedFilter.imag() * invSize;
+					}
+					break;
+				default:
+					break;
 				}
+
 				oldBin = mappedFrequencies[x] * freqToBin;
 
 				for (; x < numPoints; ++x)
@@ -681,38 +825,81 @@ namespace Signalizer
 		}*/
 		case TransformAlgorithm::RSNT:
 		{
-
-			std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
-
-			switch (state.dspWindow)
+			if (state.displayMode != DisplayMode::ColourSpectrum)
 			{
-			case cpl::dsp::WindowTypes::Hann:
-				for (int i = 0; i < numFilters; i++)
+				std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
+
+				switch (state.dspWindow)
 				{
-					wsp[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hann, false>(i, 0);
+				case cpl::dsp::WindowTypes::Hann:
+					for (int i = 0; i < numFilters; i++)
+					{
+						wsp[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hann, false>(i, 0);
+					}
+					break;
+				case cpl::dsp::WindowTypes::Hamming:
+					for (int i = 0; i < numFilters; i++)
+					{
+						wsp[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hamming, false>(i, 0);
+					}
+					break;
+				case cpl::dsp::WindowTypes::Rectangular:
+					for (int i = 0; i < numFilters; i++)
+					{
+						wsp[i] = cresonator.getResonanceAt(i, 0);
+					}
+					break;
 				}
-				break;
-			case cpl::dsp::WindowTypes::Hamming:
-				for (int i = 0; i < numFilters; i++)
-				{
-					wsp[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hamming, false>(i, 0);
-				}
-				break;
-			case cpl::dsp::WindowTypes::Rectangular:
-				for (int i = 0; i < numFilters; i++)
-				{
-					wsp[i] = cresonator.getResonanceAt(i, 0);
-				}
-				break;
+
+				mapAndTransformDFTFilters<ChannelConfiguration::Left, float>(filterStates.data(), getWorkingMemory<float>(), filterResults.data(),
+					filterStates.size(), dbRange.low, dbRange.high, peakFilter);
 			}
 
-			mapAndTransformDFTFilters<ChannelConfiguration::Left, float>(filterStates.data(), getWorkingMemory<float>(), filterResults.data(),
-				filterStates.size(), dbRange.low, dbRange.high, peakFilter);
 		}
 		break;
 		}
 
 
+	}
+
+
+	bool CSpectrum::processNextSpectrumFrame()
+	{
+		SFrameBuffer::FrameVector * next;
+		if (sfbuf.frameQueue.popElement(next))
+		{
+			SFrameBuffer::FrameVector & curFrame(*next);
+
+			const auto numFilters = getNumFilters();
+			if (curFrame.size() == numFilters)
+			{
+				mapAndTransformDFTFilters<ChannelConfiguration::Left, float>(filterStates.data(), reinterpret_cast<fpoint*>(curFrame.data()), filterResults.data(),
+					filterStates.size(), state.dynRange.low, state.dynRange.high, peakFilter); 
+			}
+			else
+			{
+				// linearly interpolate bins. if we win the cpu-lottery one day, change this to sinc.
+				std::complex<fpoint> * wsp = getWorkingMemory<std::complex<fpoint>>();
+
+				// interpolation factor.
+				fpoint wspToNext = (curFrame.size() - 1) / fpoint(std::max(1, numFilters));
+
+				for (std::size_t n = 0; n < numFilters; ++n)
+				{
+					auto y2 = n * wspToNext;
+					auto x = static_cast<std::size_t>(y2);
+					auto yFrac = y2 - x;
+					wsp[n] = curFrame[x] * (fpoint(1) - yFrac) + curFrame[x + 1] * yFrac;
+				}
+
+				mapAndTransformDFTFilters<ChannelConfiguration::Left, float>(filterStates.data(), getWorkingMemory<fpoint>(), filterResults.data(),
+					filterStates.size(), state.dynRange.low, state.dynRange.high, peakFilter);
+			}
+#pragma message cwarn("OPERATOR DELETE OMG!!")
+			delete next;
+			return true;
+		}
+		return false;
 	}
 
 	void CSpectrum::mapFrequencies()
@@ -724,48 +911,188 @@ namespace Signalizer
 	
 	bool CSpectrum::audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		auto & cpuinfo = cpl::SysStats::CProcessorInfo::instance();
+		if (isSuspended || state.isFrozen || state.algo != TransformAlgorithm::RSNT)
+			return false;
 
-		if (cpuinfo.test(cpuinfo.AVX))
+		// in aux mode, we post the audio data onto the fifo instead.
+		if (state.iAuxMode)
 		{
-			audioProcessing<typename cpl::simd::vector_of<fpoint, 8 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
-		}
-		else if (cpuinfo.test(cpuinfo.SSE2))
-		{
-			audioProcessing<typename cpl::simd::vector_of<fpoint, 4 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
+			std::size_t bufIndex = 0;
+
+			auto numChannels = 1 + (state.configuration > ChannelConfiguration::Right);
+
+			std::int64_t n = numSamples;
+
+			switch (state.configuration)
+			{
+			case ChannelConfiguration::Right:
+				bufIndex = 1;
+			case ChannelConfiguration::Left:
+				while (n > 0)
+				{
+
+					auto const aSamples = std::min(std::int64_t(AudioFrame::capacity), n - std::max(std::int64_t(0), n - std::int64_t(AudioFrame::capacity)));
+
+
+					if (aSamples > 0)
+					{
+						AudioFrame af(aSamples);
+
+						std::memcpy(af.buffer, (buffer[bufIndex] + numSamples - n), aSamples * AudioFrame::element_size);
+
+						if (!audioFifo.pushElement(af))
+							droppedAudioFrames++;
+					}
+
+					n -= aSamples;
+				}
+			case ChannelConfiguration::Merge:
+			case ChannelConfiguration::Phase:
+			case ChannelConfiguration::Separate:
+				break;
+			}
+
+
+
+
+
 		}
 		else
 		{
-			audioProcessing<typename cpl::simd::vector_of<fpoint, 1 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
+			auto & cpuinfo = cpl::SysStats::CProcessorInfo::instance();
+
+			if (cpuinfo.test(cpuinfo.AVX))
+			{
+				// size of magic here to support floats and doubles through changing the typename
+				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
+			}
+			else if (cpuinfo.test(cpuinfo.SSE2))
+			{
+				audioProcessing<typename cpl::simd::vector_of<fpoint, 4 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
+			}
+			else
+			{
+				audioProcessing<typename cpl::simd::vector_of<fpoint, 1 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
+			}
 		}
+
 
 		return false;
 	}
 
 	template<typename V>
+	void CSpectrum::addAudioFrame()
+	{
+		// locking, to ensure the amount of resonators doesn't change inbetween.
+		cpl::CFastMutex lock(cresonator);
+
+		const auto numResFilters = cresonator.getNumFilters();
+
+		// yeah this needs to be fixed.
+		auto & frame = *(new SFrameBuffer::FrameVector(numResFilters));
+
+
+		switch (state.dspWindow)
+		{
+		case cpl::dsp::WindowTypes::Hann:
+			for (int i = 0; i < numResFilters; i++)
+			{
+				frame[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hann, false>(i, 0);
+			}
+			break;
+		case cpl::dsp::WindowTypes::Hamming:
+			for (int i = 0; i < numResFilters; i++)
+			{
+				frame[i] = cresonator.getWindowedResonanceAt<cpl::dsp::WindowTypes::Hamming, false>(i, 0);
+			}
+			break;
+		case cpl::dsp::WindowTypes::Rectangular:
+			for (int i = 0; i < numResFilters; i++)
+			{
+				frame[i] = cresonator.getResonanceAt(i, 0);
+			}
+			break;
+		}
+		sfbuf.frameQueue.pushElement<true>(&frame);
+		sfbuf.currentCounter = 0;
+	}
+
+	template<typename V>
 		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
-			if (isSuspended || state.algo != TransformAlgorithm::RSNT)
-				return;
 
-			switch (state.configuration)
+			if (state.displayMode == DisplayMode::ColourSpectrum)
 			{
-			case ChannelConfiguration::Left:
-				cresonator.wresonate<V>(buffer, 1, numSamples); break;
-			case ChannelConfiguration::Right:
-			{
-				float * revBuf[2] = { buffer[1], buffer[0] };
-				cresonator.wresonate<V>(revBuf, 1, numSamples); break;
-			}
-			case ChannelConfiguration::Merge:
-			{
-				// add relay buffer
-				CPL_RUNTIME_EXCEPTION("Channelconfiguration not implemented yet");
-			}
-			default:
-				cresonator.wresonate<V>(buffer, numChannels, numSamples);
-			}
+				cpl::CFastMutex lock(sfbuf);
 
+				std::int64_t n = numSamples;
+				std::size_t offset = 0;
+				while (n > 0)
+				{
+					std::int64_t numRemainingSamples = sfbuf.sampleBufferSize - sfbuf.currentCounter;
+
+					const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
+
+					switch (state.configuration)
+					{
+					case ChannelConfiguration::Left:
+					{
+						float * revBuf[2] = { buffer[0] + offset, buffer[1] + offset };
+						cresonator.wresonate<V>(revBuf, 1, availableSamples); break;
+					}
+
+					case ChannelConfiguration::Right:
+					{
+						float * revBuf[2] = { buffer[1] + offset, buffer[0] + offset};
+						cresonator.wresonate<V>(revBuf, 1, availableSamples); break;
+					}
+					case ChannelConfiguration::Merge:
+					{
+						// add relay buffer
+						CPL_RUNTIME_EXCEPTION("Channelconfiguration not implemented yet");
+					}
+					default:
+					{
+						float * revBuf[2] = { buffer[0] + offset, buffer[1] + offset };
+						cresonator.wresonate<V>(revBuf, numChannels, availableSamples);
+					}
+					}
+
+					sfbuf.currentCounter += availableSamples;
+					offset += availableSamples;
+					if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
+					{
+						addAudioFrame<V>();
+						// change this here. oh really?
+						sfbuf.sampleBufferSize = getBlobSamples();
+					}
+
+					n -= availableSamples;
+				}
+
+
+				sfbuf.sampleCounter += numSamples;
+			}
+			else
+			{
+				switch (state.configuration)
+				{
+				case ChannelConfiguration::Left:
+					cresonator.wresonate<V>(buffer, 1, numSamples); break;
+				case ChannelConfiguration::Right:
+				{
+					float * revBuf[2] = { buffer[1], buffer[0] };
+					cresonator.wresonate<V>(revBuf, 1, numSamples); break;
+				}
+				case ChannelConfiguration::Merge:
+				{
+					// add relay buffer
+					CPL_RUNTIME_EXCEPTION("Channelconfiguration not implemented yet");
+				}
+				default:
+					cresonator.wresonate<V>(buffer, numChannels, numSamples);
+				}
+			}
 
 			return;
 		}
@@ -777,14 +1104,22 @@ namespace Signalizer
 
 	int CSpectrum::getAxisPoints() const noexcept
 	{
-		if (state.displayMode == DisplayMode::LineGraph)
-		{
-			return getWidth();
-		}
-		else
-		{
-			return getHeight();
-		}
+		return state.axisPoints;
+	}
+
+	double CSpectrum::getOptimalFramesPerUpdate() const noexcept
+	{
+#pragma message cwarn("collect this somewhere.")
+		const double monitorRefreshRate = 60.0;
+		auto res = double(isOpenGL() ? (monitorRefreshRate / getSwapInterval())  : refreshRate) / getBlobSamples();
+		assert(std::isnormal(res));
+		return res;
+	}
+
+	std::size_t CSpectrum::getApproximateStoredFrames() const noexcept
+	{
+#pragma message cwarn("fix this to include channels, other processing methods.. etc.")
+		return sfbuf.frameQueue.enqueuededElements();
 	}
 
 	int CSpectrum::getNumFilters() const noexcept

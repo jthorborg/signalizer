@@ -118,7 +118,7 @@
 			cpl::CSVGButton ksettings, kfreeze, ksync, kidle, kkiosk;
 
 			// Editor controls
-			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync;
+			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync, krefreshState;
 			cpl::CKnobSlider krefreshRate;
 			cpl::CComboBox krenderEngine, kpresetList, kantialias;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours>  colourControls;

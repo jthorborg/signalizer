@@ -7,6 +7,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
+#include <array>
 
 namespace Signalizer
 {
@@ -15,29 +16,37 @@ namespace Signalizer
 	static const std::vector<std::string> AlgorithmNames = { "FFT", "Resonator" };
 	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Merge", "Phase", "Separate" };
 	static const std::vector<std::string> DisplayModeNames = { "Line graph", "Colour spectrum" };
+	static const std::vector<std::string> BinInterpolationNames = { "None", "Linear", "Lanczos" };
 	// the minimum level of dbs to display
 	static const double kMinDbs = -24 * 16;
 	// the maximum level of dbs to display
 	static const double kMaxDbs = 24 * 4;
 
+	const double CSpectrum::minDBRange = 3.0;
+
 	std::unique_ptr<juce::Component> CSpectrum::createEditor()
 	{
 		auto content = new Signalizer::CContentPage();
-		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
+		if (auto page = content->addPage("Settings", "icons/svg/gear.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kviewScaling, 0);
 				section->addControl(&kalgorithm, 1);
 				section->addControl(&kchannelConfiguration, 0);
+				section->addControl(&kbinInterpolation, 1);
 				section->addControl(&kdspWindow, 0);
-				section->addControl(&kwindowSize, 1);
 				section->addControl(&kdisplayMode, 1);
+				page->addSection(section);
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
 				section->addControl(&klowDbs, 1);
 				section->addControl(&khighDbs, 0);
-
+				section->addControl(&kblobSize, 0);
+				section->addControl(&kwindowSize, 1);
 				section->addControl(&kdecayRate, 0);
-				section->addControl(&kpctForDivision, 0);
+				section->addControl(&kpctForDivision, 1);
 				page->addSection(section);
 			}
 		}
@@ -48,9 +57,30 @@ namespace Signalizer
 				section->addControl(&kline1Colour, 0);
 				section->addControl(&kline2Colour, 1);
 				section->addControl(&kgridColour, 0);
-				
+				section->addControl(&kbackgroundColour, 1);
 				page->addSection(section);
 			}
+
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				for (int i = 0; i < ArraySize(kspecColours); ++i)
+				{
+					section->addControl(&kspecColours[i], 0);
+					section->addControl(&kspecRatios[i], 1);
+				}
+				page->addSection(section);
+			}
+
+
+		}
+		if (auto page = content->addPage("Utility", "icons/svg/wrench.svg"))
+		{
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kframeUpdateSmoothing, 0);
+				page->addSection(section);
+			}
+			page->addSection(&presetManager, "Preset", false);
 		}
 		editor = content;
 		editor->addComponentListener(this);
@@ -60,9 +90,9 @@ namespace Signalizer
 	}
 
 	CSpectrum::CSpectrum(cpl::AudioBuffer & data)
-	:
+		:
 		audioStream(data),
-		processorSpeed(0), 
+		processorSpeed(0),
 		audioStreamCopy(2),
 		lastFrameTick(0),
 		lastMousePos(),
@@ -70,23 +100,37 @@ namespace Signalizer
 		state(),
 		framePixelPosition(),
 		isSuspended(),
-		frequencyGraph({0, 1}, {0, 1}, 1, 10),
-		flags()
+		frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
+		flags(),
+		audioFifo(20, 1000),
+		droppedAudioFrames(),
+		audioThreadUsage(),
+		relayWidth(), relayHeight(), audioThreadIsInitiated(false),
+		presetManager(this, "spectrum"),
+		newWindowSize()
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
 
+		// see note in CKnobSlider::load()
+		kbackgroundColour.bForceEvent();
+
 		state.viewRect = { 0.0, 1.0 }; // default full-view
-
+		oldViewRect = state.viewRect;
 		state.displayMode = DisplayMode::ColourSpectrum;
-
+		oglImage.setFillColour(juce::Colours::black);
 		listenToSource(data[0]);
 
 		state.minLogFreq = 10;
 		peakFilter.setSampleRate((float)getSampleRate());
 		setWindowSize(200);
 		flags.firstChange = true;
+
+		state.iAuxMode = true;
+
+		sfbuf.sampleBufferSize = 200;
+	
 
 	}
 
@@ -100,6 +144,7 @@ namespace Signalizer
 	}
 
 
+
 	void CSpectrum::suspend()
 	{
 		isSuspended = true;
@@ -108,10 +153,44 @@ namespace Signalizer
 	void CSpectrum::resume()
 	{
 		isSuspended = false;
+		flags.openGLInitiation = true;
 	}
 
 	CSpectrum::~CSpectrum()
 	{
+		// the audio thread is created inside this flag.
+		// and that flag is set by this thread. 
+		if (!flags.firstChange)
+		{
+			// so the thread has been created; wait for it to enter function space.
+			cpl::Misc::WaitOnCondition(10000, 
+				[&]() 
+				{
+					return audioThreadIsInitiated.load(std::memory_order_relaxed);
+				}
+			);
+
+			// signal the audio thread and join it:
+			audioFifo.releaseConsumer();
+
+			// weird error-checking
+			if (audioThread.get_id() != std::thread::id())
+			{
+				// try to join it. if it isn't joinable at this point, something very bad has happened.
+				if (audioThread.joinable())
+					audioThread.join();
+				else
+					CPL_RUNTIME_EXCEPTION("audio thread crashed.");
+			}
+		}
+
+
+
+#pragma message cwarn("Fix this as well.")
+		SFrameBuffer::FrameVector * frame;
+		while (sfbuf.frameQueue.popElement(frame))
+			delete frame;
+
 
 		notifyDestruction();
 		if (editor)
@@ -126,17 +205,26 @@ namespace Signalizer
 
 		// ensure we always have a minimum of 3 dBs of range
 		// except in the case when high < kMinDbs. too lazy
-		if (low > (high - 3))
+		if (low > (high - minDBRange))
 		{
-			low = high - 3;
+			low = high - minDBRange;
 		}
-		state.dynRange.low = low;
-		state.dynRange.high = high;
-		if (updateControls)
+
+		if (state.dynRange.low != low || state.dynRange.high != high)
 		{
-			klowDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(low, kMinDbs, kMaxDbs));
-			khighDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(high, kMinDbs, kMaxDbs));
+			if (updateControls)
+			{
+				klowDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(low, kMinDbs, kMaxDbs));
+				khighDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(high, kMinDbs, kMaxDbs));
+			}
+
+			state.dynRange.low = low;
+			state.dynRange.high = high;
+
+			flags.dynamicRangeChange = true;
 		}
+
+
 	}
 
 
@@ -160,19 +248,37 @@ namespace Signalizer
 		kgridColour.bAddPassiveChangeListener(this);
 		kpctForDivision.bAddPassiveChangeListener(this);
 		kdspWindow.bAddPassiveChangeListener(this);
+		kblobSize.bAddPassiveChangeListener(this);
+		kbackgroundColour.bAddPassiveChangeListener(this);
+		kframeUpdateSmoothing.bAddPassiveChangeListener(this);
+		kbinInterpolation.bAddPassiveChangeListener(this);
+		int count = 0;
 
+		for (int i = 0; i < ArraySize(kspecColours); ++i)
+		{
+			kspecColours[i].bAddPassiveChangeListener(this);
+			kspecRatios[i].bAddPassiveChangeListener(this);
+			kspecColours[i].bSetTitle("Spectrum " + std::to_string(i + 1));
+			kspecRatios[i].bSetTitle("Gradient ratio " + std::to_string(i + 1));
+			kspecRatios[i].bSetDescription("How large a part of the gradient this colour occupies (the 4 values are normalized).");
+			kspecColours[i].bSetDescription("The four colours (together with the background colour) represents the linear interpolating colour function for the intensity found in the graph, for the colour spectrum, composing a gradient.");
+		}
+
+		// ------- formatters -------
 		kwindowSize.bAddFormatter(this);
 		kdecayRate.bAddFormatter(this);
 		klowDbs.bAddFormatter(this);
 		khighDbs.bAddFormatter(this);
-
+		kblobSize.bAddFormatter(this);
+		kframeUpdateSmoothing.bAddFormatter(this);
 		// ------ titles -----------
 		kviewScaling.bSetTitle("Graph scale");
 		kalgorithm.bSetTitle("Transform algorithm");
 		kchannelConfiguration.bSetTitle("Channel configuration");
 		kdisplayMode.bSetTitle("Display mode");
 		kdspWindow.bSetTitle("Window kernel");
-
+		kframeUpdateSmoothing.bSetTitle("Upd. smoothing");
+		kbinInterpolation.bSetTitle("Bin interpolation");
 		klowDbs.bSetTitle("Lower limit");
 		khighDbs.bSetTitle("Upper limit");
 		kwindowSize.bSetTitle("Window size");
@@ -181,15 +287,17 @@ namespace Signalizer
 		kline1Colour.bSetTitle("Graph 1 colour");
 		kline2Colour.bSetTitle("Graph 2 colour");
 		kgridColour.bSetTitle("Grid colour");
-		kpctForDivision.bSetTitle("Grid div. space");
+		kbackgroundColour.bSetTitle("Background colour");
 
+		kpctForDivision.bSetTitle("Grid div. space");
+		kblobSize.bSetTitle("Update speed");
 
 		// ------ content ----------
 		kviewScaling.setValues(ViewScaleNames);
 		kalgorithm.setValues(AlgorithmNames);
 		kchannelConfiguration.setValues(ChannelNames);
 		kdisplayMode.setValues(DisplayModeNames);
-
+		kbinInterpolation.setValues(BinInterpolationNames);
 		std::vector<std::string> windows;
 
 		for (int i = 0; (cpl::dsp::WindowTypes) i != cpl::dsp::WindowTypes::End; ++i)
@@ -208,7 +316,7 @@ namespace Signalizer
 		kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
 		kdisplayMode.bSetDescription("Select how the information is displayed; line graphs are updated each frame while the colour spectrum maintains the previous history.");
 		kdspWindow.bSetDescription("The window function describes a kernel applied to the input signal that alters the spectral leakage, through controlling the ratio between main lobe width and side-lobes.");
-
+		kbinInterpolation.bSetDescription("Choice of interpolation for transform algorithms that produce a discrete set of values instead of an continuous function.");
 
 		klowDbs.bSetDescription("The lower limit of the displayed dynamic range.");
 		khighDbs.bSetDescription("The upper limit of the displayed dynamic range");
@@ -217,7 +325,11 @@ namespace Signalizer
 		kline1Colour.bSetDescription("The colour of the first graph.");
 		kline2Colour.bSetDescription("The colour of the second graph.");
 		kgridColour.bSetDescription("The colour of the dB/frequency grid.");
+		kbackgroundColour.bSetDescription("The colour of the background.");
 		kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
+		kblobSize.bSetDescription("Controls how much audio data a horizontal unit represents; effectively controls the update rate of the colour spectrum.");
+		kframeUpdateSmoothing.bSetDescription("Reduces jitter in spectrum updates at the (possible) expense of higher graphical latency.");
+	
 
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -237,24 +349,51 @@ namespace Signalizer
 		archive << kline1Colour;
 		archive << kline2Colour;
 		archive << kgridColour;
+		archive << kblobSize;
+		archive << kbackgroundColour;
+		archive << kframeUpdateSmoothing;
+
+		for (int i = 0; i < numSpectrumColours; ++i)
+		{
+			archive << kspecColours[i];
+			archive << kspecRatios[i];
+		}
+
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
 	{
-		builder >> kviewScaling;
-		builder >> kalgorithm;
-		builder >> kchannelConfiguration;
-		builder >> kdisplayMode;
-		builder >> kdspWindow;
-		// set high first, so low isn't capped
-		builder >> khighDbs;
-		builder >> klowDbs;
-		builder >> kdecayRate;
-		builder >> kwindowSize;
-		builder >> kpctForDivision;
-		builder >> kline1Colour;
-		builder >> kline2Colour;
-		builder >> kgridColour;
+		try
+		{
+			builder >> kviewScaling;
+			builder >> kalgorithm;
+			builder >> kchannelConfiguration;
+			builder >> kdisplayMode;
+			builder >> kdspWindow;
+			// set high first, so low isn't capped
+			builder >> khighDbs;
+			builder >> klowDbs;
+			builder >> kdecayRate;
+			builder >> kwindowSize;
+			builder >> kpctForDivision;
+			builder >> kline1Colour;
+			builder >> kline2Colour;
+			builder >> kgridColour;
+			builder >> kblobSize;
+			builder >> kbackgroundColour;
+			builder >> kframeUpdateSmoothing;
+
+			for (int i = 0; i < numSpectrumColours; ++i)
+			{
+				builder >> kspecColours[i];
+				builder >> kspecRatios[i];
+			}
+
+		}
+		catch (std::exception & e)
+		{
+			CPL_NOOP;
+		}
 	}
 
 	void CSpectrum::resized()
@@ -289,30 +428,73 @@ namespace Signalizer
 
 	void CSpectrum::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
 	{
-		double newPos(0);
+		double newFreqPos(0), newDBPos(0);
 
 		switch (state.displayMode)
 		{
 			case DisplayMode::ColourSpectrum:
-				newPos = double(getAxisPoints() - event.position.y) / getAxisPoints();
+				newFreqPos = double(getAxisPoints() - event.position.y) / getAxisPoints();
+				newDBPos = 0.5;
 				break;
 			case DisplayMode::LineGraph:
-				newPos = double(event.position.x) / getAxisPoints();
+				newFreqPos = double(event.position.x) / getAxisPoints();
+				newDBPos = double(getHeight() - event.position.y) / getHeight();
 				break;
 		}
 
+		// shift down equals modification of dbs instead.
+		if (!event.mods.isShiftDown())
+		{
+			// delta difference, scales
+			volatile auto delta = state.viewRect.right - state.viewRect.left;
+			volatile auto inc = delta * wheel.deltaY / 5;
+			state.viewRect.left += newFreqPos * inc;
+			state.viewRect.right -= (1 - newFreqPos) * inc;
 
-		// delta difference, scales
-		volatile auto delta = state.viewRect.left - state.viewRect.right;
-		volatile auto inc = delta * wheel.deltaY / 5;
-		state.viewRect.left += newPos * inc;
-		state.viewRect.right -= (1 - newPos) * inc;
+			state.viewRect.left = std::max(0.0, state.viewRect.left);
+			state.viewRect.right = std::min(state.viewRect.right, 1.0);
 
-		state.viewRect.left = std::max(0.0, state.viewRect.left);
-		state.viewRect.right = std::min(state.viewRect.right, 1.0);
+			flags.viewChanged = true;
+		}
+		else
+		{
+			auto dbs = getDBs();
+			volatile auto delta = dbs.high - dbs.low;
+			if (std::abs(delta) <= minDBRange)
+				return;
+			volatile auto inc = delta * wheel.deltaY / 5;
+			dbs.low += newDBPos * inc;
+			dbs.high -= (1 - newDBPos) * inc;
 
-		flags.viewChanged = true;
+			setDBs(dbs.low, dbs.high, true);
+
+			flags.dynamicRangeChange = true;
+		}
+
 	}
+
+	void Signalizer::CSpectrum::calculateSpectrumColourRatios()
+	{
+		double acc = 0.0;
+
+		std::array<double, numSpectrumColours> vals;
+
+		for (int i = 0; i < vals.size(); ++i)
+		{
+			vals[i] = std::max(0.0001, kspecRatios[i].bGetValue());
+			acc += vals[i];
+		}
+		// to avoid accumulating sum >= 1.0f
+		acc += std::numeric_limits<float>::epsilon();
+
+		state.normalizedSpecRatios[0] = 0;
+		for (int i = 0; i < vals.size(); ++i)
+		{
+			state.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
+		}
+
+	}
+
 	void CSpectrum::mouseDoubleClick(const MouseEvent& event)
 	{
 		state.viewRect = { 0.0, 1.0 };
@@ -324,15 +506,28 @@ namespace Signalizer
 		{
 			auto mouseDelta = event.position - lastMousePos;
 			
-			auto delta = state.viewRect.left - state.viewRect.right;
-			auto inc = (delta * (state.displayMode == DisplayMode::LineGraph ? mouseDelta.x : mouseDelta.y)) / getAxisPoints();
+			auto freqDelta = state.viewRect.left - state.viewRect.right;
+			auto freqInc = (freqDelta * (state.displayMode == DisplayMode::LineGraph ? mouseDelta.x : mouseDelta.y)) / getAxisPoints();
 
-			state.viewRect.left += inc;
-			state.viewRect.right += inc;
+			auto dbs = getDBs();
+
+			auto dynDelta = dbs.high - dbs.low;
+			auto dynInc = (dynDelta * (state.displayMode == DisplayMode::LineGraph ? mouseDelta.y / getHeight() : mouseDelta.x / getWidth()));
+
+			dbs.high += dynInc;
+			dbs.low += dynInc;
+
+			setDBs(dbs.low, dbs.high, true);
+
+			state.viewRect.left += freqInc;
+			state.viewRect.right += freqInc;
 
 			state.viewRect.left = std::max(0.0, state.viewRect.left);
 			state.viewRect.right = std::min(state.viewRect.right, 1.0);
+
+
 			lastMousePos = event.position;
+			flags.dynamicRangeChange = true;
 			flags.viewChanged = true;
 		}
 	}
@@ -347,6 +542,8 @@ namespace Signalizer
 
 	void CSpectrum::valueChanged(const cpl::CBaseControl * ctrl)
 	{
+		using namespace cpl;
+
 		if (ctrl == &kdecayRate)
 		{
 			peakFilter.setDecayAsFraction(ctrl->bGetValue(), 0.01);
@@ -358,7 +555,7 @@ namespace Signalizer
 		}
 		else if (ctrl == &kdisplayMode)
 		{
-			state.displayMode = kdisplayMode.getZeroBasedSelIndex<DisplayMode>();
+			newDisplayMode = kdisplayMode.getZeroBasedSelIndex<DisplayMode>();
 			flags.resized = true;
 		}
 		else if (ctrl == &kchannelConfiguration)
@@ -372,6 +569,7 @@ namespace Signalizer
 		else if (ctrl == &kpctForDivision)
 		{
 			flags.frequencyGraphChange = true;
+			flags.dynamicRangeChange = true;
 		}
 		else if (ctrl == &kalgorithm)
 		{
@@ -387,12 +585,46 @@ namespace Signalizer
 		}
 		else if (ctrl == &kgridColour)
 		{
-			state.gridColour = kgridColour.getControlColourAsColour();
+			state.colourGrid = kgridColour.getControlColourAsColour();
+		}
+		else if (ctrl == &kbackgroundColour)
+		{
+			state.colourBackground = kbackgroundColour.getControlColourAsColour();
+			state.colourSpecs[0] = state.colourBackground;
 		}
 		else if (ctrl == &kdspWindow)
 		{
-			state.dspWindow = kdspWindow.getZeroBasedSelIndex<cpl::dsp::WindowTypes>();
+			state.dspWindow = kdspWindow.getZeroBasedSelIndex<dsp::WindowTypes>();
 			flags.windowKernelChange = true;
+		}
+		else if (ctrl == &kblobSize)
+		{
+			state.audioBlobSizeMs = Math::round<std::size_t>(Math::UnityScale::exp(kblobSize.bGetValue(), 1.0, 1000.0));
+		}
+		else if (ctrl == &kframeUpdateSmoothing)
+		{
+			state.bufferSmoothing = Math::UnityScale::linear(kframeUpdateSmoothing.bGetValue(), 0.0, 0.996);
+		}
+		else if (ctrl == &kbinInterpolation)
+		{
+			state.binPolation = kbinInterpolation.getZeroBasedSelIndex<BinInterpolation>();
+		}
+		else
+		{
+			for (int i = 0; i < numSpectrumColours; ++i)
+			{
+				if (ctrl == (kspecColours + i))
+				{
+					state.colourSpecs[i + 1] = kspecColours[i].getControlColourAsColour();
+					break;
+				}
+				else if (ctrl == (kspecRatios + i))
+				{
+					// one ratio change affects the normalization, so recalculate all:
+					calculateSpectrumColourRatios();
+					break;
+				}
+			}
 		}
 	}
 	
@@ -409,7 +641,7 @@ namespace Signalizer
 			// need to repaint low dbs, in case it got changed:
 			auto newVal = cpl::Math::UnityScale::Inv::linear(actualDbs.low, kMinDbs, kMaxDbs);
 			if (newVal != klowDbs.bGetValue())
-				klowDbs.bSetValue(cpl::Math::UnityScale::Inv::linear(actualDbs.low, kMinDbs, kMaxDbs), true);
+				klowDbs.bSetInternal(cpl::Math::UnityScale::Inv::linear(actualDbs.low, kMinDbs, kMaxDbs));
 
 		}
 
@@ -431,15 +663,29 @@ namespace Signalizer
 
 		bool remapResonator = false;
 		bool remapFrequencies = false;
-		bool graphShouldBeCompiled = false;
+		bool glImageHasBeenResized = false;
+		state.displayMode = newDisplayMode;
+
+
+		auto const sampleRate = getSampleRate();
+		auto const axisPoints = state.displayMode == DisplayMode::LineGraph ? getWidth() : getHeight();
+
+		if (axisPoints != state.axisPoints)
+		{
+			flags.resized = true;
+			state.axisPoints = state.numFilters = axisPoints;
+		}
 
 		auto const numFilters = getNumFilters();
-		auto const sampleRate = getSampleRate();
-		auto const axisPoints = getAxisPoints();
 
-		if (flags.audioWindowResize)
+		auto const divLimit = 5 + numFilters * 0.02 + 0.5 * (numFilters * kpctForDivision.bGetValue());
+		oglImage.setFillColour(state.colourBackground);
+
+		if (flags.audioWindowResize.cas())
 		{
+			std::atomic_thread_fence(std::memory_order_acquire);
 
+			state.windowSize = newWindowSize;
 			for (auto & buf : audioStream)
 			{
 				buf.setSize(state.windowSize);
@@ -455,30 +701,51 @@ namespace Signalizer
 			flags.audioMemoryResize = true;
 
 		}
-		if (flags.audioMemoryResize)
+		if (flags.audioMemoryResize.cas())
 		{
-			const auto bufSize = cpl::Math::nextPow2(state.windowSize);
+			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 			audioMemory.resize(bufSize * sizeof(std::complex<double>));
 			windowKernel.resize(bufSize);
 			flags.windowKernelChange = true;
 		}
 
-		if (flags.resized)
+		if (flags.openGLInitiation.cas())
+		{
+			// will re-load image if necessary
+			oglImage.resize(getWidth(), getHeight(), true);
+			glImageHasBeenResized = true;
+		}
+		if (flags.resized.cas())
 		{
 			filterResults.resize(numFilters);
 			filterStates.resize(numFilters);
 			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
 
-			oglImage.resize(getWidth(), getHeight(), true);
-			columnUpdate.resize(getHeight() * 4);
+			columnUpdate.resize(getHeight());
+			if (!glImageHasBeenResized)
+			{
+				oglImage.resize(getWidth(), getHeight(), true);
+				glImageHasBeenResized = true;
+			}
 
-			graphShouldBeCompiled = true;
+			flags.frequencyGraphChange = true;
 
 			flags.viewChanged = true;
 			remapFrequencies = true;
+			flags.dynamicRangeChange = true;
+		}
+		if (flags.dynamicRangeChange.cas())
+		{
+			dbGraph.setBounds({ 0.0, (double) getHeight() });
+			dbGraph.setDivisionLimit(0.14 * divLimit);
+			auto dynRange = getDBs();
+			dbGraph.setLowerDbs(dynRange.low);
+			dbGraph.setUpperDbs(dynRange.high);
+			dbGraph.compileDivisions();
 		}
 
-		if (flags.viewChanged)
+
+		if (flags.viewChanged.cas())
 		{
 			frequencyGraph.setBounds({ 0.0, (double)getAxisPoints() });
 			frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
@@ -486,7 +753,13 @@ namespace Signalizer
 			frequencyGraph.setScaling(state.viewScale == ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
 
 			remapFrequencies = true;
-			graphShouldBeCompiled = true;
+			flags.frequencyGraphChange = true;
+
+			if(state.displayMode == DisplayMode::ColourSpectrum && oldViewRect != state.viewRect)
+				oglImage.freeLinearVerticalTranslation(oldViewRect, state.viewRect);
+
+			oldViewRect = state.viewRect;
+
 		}
 
 		if (remapFrequencies)
@@ -508,6 +781,7 @@ namespace Signalizer
 					{
 						mappedFrequencies[i] = static_cast<float>(state.viewRect.left * halfSampleRate + viewSize * i * freqPerPixel);
 					}
+					break;
 				}
 				case ViewScaling::Logarithmic:
 				{
@@ -517,12 +791,11 @@ namespace Signalizer
 
 					double end = sampleRate / 2;
 
-
-
 					for (int i = 0; i < numFilters; ++i)
 					{
 						mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
 					}
+					break;
 				}
 			}
 			remapResonator = true;
@@ -532,23 +805,39 @@ namespace Signalizer
 		if (remapResonator)
 		{
 			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), sampleRate);
-			graphShouldBeCompiled = true;
+			flags.frequencyGraphChange = true;
+			relayWidth = getWidth();
+			relayHeight = getHeight();
 		}
 
-		if (graphShouldBeCompiled || flags.frequencyGraphChange)
+		if (flags.frequencyGraphChange.cas())
 		{
-			frequencyGraph.setDivisionLimit(5 + getNumFilters() * 0.05 + 0.95 * (getNumFilters() * kpctForDivision.bGetValue()));
+			frequencyGraph.setDivisionLimit(divLimit);
 			frequencyGraph.compileGraph();
 		}
 
-		if (flags.windowKernelChange)
+		if (flags.windowKernelChange.cas())
 		{
 			computeWindowKernel();
 		}
 
-		// reset all flags through value-initialization
-		flags = Flags();
+		if (flags.resetStateBuffers.cas())
+		{
+			cresonator.resetState();
+			std::memset(filterStates.data(), 0, filterStates.size() * sizeof(UComplexFilter<fpoint>));
+			std::memset(filterResults.data(), 0, filterResults.size() * sizeof(UComplexFilter<fpoint>));
+			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
+			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
+		}
 
+		if (flags.firstChange.cas())
+		{
+			audioThread = std::thread(&CSpectrum::audioConsumerThread, this);
+			framesPerUpdate = getOptimalFramesPerUpdate();
+		}
+
+		// reset all flags through value-initialization
+		flags.internalFlagHandlerRunning = false;
 	}
 
 	void CSpectrum::setWindowSize(std::size_t size)
@@ -559,7 +848,7 @@ namespace Signalizer
 			n = 16;
 
 
-		state.windowSize = n;
+		newWindowSize = n;
 		flags.audioWindowResize = true;
 
 
@@ -567,10 +856,11 @@ namespace Signalizer
 
 	bool CSpectrum::valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value)
 	{
+		using namespace cpl;
 		char buf[200];
 		if (ctrl == &klowDbs || ctrl == &khighDbs)
 		{
-			auto val = cpl::Math::UnityScale::linear<double>(value, kMinDbs, kMaxDbs);
+			auto val = Math::UnityScale::linear<double>(value, kMinDbs, kMaxDbs);
 			sprintf_s(buf, "%.2f dBs", val);
 			buffer = buf;
 			return true;
@@ -587,15 +877,26 @@ namespace Signalizer
 			buffer = buf;
 			return true;
 		}
-		
+		else if (ctrl == &kblobSize)
+		{
+			sprintf_s(buf, "%d ms", Math::round<int>(Math::UnityScale::exp(value, 1.0, 1000.0)));
+			buffer = buf;
+			return true;
+		}
+		else if (ctrl == &kframeUpdateSmoothing)
+		{
+			sprintf_s(buf, "%.2f", Math::UnityScale::linear(kframeUpdateSmoothing.bGetValue(), 0.0, 0.996));
+			buffer = buf;
+			return true;
+		}
 		return false;
 	}
 
 
 	bool CSpectrum::stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value)
 	{
+		using namespace cpl;
 		double newVal(0);
-
 
 		if (ctrl == &klowDbs || ctrl == &khighDbs)
 		{
@@ -619,6 +920,22 @@ namespace Signalizer
 			if (cpl::lexicalConversion(buffer, newVal))
 			{
 				value = cpl::Math::confineTo(newVal / audioStream[0].maxSize(), 0.0, 1.0);
+				return true;
+			}
+		}
+		else if (ctrl == &kblobSize)
+		{
+			if (cpl::lexicalConversion(buffer, newVal))
+			{
+				value = Math::confineTo(Math::UnityScale::Inv::exp(newVal, 1.0, 1000.0), 0.0, 1.0);
+				return true;
+			}
+		}
+		else if (ctrl == &kframeUpdateSmoothing)
+		{
+			if (cpl::lexicalConversion(buffer, newVal))
+			{
+				value = Math::UnityScale::Inv::linear(Math::confineTo(value, 0.0, 1.0), 0.0, 0.996);
 				return true;
 			}
 		}

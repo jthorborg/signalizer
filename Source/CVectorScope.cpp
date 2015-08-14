@@ -601,7 +601,7 @@ namespace Signalizer
 				// to avoid the discontinuity and give a small smoothing
 				// for some arcane fucking reason, the phase response of this function IN THIS CONTEXT is wrong
 				// testing reveals no problems, it just doesn't work right here. Uncomment if you find a fix.
-#pragma cwarn("Errornous cosine output here.")
+#pragma message cwarn("Errornous cosine output here.")
 				//outputPhases = cos(outputPhases * set1<V>(2));
 
 				// scalar code segment for recursive IIR filters..

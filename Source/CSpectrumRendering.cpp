@@ -7,6 +7,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/dsp/filterdesign.h>
+#include <array>
 
 namespace Signalizer
 {
@@ -30,27 +31,94 @@ namespace Signalizer
 			lastFrameTick = tickNow;
 			
 		}
-#pragma cwarn("lel")
+#pragma message cwarn("lel")
 
 		// ------- draw frequency graph
 
-		g.setColour(juce::Colours::grey);
-		const auto & lines = frequencyGraph.getLines();
-		for (auto line : lines)
-		{
-			g.drawLine({ (float)line, 0.0f, (float)line, (float)getHeight() }, 1.0f);
-		}
 
-		g.setColour(juce::Colours::white);
-		const auto & divs = frequencyGraph.getDivisions();
+		const auto & lines = frequencyGraph.getLines();
 
 		char buf[200];
 
-		for (auto & sdiv : divs)
+		g.setColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+		if (state.displayMode == DisplayMode::LineGraph)
 		{
-			sprintf_s(buf, "%.2f", sdiv.frequency);
-			g.drawLine({ (float)sdiv.coord, 0.0f, (float)sdiv.coord, (float)getHeight() }, 1.0f);
-			g.drawText(buf, (float)sdiv.coord + 5, 20, 100, 20, juce::Justification::centredLeft);
+			// draw vertical lines.
+			for (auto line : lines)
+			{
+				g.drawLine({ (float)line, 0.0f, (float)line, (float)getHeight() }, 1.0f);
+			}
+
+			g.setColour(state.colourGrid);
+			const auto & divs = frequencyGraph.getDivisions();
+
+			for (auto & sdiv : divs)
+			{
+				sprintf_s(buf, "%.2f", sdiv.frequency);
+				g.drawLine({ (float)sdiv.coord, 0.0f, (float)sdiv.coord, (float)getHeight() }, 1.0f);
+				g.drawText(buf, (float)sdiv.coord + 5, 20, 100, 20, juce::Justification::centredLeft);
+			}
+
+			// draw horizontal lines:
+
+			for (auto & dbDiv : dbGraph.getDivisions())
+			{
+				sprintf_s(buf, "%.2f", dbDiv.dbVal);
+				g.drawLine({ 30, (float)dbDiv.coord, float(getWidth()), (float)dbDiv.coord }, 1.0f);
+				g.drawText(buf, 5, (float)dbDiv.coord, 100, 20, juce::Justification::centredLeft);
+			}
+
+		}
+		else
+		{
+			float height = getHeight();
+			float baseWidth = getWidth() * 0.05f;
+			
+			float gradientOffset = 10.0f;
+
+
+
+			// draw horizontal lines.
+
+			for (auto line : lines)
+			{
+				g.drawLine({ gradientOffset, float(height - line), gradientOffset + baseWidth * 0.7f, float(height - line) }, 1.0f);
+			}
+
+			g.setColour(state.colourGrid);
+			const auto & divs = frequencyGraph.getDivisions();
+
+
+			for (auto & sdiv : divs)
+			{
+				sprintf_s(buf, "%.2f", sdiv.frequency);
+				g.drawLine({ gradientOffset, float(height - sdiv.coord), gradientOffset + baseWidth, float(height - sdiv.coord) }, 1.0f);
+				g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+			}
+
+
+			// draw gradient
+
+			juce::ColourGradient gradient;
+
+			// fill in colours
+
+			double gradientPos = 0.0;
+
+			for (int i = 0; i < numSpectrumColours + 1; i++)
+			{
+				gradientPos += state.normalizedSpecRatios[i];
+				gradient.addColour(gradientPos, state.colourSpecs[i].toJuceColour());
+			}
+
+
+			gradient.point1 = {gradientOffset * 0.5f, (float)getHeight() };
+			gradient.point2 = {gradientOffset * 0.5f, 0.0f };
+
+			g.setGradientFill(gradient);
+
+			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
 		}
 
 
@@ -62,8 +130,8 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(text, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f, viewRect = {%f, %f}",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(), state.viewRect.left, state.viewRect.right);
+			sprintf(text, "%dx%d: %.1f fps - %.1f%% cpu (audioThread: %.1f%% cpu, d: %d, fpu: %f), deltaG = %f, deltaO = %f, viewRect = {%f, %f}",
+				getWidth(), getHeight(), fps, cpuTime, audioThreadUsage, droppedAudioFrames, framesPerUpdate, graphicsDeltaTime(), openGLDeltaTime(), state.viewRect.left, state.viewRect.right);
 			g.drawSingleLineText(text, 10, 20);
 
 		}
@@ -74,8 +142,8 @@ namespace Signalizer
 		const int imageSize = 128;
 		const float fontToPixelScale = 90 / 64.0f;
 
-		oglImage.resize(getWidth(), getHeight(), false);
-
+		//oglImage.resize(getWidth(), getHeight(), false);
+		flags.openGLInitiation = true;
 		textures.clear();
 
 	}
@@ -86,6 +154,34 @@ namespace Signalizer
 		oglImage.offload();
 	}
 
+
+	template<std::size_t N, std::size_t V, cpl::GraphicsND::ComponentOrder order>
+		void ColourScale2(cpl::GraphicsND::UPixel<order> * __RESTRICT__ outPixel, 
+			float intensity, cpl::GraphicsND::UPixel<order> colours[N + 1], float normalizedScales[N])
+		{
+			intensity = cpl::Math::confineTo(intensity, 0.0f, 1.0f);
+			
+			float accumulatedSum = 0.0f;
+
+			for (std::size_t i = 0; i < N; ++i)
+			{
+				accumulatedSum += normalizedScales[i];
+
+				if (accumulatedSum >= intensity)
+				{
+					std::uint16_t factor = cpl::Math::round<std::uint8_t>(0xFF * cpl::Math::UnityScale::Inv::linear<float>(intensity, accumulatedSum - normalizedScales[i], accumulatedSum));
+
+					std::size_t x1 = std::max(signed(i) - 1, 0), x2 = std::min(x1 + 1, N - 1);
+
+					for (std::size_t p = 0; p < V; ++p)
+					{
+						outPixel->pixel.data[p] = (((colours[x1].pixel.data[p] * (0x00FF - factor)) + 0x80) >> 8) + (((colours[x2].pixel.data[p] * factor) + 0x80) >> 8);
+					}
+
+					return;
+				}
+			}
+		}
 
 	void ColorScale(uint8_t * pixel, float intensity)
 	{
@@ -132,10 +228,16 @@ namespace Signalizer
 
 	void CSpectrum::onOpenGLRendering()
 	{
+		// starting from a clean slate?
+		CPL_DEBUGCHECKGL();
 		if (audioStream.empty())
 			return;
 
+
 		handleFlagUpdates();
+		// flags may have altered ogl state
+		CPL_DEBUGCHECKGL();
+
 
 		auto cStart = cpl::Misc::ClockCounter();
 		juce::OpenGLHelpers::clear(state.colourBackground);
@@ -169,14 +271,18 @@ namespace Signalizer
 
 		cpl::OpenGLEngine::COpenGLStack openGLStack;
 		// set up openGL
-		openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+		//openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		openGLStack.loadIdentityMatrix();
+		CPL_DEBUGCHECKGL();
 
 		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
+		CPL_DEBUGCHECKGL();
 
+		openGLStack.setLineSize(std::max(0.001f, state.primitiveSize * 10));
+		openGLStack.setPointSize(std::max(0.001f, state.primitiveSize * 10));
+		CPL_DEBUGCHECKGL();
 
-		openGLStack.setLineSize(state.primitiveSize * 10);
-		openGLStack.setPointSize(state.primitiveSize * 10);
+		CPL_DEBUGCHECKGL();
 
 		/// <summary>
 		/// 
@@ -207,36 +313,69 @@ namespace Signalizer
 		lastFrameTick = tickNow;
 	}
 
-	
 
 	template<typename V>
 		void CSpectrum::renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack & ogs)
 		{
+			CPL_DEBUGCHECKGL();
 
-			for (int i = 0; i < getAxisPoints(); ++i)
+			if (!state.isFrozen)
 			{
-				ColorScale(&columnUpdate[i * 3], filterResults[i].magnitude);
-			}
-			//CPL_DEBUGCHECKGL();
-			oglImage.updateSingleColumn(framePixelPosition, columnUpdate);
-			//CPL_DEBUGCHECKGL();
 
+
+				framePixelPosition %= (getWidth());
+				double bufferSmoothing = state.bufferSmoothing;
+				auto approximateFrames = getApproximateStoredFrames();
+				/*if (approximateFrames == 0)
+					approximateFrames = framesPerUpdate;*/
+				int processedFrames = 0;
+				framesPerUpdate = approximateFrames + bufferSmoothing * (framesPerUpdate - approximateFrames);
+				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
+
+				// if there's no buffer smoothing at all, we just capture every frame possible.
+				// 
+				bool shouldCap = state.bufferSmoothing != 0.0;
+
+				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
+				{
+#pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
+					// run the next frame through pixel filters and format it etc.
+
+					for (int i = 0; i < getAxisPoints(); ++i)
+					{
+						ColourScale2<numSpectrumColours + 1, 4>(columnUpdate.data() + i, filterResults[i].magnitude, state.colourSpecs, state.normalizedSpecRatios);
+						//ColorScale(&columnUpdate[i * 4], filterResults[i].magnitude);
+					}
+					//CPL_DEBUGCHECKGL();
+					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
+					//CPL_DEBUGCHECKGL();
+
+					framePixelPosition++;
+					framePixelPosition %= (getWidth());
+				}
+			}
+
+			CPL_DEBUGCHECKGL();
+			ogs.enable(GL_TEXTURE_2D);
 
 			cpl::OpenGLEngine::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
-
-
+			CPL_DEBUGCHECKGL();
+			/*framePixelPosition--;
+			if (framePixelPosition < 0)
+			{
+				framePixelPosition = getWidth();
+			}*/
 
 			imageDrawer.drawCircular((float)((double)(framePixelPosition) / (getWidth() - 1)));
 
-			framePixelPosition++;
-			framePixelPosition %= (getWidth() + 1);
+			/*framePixelPosition++;
+			framePixelPosition %= (getWidth() + 1);*/
 		}
 
 
 	template<typename V>
 	void CSpectrum::renderLineGraph(cpl::OpenGLEngine::COpenGLStack & ogs)
 	{
-
 
 		int points = getAxisPoints() - 1;
 		switch (state.configuration)

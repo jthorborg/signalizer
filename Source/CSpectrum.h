@@ -14,7 +14,11 @@
 	#include <cpl/CFrequencyGraph.h>
 	#include <cpl/dsp/CPeakFilter.h>
 	#include <cpl/CDBMeterGraph.h>
-
+	#include <queue>
+	#include <cpl/lib/LockFreeQueue.h>
+	#include <cpl/lib/BlockingLockFreeQueue.h>
+	#include <vector>
+	#include <cpl/gui/CPresetWidget.h>
 	namespace cpl
 	{
 		namespace OpenGLEngine
@@ -27,12 +31,37 @@
 
 	namespace Signalizer
 	{
-	
-		class SFrameBuffer
+		/// <summary>
+		/// atomic_flag with reversed conditions
+		/// </summary>
+		class ABoolFlag
 		{
+		public:
+			ABoolFlag() : flag(false) {}
 
+			ABoolFlag & operator = (bool val)
+			{
+				if (!val)
+				{
+					CPL_RUNTIME_EXCEPTION("Atomic bool flag reset through operator = .");
+				}
+				flag.store(val);
+				return *this;
+			}
 
+			operator bool() const noexcept
+			{
+				return flag.load();
+			}
 
+			bool cas(bool newVal = false)
+			{
+				bool expected = true;
+				return flag.compare_exchange_strong(expected, newVal);
+			}
+
+		private:
+			std::atomic<bool> flag;
 		};
 
 
@@ -40,6 +69,14 @@
 		union UComplexFilter
 		{
 			UComplexFilter() : real(0), imag(0) { }
+			
+			UComplexFilter & operator = (const std::complex<Scalar> & c) noexcept
+			{
+				real = c.real();
+				imag = c.imag();
+				return *this;
+			}
+
 			struct
 			{
 				Scalar real, imag;
@@ -52,10 +89,62 @@
 			{
 				Scalar leftMagnitude, rightMagnitude;
 			};
+
+			UComplexFilter operator * (Scalar left) const noexcept
+			{
+				UComplexFilter ret;
+				ret.real = real * left;
+				ret.imag = imag * left;
+				return ret;
+			}
+
+			UComplexFilter operator + (const UComplexFilter & left) const noexcept
+			{
+				UComplexFilter ret;
+				ret.real = left.real + real;
+				ret.imag = left.imag + imag;
+				return ret;
+			}
+
+			operator std::complex<Scalar>() const noexcept
+			{
+				return std::complex<Scalar>(real, imag);
+			}
 		};
 
+		#ifdef __MSVC__
+			#pragma pack(push, 1)
+		#endif
+		template<typename T, std::size_t bufsize>
+			PACKED struct AudioFrameEntry
+			{
+			public:
+				AudioFrameEntry(std::uint32_t elementsUsed)
+					: size(elementsUsed)
+				{
+					static_assert(sizeof(AudioFrameEntry<T, bufsize>) == bufsize, "Wrong alignment");
+				}
 
+				AudioFrameEntry() : size() {}
 
+				std::uint16_t size;
+
+				enum util_t : std::uint16_t
+				{
+					left,
+					right
+				} utility;
+
+				static const std::uint32_t element_size = sizeof(T);
+				static const std::uint32_t capacity = (bufsize - sizeof(std::uint32_t)) / element_size;
+
+				T * begin() { return buffer; }
+				T * end() { return buffer + size; }
+				T buffer[capacity];
+			};
+		#ifdef __MSVC__
+			#pragma pack(pop)
+		#endif
 		
 		class CSpectrum
 		: 
@@ -71,6 +160,37 @@
 		public:
 
 			typedef float fpoint;
+			typedef AudioFrameEntry<fpoint, 64> AudioFrame;
+
+			static const std::size_t numSpectrumColours = 5;
+			static const double minDBRange;
+			class SFrameBuffer : public cpl::CMutex::Lockable
+			{
+			public:
+
+				typedef cpl::aligned_vector < UComplexFilter<fpoint>, 32 > FrameVector;
+
+				SFrameBuffer()
+					: sampleBufferSize(), sampleCounter(), currentCounter(), frameQueue(10, 1000)
+				{
+
+				}
+
+	
+
+				std::size_t sampleBufferSize;
+				std::size_t currentCounter;
+				std::uint64_t sampleCounter;
+			
+				cpl::CLockFreeQueue<FrameVector *> frameQueue;
+			};
+
+			enum class BinInterpolation
+			{
+				None,
+				Linear,
+				Lanczos
+			};
 
 			enum class DisplayMode
 			{
@@ -145,7 +265,7 @@
 			void resume() override;
 			void freeze() override;
 			void unfreeze() override;
-
+			void resetState() override;
 			std::unique_ptr<juce::Component> createEditor() override;
 			// CSerializer overrides
 			void load(cpl::CSerializer::Builder & builder, long long int version) override;
@@ -206,7 +326,22 @@
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 			/// </summary>
 			void doTransform();
+
+			/// <summary>
+			/// internally used for now.
+			/// </summary>
+			bool processNextSpectrumFrame();
+
+			void calculateSpectrumColourRatios();
 		private:
+
+			void audioConsumerThread();
+
+			/// <summary>
+			/// Transforms state.audioBlobSizeMs into samples.
+			/// </summary>
+			/// <returns></returns>
+			int getBlobSamples() const noexcept;
 
 			/// <summary>
 			/// Returns the samplerate of the currently connected channels.
@@ -223,6 +358,16 @@
 			/// </summary>
 			/// <returns></returns>
 			int getAxisPoints() const noexcept;
+			/// <summary>
+			/// For a certain blob size and refresh rate, N frames has to be generated each display update.
+			/// </summary>
+			/// <returns></returns>
+			double getOptimalFramesPerUpdate() const noexcept;
+			/// <summary>
+			/// Returns an estimate of how many frames whom are ready to be rendered, through processNextSpectrumFrame()
+			/// </summary>
+			/// <returns></returns>
+			std::size_t getApproximateStoredFrames() const noexcept;
 			/// <summary>
 			/// Inits the UI.
 			/// </summary>
@@ -255,11 +400,17 @@
 			template<typename V>
 				void renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack &);
 
+
+
 			template<typename V>
 				void renderLineGraph(cpl::OpenGLEngine::COpenGLStack &);
 
 			template<typename V>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
+
+
+			template<typename V>
+				void addAudioFrame();
 
 			// vars
 
@@ -268,6 +419,12 @@
 				bool isEditorOpen, isFrozen, isSuspended;
 				bool antialias;
 				bool isLinear;
+				
+				/// <summary>
+				/// Interpolation method for discrete bins to continuous space
+				/// </summary>
+				BinInterpolation binPolation;
+
 				/// <summary>
 				/// Is the spectrum a horizontal device (line graph)
 				/// or a vertical coloured spectrum?
@@ -286,7 +443,6 @@
 				ViewScaling viewScale;
 
 				float primitiveSize;
-				juce::Colour colourBackground;
 
 				/// <summary>
 				/// Describes the lower and higher limit of the dynamic range of the display.
@@ -297,7 +453,13 @@
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourOne, colourTwo, gridColour;
+				juce::Colour colourOne, colourTwo, colourGrid, colourBackground;
+
+				/// <summary>
+				/// Colours for spectrum
+				/// </summary>
+				cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> colourSpecs[numSpectrumColours + 1];
+				float normalizedSpecRatios[numSpectrumColours + 1];
 
 				/// <summary>
 				/// The window size..
@@ -314,23 +476,44 @@
 				/// </summary>
 				double minLogFreq;
 
-
+				/// <summary>
+				/// The window function applied to the input. Precomputed into windowKernel.
+				/// </summary>
 				cpl::dsp::WindowTypes dspWindow;
 
+				/// <summary>
+				/// internal testing flag
+				/// </summary>
+				bool iAuxMode;
+
+				/// <summary>
+				/// How often the audio stream is sampled for updating in the screen. Only for DisplayMode::ColourSpectrum modes.
+				/// Effectively, this sets each horizontal pixel to contain this amount of miliseconds of information.
+				/// </summary>
+				std::size_t audioBlobSizeMs;
+
+				/// <summary>
+				/// For displaymode == ColourSpectrum, this value indicates how much devations in amount of frame updates are smoothed such that
+				/// the display doesn't jitter too much.
+				/// </summary>
+				double bufferSmoothing;
+
+				std::size_t axisPoints, numFilters;
 			} state;
 			
 		
 			/// <summary>
 			/// Set these flags and their status will be handled in the next handleFlagUpdates() call, which
-			/// shall be called before any graphic rendering
+			/// shall be called before any graphic rendering.
 			/// </summary>
 			struct Flags
 			{
-				volatile bool
-					/// <summary>
-					/// Dont set this! Set by the flag handler to assert state
-					/// </summary>
-					internalFlagHandlerRunning,
+				/// <summary>
+				/// Dont set this! Set by the flag handler to assert state
+				/// </summary>
+				volatile bool internalFlagHandlerRunning;
+
+				ABoolFlag
 					/// <summary>
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed
 					/// </summary>
@@ -357,6 +540,18 @@
 					/// </summary>
 					windowKernelChange,
 					/// <summary>
+					/// see @resetState() override
+					/// </summary>
+					resetStateBuffers,
+					/// <summary>
+					/// Set when openGL context is (re)created
+					/// </summary>
+					openGLInitiation,
+					/// <summary>
+					/// Set when the dynamic range is changed.
+					/// </summary>
+					dynamicRangeChange,
+					/// <summary>
 					/// This flag will be true the first time handleFlagUpdates() is called
 					/// </summary>
 					firstChange;
@@ -366,11 +561,15 @@
 			/// GUI elements
 			/// </summary>
 			juce::Component * editor;
-			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kdspWindow;
-			cpl::CKnobSlider klowDbs, khighDbs, kdecayRate, kwindowSize, kpctForDivision;
-			cpl::CColourControl kline1Colour, kline2Colour, kgridColour;
-
-
+			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kdspWindow, kbinInterpolation;
+			cpl::CKnobSlider klowDbs, khighDbs, kdecayRate, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing;
+			cpl::CColourControl kline1Colour, kline2Colour, kgridColour, kbackgroundColour;
+			cpl::CPresetWidget presetManager;
+			/// <summary>
+			/// Colour interpolators
+			/// </summary>
+			cpl::CColourControl kspecColours[5];
+			cpl::CKnobSlider kspecRatios[5];
 			/// <summary>
 			/// visual objects
 			/// </summary>
@@ -378,18 +577,32 @@
 			juce::MouseCursor displayCursor;
 			cpl::OpenGLEngine::COpenGLImage oglImage;
 			cpl::CFrequencyGraph frequencyGraph;
-			//cpl::CDBMeterGraph dbGraph;
+			cpl::CDBMeterGraph dbGraph;
 			cpl::CBoxFilter<double, 60> avgFps;
 			
 
 			// non-state variables
 			unsigned long long processorSpeed; // clocks / sec
+			double audioThreadUsage;
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			long long lastFrameTick, renderCycles;
 			bool wasResized, isSuspended;
+			cpl::Utility::Bounds<double> oldViewRect;
+			DisplayMode newDisplayMode;
+			std::size_t newWindowSize;
+			/// <summary>
+			/// Lenght/height after state updates.
+			/// </summary>
+			std::size_t relayWidth, relayHeight;
 			int framePixelPosition;
-			std::vector<unsigned char> columnUpdate;
+			int droppedAudioFrames;
+			double framesPerUpdate;
+			cpl::CPeakFilter<double> fpuFilter;
+			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
+			std::thread audioThread;
+			std::atomic<bool> audioThreadIsInitiated;
+
 			// dsp objects
 			/// <summary>
 			/// The complex resonator used for iir spectrums
@@ -436,6 +649,20 @@
 			/// The time-domain representation of the dsp-window applied to fourier transforms.
 			/// </summary>
 			cpl::aligned_vector<double, 32> windowKernel;
+			/// <summary>
+			/// The lock free fifo queue for getting audio samples out of the real time thread into
+			/// <INSERT THREAD NAME>
+			/// </summary>
+			cpl::CBlockingLockFreeQueue<AudioFrame> audioFifo;
+
+			/// <summary>
+			/// All audio processing not done in the audio thread must acquire this lock. It is free to acquire and is 100% userspace.
+			/// The only time it may be locked is during initialization/resets, in which case audio drop-outs
+			/// is to be expected.
+			/// </summary>
+			//cpl::CMutex::Lockable audioStateLock;
+
+			SFrameBuffer sfbuf;
 		};
 	
 	};
