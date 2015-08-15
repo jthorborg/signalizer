@@ -93,13 +93,15 @@ namespace Signalizer
 				auto & cpuinfo = cpl::SysStats::CProcessorInfo::instance();
 
 				_MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
-
+#ifdef CPL_LLVM_SUPPORTS_AVX
 				if (cpuinfo.test(cpuinfo.AVX))
 				{
 					// size of magic here to support floats and doubles through changing the typename
 					audioProcessing<typename cpl::simd::vector_of<fpoint, 8 / (sizeof(fpoint) / 4)>::type>(buffers, 2, numSamples);
 				}
-				else if (cpuinfo.test(cpuinfo.SSE2))
+				else
+#endif
+				if (cpuinfo.test(cpuinfo.SSE2))
 				{
 					audioProcessing<typename cpl::simd::vector_of<fpoint, 4 / (sizeof(fpoint) / 4)>::type>(buffers, 2, numSamples);
 				}
@@ -960,13 +962,15 @@ namespace Signalizer
 		else
 		{
 			auto & cpuinfo = cpl::SysStats::CProcessorInfo::instance();
-
+#ifdef CPL_LLVM_SUPPORTS_AVX
 			if (cpuinfo.test(cpuinfo.AVX))
 			{
 				// size of magic here to support floats and doubles through changing the typename
 				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
 			}
-			else if (cpuinfo.test(cpuinfo.SSE2))
+			else
+#endif
+			if (cpuinfo.test(cpuinfo.SSE2))
 			{
 				audioProcessing<typename cpl::simd::vector_of<fpoint, 4 / (sizeof(fpoint) / 4)>::type>(buffer, numChannels, numSamples);
 			}

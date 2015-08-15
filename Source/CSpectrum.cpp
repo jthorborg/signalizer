@@ -117,6 +117,9 @@ namespace Signalizer
 		kbackgroundColour.bForceEvent();
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
+#pragma message cwarn("Following variable mustn't be zero. Feels weird to set it here.")
+		state.audioBlobSizeMs = 50;
+		
 		oldViewRect = state.viewRect;
 		state.displayMode = DisplayMode::ColourSpectrum;
 		oglImage.setFillColour(juce::Colours::black);
