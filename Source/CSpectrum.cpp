@@ -362,6 +362,9 @@ namespace Signalizer
 			archive << kspecRatios[i];
 		}
 
+		archive << kbinInterpolation;
+		archive << state.viewRect;
+
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -391,6 +394,8 @@ namespace Signalizer
 				builder >> kspecColours[i];
 				builder >> kspecRatios[i];
 			}
+			builder >> kbinInterpolation;
+			builder >> state.viewRect;
 
 		}
 		catch (std::exception & e)
@@ -478,6 +483,7 @@ namespace Signalizer
 
 	void Signalizer::CSpectrum::calculateSpectrumColourRatios()
 	{
+#pragma message cwarn("Exclude colours that are zero.")
 		double acc = 0.0;
 
 		std::array<double, numSpectrumColours> vals;

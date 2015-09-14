@@ -101,13 +101,13 @@ bool SignalizerAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* SignalizerAudioProcessor::createEditor()
 {
-	if (!hasDefaultPresetBeenLoaded)
+	/*if (!hasDefaultPresetBeenLoaded)
 	{
 		hasDefaultPresetBeenLoaded = true;
 		juce::File result;
 		cpl::CPresetManager::instance().loadDefaultPreset(serializedData, result);
 		
-	}
+	}*/
 	editor = new Signalizer::MainEditor(this);
 	editor->addEventListener(this);
 	if (!serializedData.isEmpty())

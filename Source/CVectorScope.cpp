@@ -32,7 +32,7 @@ namespace Signalizer
 	{
 		auto content = new Signalizer::CContentPage();
 
-		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
+		if (auto page = content->addPage("Settings", "icons/svg/gear.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
@@ -79,7 +79,14 @@ namespace Signalizer
 				page->addSection(section, "Look");
 			}
 		}
-
+		if (auto page = content->addPage("Utility", "icons/svg/wrench.svg"))
+		{
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kpresets, 0);
+				page->addSection(section, "Presets");
+			}
+		}
 		editor = content;
 		editor->addComponentListener(this);
 		state.isEditorOpen = editor ? true : false;
@@ -108,7 +115,8 @@ namespace Signalizer
 		envelopeGain(1),
 		editor(nullptr),
 		state(),
-		filters()
+		filters(),
+		kpresets(this, "vectorscope")
 	{
 		state.secondStereoFilterSpeed = 0.25f;
 		state.doStereoMeasurements = true;

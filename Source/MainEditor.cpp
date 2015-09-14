@@ -112,15 +112,12 @@ namespace Signalizer
 		currentView(nullptr),
 		kstableFps("Stable FPS"),
 		kvsync("Vertical Sync"),
-		ksavePreset("Save current..."),
-		kloadPreset("Load preset..."),
-		ksaveDefaultPreset("Save as default"),
-		kloadDefaultPreset("Load default"),
 		kioskCoords(-1, -1),
 		firstKioskMode(false),
 		hasAnyTabBeenSelected(false),
 		viewTopCoord(0),
-		krefreshState("Reset state")
+		krefreshState("Reset state"),
+		kpresets(this, "main", kpresets.WithDefault)
 
 	{
 		setOpaque(true);
@@ -128,8 +125,7 @@ namespace Signalizer
 		setBounds(0, 0, defaultLength, defaultHeight);
 		initUI();
 
-		updatePresetList();
-		kpresetList.bInterpretAndSet("default", true);
+		kpresets.loadDefaultPreset();
 		oglc.setContinuousRepainting(false);
 
 	}
@@ -183,19 +179,11 @@ namespace Signalizer
 		}
 		if (auto page = content->addPage("Presets", "icons/svg/save.svg"))
 		{
+
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&ksavePreset, 0);
-				section->addControl(&ksaveDefaultPreset, 1);
-				section->addControl(&kloadPreset, 2);
-				section->addControl(&kloadDefaultPreset, 3);
+				section->addControl(&kpresets, 0);
 				page->addSection(section, "Presets");
-			}
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				updatePresetList();
-				section->addControl(&kpresetList, 0);
-				page->addSection(section, "Current presets");
 			}
 		}
 
@@ -511,68 +499,7 @@ namespace Signalizer
 				break;
 			}
 		}
-		else if (c == &ksavePreset)
-		{
-			cpl::CSerializer::Archiver archive;
-			save(archive, 1);
-			juce::File location;
-			if(cpl::CPresetManager::instance().savePresetAs(archive, location))
-			{
-				updatePresetList();
-				setSelectedPreset(location);
-			}
 
-		}
-		else if (c == &kloadPreset)
-		{
-			cpl::CSerializer::Archiver builder;
-			juce::File location;
-			if (cpl::CPresetManager::instance().loadPresetAs(builder, location))
-			{
-				load(builder, builder.getMasterVersion());
-				setSelectedPreset(location);
-			}
-		}
-		else if (c == &kloadDefaultPreset)
-		{
-			cpl::CSerializer::Archiver builder;
-			juce::File location;
-			if (cpl::CPresetManager::instance().loadDefaultPreset(builder, location))
-			{
-				load(builder, builder.getMasterVersion());
-				setSelectedPreset(location);
-			}
-		}
-		else if (c == &ksaveDefaultPreset)
-		{
-			cpl::CSerializer::Archiver archive;
-			save(archive, 1);
-			juce::File location;
-			if (cpl::CPresetManager::instance().saveDefaultPreset(archive, location))
-			{
-				updatePresetList();
-				setSelectedPreset(location);
-			}
-		}
-		else if (c == &kpresetList)
-		{
-			auto index = kpresetList.getZeroBasedSelIndex();
-			auto & presets = cpl::CPresetManager::instance().getPresets();
-
-			if (presets.size())
-			{
-				index = cpl::Math::confineTo(index, 0, (int)presets.size() - 1);
-				juce::File location;
-				cpl::CSerializer::Builder builder;
-				if (cpl::CPresetManager::instance().loadPreset(presets[index].getFullPathName().toStdString(), builder, location))
-				{
-					load(builder, builder.getMasterVersion());
-					setSelectedPreset(location);
-				}
-			}
-
-
-		}
 		else if (c == &kantialias)
 		{
 			setAntialiasing();
@@ -597,11 +524,6 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::setSelectedPreset(juce::File location)
-	{
-		std::string newValue = location.getFileNameWithoutExtension().toStdString();
-		kpresetList.bInterpretAndSet(newValue, true);
-	}
 
 	void MainEditor::panelOpened(cpl::CTextTabBar<> * obj)
 	{
@@ -1138,20 +1060,7 @@ namespace Signalizer
 		//rightButtonOutlines.addRectangle(juce::Rectangle<float>(0.5f, 0.5f, getWidth() - 1.5f, editor ? editor->getBottom() : elementSize - 1.5f));
 	}
 
-	void MainEditor::updatePresetList()
-	{
-		auto & presetList = cpl::CPresetManager::instance().getPresets();
-		std::vector<std::string> shortList;
-		for (auto & preset : presetList)
-		{
-			if (preset.existsAsFile())
-			{
-				shortList.push_back(preset.getFileNameWithoutExtension().toStdString());
-			}
-		}
 
-		kpresetList.setValues(shortList);
-	}
 	void MainEditor::timerCallback()
 	{
 		
@@ -1222,12 +1131,8 @@ namespace Signalizer
 		kstableFps.bAddPassiveChangeListener(this);
 		kvsync.bAddPassiveChangeListener(this);
 		tabs.addListener(this);
-		kloadPreset.bAddPassiveChangeListener(this);
-		ksavePreset.bAddPassiveChangeListener(this);
-		ksaveDefaultPreset.bAddPassiveChangeListener(this);
-		kloadDefaultPreset.bAddPassiveChangeListener(this);
+
 		kantialias.bAddPassiveChangeListener(this);
-		kpresetList.bAddPassiveChangeListener(this);
 		ksync.bAddPassiveChangeListener(this);
 		krefreshState.bAddPassiveChangeListener(this);
 		// design
@@ -1236,16 +1141,12 @@ namespace Signalizer
 		ksettings.setImage("icons/svg/gears.svg");
 		ksync.setImage("icons/svg/sync2.svg");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
+
 		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		kloadPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		ksavePreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		ksaveDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		kloadDefaultPreset.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
-		kpresetList.bSetTitle("Preset from list:");
 		kantialias.bSetTitle("Antialiasing");
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
@@ -1284,11 +1185,6 @@ namespace Signalizer
 		kstableFps.bSetDescription("Stabilize frame rate using a high precision timer.");
 		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
-		kloadPreset.bSetDescription("Load a preset from a file.");
-		ksavePreset.bSetDescription("Save the current state as a preset to a file.");
-		ksaveDefaultPreset.bSetDescription("Save the current state as the default preset (the one loaded from a fresh instance)");
-		kloadDefaultPreset.bSetDescription("Load the default preset.");
-		kpresetList.bSetDescription("Load a preset from the preset directory...");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
 		ksync.bSetDescription("Synchronizes audio streams with view drawing; may incur buffer underruns for low settings.");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");

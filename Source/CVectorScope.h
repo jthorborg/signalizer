@@ -8,7 +8,7 @@
 	#include <cpl/GraphicComponents.h>
 	#include <cpl/Utility.h>
 	#include <cpl/gui/Controls.h>
-
+	#include <cpl/gui/CPresetWidget.h>
 	#include <memory>
 
 	namespace cpl
@@ -151,6 +151,7 @@
 			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
 			cpl::CTransformWidget ktransform;
 			cpl::CComboBox kopMode, kenvelopeMode;
+			cpl::CPresetWidget kpresets;
 			juce::MouseCursor displayCursor;
 
 			// vars

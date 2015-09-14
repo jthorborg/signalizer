@@ -71,9 +71,12 @@
 			{
 
 			public:
+
 				void addSection(juce::Component * section, const std::string & name = "", bool acquireOwnership = true)
 				{
-				
+					if (section == this)
+						CPL_RUNTIME_EXCEPTION("Tab page added to self!");
+
 					if (section)
 					{
 						sections.emplace_back(section, name, acquireOwnership);
@@ -166,7 +169,7 @@
 			public:
 
 				MatrixSection()
-					: suggestedWidth(), suggestedHeight()
+					: suggestedWidth(), suggestedHeight(), spaceAfterLargest(true)
 				{
 
 				}
@@ -192,6 +195,11 @@
 					arrange();
 				}
 
+				void setSpacesAfterLargestElement(bool trigger = true) noexcept
+				{
+					spaceAfterLargest = trigger;
+				}
+
 				void arrange(bool fromResized = true)
 				{
 					// the general amount of separation between elements
@@ -211,7 +219,8 @@
 						{
 							// get max height for next row
 							auto bounds = controls[y][x].first->bGetView()->getBounds();
-							maxHeightInPrevRow = std::max<std::size_t>(maxHeightInPrevRow, bounds.getHeight());
+							maxHeightInPrevRow = 
+								spaceAfterLargest ? std::max<std::size_t>(maxHeightInPrevRow, bounds.getHeight()) : bounds.getHeight();
 							offX += sepX;
 
 							controls[y][x].first->bGetView()->setTopLeftPosition(offX, offY);
@@ -269,6 +278,8 @@
 					}
 				}
 			private:
+
+				bool spaceAfterLargest;
 				std::vector<std::vector<std::pair<cpl::CBaseControl *, bool>>> controls;
 				std::size_t suggestedHeight, suggestedWidth;
 			};

@@ -17,6 +17,7 @@
 	#include <cpl/ComponentContainers.h>
 	#include <cpl/CBaseControl.h>
 	#include <cpl/CViews.h>
+	#include <cpl/gui/CPresetWidget.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"
@@ -77,7 +78,7 @@
 
 			// functionality
 			void setRefreshRate(int rateInMs);
-			void updatePresetList();
+
 			// no parameter = fetch antialiasing from UI combo box
 			void setAntialiasing(int multiSamplingLevel = -1);
 			// doesn't actually change anything - only updates the selected value in the preset list.
@@ -118,9 +119,10 @@
 			cpl::CSVGButton ksettings, kfreeze, ksync, kidle, kkiosk;
 
 			// Editor controls
-			cpl::CButton kstableFps, kloadPreset, ksavePreset, ksaveDefaultPreset, kloadDefaultPreset, kvsync, krefreshState;
+			cpl::CButton kstableFps, kvsync, krefreshState;
 			cpl::CKnobSlider krefreshRate;
-			cpl::CComboBox krenderEngine, kpresetList, kantialias;
+			cpl::CComboBox krenderEngine, kantialias;
+			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours>  colourControls;
 
 			// state variables.
