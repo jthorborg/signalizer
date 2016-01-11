@@ -16,27 +16,27 @@ namespace Signalizer
 
 	void CSpectrum::onGraphicsRendering(juce::Graphics & g)
 	{
-		auto cStart = cpl::Misc::ClockCounter();
-
 		// do software rendering
-		if(!isOpenGL())
+		if (!isOpenGL())
 		{
 			g.fillAll(state.colourBackground.withAlpha(1.0f));
 			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
 			g.drawText("Enable OpenGL in settings to use the spectrum", getLocalBounds(), juce::Justification::centred);
-			
+
 			// post fps anyway
 			auto tickNow = juce::Time::getHighResolutionTicks();
 			avgFps.setNext(tickNow - lastFrameTick);
 			lastFrameTick = tickNow;
-			
 		}
+	}
+
+	void CSpectrum::paint2DGraphics(juce::Graphics & g)
+	{
+		auto cStart = cpl::Misc::ClockCounter();
+
 #pragma message cwarn("lel")
 
 		// ------- draw frequency graph
-
-
-		const auto & lines = frequencyGraph.getLines();
 
 		char buf[200];
 
@@ -44,11 +44,6 @@ namespace Signalizer
 
 		if (state.displayMode == DisplayMode::LineGraph)
 		{
-			// draw vertical lines.
-			for (auto line : lines)
-			{
-				g.drawLine({ (float)line, 0.0f, (float)line, (float)getHeight() }, 1.0f);
-			}
 
 			g.setColour(state.colourGrid);
 			const auto & divs = frequencyGraph.getDivisions();
@@ -56,7 +51,6 @@ namespace Signalizer
 			for (auto & sdiv : divs)
 			{
 				sprintf_s(buf, "%.2f", sdiv.frequency);
-				g.drawLine({ (float)sdiv.coord, 0.0f, (float)sdiv.coord, (float)getHeight() }, 1.0f);
 				g.drawText(buf, (float)sdiv.coord + 5, 20, 100, 20, juce::Justification::centredLeft);
 			}
 
@@ -65,7 +59,6 @@ namespace Signalizer
 			for (auto & dbDiv : dbGraph.getDivisions())
 			{
 				sprintf_s(buf, "%.2f", dbDiv.dbVal);
-				g.drawLine({ 30, (float)dbDiv.coord, float(getWidth()), (float)dbDiv.coord }, 1.0f);
 				g.drawText(buf, 5, (float)dbDiv.coord, 100, 20, juce::Justification::centredLeft);
 			}
 
@@ -77,15 +70,6 @@ namespace Signalizer
 			
 			float gradientOffset = 10.0f;
 
-
-
-			// draw horizontal lines.
-
-			for (auto line : lines)
-			{
-				g.drawLine({ gradientOffset, float(height - line), gradientOffset + baseWidth * 0.7f, float(height - line) }, 1.0f);
-			}
-
 			g.setColour(state.colourGrid);
 			const auto & divs = frequencyGraph.getDivisions();
 
@@ -93,7 +77,6 @@ namespace Signalizer
 			for (auto & sdiv : divs)
 			{
 				sprintf_s(buf, "%.2f", sdiv.frequency);
-				g.drawLine({ gradientOffset, float(height - sdiv.coord), gradientOffset + baseWidth, float(height - sdiv.coord) }, 1.0f);
 				g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 			}
 
@@ -122,16 +105,25 @@ namespace Signalizer
 		}
 
 
-		if (true || kdiagnostics.bGetValue() > 0.5)
+		if (kdiagnostics.bGetValue() > 0.5)
 		{
 			char text[1000];
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
+			double asu = 100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed);
+			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);
-			sprintf(text, "%dx%d: %.1f fps - %.1f%% cpu (audioThread: %.1f%% cpu, d: %d, fpu: %f), deltaG = %f, deltaO = %f, viewRect = {%f, %f}",
-				getWidth(), getHeight(), fps, cpuTime, audioThreadUsage, droppedAudioFrames, framesPerUpdate, graphicsDeltaTime(), openGLDeltaTime(), state.viewRect.left, state.viewRect.right);
+			sprintf(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
+				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
+				fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
+				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
+				audioStream.getPerfMeasures().droppedAudioFrames.load(std::memory_order_relaxed),
+				asu,
+				aso);
+			
 			g.drawSingleLineText(text, 10, 20);
 
 		}
@@ -171,7 +163,9 @@ namespace Signalizer
 				{
 					std::uint16_t factor = cpl::Math::round<std::uint8_t>(0xFF * cpl::Math::UnityScale::Inv::linear<float>(intensity, accumulatedSum - normalizedScales[i], accumulatedSum));
 
-					std::size_t x1 = std::max(signed(i) - 1, 0), x2 = std::min(x1 + 1, N - 1);
+					std::size_t 
+						x1 = std::max(signed(i) - 1, 0), 
+						x2 = std::min(x1 + 1, N - 1);
 
 					for (std::size_t p = 0; p < V; ++p)
 					{
@@ -228,46 +222,27 @@ namespace Signalizer
 
 	void CSpectrum::onOpenGLRendering()
 	{
+		auto cStart = cpl::Misc::ClockCounter();
 		// starting from a clean slate?
 		CPL_DEBUGCHECKGL();
-		if (audioStream.empty())
-			return;
 
+		peakFilter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
-		handleFlagUpdates();
+		// lock the memory buffers, and do our thing.
+		{
+			auto && access = audioStream.getAudioBufferViews();
+
+			handleFlagUpdates();
+			// line graph data for ffts are rendered now.
+			if(state.displayMode == DisplayMode::LineGraph)
+				prepareTransform(access);
+		}
 		// flags may have altered ogl state
 		CPL_DEBUGCHECKGL();
 
 
-		auto cStart = cpl::Misc::ClockCounter();
+
 		juce::OpenGLHelpers::clear(state.colourBackground);
-
-		cpl::AudioBuffer * buffer;
-
-		if (state.isFrozen)
-		{
-			buffer = &audioStreamCopy;
-		}
-		else if (isSynced)
-		{
-			std::vector<cpl::CMutex> locks;
-
-			for (auto & buffer : audioStream)
-				locks.emplace_back(buffer);
-
-			for (unsigned i = 0; i < audioStream.size(); ++i)
-			{
-				audioStream[i].clone(audioStreamCopy[i]);
-
-			}
-			buffer = &audioStreamCopy;
-		}
-		else
-		{
-			buffer = &audioStream;
-
-		}
-		const std::size_t numSamples = (*buffer)[0].size - 1;
 
 		cpl::OpenGLEngine::COpenGLStack openGLStack;
 		// set up openGL
@@ -289,19 +264,20 @@ namespace Signalizer
 		/// </summary>
 		/// 
 		///
-	
-		prepareTransform();
 
-		doTransform();
 
-		mapToLinearSpace();
 
 		switch (state.displayMode)
 		{
-		case DisplayMode::ColourSpectrum:
-			renderColourSpectrum<Types::v8sf>(openGLStack); break;
 		case DisplayMode::LineGraph:
+			doTransform();
+			mapToLinearSpace();
+			postProcessStdTransform();
 			renderLineGraph<Types::v8sf>(openGLStack); break;
+		case DisplayMode::ColourSpectrum:
+			// mapping and processing is already done here.
+			renderColourSpectrum<Types::v8sf>(openGLStack); break;
+
 		}
 
 
@@ -311,6 +287,9 @@ namespace Signalizer
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
 		lastFrameTick = tickNow;
+		CPL_DEBUGCHECKGL();
+		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
+		CPL_DEBUGCHECKGL();
 	}
 
 
@@ -356,30 +335,63 @@ namespace Signalizer
 			}
 
 			CPL_DEBUGCHECKGL();
-			ogs.enable(GL_TEXTURE_2D);
 
-			cpl::OpenGLEngine::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
-			CPL_DEBUGCHECKGL();
-			/*framePixelPosition--;
-			if (framePixelPosition < 0)
 			{
-				framePixelPosition = getWidth();
-			}*/
+				cpl::OpenGLEngine::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
 
-			imageDrawer.drawCircular((float)((double)(framePixelPosition) / (getWidth() - 1)));
+				imageDrawer.drawCircular((float)((double)(framePixelPosition) / (getWidth() - 1)));
 
-			/*framePixelPosition++;
-			framePixelPosition %= (getWidth() + 1);*/
+			}
+
+			CPL_DEBUGCHECKGL();
+
+			// render grid
+			{
+				auto normalizedScale = 1.0 / getHeight();
+
+				// draw vertical lines.
+				const auto & lines = frequencyGraph.getLines();
+
+				auto norm = [=](double in) { return static_cast<float>(normalizedScale * in * 2.0 - 1.0); };
+
+				float baseWidth = 0.1f;
+
+				float gradientOffset = 10.0f / getWidth() - 1.0f;
+
+				OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+				for (auto dline : lines)
+				{
+					auto line = norm(dline);
+					lineDrawer.addVertex(gradientOffset, line, 0.0f);
+					lineDrawer.addVertex(gradientOffset + baseWidth * 0.7f, line, 0.0f);
+				}
+
+				lineDrawer.addColour(state.colourGrid);
+				const auto & divs = frequencyGraph.getDivisions();
+
+				for (auto & sdiv : divs)
+				{
+					auto line = norm(sdiv.coord);
+					lineDrawer.addVertex(gradientOffset, line, 0.0f);
+					lineDrawer.addVertex(gradientOffset + baseWidth, line, 0.0f);
+				}
+
+			}
+			CPL_DEBUGCHECKGL();
 		}
 
 
 	template<typename V>
 	void CSpectrum::renderLineGraph(cpl::OpenGLEngine::COpenGLStack & ogs)
 	{
-
+		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		int points = getAxisPoints() - 1;
 		switch (state.configuration)
 		{
+		case ChannelConfiguration::MidSide:
 		case ChannelConfiguration::Phase:
 		case ChannelConfiguration::Separate:
 		{
@@ -387,13 +399,14 @@ namespace Signalizer
 			lineDrawer.addColour(state.colourTwo);
 			for (int i = 0; i < (points + 1); ++i)
 			{
-				lineDrawer.addVertex((float(i) / points) * 2 - 1, filterResults[i].rightMagnitude * 2 - 1, 0);
+				lineDrawer.addVertex((float(i) / points) * 2 - 1, filterResults[i].rightMagnitude * 2 - 1, -0.5);
 			}
 		}
 		// (fall-through intentional)
 		case ChannelConfiguration::Left:
 		case ChannelConfiguration::Right:
 		case ChannelConfiguration::Merge:
+		case ChannelConfiguration::Side:
 		{
 			OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 			lineDrawer.addColour(state.colourOne);
@@ -405,6 +418,48 @@ namespace Signalizer
 		default:
 			break;
 		}
+		// render grid
+		{
+			OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+			lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+			auto normalizedScaleX = 1.0 / getWidth();
+			auto normalizedScaleY = 1.0 / getHeight();
+			// draw vertical lines.
+			const auto & lines = frequencyGraph.getLines();
+
+			// TODO: fix using a matrix modification instead (cheaper)
+			auto normX = [=](double in) { return static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
+			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
+
+			for (auto dline : lines)
+			{
+				auto line = normX(dline);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+			//m.scale(1, getHeight(), 1);
+			lineDrawer.addColour(state.colourGrid);
+			const auto & divs = frequencyGraph.getDivisions();
+
+			for (auto & sdiv : divs)
+			{
+				auto line = normX(sdiv.coord);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
+			// draw horizontal lines:
+			for (auto & dbDiv : dbGraph.getDivisions())
+			{
+				auto line = normY(dbDiv.coord);
+				lineDrawer.addVertex(-1.0f, line, 0.0f);
+				lineDrawer.addVertex(1.0f, line, 0.0f);
+			}
+		}
+
+
 
 	}
 

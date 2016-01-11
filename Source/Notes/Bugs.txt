@@ -1,0 +1,5 @@
+For CSpectrum:
+	Window size is changed through the knob. This is signaled to-be-changed in the next rendering loop.
+	In the next rendering loop, we signal the change to the audiostream, and proceed with processing.
+	
+	Next async audio loop, we get a onAsyncPropertiesChanged loop message, w

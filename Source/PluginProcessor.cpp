@@ -14,12 +14,16 @@
 
 //==============================================================================
 SignalizerAudioProcessor::SignalizerAudioProcessor()
-	: audioBuffer(2), editor(nullptr), hasDefaultPresetBeenLoaded(false)
+: 
+	editor(nullptr), 
+	hasDefaultPresetBeenLoaded(false),
+	stream(16, true),
+	nChannels(2)
 {
 
 }
 
-SignalizerAudioProcessor::~SignalizerAudioProcessor()
+SignalizerAudioProcessor::~SignalizerAudioProcessor() noexcept
 {
 }
 
@@ -40,10 +44,18 @@ void SignalizerAudioProcessor::onViewDestruction(cpl::CView * view)
 //==============================================================================
 void SignalizerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-	for (auto & buf : audioBuffer)
-		buf.setSampleRate(getSampleRate());
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+	Signalizer::AudioStream::AudioStreamInfo info = stream.getInfo();
+
+	info.anticipatedChannels = nChannels;
+	info.anticipatedSize = samplesPerBlock;
+	info.callAsyncListeners = true;
+	info.callRTListeners = true;
+	info.isFrozen = false;
+	info.isSuspended = false;
+	info.sampleRate = sampleRate;
+	info.storeAudioHistory = true;
+
+	stream.initializeInfo(info);
 }
 
 void SignalizerAudioProcessor::releaseResources()
@@ -54,35 +66,16 @@ void SignalizerAudioProcessor::releaseResources()
 
 void SignalizerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-	std::vector<cpl::CFastMutex> locks;
-	
-	
-	unsigned minNumberOfChannels = std::min((unsigned)audioBuffer.size(), (unsigned)buffer.getNumChannels());
-	
-	
-	auto buffers = buffer.getArrayOfWritePointers();
 
-	std::size_t numSamples = buffer.getNumSamples();
-
-	for (unsigned i = 0; i < minNumberOfChannels; ++i)
+	if (nChannels != buffer.getNumChannels())
 	{
-		audioBuffer[i].raiseAudioEvent(buffers, audioBuffer.size(),  numSamples);
-		locks.emplace_back(audioBuffer[i]);
-
+		// woah, what?
+		BreakIfDebugged();
 	}
 
-	
-	for (unsigned i = 0; i < numSamples; ++i)
-	{
-		for (unsigned channel = 0; channel < minNumberOfChannels; ++channel)
-		{
-			audioBuffer[channel].setNextSample(buffers[channel][i]);
+	// stream will take it from here.
+	stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples());
 
-			// ..do something to the data...
-		}
-	}
     // In case we have more outputs than inputs, we'll clear any output
     // channels that didn't contain input data, (because these aren't
     // guaranteed to be empty - they may contain garbage).

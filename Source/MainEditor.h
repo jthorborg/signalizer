@@ -17,7 +17,7 @@
 	#include <cpl/ComponentContainers.h>
 	#include <cpl/CBaseControl.h>
 	#include <cpl/CViews.h>
-	#include <cpl/gui/CPresetWidget.h>
+	#include <cpl/gui/Controls.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"
@@ -67,9 +67,7 @@
 			virtual void mouseDown(const MouseEvent& event) override;
 			virtual void mouseUp(const MouseEvent& event) override;
 
-			void componentMovedOrResized(Component& component,
-				bool wasMoved,
-				bool wasResized) override;
+			void componentMovedOrResized(Component& component, bool wasMoved, bool wasResized) override;
 			void componentParentHierarchyChanged(Component& component) override;
 
 			// timers
@@ -120,6 +118,7 @@
 
 			// Editor controls
 			cpl::CButton kstableFps, kvsync, krefreshState;
+			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate;
 			cpl::CComboBox krenderEngine, kantialias;
 			cpl::CPresetWidget kpresets;

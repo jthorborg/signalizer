@@ -43,11 +43,32 @@ namespace Signalizer
 		Center
 	};
 
+	void CVectorScope::paint2DGraphics(juce::Graphics & g)
+	{
+
+		auto cStart = cpl::Misc::ClockCounter();
+
+		if (kdiagnostics.bGetValue() > 0.5)
+		{
+			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+
+			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
+			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
+			g.setColour(juce::Colours::blue);
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
+				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
+				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
+				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed));
+			g.drawSingleLineText(textbuf.get(), 10, 20);
+
+		}
+	}
 
 	void CVectorScope::onGraphicsRendering(juce::Graphics & g)
 	{
 
-		auto cStart = cpl::Misc::ClockCounter();
 
 		if (state.normalizeGain && state.isEditorOpen)
 		{
@@ -68,18 +89,7 @@ namespace Signalizer
 			
 		}
 		
-		if (kdiagnostics.bGetValue() > 0.5)
-		{
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
-			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime());
-			g.drawSingleLineText(textbuf.get(), 10, 20);
-			
-		}
 	}
 
 	void CVectorScope::initOpenGL()
@@ -112,57 +122,23 @@ namespace Signalizer
 
 	void CVectorScope::onOpenGLRendering()
 	{
-		if (audioStream.empty())
-			return;
-
+		auto && lockedView = audioStream.getAudioBufferViews();
+		handleFlagUpdates();
 		auto cStart = cpl::Misc::ClockCounter();
 		juce::OpenGLHelpers::clear(state.colourBackground);
-
-		cpl::AudioBuffer * buffer;
-
-		if (state.isFrozen)
-		{
-			buffer = &audioStreamCopy;
-		}
-		else if (isSynced)
-		{
-			std::vector<cpl::CMutex> locks;
-
-			for (auto & buffer : audioStream)
-				locks.emplace_back(buffer);
-
-			for (unsigned i = 0; i < audioStream.size(); ++i)
-			{
-				audioStream[i].clone(audioStreamCopy[i]);
-
-			}
-			buffer = &audioStreamCopy;
-		}
-		else
-		{
-			buffer = &audioStream;
-
-		}
-		const std::size_t numSamples = (*buffer)[0].size - 1;
 
 		cpl::OpenGLEngine::COpenGLStack openGLStack;
 		// set up openGL
 		openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		openGLStack.loadIdentityMatrix();
 
-
-
 		openGLStack.applyTransform3D(ktransform.getTransform3D());
 		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
-
-		cpl::CAudioBuffer::CChannelBuffer * leftChannel, * rightChannel;
-		leftChannel = &((*buffer)[0]);
-		rightChannel = &((*buffer)[1]);
 
 		// the peak filter has to run on the whole buffer each time.
 		if (state.envelopeMode == EnvelopeModes::PeakDecay)
 		{
-			runPeakFilter<cpl::simd::v8sf>(*buffer, numSamples);
+			runPeakFilter<cpl::simd::v8sf>(lockedView);
 		}
 		   
 		openGLStack.setLineSize(state.primitiveSize * 10);
@@ -171,11 +147,11 @@ namespace Signalizer
 		// draw actual stereoscopic plot
 		if (state.isPolar)
 		{
-			drawPolarPlot<cpl::simd::v4sf>(openGLStack, *buffer);
+			drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
 		}
 		else // is Lissajous
 		{
-			drawRectPlot<cpl::simd::v4sf>(openGLStack, *buffer);
+			drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
 		}
 
 		openGLStack.setLineSize(2.0f);
@@ -184,22 +160,24 @@ namespace Signalizer
 		drawWireFrame<cpl::simd::v4sf>(openGLStack);
 
 		// draw channel text(ures)
-		drawGraphText<cpl::simd::v4sf>(openGLStack, *buffer);
+		drawGraphText<cpl::simd::v4sf>(openGLStack, lockedView);
 
 		// draw 2d stuff (like stereo meters)
-
-		drawStereoMeters<cpl::simd::v4sf>(openGLStack, *buffer);
-
+		drawStereoMeters<cpl::simd::v4sf>(openGLStack, lockedView);
 
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
+
+		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
+
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
 		lastFrameTick = tickNow;
+
 	}
 
 	
 	template<typename V>
-		void CVectorScope::drawGraphText(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer &)
+		void CVectorScope::drawGraphText(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
@@ -224,11 +202,11 @@ namespace Signalizer
 				
 				// some registers
 				v4sf
-				vsines,
-				vcosines,
-				vscale = set1<v4sf>(circleScaleFactor),
-				vadd = set1<v4sf>(1.0f - circleScaleFactor),
-				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
+					vsines,
+					vcosines,
+					vscale = set1<v4sf>(circleScaleFactor),
+					vadd = set1<v4sf>(1.0f - circleScaleFactor),
+					vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
 				
 				// do 8 trig functions in one go!
 				cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
@@ -276,9 +254,7 @@ namespace Signalizer
 					text.setColour(jcolour);
 					text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
 				}
-				
 			}
-			
 		}
 	
 	
@@ -374,7 +350,6 @@ namespace Signalizer
 			
 			
 			// Draw basic graph
-			
 			{
 				cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
 				drawer.addColour(state.colourGraph);
@@ -388,7 +363,7 @@ namespace Signalizer
 	
 	
 	template<typename V>
-		void CVectorScope::drawRectPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		void CVectorScope::drawRectPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -396,22 +371,23 @@ namespace Signalizer
 			// and apply the gain:
 			GLfloat gain = getGain();
 			matrixMod.scale(gain, gain, 1);
-			std::size_t numSamples = buf[0].size - 1;
-			float sampleFade = 1.0 / numSamples, sleft, sright;
+			float sampleFade = 1.0 / audio.getNumSamples(), sleft, sright;
 			
 			if (!state.fadeHistory)
 			{
 				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				
 				drawer.addColour(state.colourDraw);
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					// use glDrawArrays instead here
-					sleft = buf[0].singleConstAccess(i);
-					sright = buf[1].singleConstAccess(i);
-					
-					drawer.addVertex(sright, sleft, i * sampleFade - 1);
-				}
+
+				// TODO: glDrawArrays
+				audio.iterate<2, true>
+				(
+					[&] (std::size_t sampleFrame, AudioStream::DataType & left, AudioStream::DataType & right)
+					{
+						drawer.addVertex(right, left, sampleFrame * sampleFade - 1);
+					}
+				);
+
 			}
 			else
 			{
@@ -423,17 +399,17 @@ namespace Signalizer
 				
 				float fade = 0;
 				
-				for (std::size_t i = 0; i < numSamples; ++i)
-				{
-					sleft = buf[0].singleConstAccess(i);
-					sright = buf[1].singleConstAccess(i);
-					
-					fade = i * sampleFade;
-					
-					drawer.addColour(fade * red, fade * green, fade * blue, alpha);
-					drawer.addVertex(sright, sleft, i * sampleFade - 1);
-					
-				}
+				// TODO: glDrawArrays
+				audio.iterate<2, true>
+				(
+					[&] (std::size_t sampleFrame, AudioStream::DataType left, AudioStream::DataType right)
+					{
+						fade = sampleFrame * sampleFade;
+						drawer.addColour(fade * red, fade * green, fade * blue, alpha);
+						drawer.addVertex(right, left, fade - 1);
+					}
+				);
+
 			}
 			
 			
@@ -441,15 +417,19 @@ namespace Signalizer
 	
 
 	template<typename V>
-		void CVectorScope::drawPolarPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		void CVectorScope::drawPolarPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
+			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLEngine::MatrixModification matrixMod;
 			auto const gain = (GLfloat)getGain();
-			auto const numSamples = buf[0].size;
-			static const long long vectorLength = elements_of<V>::value;
+			auto const numSamples = views[0].size();
+			// TODO: handle all cases of potential signed overflow.
+			typedef std::make_signed<std::size_t>::type ssize_t;
+			ssize_t vectorLength = elements_of<V>::value;
 			matrixMod.scale(gain, gain, 1);
 			suitable_container<V> outX, outY, outFade;
 
@@ -476,23 +456,22 @@ namespace Signalizer
 
 			V vSampleFade = outFade;
 
-
-			auto const lit = buf[0].getIterator<vectorLength>();
-			auto const rit = buf[1].getIterator<vectorLength>();
 			if(!state.fadeHistory)
 			{
 				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				drawer.addColour(red, green, blue);
 				// iterate front of buffer, then back.
-				for (int section = 0; section < 2; ++section)
+
+				for (ssize_t section = 0; section < AudioStream::bufferIndices; ++section)
 				{
 
-					// using long longs to safely jump out of loops with elements_of<V> > sectionSamples
-					long long i = 0;
+					// using signed ints to safely jump out of loops with elements_of<V> > sectionSamples
+					ssize_t i = 0;
 
-					const Ty * left = lit.getIndex(section);
-					const Ty * right = rit.getIndex(section);
-					const long long sectionSamples = lit.sizes[section];
+					const Ty * left = views[0].getItIndex(section);
+					const Ty * right = views[1].getItIndex(section);
+
+					ssize_t sectionSamples = views[0].getItRange(section);
 
 					for (; i < (sectionSamples - vectorLength); i += vectorLength)
 					{
@@ -537,7 +516,7 @@ namespace Signalizer
 					}
 					//continue;
 					// deal with remainder, scalar route
-					long long remaindingSamples = 0;
+					ssize_t remaindingSamples = 0;
 					auto currentSampleFade = outFade[vectorLength - 1];
 
 					for (; i < sectionSamples; i++, remaindingSamples++)
@@ -585,15 +564,15 @@ namespace Signalizer
 
 				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				for (int section = 0; section < 2; ++section)
+				for (ssize_t section = 0; section < 2; ++section)
 				{
 
-					// using long longs to safely jump out of loops with elements_of<V> > sectionSamples
-					long long i = 0;
+					ssize_t i = 0;
 
-					const Ty * left = lit.getIndex(section);
-					const Ty * right = rit.getIndex(section);
-					const long long sectionSamples = lit.sizes[section];
+					const Ty * left = views[0].getItIndex(section);
+					const Ty * right = views[1].getItIndex(section);
+
+					ssize_t sectionSamples = views[0].getItRange(section);
 
 					for (; i < (sectionSamples - vectorLength); i += vectorLength)
 					{
@@ -645,7 +624,7 @@ namespace Signalizer
 					}
 					//continue;
 					// deal with remainder, scalar route
-					long long remaindingSamples = 0;
+					ssize_t remaindingSamples = 0;
 					auto currentSampleFade = outFade[vectorLength - 1];
 
 					for (; i < sectionSamples; i++, remaindingSamples++)
@@ -684,18 +663,19 @@ namespace Signalizer
 		}
 
 	template<typename V>
-		void CVectorScope::drawStereoMeters(cpl::OpenGLEngine::COpenGLStack & openGLStack, const cpl::AudioBuffer & buf)
+		void CVectorScope::drawStereoMeters(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			using namespace cpl;
 			OpenGLEngine::MatrixModification m;
 			m.loadIdentityMatrix();
 			const float heightToWidthFactor = float(getHeight()) / getWidth();
 
-			const float balanceX = -0.925f;
-			const float balanceLength = 1.8f;
-			const float stereoY = -0.8f;
+			const float balanceX = -0.95f;
+			const float balanceLength = 1.9f;
+			const float stereoY = -0.85f;
 			const float stereoLength = 1.7f;
 			const float sideSize = 0.05f;
+			const float stereoSideSize = sideSize * heightToWidthFactor;
 			const float indicatorSize = 0.05f;
 
 			// remember, y / x
@@ -726,12 +706,12 @@ namespace Signalizer
 
 			// draw slow stereo
 			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
-			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize) * stereoSlow, sideSize, indicatorSize);
+			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize) * stereoSlow, sideSize * heightToWidthFactor, indicatorSize);
 			rect.fill();
 
 			// draw quick stereo
 			rect.setColour(state.colourMeter);
-			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize * 0.25f) * stereoQuick, sideSize, indicatorSize * 0.25f);
+			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize * 0.25f) * stereoQuick, sideSize * heightToWidthFactor, indicatorSize * 0.25f);
 			rect.fill();
 
 
@@ -741,7 +721,7 @@ namespace Signalizer
 			rect.renderOutline();
 
 			// draw bounding rectangle of correlation meter
-			rect.setBounds(-balanceX, stereoY, sideSize, stereoLength);
+			rect.setBounds(-balanceX, stereoY, sideSize * heightToWidthFactor, stereoLength);
 			rect.setColour(state.colourMeter.withMultipliedBrightness(0.5f));
 			rect.renderOutline();
 
@@ -752,16 +732,20 @@ namespace Signalizer
 			rect.fill();
 
 			// draw contrasting center piece for stereo
-			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize, indicatorSize * 0.125f);
+			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
 			rect.fill();
 		}
 
 
 	template<typename V>
-		void CVectorScope::runPeakFilter(cpl::AudioBuffer & buf, std::size_t numSamples)
+		void CVectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
 			if (state.normalizeGain)
 			{
+				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+
+				std::size_t numSamples = views[0].size();
+
 				double currentEnvelope = 0;
 				// since this runs in every frame, we need to scale the coefficient by how often this function runs
 				// (and the amount of samples)
@@ -782,8 +766,8 @@ namespace Signalizer
 
 				auto const loopIncrement = elements_of<V>::value;
 
-				auto * leftBuffer = buf[0].buffer;
-				auto * rightBuffer = buf[1].buffer;
+				auto * leftBuffer = views[0].begin();
+				auto * rightBuffer = views[1].begin();
 
 				auto stop = numSamples - (numSamples & (loopIncrement - 1));
 				if (stop <= 0)
@@ -796,6 +780,8 @@ namespace Signalizer
 					auto const vRInput = loadu<V>(rightBuffer + i);
 					vRMax = max(vand(vRInput, vSign), vRMax);
 				}
+
+				// TODO: remainder?
 
 				suitable_container<V> lmax = vLMax, rmax = vRMax;
 

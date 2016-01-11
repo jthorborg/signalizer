@@ -19,6 +19,9 @@
 	#include <cpl/lib/BlockingLockFreeQueue.h>
 	#include <vector>
 	#include <cpl/gui/CPresetWidget.h>
+	#include "CommonSignalizer.h"
+	#include <cpl/gui/CDSPWindowWidget.h>
+
 	namespace cpl
 	{
 		namespace OpenGLEngine
@@ -31,120 +34,9 @@
 
 	namespace Signalizer
 	{
-		/// <summary>
-		/// atomic_flag with reversed conditions
-		/// </summary>
-		class ABoolFlag
-		{
-		public:
-			ABoolFlag() : flag(false) {}
-
-			ABoolFlag & operator = (bool val)
-			{
-				if (!val)
-				{
-					CPL_RUNTIME_EXCEPTION("Atomic bool flag reset through operator = .");
-				}
-				flag.store(val);
-				return *this;
-			}
-
-			operator bool() const noexcept
-			{
-				return flag.load();
-			}
-
-			bool cas(bool newVal = false)
-			{
-				bool expected = true;
-				return flag.compare_exchange_strong(expected, newVal);
-			}
-
-		private:
-			std::atomic<bool> flag;
-		};
 
 
-		template<typename Scalar>
-		union UComplexFilter
-		{
-			UComplexFilter() : real(0), imag(0) { }
-			
-			UComplexFilter & operator = (const std::complex<Scalar> & c) noexcept
-			{
-				real = c.real();
-				imag = c.imag();
-				return *this;
-			}
 
-			struct
-			{
-				Scalar real, imag;
-			};
-			struct
-			{
-				Scalar magnitude, phase;
-			};
-			struct
-			{
-				Scalar leftMagnitude, rightMagnitude;
-			};
-
-			UComplexFilter operator * (Scalar left) const noexcept
-			{
-				UComplexFilter ret;
-				ret.real = real * left;
-				ret.imag = imag * left;
-				return ret;
-			}
-
-			UComplexFilter operator + (const UComplexFilter & left) const noexcept
-			{
-				UComplexFilter ret;
-				ret.real = left.real + real;
-				ret.imag = left.imag + imag;
-				return ret;
-			}
-
-			operator std::complex<Scalar>() const noexcept
-			{
-				return std::complex<Scalar>(real, imag);
-			}
-		};
-
-		#ifdef __MSVC__
-			#pragma pack(push, 1)
-		#endif
-		template<typename T, std::size_t bufsize>
-			PACKED struct AudioFrameEntry
-			{
-			public:
-				AudioFrameEntry(std::uint32_t elementsUsed)
-					: size(elementsUsed)
-				{
-					static_assert(sizeof(AudioFrameEntry<T, bufsize>) == bufsize, "Wrong alignment");
-				}
-
-				AudioFrameEntry() : size() {}
-
-				std::uint16_t size;
-
-				enum util_t : std::uint16_t
-				{
-					left,
-					right
-				} utility;
-
-				static const std::uint32_t element_size = sizeof(T);
-				static const std::uint32_t capacity = (bufsize - sizeof(std::uint32_t)) / element_size;
-
-				T * begin() { return buffer; }
-				T * end() { return buffer + size; }
-				T buffer[capacity];
-			};
-		#ifdef __MSVC__
-			#pragma pack(pop)
-		#endif
 		
 		class CSpectrum
 		: 
@@ -152,32 +44,32 @@
 			protected cpl::CBaseControl::PassiveListener,
 			protected cpl::CBaseControl::ValueFormatter,
 			protected cpl::CBaseControl::Listener,
-			protected cpl::CAudioListener,
-			protected juce::ComponentListener,
-			public cpl::Utility::CNoncopyable
+			protected AudioStream::Listener,
+			protected juce::ComponentListener
 		{
 
 		public:
 
-			typedef float fpoint;
-			typedef AudioFrameEntry<fpoint, 64> AudioFrame;
-
 			static const std::size_t numSpectrumColours = 5;
 			static const double minDBRange;
+			static const double kMinDbs;
+			static const double kMaxDbs;
+			
+			typedef UComplexFilter<AudioStream::DataType> UComplex;
+			typedef AudioStream::DataType fpoint;
+			typedef double fftType;
+
 			class SFrameBuffer : public cpl::CMutex::Lockable
 			{
 			public:
 
-				typedef cpl::aligned_vector < UComplexFilter<fpoint>, 32 > FrameVector;
+				typedef cpl::aligned_vector < UComplex, 32 > FrameVector;
 
 				SFrameBuffer()
 					: sampleBufferSize(), sampleCounter(), currentCounter(), frameQueue(10, 1000)
 				{
 
 				}
-
-	
-
 				std::size_t sampleBufferSize;
 				std::size_t currentCounter;
 				std::uint64_t sampleCounter;
@@ -198,32 +90,6 @@
 				ColourSpectrum
 			};
 
-			enum class ChannelConfiguration
-			{
-				/// <summary>
-				/// Only the left channel will be analyzed and displayed.
-				/// </summary>
-				Left, 
-				/// <summary>
-				/// Only the right channel will be analyzed and displayed.
-				/// </summary>
-				Right, 
-				/// <summary>
-				/// Left and right will be merged (added) together and processed
-				/// in mono mode
-				/// </summary>
-				Merge, 
-				/// <summary>
-				/// Both channels will be processed seperately, and the average of the magnitude will be displayed,
-				/// together with a graph of the scaled phase cancellation.
-				/// </summary>
-				Phase, 
-				/// <summary>
-				/// Both channels are displayed.
-				/// </summary>
-				Separate
-			};
-
 			enum class TransformAlgorithm
 			{
 				FFT, RSNT
@@ -242,11 +108,10 @@
 				double low, high;
 			};
 
-			CSpectrum(cpl::AudioBuffer & data);
+			CSpectrum(AudioStream & data);
 			virtual ~CSpectrum();
 
 			// Component overrides
-			void onGraphicsRendering(Graphics & g) override;
 			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const MouseEvent& event) override;
 			void mouseDrag(const MouseEvent& event) override;
@@ -257,6 +122,7 @@
 
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
+			void onGraphicsRendering(Graphics & g) override;
 			void initOpenGL() override;
 			void closeOpenGL() override;
 
@@ -285,12 +151,23 @@
 			void setDBs(double low, double high, bool updateControls = false);
 			void setDBs(DBRange &, bool updateControls = false);
 			DBRange getDBs() const noexcept;
+
+			/// <summary>
+			/// Returns the working size of the audio buffer.
+			/// It is guaranteed to be 0 > getWindowSize() <= audioStream.getAudioHistorySize()
+			/// </summary>
+			/// <returns></returns>
 			std::size_t getWindowSize() const noexcept;
 			void setWindowSize(std::size_t size);
 
 		protected:
 
-			bool audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			void setTransformOptions();
+
+			virtual void paint2DGraphics(juce::Graphics & g);
+
+			bool onAsyncAudio(const AudioStream & source, float ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
 			void componentBeingDeleted(Component & 	component) override;
 
 			/// <summary>
@@ -302,10 +179,24 @@
 			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as 
 			/// formats the data into the filterResults array according to the channel mode (ChannelConfiguration).
 			/// 
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
+			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace(). 
+			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
+			/// Returns the complex amount of filters processed.
 			/// </summary>
-			void mapToLinearSpace();
+			std::size_t mapToLinearSpace();
 			
+			/// <summary>
+			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
+			/// The transform will be rendered into filterResults after this.
+			/// </summary>
+			template<class InVector>
+				void postProcessTransform(const InVector & transform, std::size_t size);
+
+			/// <summary>
+			/// Post processes the transform that will be interpreted according to what's selected.
+			/// </summary>
+			void postProcessStdTransform();
+
 			/// <summary>
 			/// Call this when something affects the view scaling, view size, mapping of frequencies, display modes etc.
 			/// Set state accordingly first.
@@ -318,7 +209,16 @@
 			/// 
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 			/// </summary>
-			void prepareTransform();
+			void prepareTransform(const AudioStream::AudioBufferAccess & audio);
+
+			/// <summary>
+			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
+			/// or windowing, this is done here.
+			/// 
+			/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
+			/// the first argument).
+			/// </summary>
+			void prepareTransform(const AudioStream::AudioBufferAccess & audio, fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
 
 			/// <summary>
 			/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
@@ -337,11 +237,19 @@
 
 			void audioConsumerThread();
 
+			std::size_t getValidWindowSize(std::size_t in) const noexcept;
+
+			/// <summary>
+			/// Returns the number of needed channels required to process the current
+			/// channel configuration.
+			/// </summary>
+			std::size_t CSpectrum::getStateConfigurationChannels() const noexcept;
+
 			/// <summary>
 			/// Transforms state.audioBlobSizeMs into samples.
 			/// </summary>
 			/// <returns></returns>
-			int getBlobSamples() const noexcept;
+			std::size_t getBlobSamples() const noexcept;
 
 			/// <summary>
 			/// Returns the samplerate of the currently connected channels.
@@ -388,8 +296,29 @@
 			template<typename T>
 				T * getAudioMemory();
 
+			/// <summary>
+			/// Returns the number of T elements available in the audio space buffer
+			/// (as returned by getAudioMemory<T>())
+			/// </summary>
 			template<typename T>
 				std::size_t getNumAudioElements() const noexcept;
+
+			/// <summary>
+			/// Gets the relay buffer for the channel.
+			/// Note: you should call ensureRelayBufferSize before.
+			/// </summary>
+			fpoint * getRelayBufferChannel(std::size_t channel);
+			/// <summary>
+			/// Ensures the storage for the relay buffer.
+			/// Not suited for real-time usage (allocates memory)
+			/// </summary>
+			void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
+			/// <summary>
+			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
+			/// Guaranteed to be < getNumAudioElements.
+			/// </summary>
+			template<typename T>
+				std::size_t getFFTSpace() const noexcept;
 
 			template<typename T>
 				T * getWorkingMemory();
@@ -400,17 +329,29 @@
 			template<typename V>
 				void renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack &);
 
-
-
 			template<typename V>
 				void renderLineGraph(cpl::OpenGLEngine::COpenGLStack &);
 
 			template<typename V>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
+			template<typename V>
+				void resonatingDispatch(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename V>
 				void addAudioFrame();
+
+			/// <summary>
+			/// Copies the state from the complex resonator into the output buffer.
+			/// The output vector is assumed to accept index assigning of std::complex of fpoints.
+			/// It is assumed the output vector can hold at least numChannels (of configuration) times
+			/// numFilters.
+			/// Output of channels are stored at numFilters offsets.
+			/// 
+			/// Returns the total number of complex samples copied into the output
+			/// </summary>
+			template<typename V, class Vector>
+				std::size_t copyResonatorStateInto(Vector & output);
 
 			// vars
 
@@ -490,7 +431,7 @@
 				/// How often the audio stream is sampled for updating in the screen. Only for DisplayMode::ColourSpectrum modes.
 				/// Effectively, this sets each horizontal pixel to contain this amount of miliseconds of information.
 				/// </summary>
-				std::size_t audioBlobSizeMs;
+				double audioBlobSizeMs;
 
 				/// <summary>
 				/// For displaymode == ColourSpectrum, this value indicates how much devations in amount of frame updates are smoothed such that
@@ -513,11 +454,15 @@
 				/// </summary>
 				volatile bool internalFlagHandlerRunning;
 
-				ABoolFlag
+				cpl::ABoolFlag
 					/// <summary>
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed
 					/// </summary>
-					audioWindowResize,
+					initiateWindowResize,
+					/// <summary>
+					/// Set this if the audio buffer window size was changed from somewhere else.
+					/// </summary>
+					audioWindowWasResized,
 					/// <summary>
 					/// 
 					/// </summary>
@@ -562,9 +507,11 @@
 			/// </summary>
 			juce::Component * editor;
 			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kdspWindow, kbinInterpolation;
+			cpl::CDSPWindowWidget kdspWin;
 			cpl::CKnobSlider klowDbs, khighDbs, kdecayRate, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing;
 			cpl::CColourControl kline1Colour, kline2Colour, kgridColour, kbackgroundColour;
 			cpl::CPresetWidget presetManager;
+			cpl::CButton kdiagnostics, kfreeQ;
 			/// <summary>
 			/// Colour interpolators
 			/// </summary>
@@ -573,7 +520,7 @@
 			/// <summary>
 			/// visual objects
 			/// </summary>
-			cpl::CButton kdiagnostics;
+
 			juce::MouseCursor displayCursor;
 			cpl::OpenGLEngine::COpenGLImage oglImage;
 			cpl::CFrequencyGraph frequencyGraph;
@@ -590,7 +537,12 @@
 			bool wasResized, isSuspended;
 			cpl::Utility::Bounds<double> oldViewRect;
 			DisplayMode newDisplayMode;
-			std::size_t newWindowSize;
+			std::atomic<std::size_t> newWindowSize;
+			/// <summary>
+			/// see cpl::dsp::windowScale
+			/// </summary>
+			fftType windowScale;
+
 			/// <summary>
 			/// Lenght/height after state updates.
 			/// </summary>
@@ -600,8 +552,7 @@
 			double framesPerUpdate;
 			cpl::CPeakFilter<double> fpuFilter;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
-			std::thread audioThread;
-			std::atomic<bool> audioThreadIsInitiated;
+
 
 			// dsp objects
 			/// <summary>
@@ -616,11 +567,7 @@
 			/// <summary>
 			/// The connected, incoming stream of data.
 			/// </summary>
-			cpl::AudioBuffer & audioStream;
-			/// <summary>
-			/// Our internal, (frozen) copy of the incoming stream data.
-			/// </summary>
-			cpl::AudioBuffer audioStreamCopy;
+			AudioStream & audioStream;
 			/// <summary>
 			/// The peak filter coefficient, describing the decay rate of the filters.
 			/// </summary>
@@ -641,6 +588,15 @@
 			/// </summary>
 			cpl::aligned_vector<char, 32> audioMemory;
 			/// <summary>
+			/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
+			/// </summary>
+			struct RelayBuffer
+			{
+				cpl::aligned_vector<fpoint, 32> buffer;
+				std::size_t samples, channels;
+			} relay;
+
+			/// <summary>
 			/// Temporary memory buffer for other applications.
 			/// Resized in displayReordered
 			/// </summary>
@@ -649,11 +605,6 @@
 			/// The time-domain representation of the dsp-window applied to fourier transforms.
 			/// </summary>
 			cpl::aligned_vector<double, 32> windowKernel;
-			/// <summary>
-			/// The lock free fifo queue for getting audio samples out of the real time thread into
-			/// <INSERT THREAD NAME>
-			/// </summary>
-			cpl::CBlockingLockFreeQueue<AudioFrame> audioFifo;
 
 			/// <summary>
 			/// All audio processing not done in the audio thread must acquire this lock. It is free to acquire and is 100% userspace.

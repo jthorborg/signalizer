@@ -14,13 +14,13 @@ namespace Signalizer
 
 	static const std::vector<std::string> ViewScaleNames = { "Linear", "Logarithmic" };
 	static const std::vector<std::string> AlgorithmNames = { "FFT", "Resonator" };
-	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Merge", "Phase", "Separate" };
+	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side" };
 	static const std::vector<std::string> DisplayModeNames = { "Line graph", "Colour spectrum" };
 	static const std::vector<std::string> BinInterpolationNames = { "None", "Linear", "Lanczos" };
 	// the minimum level of dbs to display
-	static const double kMinDbs = -24 * 16;
+	const double CSpectrum::kMinDbs = -24 * 16;
 	// the maximum level of dbs to display
-	static const double kMaxDbs = 24 * 4;
+	const double CSpectrum::kMaxDbs = 24 * 4;
 
 	const double CSpectrum::minDBRange = 3.0;
 
@@ -32,10 +32,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kviewScaling, 0);
-				section->addControl(&kalgorithm, 1);
 				section->addControl(&kchannelConfiguration, 0);
-				section->addControl(&kbinInterpolation, 1);
-				section->addControl(&kdspWindow, 0);
 				section->addControl(&kdisplayMode, 1);
 				page->addSection(section);
 			}
@@ -47,6 +44,25 @@ namespace Signalizer
 				section->addControl(&kwindowSize, 1);
 				section->addControl(&kdecayRate, 0);
 				section->addControl(&kpctForDivision, 1);
+				page->addSection(section);
+			}
+		}
+		if (auto page = content->addPage("Algorithm", "icons/svg/formulae.svg"))
+		{
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kalgorithm, 0);
+				section->addControl(&kbinInterpolation, 1);
+				page->addSection(section);
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kdspWin, 0);
+				page->addSection(section);
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kfreeQ, 0);
 				page->addSection(section);
 			}
 		}
@@ -78,6 +94,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kframeUpdateSmoothing, 0);
+				section->addControl(&kdiagnostics, 1);
 				page->addSection(section);
 			}
 			page->addSection(&presetManager, "Preset", false);
@@ -89,11 +106,10 @@ namespace Signalizer
 
 	}
 
-	CSpectrum::CSpectrum(cpl::AudioBuffer & data)
-		:
-		audioStream(data),
+	CSpectrum::CSpectrum(AudioStream & stream)
+	:
+		audioStream(stream),
 		processorSpeed(0),
-		audioStreamCopy(2),
 		lastFrameTick(0),
 		lastMousePos(),
 		editor(nullptr),
@@ -102,33 +118,32 @@ namespace Signalizer
 		isSuspended(),
 		frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
 		flags(),
-		audioFifo(20, 1000),
 		droppedAudioFrames(),
 		audioThreadUsage(),
-		relayWidth(), relayHeight(), audioThreadIsInitiated(false),
-		presetManager(this, "spectrum"),
-		newWindowSize()
+		relayWidth(), relayHeight(), 
+		presetManager(this, "spectrum")
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
-
+		flags.firstChange = true;
 		// see note in CKnobSlider::load()
 		kbackgroundColour.bForceEvent();
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
 #pragma message cwarn("Following variable mustn't be zero. Feels weird to set it here.")
+		// TODO: fix
 		state.audioBlobSizeMs = 50;
 		
 		oldViewRect = state.viewRect;
 		state.displayMode = DisplayMode::ColourSpectrum;
 		oglImage.setFillColour(juce::Colours::black);
-		listenToSource(data[0]);
+		listenToSource(stream);
 
 		state.minLogFreq = 10;
-		peakFilter.setSampleRate((float)getSampleRate());
-		setWindowSize(200);
-		flags.firstChange = true;
+
+		//setWindowSize(200);
+
 
 		state.iAuxMode = true;
 
@@ -161,34 +176,7 @@ namespace Signalizer
 
 	CSpectrum::~CSpectrum()
 	{
-		// the audio thread is created inside this flag.
-		// and that flag is set by this thread. 
-		if (!flags.firstChange)
-		{
-			// so the thread has been created; wait for it to enter function space.
-			cpl::Misc::WaitOnCondition(10000, 
-				[&]() 
-				{
-					return audioThreadIsInitiated.load(std::memory_order_relaxed);
-				}
-			);
-
-			// signal the audio thread and join it:
-			audioFifo.releaseConsumer();
-
-			// weird error-checking
-			if (audioThread.get_id() != std::thread::id())
-			{
-				// try to join it. if it isn't joinable at this point, something very bad has happened.
-				if (audioThread.joinable())
-					audioThread.join();
-				else
-					CPL_RUNTIME_EXCEPTION("audio thread crashed.");
-			}
-		}
-
-
-
+		detachFromSource();
 #pragma message cwarn("Fix this as well.")
 		SFrameBuffer::FrameVector * frame;
 		while (sfbuf.frameQueue.popElement(frame))
@@ -237,6 +225,10 @@ namespace Signalizer
 	}
 	void CSpectrum::initPanelAndControls()
 	{
+		// preliminary initialization - this will update all controls to match audio properties.
+		// it may seem like a hack, but it's well-defined and avoids code duplications.
+		onAsyncChangedProperties(audioStream, audioStream.getInfo());
+
 		// ------ listeners --------
 		kviewScaling.bAddPassiveChangeListener(this);
 		kalgorithm.bAddPassiveChangeListener(this);
@@ -244,6 +236,7 @@ namespace Signalizer
 		kdisplayMode.bAddPassiveChangeListener(this);
 		klowDbs.bAddChangeListener(this);
 		khighDbs.bAddChangeListener(this);
+		kdspWin.bAddPassiveChangeListener(this);
 		kdecayRate.bAddPassiveChangeListener(this);
 		kwindowSize.bAddPassiveChangeListener(this);
 		kline1Colour.bAddPassiveChangeListener(this);
@@ -255,7 +248,7 @@ namespace Signalizer
 		kbackgroundColour.bAddPassiveChangeListener(this);
 		kframeUpdateSmoothing.bAddPassiveChangeListener(this);
 		kbinInterpolation.bAddPassiveChangeListener(this);
-		int count = 0;
+		kfreeQ.bAddPassiveChangeListener(this);
 
 		for (int i = 0; i < ArraySize(kspecColours); ++i)
 		{
@@ -286,7 +279,10 @@ namespace Signalizer
 		khighDbs.bSetTitle("Upper limit");
 		kwindowSize.bSetTitle("Window size");
 		kdecayRate.bSetTitle("Filter decay rate");
-
+		kfreeQ.bSetTitle("Unbound Q");
+		kdiagnostics.bSetTitle("Diagnostics");
+		kdiagnostics.setToggleable(true);
+		kfreeQ.setToggleable(true);
 		kline1Colour.bSetTitle("Graph 1 colour");
 		kline2Colour.bSetTitle("Graph 2 colour");
 		kgridColour.bSetTitle("Grid colour");
@@ -301,14 +297,6 @@ namespace Signalizer
 		kchannelConfiguration.setValues(ChannelNames);
 		kdisplayMode.setValues(DisplayModeNames);
 		kbinInterpolation.setValues(BinInterpolationNames);
-		std::vector<std::string> windows;
-
-		for (int i = 0; (cpl::dsp::WindowTypes) i != cpl::dsp::WindowTypes::End; ++i)
-		{
-			windows.push_back(cpl::dsp::Windows::stringFromEnum((cpl::dsp::WindowTypes)i));
-		}
-
-		kdspWindow.setValues(windows);
 
 		//kviewScaling.setZeroBasedIndex(0); kalgorithm.setZeroBasedIndex(0); 
 
@@ -320,7 +308,7 @@ namespace Signalizer
 		kdisplayMode.bSetDescription("Select how the information is displayed; line graphs are updated each frame while the colour spectrum maintains the previous history.");
 		kdspWindow.bSetDescription("The window function describes a kernel applied to the input signal that alters the spectral leakage, through controlling the ratio between main lobe width and side-lobes.");
 		kbinInterpolation.bSetDescription("Choice of interpolation for transform algorithms that produce a discrete set of values instead of an continuous function.");
-
+		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		klowDbs.bSetDescription("The lower limit of the displayed dynamic range.");
 		khighDbs.bSetDescription("The upper limit of the displayed dynamic range");
 		kwindowSize.bSetDescription("The window size of the audio data, affects time/frequency resolution.");
@@ -332,7 +320,8 @@ namespace Signalizer
 		kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
 		kblobSize.bSetDescription("Controls how much audio data a horizontal unit represents; effectively controls the update rate of the colour spectrum.");
 		kframeUpdateSmoothing.bSetDescription("Reduces jitter in spectrum updates at the (possible) expense of higher graphical latency.");
-	
+		kfreeQ.bSetDescription("Frees the quality factor from being bounded by the window size for transforms that support it. "
+			"Although it (possibly) makes response time slower, it also makes the time/frequency resolution exact, and is a choice for analyzing static material.");
 
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -343,7 +332,7 @@ namespace Signalizer
 		archive << kalgorithm;
 		archive << kchannelConfiguration;
 		archive << kdisplayMode;
-		archive << kdspWindow;
+		archive << kdspWindow; // TODO: Remove 
 		archive << khighDbs;
 		archive << klowDbs;
 		archive << kdecayRate;
@@ -364,7 +353,8 @@ namespace Signalizer
 
 		archive << kbinInterpolation;
 		archive << state.viewRect;
-
+		archive << kdspWin;
+		archive << kfreeQ;
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -375,7 +365,7 @@ namespace Signalizer
 			builder >> kalgorithm;
 			builder >> kchannelConfiguration;
 			builder >> kdisplayMode;
-			builder >> kdspWindow;
+			builder >> kdspWindow; // TODO: Remove
 			// set high first, so low isn't capped
 			builder >> khighDbs;
 			builder >> klowDbs;
@@ -396,7 +386,8 @@ namespace Signalizer
 			}
 			builder >> kbinInterpolation;
 			builder >> state.viewRect;
-
+			builder >> kdspWin;
+			builder >> kfreeQ;
 		}
 		catch (std::exception & e)
 		{
@@ -413,19 +404,6 @@ namespace Signalizer
 	{
 		state.isFrozen = true;
 		std::vector<cpl::CMutex> locks;
-		// lock streams firstly if we are synced.
-		if (isSynced)
-		{
-			for (auto & buffer : audioStream)
-			{
-				locks.emplace_back(buffer);
-			}
-		}
-
-		for (unsigned i = 0; i < audioStream.size(); ++i)
-		{
-			audioStream[i].clone(audioStreamCopy[i]);
-		}
 	}
 
 	void CSpectrum::unfreeze()
@@ -488,7 +466,7 @@ namespace Signalizer
 
 		std::array<double, numSpectrumColours> vals;
 
-		for (int i = 0; i < vals.size(); ++i)
+		for (std::size_t i = 0; i < vals.size(); ++i)
 		{
 			vals[i] = std::max(0.0001, kspecRatios[i].bGetValue());
 			acc += vals[i];
@@ -497,7 +475,7 @@ namespace Signalizer
 		acc += std::numeric_limits<float>::epsilon();
 
 		state.normalizedSpecRatios[0] = 0;
-		for (int i = 0; i < vals.size(); ++i)
+		for (std::size_t i = 0; i < vals.size(); ++i)
 		{
 			state.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
 		}
@@ -555,7 +533,7 @@ namespace Signalizer
 
 		if (ctrl == &kdecayRate)
 		{
-			peakFilter.setDecayAsFraction(ctrl->bGetValue(), 0.01);
+			peakFilter.setDecayAsFraction(ctrl->bGetValue(), 0.1);
 		}
 		else if (ctrl == &kviewScaling)
 		{
@@ -565,6 +543,7 @@ namespace Signalizer
 		else if (ctrl == &kdisplayMode)
 		{
 			newDisplayMode = kdisplayMode.getZeroBasedSelIndex<DisplayMode>();
+			setTransformOptions();
 			flags.resized = true;
 		}
 		else if (ctrl == &kchannelConfiguration)
@@ -573,7 +552,7 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			setWindowSize(static_cast<std::size_t>(ctrl->bGetValue() * audioStream[0].maxSize()));
+			setWindowSize(cpl::Math::round<std::size_t>(ctrl->bGetValue() * audioStream.getAudioHistoryCapacity()));
 		}
 		else if (ctrl == &kpctForDivision)
 		{
@@ -582,7 +561,10 @@ namespace Signalizer
 		}
 		else if (ctrl == &kalgorithm)
 		{
+			// TODO: synchronize any concurrent async frame postings with opengl
+			// linegraph rendering.
 			state.algo = kalgorithm.getZeroBasedSelIndex<TransformAlgorithm>();
+			setTransformOptions();
 		}
 		else if (ctrl == &kline1Colour)
 		{
@@ -601,14 +583,14 @@ namespace Signalizer
 			state.colourBackground = kbackgroundColour.getControlColourAsColour();
 			state.colourSpecs[0] = state.colourBackground;
 		}
-		else if (ctrl == &kdspWindow)
+		else if (ctrl == &kdspWin)
 		{
-			state.dspWindow = kdspWindow.getZeroBasedSelIndex<dsp::WindowTypes>();
+			state.dspWindow = kdspWin.getParams().wType.load(std::memory_order_acquire);
 			flags.windowKernelChange = true;
 		}
 		else if (ctrl == &kblobSize)
 		{
-			state.audioBlobSizeMs = Math::round<std::size_t>(Math::UnityScale::exp(kblobSize.bGetValue(), 1.0, 1000.0));
+			state.audioBlobSizeMs = Math::UnityScale::exp(kblobSize.bGetValue(), 0.5, 1000.0);
 		}
 		else if (ctrl == &kframeUpdateSmoothing)
 		{
@@ -617,6 +599,11 @@ namespace Signalizer
 		else if (ctrl == &kbinInterpolation)
 		{
 			state.binPolation = kbinInterpolation.getZeroBasedSelIndex<BinInterpolation>();
+		}
+		else if (ctrl == &kfreeQ)
+		{
+			cresonator.setFreeQ(kfreeQ.bGetBoolState());
+			flags.windowKernelChange = true;
 		}
 		else
 		{
@@ -637,6 +624,49 @@ namespace Signalizer
 		}
 	}
 	
+	void CSpectrum::setTransformOptions()
+	{
+		if (state.algo == TransformAlgorithm::FFT)
+		{
+			// enable all windows
+			for (std::size_t i = 0; i < (size_t)cpl::dsp::WindowTypes::End; i++)
+			{
+				kdspWin.getWindowList().setEnabledStateFor(i, true);
+			}
+		}
+		else if(state.algo == TransformAlgorithm::RSNT)
+		{
+			// disable the windows unsupported by resonating algorithms
+			for (std::size_t i = 0; i < (size_t)cpl::dsp::WindowTypes::End; i++)
+			{
+				if(cpl::dsp::windowHasFiniteDFT((cpl::dsp::WindowTypes)i))
+					kdspWin.getWindowList().setEnabledStateFor(i, true);
+				else
+					kdspWin.getWindowList().setEnabledStateFor(i, false);
+			}
+		}
+
+		if (newDisplayMode == DisplayMode::ColourSpectrum)
+		{
+			// disable all multichannel configurations
+			for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+			{
+				if (i > (size_t)ChannelConfiguration::OffsetForMono)
+				{
+					kchannelConfiguration.setEnabledStateFor(i, false);
+				}
+			}
+		}
+		else
+		{
+			// enable them.
+			for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+			{
+				kchannelConfiguration.setEnabledStateFor(i, true);
+			}
+		}
+	}
+
 	bool CSpectrum::valueChanged(cpl::CBaseControl * ctrl)
 	{
 		if (ctrl == &khighDbs || ctrl == &klowDbs)
@@ -675,9 +705,9 @@ namespace Signalizer
 		bool glImageHasBeenResized = false;
 		state.displayMode = newDisplayMode;
 
-
+		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
 		auto const sampleRate = getSampleRate();
-		auto const axisPoints = state.displayMode == DisplayMode::LineGraph ? getWidth() : getHeight();
+		std::size_t axisPoints = state.displayMode == DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
 		{
@@ -688,32 +718,47 @@ namespace Signalizer
 		auto const numFilters = getNumFilters();
 
 		auto const divLimit = 5 + numFilters * 0.02 + 0.5 * (numFilters * kpctForDivision.bGetValue());
+
+		auto const divLimitY = 5 + 0.6 * (getHeight() * kpctForDivision.bGetValue());
 		oglImage.setFillColour(state.colourBackground);
 
-		if (flags.audioWindowResize.cas())
+		if (flags.firstChange.cas())
 		{
-			std::atomic_thread_fence(std::memory_order_acquire);
+			framesPerUpdate = getOptimalFramesPerUpdate();
+			flags.audioWindowWasResized = true;
+		}
 
-			state.windowSize = newWindowSize;
-			for (auto & buf : audioStream)
-			{
-				buf.setSize(state.windowSize);
-			}
-
-
-			cresonator.setWindowSize(8, getWindowSize());
-
-
-			//std::memset(memory.data(), 0, memory.size());
-			//setBandwidth();
-			remapResonator = true;
-			flags.audioMemoryResize = true;
+		if (flags.initiateWindowResize.cas())
+		{
+			// we will get notified asynchronously in onAsyncChangedProperties.
+			audioStream.setAudioHistorySize(newWindowSize.load(std::memory_order_acquire));
 
 		}
+		if (flags.audioWindowWasResized.cas())
+		{
+			const juce::MessageManagerLock lock;
+			auto current = audioStream.getAudioHistorySize();
+			//OutputDebugString("4. Recieved signal change, signaled changes further.\n");
+			auto capacity = audioStream.getAudioHistoryCapacity();
+			if (capacity == 0)
+				kwindowSize.bSetInternal(0);
+			else
+				kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+			kwindowSize.bRedraw();
+
+			state.windowSize = getValidWindowSize(current);
+			//OutputDebugString(("1. recieved changed size to: " + std::to_string(state.windowSize) + "(" + std::to_string(current) + ")").c_str());
+			cresonator.setWindowSize(8, getWindowSize());
+			remapResonator = true;
+			flags.audioMemoryResize = true;
+		}
+
 		if (flags.audioMemoryResize.cas())
 		{
 			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
-			audioMemory.resize(bufSize * sizeof(std::complex<double>));
+			// some cases it is nice to have an extra entry (see handling of 
+			// separating real and imaginary transforms)
+			audioMemory.resize((bufSize + 1) * sizeof(std::complex<double>));
 			windowKernel.resize(bufSize);
 			flags.windowKernelChange = true;
 		}
@@ -731,6 +776,7 @@ namespace Signalizer
 			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
 
 			columnUpdate.resize(getHeight());
+			// avoid doing it twice.
 			if (!glImageHasBeenResized)
 			{
 				oglImage.resize(getWidth(), getHeight(), true);
@@ -746,7 +792,7 @@ namespace Signalizer
 		if (flags.dynamicRangeChange.cas())
 		{
 			dbGraph.setBounds({ 0.0, (double) getHeight() });
-			dbGraph.setDivisionLimit(0.14 * divLimit);
+			dbGraph.setDivisionLimit(0.4 * divLimitY);
 			auto dynRange = getDBs();
 			dbGraph.setLowerDbs(dynRange.low);
 			dbGraph.setUpperDbs(dynRange.high);
@@ -775,7 +821,6 @@ namespace Signalizer
 		{
 			mappedFrequencies.resize(numFilters);
 
-			double start, stop;
 			double viewSize = state.viewRect.dist();
 
 
@@ -810,10 +855,16 @@ namespace Signalizer
 			remapResonator = true;
 			
 		}
+		if (flags.windowKernelChange.cas())
+		{
+			windowScale = kdspWin.generateWindow<fftType>(windowKernel, getWindowSize());
+			remapResonator = true;
+		}
 
 		if (remapResonator)
 		{
-			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), sampleRate);
+			auto window = kdspWin.getParams().wType.load(std::memory_order_acquire);
+			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
 			flags.frequencyGraphChange = true;
 			relayWidth = getWidth();
 			relayHeight = getHeight();
@@ -825,42 +876,34 @@ namespace Signalizer
 			frequencyGraph.compileGraph();
 		}
 
-		if (flags.windowKernelChange.cas())
-		{
-			computeWindowKernel();
-		}
+
 
 		if (flags.resetStateBuffers.cas())
 		{
 			cresonator.resetState();
-			std::memset(filterStates.data(), 0, filterStates.size() * sizeof(UComplexFilter<fpoint>));
-			std::memset(filterResults.data(), 0, filterResults.size() * sizeof(UComplexFilter<fpoint>));
+			std::memset(filterStates.data(), 0, filterStates.size() * sizeof(UComplex));
+			std::memset(filterResults.data(), 0, filterResults.size() * sizeof(UComplex));
 			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
 			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
-		}
-
-		if (flags.firstChange.cas())
-		{
-			audioThread = std::thread(&CSpectrum::audioConsumerThread, this);
-			framesPerUpdate = getOptimalFramesPerUpdate();
 		}
 
 		// reset all flags through value-initialization
 		flags.internalFlagHandlerRunning = false;
 	}
 
-	void CSpectrum::setWindowSize(std::size_t size)
+	std::size_t CSpectrum::getValidWindowSize(std::size_t in) const noexcept
 	{
-		std::size_t n = std::min(audioStream[0].maxSize(), size);
+		std::size_t n = std::min(audioStream.getAudioHistoryCapacity(), in);
 		n -= (n & 0x7); // must be a multiple of 8, due to vectorization
 		if (n < 16)
-			n = 16;
+			n = 0;
+		return n;
+	}
 
-
-		newWindowSize = n;
-		flags.audioWindowResize = true;
-
-
+	void CSpectrum::setWindowSize(std::size_t size)
+	{
+		newWindowSize.store(getValidWindowSize(size), std::memory_order_release);
+		flags.initiateWindowResize = true;
 	}
 
 	bool CSpectrum::valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value)
@@ -876,19 +919,20 @@ namespace Signalizer
 		}
 		else if (ctrl == &kdecayRate)
 		{
-			sprintf_s(buf, "%.2f dBs/10ms", 20 * std::log10(value));
+			sprintf_s(buf, "%.2f dBs/0.1s", 20 * std::log10(value));
 			buffer = buf;
 			return true;
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			sprintf_s(buf, "%d", (int)(audioStream[0].maxSize() * value));
+			auto bufLength = cpl::Math::round<int>(value * audioStream.getAudioHistoryCapacity());
+			sprintf(buf, "%d smps", bufLength);
 			buffer = buf;
 			return true;
 		}
 		else if (ctrl == &kblobSize)
 		{
-			sprintf_s(buf, "%d ms", Math::round<int>(Math::UnityScale::exp(value, 1.0, 1000.0)));
+			sprintf_s(buf, "%.2f ms", Math::UnityScale::exp(value, 0.50, 1000.0));
 			buffer = buf;
 			return true;
 		}
@@ -926,17 +970,28 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			if (cpl::lexicalConversion(buffer, newVal))
+			if (buffer.find("ms") != std::string::npos)
 			{
-				value = cpl::Math::confineTo(newVal / audioStream[0].maxSize(), 0.0, 1.0);
-				return true;
+				if (cpl::lexicalConversion(buffer, newVal))
+				{
+					value = cpl::Math::confineTo(newVal / (1000 * audioStream.getAudioHistoryCapacity() / audioStream.getInfo().sampleRate), 0.0, 1.0);
+					return true;
+				}
+			}
+			else
+			{
+				if (cpl::lexicalConversion(buffer, newVal))
+				{
+					value = cpl::Math::confineTo(newVal / audioStream.getAudioHistoryCapacity(), 0.0, 1.0);
+					return true;
+				}
 			}
 		}
 		else if (ctrl == &kblobSize)
 		{
 			if (cpl::lexicalConversion(buffer, newVal))
 			{
-				value = Math::confineTo(Math::UnityScale::Inv::exp(newVal, 1.0, 1000.0), 0.0, 1.0);
+				value = Math::confineTo(Math::UnityScale::Inv::exp(newVal, 0.5, 1000.0), 0.0, 1.0);
 				return true;
 			}
 		}
@@ -969,6 +1024,9 @@ namespace Signalizer
 
 		}
 
-
+	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	{
+		flags.audioWindowWasResized = true;
+	}
 
 };

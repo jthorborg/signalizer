@@ -6,6 +6,7 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
+#include <cpl/LexicalConversion.h>
 
 namespace Signalizer
 {
@@ -94,7 +95,7 @@ namespace Signalizer
 
 	}
 
-	CVectorScope::CVectorScope(cpl::AudioBuffer & data)
+	CVectorScope::CVectorScope(AudioStream & data)
 	:
 		audioStream(data),
 		kwindow("Window size", cpl::CKnobSlider::ControlType::ms),
@@ -109,7 +110,7 @@ namespace Signalizer
 		kenvelopeSmooth("Env. window", cpl::CKnobSlider::ControlType::ms),
 		kstereoSmooth("Stereo window", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
-		audioStreamCopy(2),
+		//audioStreamCopy(2),
 		lastFrameTick(0),
 		lastMousePos(),
 		envelopeGain(1),
@@ -124,7 +125,7 @@ namespace Signalizer
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
-		listenToSource(data[0]);
+		listenToSource(audioStream);
 	}
 
 	void CVectorScope::componentBeingDeleted(Component & component)
@@ -156,6 +157,7 @@ namespace Signalizer
 
 	CVectorScope::~CVectorScope()
 	{
+		// TODO: detach listener
 		notifyDestruction();
 		if (editor)
 			editor->removeComponentListener(this);
@@ -281,25 +283,25 @@ namespace Signalizer
 
 	}
 
+	void CVectorScope::handleFlagUpdates()
+	{
+		if (mtFlags.audioWindowWasResized.cas())
+		{
+			const juce::MessageManagerLock lock;
 
+			auto capacity = audioStream.getAudioHistoryCapacity();
+			if (capacity == 0)
+				kwindow.bSetInternal(0);
+			else
+				kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+			kwindow.bRedraw();
+		}
+
+	}
 
 	void CVectorScope::freeze()
 	{
 		state.isFrozen = true;
-		std::vector<cpl::CMutex> locks;
-		// lock streams firstly if we are synced.
-		if (isSynced)
-		{
-			for (auto & buffer : audioStream)
-			{
-				locks.emplace_back(buffer);
-			}
-		}
-
-		for (unsigned i = 0; i < audioStream.size(); ++i)
-		{
-			audioStream[i].clone(audioStreamCopy[i]);
-		}
 	}
 
 	void CVectorScope::unfreeze()
@@ -341,10 +343,10 @@ namespace Signalizer
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
-			kgain.bSetValue(0.5f);
-			auto & matrix = ktransform.getTransform3D();
-			matrix.position.y = matrix.position.x = 0;
-			ktransform.syncEditor();
+kgain.bSetValue(0.5f);
+auto & matrix = ktransform.getTransform3D();
+matrix.position.y = matrix.position.x = 0;
+ktransform.syncEditor();
 		}
 	}
 	void CVectorScope::mouseDrag(const MouseEvent& event)
@@ -363,8 +365,8 @@ namespace Signalizer
 			matrix.position.y += factor * -deltaDifference.y / 500.f;
 		}
 		ktransform.syncEditor();
-		
-		
+
+
 		lastMousePos = event.position;
 	}
 	void CVectorScope::mouseUp(const MouseEvent& event)
@@ -388,7 +390,7 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindow)
 		{
-			auto bufLength = cpl::Math::round<int>( value * 1000);
+			auto bufLength = cpl::Math::round<int>(value * (1000 * audioStream.getAudioHistoryCapacity() / audioStream.getInfo().sampleRate));
 			sprintf(buf, "%d ms", bufLength);
 			buffer = buf;
 			return true;
@@ -429,31 +431,39 @@ namespace Signalizer
 
 		if (ctrl == &kgain)
 		{
-			char * endPtr(nullptr);
-			cpl::iCtrlPrec_t newVal = strtod(buffer.c_str(), &endPtr);
-			if (endPtr > buffer.data())
+			double newValue;
+			if (cpl::lexicalConversion(buffer, newValue))
 			{
-				value = mapScaleToFraction(newVal);
+				value = mapScaleToFraction(newValue);
 				return true;
 			}
 		}
 		else if (ctrl == &kwindow)
 		{
 			double newValue;
-			char * endPtr = nullptr;
-			newValue = strtod(buffer.c_str(), &endPtr);
-			if (endPtr > 0)
+
+			if (buffer.find_first_of("ms") != std::string::npos)
 			{
-				value = cpl::Math::confineTo(newValue / 1000.0, 0.0, 1.0);
-				return true;
+				if (cpl::lexicalConversion(buffer, newValue))
+				{
+					value = cpl::Math::confineTo(newValue / (1000 * audioStream.getAudioHistoryCapacity() / audioStream.getInfo().sampleRate), 0.0, 1.0);
+					return true;
+				}
 			}
+			else
+			{
+				if (cpl::lexicalConversion(buffer, newValue))
+				{
+					value = cpl::Math::confineTo(newValue / audioStream.getAudioHistoryCapacity(), 0.0, 1.0);
+					return true;
+				}
+			}
+
 		}
 		else if (ctrl == &krotation)
 		{
 			double newValue;
-			char * endPtr = nullptr;
-			newValue = strtod(buffer.c_str(), &endPtr);
-			if (endPtr > 0)
+			if (cpl::lexicalConversion(buffer, newValue))
 			{
 				value = cpl::Math::confineTo(fmod(newValue, 360) / 360.0, 0.0, 1.0);
 				return true;
@@ -462,9 +472,7 @@ namespace Signalizer
 		else if (ctrl == &kprimitiveSize)
 		{
 			double newValue;
-			char * endPtr = nullptr;
-			newValue = strtod(buffer.c_str(), &endPtr);
-			if (endPtr > 0)
+			if (cpl::lexicalConversion(buffer, newValue))
 			{
 				value = cpl::Math::confineTo(newValue / 10.0, 0.0, 1.0);
 				return true;
@@ -481,11 +489,8 @@ namespace Signalizer
 	{
 		if (ctrl == &kwindow)
 		{
-			auto bufLength = ctrl->bGetValue() * 1000;
-			for (auto & buffer : audioStream)
-			{
-				buffer.setLength(bufLength);
-			}
+			auto bufLength = cpl::Math::round<std::size_t>(ctrl->bGetValue() * audioStream.getAudioHistoryCapacity());
+			audioStream.setAudioHistorySize(bufLength);
 			return;
 		}
 		else if (ctrl == &kenvelopeMode)
@@ -497,11 +502,11 @@ namespace Signalizer
 		}
 		else if(ctrl == &kenvelopeSmooth)
 		{
-			state.envelopeCoeff = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream[0].sampleRate));
+			state.envelopeCoeff = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream.getInfo().sampleRate));
 		}
 		else if (ctrl == &kstereoSmooth)
 		{
-			state.stereoCoeff = std::exp(-1.0 / (kstereoSmooth.bGetValue() * audioStream[0].sampleRate));
+			state.stereoCoeff = std::exp(-1.0 / (kstereoSmooth.bGetValue() * audioStream.getInfo().sampleRate));
 		}
 		else if (ctrl == &kgain)
 		{
@@ -558,10 +563,10 @@ namespace Signalizer
 	}
 
 	template<typename V>
-		void CVectorScope::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void CVectorScope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			using namespace cpl::simd;
-
+			typedef typename scalar_of<V>::type T;
 			if (numChannels != 2)
 				return;
 
@@ -569,15 +574,15 @@ namespace Signalizer
 			if ((!state.normalizeGain && state.envelopeMode != EnvelopeModes::RMS) && !state.doStereoMeasurements)
 				return;
 
-			float filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
-			float stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
+			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
+			T stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
 
-			const float cosineRotation = (float)std::cos(M_PI * 135 / 180);
-			const float sineRotation = (float)std::sin(M_PI * 135 / 180);
+			const T cosineRotation = (T)std::cos(M_PI * 135 / 180);
+			const T sineRotation = (T)std::sin(M_PI * 135 / 180);
 			const V vMatrixReal = set1<V>(cosineRotation);
 			const V vMatrixImag = set1<V>(sineRotation);
 
-			const V vDummyAngle = set1<V>((float)M_PI * 0.25);
+			const V vDummyAngle = set1<V>((T)(M_PI * 0.25));
 			const V vZero = zero<V>();
 
 			auto const loopIncrement = elements_of<V>::value;
@@ -632,7 +637,7 @@ namespace Signalizer
 
 					// phase averaging
 					// see larger comment above.
-					outputPhases[i] = cosf(outputPhases[i] * 2.0f);
+					outputPhases[i] = cos(outputPhases[i] * consts<T>::two);
 					filters.phase[0] = outputPhases[i] + stereoPoles[0] * (filters.phase[0] - outputPhases[i]);
 					filters.phase[1] = outputPhases[i] + stereoPoles[1] * (filters.phase[1] - outputPhases[i]);
 				}
@@ -642,7 +647,6 @@ namespace Signalizer
 
 			double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
-		
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
 			{
@@ -656,14 +660,17 @@ namespace Signalizer
 				}
 			}
 
-
-
 		}
 
-	bool CVectorScope::audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples)
+	bool CVectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
 		return false;
+	}
+
+	void CVectorScope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	{
+		mtFlags.audioWindowWasResized = true;
 	}
 
 };

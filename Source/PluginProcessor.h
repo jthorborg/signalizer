@@ -13,11 +13,11 @@
 //#define JUCE_ENABLE_REPAINT_DEBUGGING 1
 #include "../JuceLibraryCode/JuceHeader.h"
 
-#include <cpl/CAudioBuffer.h>
+#include <cpl/CAudioStream.h>
 #include <cpl/GraphicComponents.h>
-#include <cpl/lib/AlignedAllocator.h>
 #include <cpl/CSerializer.h>
 #include <cpl/CViews.h>
+#include "CommonSignalizer.h"
 
 //==============================================================================
 /**
@@ -30,14 +30,15 @@ namespace Signalizer
 };
 
 
-class SignalizerAudioProcessor  : public AudioProcessor, cpl::CView::EventListener
+class SignalizerAudioProcessor  : public juce::AudioProcessor, cpl::CView::EventListener
 {
 	friend class SignalizerAudioProcessorEditor;
 	friend class Signalizer::MainEditor;
+
 public:
     //==============================================================================
     SignalizerAudioProcessor();
-    ~SignalizerAudioProcessor();
+    ~SignalizerAudioProcessor() noexcept;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock);
@@ -89,8 +90,9 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SignalizerAudioProcessor)
 	cpl::CSerializer serializedData;
 	Signalizer::MainEditor * editor;
-	cpl::AudioBuffer audioBuffer;
+	Signalizer::AudioStream stream;
 	bool hasDefaultPresetBeenLoaded;
+	int nChannels;
 };
 
 #endif  // PLUGINPROCESSOR_H_INCLUDED

@@ -1434,6 +1434,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\SDKs\cpl\CAudioBuffer.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\CAudioStream.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CBaseControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CCtrlEditSpace.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CDBMeterGraph.h" />
@@ -1470,6 +1471,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CButton.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CColourControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CComboBox.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\CInputControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CKnobSlider.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CKnobSliderEditor.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\ControlBase.h" />
@@ -1486,6 +1488,8 @@
     <ClInclude Include="..\..\..\SDKs\cpl\LexicalConversion.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\LibraryOptions.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\AlignedAllocator.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\CDataBuffer.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\CLIFOStream.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\LockFreeDataQueue.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\MacroConstants.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\MacSupport.h" />
@@ -1519,6 +1523,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\VectorGraphics.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\vf_lib\vf_gui\vf_FreeTypeFaces.h" />
+    <ClInclude Include="..\..\Source\CommonSignalizer.h" />
     <ClInclude Include="..\..\Source\CSpectrum.h" />
     <ClInclude Include="..\..\Source\CVectorScope.h" />
     <ClInclude Include="..\..\Source\MainEditor.h" />
@@ -1975,6 +1980,7 @@
     <ClInclude Include="Header.h" />
     <ClInclude Include="Header1.h" />
     <ClInclude Include="new semi fast.h" />
+    <ClInclude Include="Old CSpectrum.h" />
     <ClInclude Include="old fast code.h" />
   </ItemGroup>
   <ItemGroup>
@@ -1996,6 +2002,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\Source\Notes\Bugs.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

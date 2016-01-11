@@ -14,6 +14,7 @@ It contains the basic startup code for a Juce application.
 #include "CSpectrum.h"
 #include "SignalizerDesign.h"
 #include <cpl/CPresetManager.h>
+#include <cpl/LexicalConversion.h>
 
 namespace cpl
 {
@@ -42,7 +43,6 @@ namespace Signalizer
 		"Oscilloscope",
 		"Spectrum",
 		"Statistics"
-
 	};
 
 	enum class ViewTypes
@@ -117,7 +117,8 @@ namespace Signalizer
 		hasAnyTabBeenSelected(false),
 		viewTopCoord(0),
 		krefreshState("Reset state"),
-		kpresets(this, "main", kpresets.WithDefault)
+		kpresets(this, "main", kpresets.WithDefault),
+		kmaxHistorySize("History size")
 
 	{
 		setOpaque(true);
@@ -154,7 +155,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&krefreshState, 0);
-
+				section->addControl(&kmaxHistorySize, 1);
 				page->addSection(section, "Utility");
 			}
 		}
@@ -348,11 +349,11 @@ namespace Signalizer
 		{
 			if (value > 0.5)
 			{
-				currentView->freeze();
+				engine->stream.setSuspendedState(true);
 			}
 			else
 			{
-				currentView->unfreeze();
+				engine->stream.setSuspendedState(false);
 			}
 		}
 		// syncing of audio stream with views
@@ -499,7 +500,6 @@ namespace Signalizer
 				break;
 			}
 		}
-
 		else if (c == &kantialias)
 		{
 			setAntialiasing();
@@ -508,6 +508,34 @@ namespace Signalizer
 		{
 			if (currentView)
 				currentView->resetState();
+		}
+		else if (c == &kmaxHistorySize)
+		{
+			std::int64_t value;
+			std::string contents = kmaxHistorySize.getInputValue();
+			if (cpl::lexicalConversion(contents, value) && value >= 0)
+			{
+				auto msCapacity = cpl::Math::round<std::size_t>(engine->stream.getInfo().sampleRate * 0.001 * value);
+
+				engine->stream.setAudioHistoryCapacity(msCapacity);
+				if (contents.find_first_of("ms") == std::string::npos)
+				{
+					contents.append(" ms");
+					kmaxHistorySize.setInputValueInternal(contents);
+				}
+
+				kmaxHistorySize.indicateSuccess();
+			}
+			else
+			{
+				std::string result;
+				auto msCapacity = cpl::Math::round<std::size_t>(1000 * engine->stream.getAudioHistoryCapacity() / engine->stream.getInfo().sampleRate);
+				if (cpl::lexicalConversion(msCapacity, result))
+					kmaxHistorySize.setInputValueInternal(result + " ms");
+				else
+					kmaxHistorySize.setInputValueInternal("error");
+				kmaxHistorySize.indicateError();
+			}
 		}
 		// check if it was one of the colours
 		for (unsigned i = 0; i < colourControls.size(); ++i)
@@ -721,13 +749,13 @@ namespace Signalizer
 			switch ((ViewTypes)index)
 			{
 			case ViewTypes::Vectorscope:
-				view = new Signalizer::CVectorScope(engine->audioBuffer);
+				view = new CVectorScope(engine->stream);
 				break;
 			case ViewTypes::Oscilloscope:
 			//	view = new COscilloscope(engine->audioBuffer);
 				break;
 			case ViewTypes::Spectrum:
-				view = new CSpectrum(engine->audioBuffer);
+				view = new CSpectrum(engine->stream);
 				break;
 			default:
 				break;
@@ -1131,6 +1159,7 @@ namespace Signalizer
 		kstableFps.bAddPassiveChangeListener(this);
 		kvsync.bAddPassiveChangeListener(this);
 		tabs.addListener(this);
+		kmaxHistorySize.bAddPassiveChangeListener(this);
 
 		kantialias.bAddPassiveChangeListener(this);
 		ksync.bAddPassiveChangeListener(this);
@@ -1176,7 +1205,7 @@ namespace Signalizer
 		// additions
 		addAndMakeVisible(rcc);
 		rcc.setAlwaysOnTop(true);
-		currentView = &defaultView;
+		currentView = &defaultView; // note: enables callbacks on value set in this function
 		addAndMakeVisible(defaultView);
 		krefreshRate.bSetValue(0.12);
 
@@ -1192,6 +1221,12 @@ namespace Signalizer
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");
 		krefreshState.bSetDescription("Resets any processing state in the active view to the default.");
+		kmaxHistorySize.bSetDescription("The maximum audio history capacity, set in the respective views. No limit, so be careful!");
+		
+		// initial values that should be through handlers
+		kmaxHistorySize.setInputValue("1000");
+
+		
 		resized();
 	}
 };

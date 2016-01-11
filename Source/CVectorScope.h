@@ -2,15 +2,13 @@
 #ifndef _CVECTORSCOPE_H
 	#define _CVECTORSCOPE_H
 
-	#include <cpl/Common.h>
-	#include <cpl/CAudioBuffer.h>
-	#include <cpl/CViews.h>
+	#include "CommonSignalizer.h"
 	#include <cpl/GraphicComponents.h>
 	#include <cpl/Utility.h>
 	#include <cpl/gui/Controls.h>
 	#include <cpl/gui/CPresetWidget.h>
 	#include <memory>
-
+	#include <cpl/simd.h>
 	namespace cpl
 	{
 		namespace OpenGLEngine
@@ -19,7 +17,6 @@
 			
 		};
 	};
-
 
 	namespace Signalizer
 	{
@@ -54,7 +51,7 @@
 					for (int i = 0; i < size; ++i)
 					{
 						
-						// describe frist left upper part of circle
+						// describe first left upper part of circle
 						this->table[i] = (T)std::sin(std::acos(1.0 - increase * i));
 					}
 					this->table[this->tableSize] = (T)1;
@@ -68,9 +65,8 @@
 			public cpl::COpenGLView, 
 			protected cpl::CBaseControl::PassiveListener,
 			protected cpl::CBaseControl::ValueFormatter,
-			protected cpl::CAudioListener,
-			protected juce::ComponentListener,
-			public cpl::Utility::CNoncopyable
+			protected AudioStream::Listener,
+			protected juce::ComponentListener
 		{
 
 		public:
@@ -78,7 +74,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(cpl::AudioBuffer & data);
+			CVectorScope(AudioStream & data);
 			virtual ~CVectorScope();
 
 			// Component overrides
@@ -112,32 +108,40 @@
 			bool isEditorOpen() const;
 			double getGain();
 		protected:
-			bool audioCallback(cpl::CAudioSource & source, float ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
 			void componentBeingDeleted(Component & 	component) override;
 
+			virtual void paint2DGraphics(juce::Graphics & g);
+
+			/// <summary>
+			/// Handles all set flags in mtFlags.
+			/// Make sure the audioStream is locked while doing this.
+			/// </summary>
+			virtual void handleFlagUpdates();
 		private:
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
-				void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+				void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+				void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 				void drawWireFrame(cpl::OpenGLEngine::COpenGLStack &);
 
 			template<typename V>
-				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void drawStereoMeters(cpl::OpenGLEngine::COpenGLStack &, const cpl::AudioBuffer &);
+				void drawStereoMeters(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void runPeakFilter(cpl::AudioBuffer & buffer, std::size_t samples);
+				void runPeakFilter(const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
+				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			void setGainAsFraction(double newFraction);
 			double mapScaleToFraction(double dbs);
@@ -161,11 +165,20 @@
 
 			struct FilterStates
 			{
-				float envelope[2];
-				float balance[2][2];
-				float phase[2];
+				AudioStream::DataType envelope[2];
+				AudioStream::DataType balance[2][2];
+				AudioStream::DataType phase[2];
 				
 			} filters;
+
+			struct Flags
+			{
+				cpl::ABoolFlag
+					/// <summary>
+					/// Set this if the audio buffer window size was changed from somewhere else.
+					/// </summary>
+					audioWindowWasResized;
+			} mtFlags;
 
 			struct StateOptions
 			{
@@ -173,14 +186,17 @@
 				float primitiveSize, rotation;
 				float stereoCoeff;
 				float envelopeCoeff;
+				/// <summary>
+				/// A constant factor slower than the stereoCoeff
+				/// </summary>
 				float secondStereoFilterSpeed;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
 				EnvelopeModes envelopeMode;
 			} state;
 			
 			// data
-			cpl::AudioBuffer & audioStream;
-			cpl::AudioBuffer audioStreamCopy;
+			AudioStream & audioStream;
+			//cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
 			
