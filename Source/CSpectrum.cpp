@@ -14,7 +14,7 @@ namespace Signalizer
 
 	static const std::vector<std::string> ViewScaleNames = { "Linear", "Logarithmic" };
 	static const std::vector<std::string> AlgorithmNames = { "FFT", "Resonator" };
-	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side" };
+	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side", "Complex" };
 	static const std::vector<std::string> DisplayModeNames = { "Line graph", "Colour spectrum" };
 	static const std::vector<std::string> BinInterpolationNames = { "None", "Linear", "Lanczos" };
 	// the minimum level of dbs to display
@@ -136,7 +136,6 @@ namespace Signalizer
 		state.audioBlobSizeMs = 50;
 		
 		oldViewRect = state.viewRect;
-		state.displayMode = DisplayMode::ColourSpectrum;
 		oglImage.setFillColour(juce::Colours::black);
 		listenToSource(stream);
 
@@ -549,6 +548,7 @@ namespace Signalizer
 		else if (ctrl == &kchannelConfiguration)
 		{
 			state.configuration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
+			flags.viewChanged = true;
 		}
 		else if (ctrl == &kwindowSize)
 		{
@@ -829,12 +829,14 @@ namespace Signalizer
 				case ViewScaling::Linear:
 				{
 					double halfSampleRate = sampleRate * 0.5;
+					double complexFactor = state.configuration == ChannelConfiguration::Complex ? 2.0 : 1.0;
 					double freqPerPixel = halfSampleRate / (numFilters - 1);
 
 					for (int i = 0; i < numFilters; ++i)
 					{
-						mappedFrequencies[i] = static_cast<float>(state.viewRect.left * halfSampleRate + viewSize * i * freqPerPixel);
+						mappedFrequencies[i] = static_cast<float>(complexFactor * state.viewRect.left * halfSampleRate + complexFactor * viewSize * i * freqPerPixel);
 					}
+
 					break;
 				}
 				case ViewScaling::Logarithmic:
@@ -844,10 +846,31 @@ namespace Signalizer
 					double minFreq = state.minLogFreq;
 
 					double end = sampleRate / 2;
-
-					for (int i = 0; i < numFilters; ++i)
+					if (state.configuration != ChannelConfiguration::Complex)
 					{
-						mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
+						for (int i = 0; i < numFilters; ++i)
+						{
+							mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
+						}
+
+					}
+					else
+					{						
+						for (std::size_t i = 0; i < numFilters; ++i)
+						{
+							auto arg = state.viewRect.left + viewSize * i / sampleSize;
+							if (arg < 0.5)
+							{
+								mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, arg * 2));
+							}
+							else
+							{
+								arg -= 0.5;
+								auto power = minFreq * std::pow(end / minFreq, 1.0 - arg * 2);
+								mappedFrequencies[i] = static_cast<float>(end + (end - power));
+							}
+						}
+
 					}
 					break;
 				}

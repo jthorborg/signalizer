@@ -45,12 +45,14 @@
 			/// Both channels are displayed.
 			/// </summary>
 			Separate,
-
 			/// <summary>
 			/// First channel is mid, second channel is side.
 			/// </summary>
 			MidSide,
-
+			/// <summary>
+			/// Channels 1 and 2 are interpreted as a complex sequence of real and imaginary numbers
+			/// </summary>
+			Complex,
 			End
 		};
 

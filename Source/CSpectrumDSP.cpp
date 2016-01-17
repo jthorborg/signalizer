@@ -192,6 +192,7 @@ namespace Signalizer
 				}
 				case ChannelConfiguration::Phase:
 				case ChannelConfiguration::Separate:
+				case ChannelConfiguration::Complex:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -454,14 +455,15 @@ namespace Signalizer
 				}
 				case ChannelConfiguration::Phase:
 				case ChannelConfiguration::Separate:
+				case ChannelConfiguration::Complex:
 				{
 					for (; i < stop; ++i)
 					{
 						buffer[i] = std::complex<fftType>
-							(
-								preliminaryAudio[0][i] * windowKernel[i],
-								preliminaryAudio[1][i] * windowKernel[i]
-								);
+						(
+							preliminaryAudio[0][i] * windowKernel[i],
+							preliminaryAudio[1][i] * windowKernel[i]
+						);
 					}
 
 					std::size_t offset = i;
@@ -632,6 +634,7 @@ namespace Signalizer
 			case ChannelConfiguration::Merge:
 			case ChannelConfiguration::Right:
 			case ChannelConfiguration::Side:
+			case ChannelConfiguration::Complex:
 			{
 
 				for (cpl::Types::fint_t i = 0; i < size; ++i)
@@ -761,6 +764,7 @@ namespace Signalizer
 		{
 		case TransformAlgorithm::FFT:
 		{
+			const auto lanczosFilterSize = 5;
 			int bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
 			std::size_t N = getFFTSpace<std::complex<double>>();
 
@@ -847,7 +851,7 @@ namespace Signalizer
 						if (bwForLine > fftBandwidth)
 							break;
 
-						csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N, mappedFrequencies[x] * freqToBin, 5);
+						csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
 					}
 					break;
 				default:
@@ -980,10 +984,6 @@ namespace Signalizer
 				}
 				case BinInterpolation::Lanczos:
 				{
-
-					const auto lanczosFilterSize = 5;
-
-
 					for (x = 0; x < numPoints - 1; ++x)
 					{
 
@@ -1164,7 +1164,7 @@ namespace Signalizer
 						}
 
 						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, 5);
-						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), 5);
+						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 						
 						csp[x] = invSize * iLeft;
 						csp[numFilters + x] = invSize * iRight;
@@ -1239,8 +1239,125 @@ namespace Signalizer
 				}
 			}
 			break;
+			case ChannelConfiguration::Complex:
+			{
+				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
+
+				// fix up DC and nyquist bins (see previous function documentation)
+				//csf[N] = csf[0].imag() * 0.5;
+				csf[0] *= (fftType) 0.5;
+
+				// The index of the transform, where the bandwidth is higher than mapped pixels (so no more interpolation is needed)
+				// TODO: This can be calculated from view mapping scale and N pixels.
+				std::size_t bandWidthBreakingPoint = numPoints;
+
+				double fftBandwidth = 1.0 / (numBins * 2);
+				//double pxlBandwidth = 1.0 / numPoints;
+				cpl::Types::fint_t x = 0;
+
+				for (std::size_t i = 1; i < N; ++i)
+				{
+					csf[i] = std::abs(csf[i]);
+				}
+
+				while(x < numPoints)
+				{
+
+					switch (state.binPolation)
+					{
+					case BinInterpolation::Linear:
+					{
+						for (; x < numPoints; ++x)
+						{
+							if (x != numPoints - 1)
+							{
+								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								if (bwForLine > fftBandwidth)
+									break;
+							}
+							csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N + 1, mappedFrequencies[x] * freqToBin);
+						}
+						break;
+					}
+					case BinInterpolation::Lanczos:
+					{
+						for (; x < numPoints; ++x)
+						{
+							if (x != numPoints - 1)
+							{
+								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								if (bwForLine > fftBandwidth)
+									break;
+							}
+
+							csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						}
+
+						break;
+					}
+					default:
+						for (; x < numPoints; ++x)
+						{
+							if (x != numPoints - 1)
+							{
+								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								if (bwForLine > fftBandwidth)
+									break;
+							}
+							// +0.5 to centerly space bins.
+							auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, N);
+							csp[x] = invSize * csf[index];
+						}
+						break;
+					}
+					if(x != numPoints)
+						oldBin = mappedFrequencies[x] * freqToBin;
+
+					for (; x < numPoints ; ++x)
+					{
+						maxLMag = maxRMag = newLMag = newRMag = 0;
+
+						bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
+	#ifdef DEBUG
+						if (bin > getNumAudioElements < std::complex < ftype >> ())
+							CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
+	#endif
+						maxRBin = maxLBin = bin;
+						if (x != numPoints - 1)
+						{
+							double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+							if (bwForLine < fftBandwidth)
+								break;
+						}
+
+						signed diff = bin - oldBin;
+						auto counter = diff ? 1 : 0;
+						// here we loop over all the bins that is mapped for a single coordinate
+						do
+						{
+							auto offset = oldBin + counter;
+							//offset <<= 1;
+							newLMag = Math::square(csf[offset]);
+							// select highest number in this chunk for display. Not exactly correct, though.
+							if (newLMag > maxLMag)
+							{
+								maxLBin = oldBin + counter;
+								maxLMag = newLMag;
+							}
+
+							counter++;
+							diff--;
+						} while (diff > 0);
+
+						csp[x] = invSize * csf[maxLBin];
+						oldBin = bin;
+					}
+				} 
 			}
+
 			break;
+			}
+		break;
 		}
 		/*case Algorithm::MQDFT:
 		{
@@ -1499,12 +1616,12 @@ namespace Signalizer
 		{
 			case ChannelConfiguration::Right:
 			{
-				cresonator.resonate<V>(&buffer[1], 1, numSamples);
+				cresonator.resonateReal<V>(&buffer[1], 1, numSamples);
 				break;
 			}
 			case ChannelConfiguration::Left:
 			{
-				cresonator.resonate<V>(buffer, 1, numSamples);
+				cresonator.resonateReal<V>(buffer, 1, numSamples);
 				break;
 			}
 			case ChannelConfiguration::Mid:
@@ -1517,7 +1634,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] + buffer[1][i]);
 				}
 
-				cresonator.resonate<V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case ChannelConfiguration::Side:
@@ -1530,7 +1647,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] - buffer[1][i]);
 				}
 
-				cresonator.resonate<V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case ChannelConfiguration::MidSide:
@@ -1544,13 +1661,18 @@ namespace Signalizer
 					rbuffer[1][i] = buffer[0][i] - buffer[1][i];
 				}
 
-				cresonator.resonate<V>(rbuffer, 2, numSamples);
+				cresonator.resonateReal<V>(rbuffer, 2, numSamples);
 				break;
 			}
 			case ChannelConfiguration::Phase:
 			case ChannelConfiguration::Separate:
 			{
-				cresonator.resonate<V>(buffer, 2, numSamples);
+				cresonator.resonateReal<V>(buffer, 2, numSamples);
+				break;
+			}
+			case ChannelConfiguration::Complex:
+			{
+				cresonator.resonateComplex<V>(buffer, numSamples);
 				break;
 			}
 		}

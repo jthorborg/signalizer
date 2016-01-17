@@ -558,7 +558,7 @@
 			/// <summary>
 			/// The complex resonator used for iir spectrums
 			/// </summary>
-			cpl::dsp::CComplexResonator<fpoint, 2, 3> cresonator;
+			cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 			/// <summary>
 			/// An array, of numFilters size, with each element being the frequency for the filter of 
 			/// the corresponding logical display pixel unit.

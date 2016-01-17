@@ -407,6 +407,7 @@ namespace Signalizer
 		case ChannelConfiguration::Right:
 		case ChannelConfiguration::Merge:
 		case ChannelConfiguration::Side:
+		case ChannelConfiguration::Complex:
 		{
 			OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 			lineDrawer.addColour(state.colourOne);
