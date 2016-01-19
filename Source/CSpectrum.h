@@ -59,7 +59,7 @@
 			typedef AudioStream::DataType fpoint;
 			typedef double fftType;
 
-			class SFrameBuffer : public cpl::CMutex::Lockable
+			class SFrameBuffer
 			{
 			public:
 
@@ -171,10 +171,6 @@
 			void componentBeingDeleted(Component & 	component) override;
 
 			/// <summary>
-			/// Tunes the system accordingly to the view and current zoom.
-			/// </summary>
-			void mapFrequencies();
-			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
 			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as 
 			/// formats the data into the filterResults array according to the channel mode (ChannelConfiguration).
@@ -182,6 +178,7 @@
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace(). 
 			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
 			/// Returns the complex amount of filters processed.
+			/// Needs exclusive access to audioResource.
 			/// </summary>
 			std::size_t mapToLinearSpace();
 			
@@ -194,6 +191,7 @@
 
 			/// <summary>
 			/// Post processes the transform that will be interpreted according to what's selected.
+			/// Needs exclusive access to audioResource.
 			/// </summary>
 			void postProcessStdTransform();
 
@@ -208,8 +206,9 @@
 			/// or windowing, this is done here.
 			/// 
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
+			/// Needs exclusive access to audioResource.
 			/// </summary>
-			void prepareTransform(const AudioStream::AudioBufferAccess & audio);
+			bool prepareTransform(const AudioStream::AudioBufferAccess & audio);
 
 			/// <summary>
 			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
@@ -217,13 +216,15 @@
 			/// 
 			/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
 			/// the first argument).
+			/// Needs exclusive access to audioResource.
 			/// </summary>
-			void prepareTransform(const AudioStream::AudioBufferAccess & audio, fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
+			bool prepareTransform(const AudioStream::AudioBufferAccess & audio, fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
 
 			/// <summary>
 			/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
 			/// 
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
+			/// Needs exclusive access to audioResource.
 			/// </summary>
 			void doTransform();
 
@@ -499,7 +500,11 @@
 					/// <summary>
 					/// This flag will be true the first time handleFlagUpdates() is called
 					/// </summary>
-					firstChange;
+					firstChange,
+					/// <summary>
+					/// Set to update how the transforms are displayed (spectrum, graphs, etc?)
+					/// </summary>
+					displayModeChange;
 			} flags;
 
 			/// <summary>
@@ -523,7 +528,7 @@
 
 			juce::MouseCursor displayCursor;
 			cpl::OpenGLEngine::COpenGLImage oglImage;
-			cpl::CFrequencyGraph frequencyGraph;
+			cpl::CFrequencyGraph frequencyGraph, complexFrequencyGraph;
 			cpl::CDBMeterGraph dbGraph;
 			cpl::CBoxFilter<double, 60> avgFps;
 			
@@ -536,8 +541,15 @@
 			long long lastFrameTick, renderCycles;
 			bool wasResized, isSuspended;
 			cpl::Utility::Bounds<double> oldViewRect;
-			DisplayMode newDisplayMode;
-			std::atomic<std::size_t> newWindowSize;
+
+			struct NewChanges
+			{
+				std::atomic<DisplayMode> displayMode;
+				std::atomic<std::size_t> windowSize;
+				std::atomic<cpl::iCtrlPrec_t> divLimit;
+				std::atomic<ChannelConfiguration> configuration;
+			} newc;
+
 			/// <summary>
 			/// see cpl::dsp::windowScale
 			/// </summary>
@@ -610,8 +622,10 @@
 			/// All audio processing not done in the audio thread must acquire this lock. It is free to acquire and is 100% userspace.
 			/// The only time it may be locked is during initialization/resets, in which case audio drop-outs
 			/// is to be expected.
+			/// 
+			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
 			/// </summary>
-			//cpl::CMutex::Lockable audioStateLock;
+			cpl::CMutex::Lockable audioResource;
 
 			SFrameBuffer sfbuf;
 		};

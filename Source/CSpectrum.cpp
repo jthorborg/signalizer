@@ -117,11 +117,13 @@ namespace Signalizer
 		framePixelPosition(),
 		isSuspended(),
 		frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
+		complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
 		flags(),
 		droppedAudioFrames(),
 		audioThreadUsage(),
 		relayWidth(), relayHeight(), 
-		presetManager(this, "spectrum")
+		presetManager(this, "spectrum"),
+		newc()
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
@@ -390,6 +392,7 @@ namespace Signalizer
 		}
 		catch (std::exception & e)
 		{
+			(void)e;
 			CPL_NOOP;
 		}
 	}
@@ -541,13 +544,13 @@ namespace Signalizer
 		}
 		else if (ctrl == &kdisplayMode)
 		{
-			newDisplayMode = kdisplayMode.getZeroBasedSelIndex<DisplayMode>();
+			newc.displayMode.store(kdisplayMode.getZeroBasedSelIndex<DisplayMode>(), std::memory_order_release);
 			setTransformOptions();
-			flags.resized = true;
+			flags.displayModeChange = true;
 		}
 		else if (ctrl == &kchannelConfiguration)
 		{
-			state.configuration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
+			newc.configuration.store(kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>(), std::memory_order_release);
 			flags.viewChanged = true;
 		}
 		else if (ctrl == &kwindowSize)
@@ -558,6 +561,7 @@ namespace Signalizer
 		{
 			flags.frequencyGraphChange = true;
 			flags.dynamicRangeChange = true;
+			newc.divLimit = kpctForDivision.bGetValue();
 		}
 		else if (ctrl == &kalgorithm)
 		{
@@ -646,7 +650,7 @@ namespace Signalizer
 			}
 		}
 
-		if (newDisplayMode == DisplayMode::ColourSpectrum)
+		if (newc.displayMode.load(std::memory_order_acquire) == DisplayMode::ColourSpectrum)
 		{
 			// disable all multichannel configurations
 			for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
@@ -694,7 +698,7 @@ namespace Signalizer
 
 	void CSpectrum::handleFlagUpdates()
 	{
-
+		cpl::CMutex audioLock;
 		if (flags.internalFlagHandlerRunning)
 			CPL_RUNTIME_EXCEPTION("Function is NOT reentrant!");
 
@@ -703,10 +707,28 @@ namespace Signalizer
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
-		state.displayMode = newDisplayMode;
 
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
 		auto const sampleRate = getSampleRate();
+
+		auto newconf = newc.configuration.load(std::memory_order_acquire);
+		if (newconf != state.configuration)
+		{
+			state.configuration = newconf;
+			if (newconf != ChannelConfiguration::Complex)
+			{
+				complexFrequencyGraph.clear();
+			}
+		}
+
+		if (flags.displayModeChange.cas())
+		{
+			// ensures any concurrent processing modes gets to finish.
+			audioLock.acquire(audioResource);
+			state.displayMode = newc.displayMode.load(std::memory_order_acquire);
+			flags.resized = true;
+		}
+
 		std::size_t axisPoints = state.displayMode == DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
@@ -715,11 +737,12 @@ namespace Signalizer
 			state.axisPoints = state.numFilters = axisPoints;
 		}
 
-		auto const numFilters = getNumFilters();
+		const std::size_t numFilters = getNumFilters();
 
-		auto const divLimit = 5 + numFilters * 0.02 + 0.5 * (numFilters * kpctForDivision.bGetValue());
+		// TODO: insert messagemanagerlock or rework
+		auto const divLimit = 5 + (state.configuration == ChannelConfiguration::Complex ? 0.25 : 1) * (numFilters * 0.02 + 0.5 * (numFilters * newc.divLimit.load(std::memory_order_relaxed)));
+		auto const divLimitY = 5 + 0.6 * (getHeight() * newc.divLimit.load(std::memory_order_relaxed));
 
-		auto const divLimitY = 5 + 0.6 * (getHeight() * kpctForDivision.bGetValue());
 		oglImage.setFillColour(state.colourBackground);
 
 		if (flags.firstChange.cas())
@@ -731,14 +754,15 @@ namespace Signalizer
 		if (flags.initiateWindowResize.cas())
 		{
 			// we will get notified asynchronously in onAsyncChangedProperties.
-			audioStream.setAudioHistorySize(newWindowSize.load(std::memory_order_acquire));
+			audioStream.setAudioHistorySize(newc.windowSize.load(std::memory_order_acquire));
 
 		}
 		if (flags.audioWindowWasResized.cas())
 		{
+			audioLock.acquire(audioResource);
+			// TODO: rework this shit.
 			const juce::MessageManagerLock lock;
 			auto current = audioStream.getAudioHistorySize();
-			//OutputDebugString("4. Recieved signal change, signaled changes further.\n");
 			auto capacity = audioStream.getAudioHistoryCapacity();
 			if (capacity == 0)
 				kwindowSize.bSetInternal(0);
@@ -747,7 +771,6 @@ namespace Signalizer
 			kwindowSize.bRedraw();
 
 			state.windowSize = getValidWindowSize(current);
-			//OutputDebugString(("1. recieved changed size to: " + std::to_string(state.windowSize) + "(" + std::to_string(current) + ")").c_str());
 			cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;
 			flags.audioMemoryResize = true;
@@ -755,6 +778,7 @@ namespace Signalizer
 
 		if (flags.audioMemoryResize.cas())
 		{
+			audioLock.acquire(audioResource);
 			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 			// some cases it is nice to have an extra entry (see handling of 
 			// separating real and imaginary transforms)
@@ -771,6 +795,7 @@ namespace Signalizer
 		}
 		if (flags.resized.cas())
 		{
+			audioLock.acquire(audioResource);
 			filterResults.resize(numFilters);
 			filterStates.resize(numFilters);
 			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
@@ -789,6 +814,7 @@ namespace Signalizer
 			remapFrequencies = true;
 			flags.dynamicRangeChange = true;
 		}
+
 		if (flags.dynamicRangeChange.cas())
 		{
 			dbGraph.setBounds({ 0.0, (double) getHeight() });
@@ -802,10 +828,33 @@ namespace Signalizer
 
 		if (flags.viewChanged.cas())
 		{
-			frequencyGraph.setBounds({ 0.0, (double)getAxisPoints() });
-			frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
-			frequencyGraph.setMaxFrequency(sampleRate / 2);
-			frequencyGraph.setScaling(state.viewScale == ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
+			if (state.configuration != ChannelConfiguration::Complex)
+			{
+				frequencyGraph.setBounds({ 0.0, (double)axisPoints });
+				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
+				frequencyGraph.setMaxFrequency(sampleRate / 2);
+				frequencyGraph.setScaling(state.viewScale == ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
+			}
+			else
+			{
+
+				frequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
+				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
+				//frequencyGraph.setView({ state.viewRect.left * axisPoints * 0.5, (state.viewRect.right - 0.5) * axisPoints * 0.5});
+				frequencyGraph.setMaxFrequency(sampleRate / 2);
+				frequencyGraph.setScaling(state.viewScale == ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
+
+				complexFrequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
+				complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - state.viewRect.left) * axisPoints });
+				
+				//complexFrequencyGraph.setBounds({ axisPoints * 0.5, axisPoints * 1.0 });
+				//complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - (state.viewRect.right - state.viewRect.left) * 0.5 - 0.5) * axisPoints });
+
+				
+				
+				complexFrequencyGraph.setMaxFrequency(sampleRate / 2);
+				complexFrequencyGraph.setScaling(state.viewScale == ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
+			}
 
 			remapFrequencies = true;
 			flags.frequencyGraphChange = true;
@@ -819,6 +868,7 @@ namespace Signalizer
 
 		if (remapFrequencies)
 		{
+			audioLock.acquire(audioResource);
 			mappedFrequencies.resize(numFilters);
 
 			double viewSize = state.viewRect.dist();
@@ -832,7 +882,7 @@ namespace Signalizer
 					double complexFactor = state.configuration == ChannelConfiguration::Complex ? 2.0 : 1.0;
 					double freqPerPixel = halfSampleRate / (numFilters - 1);
 
-					for (int i = 0; i < numFilters; ++i)
+					for (std::size_t i = 0; i < numFilters; ++i)
 					{
 						mappedFrequencies[i] = static_cast<float>(complexFactor * state.viewRect.left * halfSampleRate + complexFactor * viewSize * i * freqPerPixel);
 					}
@@ -848,7 +898,7 @@ namespace Signalizer
 					double end = sampleRate / 2;
 					if (state.configuration != ChannelConfiguration::Complex)
 					{
-						for (int i = 0; i < numFilters; ++i)
+						for (std::size_t i = 0; i < numFilters; ++i)
 						{
 							mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
 						}
@@ -886,6 +936,7 @@ namespace Signalizer
 
 		if (remapResonator)
 		{
+			audioLock.acquire(audioResource);
 			auto window = kdspWin.getParams().wType.load(std::memory_order_acquire);
 			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
 			flags.frequencyGraphChange = true;
@@ -897,12 +948,16 @@ namespace Signalizer
 		{
 			frequencyGraph.setDivisionLimit(divLimit);
 			frequencyGraph.compileGraph();
+			if (state.configuration == ChannelConfiguration::Complex)
+			{
+				complexFrequencyGraph.setDivisionLimit(divLimit);
+				complexFrequencyGraph.compileGraph();
+			}
 		}
-
-
 
 		if (flags.resetStateBuffers.cas())
 		{
+			audioLock.acquire(audioResource);
 			cresonator.resetState();
 			std::memset(filterStates.data(), 0, filterStates.size() * sizeof(UComplex));
 			std::memset(filterResults.data(), 0, filterResults.size() * sizeof(UComplex));
@@ -925,7 +980,7 @@ namespace Signalizer
 
 	void CSpectrum::setWindowSize(std::size_t size)
 	{
-		newWindowSize.store(getValidWindowSize(size), std::memory_order_release);
+		newc.windowSize.store(getValidWindowSize(size), std::memory_order_release);
 		flags.initiateWindowResize = true;
 	}
 
@@ -942,7 +997,7 @@ namespace Signalizer
 		}
 		else if (ctrl == &kdecayRate)
 		{
-			sprintf_s(buf, "%.2f dBs/0.1s", 20 * std::log10(value));
+			sprintf_s(buf, "%.2f dB/s", 20 * std::log10(value));
 			buffer = buf;
 			return true;
 		}

@@ -44,22 +44,33 @@ namespace Signalizer
 
 		if (state.displayMode == DisplayMode::LineGraph)
 		{
-
+			auto complexScale = state.configuration == ChannelConfiguration::Complex ? 2.0f : 1.0f;
 			g.setColour(state.colourGrid);
 			const auto & divs = frequencyGraph.getDivisions();
-
+			const auto & cdivs = complexFrequencyGraph.getDivisions();
 			for (auto & sdiv : divs)
 			{
 				sprintf_s(buf, "%.2f", sdiv.frequency);
-				g.drawText(buf, (float)sdiv.coord + 5, 20, 100, 20, juce::Justification::centredLeft);
-			}
+				g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
 
-			// draw horizontal lines:
+			}
+			if (state.configuration == ChannelConfiguration::Complex)
+			{
+				auto normalizedScaleX = 1.0 / frequencyGraph.getBounds().dist();
+				auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
+
+				for (auto & sdiv : cdivs)
+				{
+					sprintf_s(buf, "-i*%.2f", sdiv.frequency);
+					// transform back and forth from unit cartesion... should insert a TODO here.
+					g.drawText(buf, getWidth() * (normXC(sdiv.coord) + 1) * 0.5 + 5, 20, 100, 20, juce::Justification::centredLeft);
+				}
+			}
 
 			for (auto & dbDiv : dbGraph.getDivisions())
 			{
 				sprintf_s(buf, "%.2f", dbDiv.dbVal);
-				g.drawText(buf, 5, (float)dbDiv.coord, 100, 20, juce::Justification::centredLeft);
+				g.drawText(buf, 5, float(complexScale * dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 			}
 
 		}
@@ -228,14 +239,14 @@ namespace Signalizer
 
 		peakFilter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
+		bool lineTransformReady = false;
+
 		// lock the memory buffers, and do our thing.
 		{
-			auto && access = audioStream.getAudioBufferViews();
-
 			handleFlagUpdates();
 			// line graph data for ffts are rendered now.
-			if(state.displayMode == DisplayMode::LineGraph)
-				prepareTransform(access);
+			if (state.displayMode == DisplayMode::LineGraph)
+				lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
 		}
 		// flags may have altered ogl state
 		CPL_DEBUGCHECKGL();
@@ -270,9 +281,14 @@ namespace Signalizer
 		switch (state.displayMode)
 		{
 		case DisplayMode::LineGraph:
-			doTransform();
-			mapToLinearSpace();
-			postProcessStdTransform();
+			// no need to lock in this case, as this display mode is exclusively switched,
+			// such that only we have access to it.
+			if (lineTransformReady)
+			{
+				doTransform();
+				mapToLinearSpace();
+				postProcessStdTransform();
+			}
 			renderLineGraph<Types::v8sf>(openGLStack); break;
 		case DisplayMode::ColourSpectrum:
 			// mapping and processing is already done here.
@@ -307,7 +323,7 @@ namespace Signalizer
 				auto approximateFrames = getApproximateStoredFrames();
 				/*if (approximateFrames == 0)
 					approximateFrames = framesPerUpdate;*/
-				int processedFrames = 0;
+				std::size_t processedFrames = 0;
 				framesPerUpdate = approximateFrames + bufferSmoothing * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
@@ -425,14 +441,19 @@ namespace Signalizer
 
 			lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
 
-			auto normalizedScaleX = 1.0 / getWidth();
+			auto xDist = frequencyGraph.getBounds().dist();
+			auto normalizedScaleX = 1.0 / xDist;
 			auto normalizedScaleY = 1.0 / getHeight();
 			// draw vertical lines.
 			const auto & lines = frequencyGraph.getLines();
-
+			const auto & clines = complexFrequencyGraph.getLines();
 			// TODO: fix using a matrix modification instead (cheaper)
 			auto normX = [=](double in) { return static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
+			auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
+			//auto normXC = normX;
 			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
+
+
 
 			for (auto dline : lines)
 			{
@@ -440,13 +461,29 @@ namespace Signalizer
 				lineDrawer.addVertex(line, -1.0f, 0.0f);
 				lineDrawer.addVertex(line, 1.0f, 0.0f);
 			}
+
+			for (auto dline : clines)
+			{
+				auto line = normXC(dline);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
 			//m.scale(1, getHeight(), 1);
 			lineDrawer.addColour(state.colourGrid);
 			const auto & divs = frequencyGraph.getDivisions();
+			const auto & cdivs = complexFrequencyGraph.getDivisions();
 
 			for (auto & sdiv : divs)
 			{
 				auto line = normX(sdiv.coord);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
+			for (auto & sdiv : cdivs)
+			{
+				auto line = normXC(sdiv.coord);
 				lineDrawer.addVertex(line, -1.0f, 0.0f);
 				lineDrawer.addVertex(line, 1.0f, 0.0f);
 			}

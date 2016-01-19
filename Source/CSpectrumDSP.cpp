@@ -94,7 +94,7 @@ namespace Signalizer
 
 
 
-	void CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
+	bool CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
 	{
 
 		auto size = getWindowSize(); // the size of the transform, containing samples
@@ -107,6 +107,15 @@ namespace Signalizer
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+
+			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
+			// this is a very rare condition that can be solved by locking the audio access during the flags update and this 
+			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
+			if (views[0].size() != views[1].size() || views[0].size() < size)
+				return false;
+
+			// can't underflow
+			std::size_t offset = views[0].size() - size;
 
 			switch (state.algo)
 			{
@@ -127,11 +136,24 @@ namespace Signalizer
 						std::size_t range = views[channel].getItRange(indice);
 						auto it = views[channel].getItIndex(indice);
 
-						while (range--)
+						if (range > offset)
 						{
-							buffer[i] = *it++ * windowKernel[i];
-							i++;
+							range -= offset;
+							it += offset;
+
+							while (range--)
+							{
+								buffer[i] = *it++ * windowKernel[i];
+								i++;
+							}
+
+							offset = 0;
 						}
+						else
+						{
+							offset -= range;
+						}
+
 					}
 					break;
 				}
@@ -143,27 +165,51 @@ namespace Signalizer
 						auto left = views[0].getItIndex(indice);
 						auto right = views[1].getItIndex(indice);
 
-						while (range--)
+						if (range > offset)
 						{
-							buffer[i] =	(*left++ + *right++) * windowKernel[i] * 0.5f;
-							i++;
+							range -= offset;
+							left += offset;
+							right += offset;
+
+							while (range--)
+							{
+								buffer[i] =	(*left++ + *right++) * windowKernel[i] * 0.5f;
+								i++;
+							}
+							offset = 0;
+						}
+						else
+						{
+							offset -= range;
 						}
 					}
 					break;
 				}
 				case ChannelConfiguration::Side:
 				{
-
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[0].getItRange(indice);
 						auto left = views[0].getItIndex(indice);
 						auto right = views[1].getItIndex(indice);
 
-						while (range--)
+						if (range > offset)
 						{
-							buffer[i] = (*left++ - *right++) * windowKernel[i] * 0.5f;
-							i++;
+							range -= offset;
+							left += offset;
+							right += offset;
+
+							while (range--)
+							{
+								buffer[i] = (*left++ - *right++) * windowKernel[i] * 0.5f;
+								i++;
+							}
+
+							offset = 0;
+						}
+						else
+						{
+							offset -= range;
 						}
 					}
 					break;
@@ -176,16 +222,29 @@ namespace Signalizer
 						auto left = views[0].getItIndex(indice);
 						auto right = views[1].getItIndex(indice);
 
-						while (range--)
+						if (range > offset)
 						{
-							buffer[i] = std::complex<fftType>
-							(
-								(*left + *right) * windowKernel[i] * 0.5f,
-								(*left - *right) * windowKernel[i] * 0.5f
-							);
-							left++;
-							right++;
-							i++;
+							range -= offset;
+							left += offset;
+							right += offset;
+
+							while (range--)
+							{
+								buffer[i] = std::complex<fftType>
+								(
+									(*left + *right) * windowKernel[i] * 0.5f,
+									(*left - *right) * windowKernel[i] * 0.5f
+								);
+								left++;
+								right++;
+								i++;
+							}
+
+							offset = 0;
+						}
+						else
+						{
+							offset -= range;
 						}
 					}
 					break;
@@ -200,14 +259,26 @@ namespace Signalizer
 						auto left = views[0].getItIndex(indice);
 						auto right = views[1].getItIndex(indice);
 
-						while (range--)
+						if (range > offset)
 						{
-							buffer[i] = std::complex<fftType>
+							range -= offset;
+							left += offset;
+							right += offset;
+
+							while (range--)
 							{
-								*left++ * windowKernel[i],
-								*right++ * windowKernel[i]
-							};
-							i++;
+								buffer[i] = std::complex<fftType>
+								{
+									*left++ * windowKernel[i],
+									*right++ * windowKernel[i]
+								};
+								i++;
+							}
+							offset = 0;
+						}
+						else
+						{
+							offset -= range;
 						}
 					}
 					break;
@@ -217,54 +288,18 @@ namespace Signalizer
 
 				for (size_t pad = i; pad < fullSize; ++pad)
 				{
-					buffer[pad] = 0;
+					buffer[pad] = (fftType)0;
 				}
 
 				break;
 			}
-			/*// this case is different from CDFT, since the input musnt be windowed
-			case Algorithm::MQDFT:
-			{
-				auto buffer = getAudioMemory<float>();
-				size = getWindowSize();
-				std::size_t channel = 1;
-				winOsc.reset(size, 1, M_PI / 2); // offset phase by 90 degrees to create a cosine instead.
-												 // this is used for reversing the index.
-				auto const N = size - 1;
-				switch (channelConfiguration)
-				{
-				case ChannelConfiguration::Left:
-					channel = 0;
-				case ChannelConfiguration::Right:
-					for (unsigned i = 0; i < size; ++i)
-					{
-						buffer[N - i] = audioData[channel].singleCheckAccess(i);
-					}
-					break;
-				case ChannelConfiguration::Phase:
-				case ChannelConfiguration::Separate:
-					for (unsigned n = 0; n < numChannels; ++n)
-					{
-						for (unsigned i = 0; i < size; ++i)
-						{
-							buffer[(N - i + n * size)] = audioData[n].singleCheckAccess(i);
-						}
-					}
-					break;
-				case ChannelConfiguration::Merge:
-					for (unsigned i = 0; i < size; ++i)
-					{
-						buffer[N - i] = (audioData[0].singleCheckAccess(i) + audioData[1].singleCheckAccess(i)) * 0.5;
-					}
-					break;
-				}
-				break;
-			}*/
+			break;
 			}
 		}
+		return true;
 	}
 
-	void CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio, CSpectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
+	bool CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio, CSpectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
 	{
 
 		auto size = getWindowSize(); // the size of the transform, containing samples
@@ -278,6 +313,14 @@ namespace Signalizer
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
+			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
+			// this is a very rare condition that can be solved by locking the audio access during the flags update and this 
+			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
+			if (views[0].size() != views[1].size() || views[0].size() < size)
+				return false;
+
+			std::size_t extraDiscardedSamples = views[0].size() - size;
+
 			switch (state.algo)
 			{
 			case TransformAlgorithm::FFT:
@@ -285,7 +328,7 @@ namespace Signalizer
 				auto buffer = getAudioMemory<std::complex<fftType>>();
 				std::size_t channel = 1;
 				std::size_t i = 0;
-				std::size_t stop = std::min(numSamples, fullSize);
+				std::size_t stop = std::min(numSamples, size);
 
 				switch (channelConfiguration)
 				{
@@ -293,14 +336,14 @@ namespace Signalizer
 					channel = 0;
 				case ChannelConfiguration::Right:
 				{
-
+					
 					// process preliminary
 					for (; i < stop; ++i)
 					{
 						buffer[i] = preliminaryAudio[channel][i] * windowKernel[i];
 					}
 
-					std::size_t offset = i;
+					std::size_t offset = i + extraDiscardedSamples;
 					// get rest from buffers - first indice is a special case.
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
@@ -316,7 +359,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < stop)
+							while (range-- && i < size)
 							{
 								buffer[i] = *it++ * windowKernel[i];
 								i++;
@@ -339,7 +382,7 @@ namespace Signalizer
 						buffer[i] = (preliminaryAudio[0][i] + preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5;
 					}
 
-					std::size_t offset = i;
+					std::size_t offset = i + extraDiscardedSamples;
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -353,7 +396,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < stop)
+							while (range-- && i < size)
 							{
 								buffer[i] = (*left++ + *right++) * windowKernel[i] * 0.5f;
 								i++;
@@ -376,7 +419,7 @@ namespace Signalizer
 						buffer[i] = (preliminaryAudio[0][i] - preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5;
 					}
 
-					std::size_t offset = i;
+					std::size_t offset = i + extraDiscardedSamples;
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -390,7 +433,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < stop)
+							while (range-- && i < size)
 							{
 								buffer[i] = (*left++ - *right++) * windowKernel[i] * (fftType)0.5;
 								i++;
@@ -411,13 +454,13 @@ namespace Signalizer
 					for (; i < stop; ++i)
 					{
 						buffer[i] = std::complex<fftType>
-							(
-								(preliminaryAudio[0][i] + preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5,
-								(preliminaryAudio[0][i] - preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5
-								);
+						(
+							(preliminaryAudio[0][i] + preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5,
+							(preliminaryAudio[0][i] - preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5
+						);
 					}
 
-					std::size_t offset = i;
+					std::size_t offset = i + extraDiscardedSamples;
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -431,13 +474,13 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < stop)
+							while (range-- && i < size)
 							{
 								buffer[i] = std::complex<fftType>
-									(
-										(*left + *right) * windowKernel[i] * (fftType)0.5,
-										(*left - *right) * windowKernel[i] * (fftType)0.5
-										);
+								(
+									(*left + *right) * windowKernel[i] * (fftType)0.5,
+									(*left - *right) * windowKernel[i] * (fftType)0.5
+								);
 								left++;
 								right++;
 								i++;
@@ -466,7 +509,7 @@ namespace Signalizer
 						);
 					}
 
-					std::size_t offset = i;
+					std::size_t offset = i + extraDiscardedSamples;
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -480,7 +523,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < stop)
+							while (range-- || i < size)
 							{
 								buffer[i] = std::complex<fftType>
 								{
@@ -502,7 +545,6 @@ namespace Signalizer
 				}
 				}
 				//zero-pad until buffer is filled
-
 				for (size_t pad = i; pad < fullSize; ++pad)
 				{
 					buffer[pad] = 0;
@@ -510,8 +552,10 @@ namespace Signalizer
 
 				break;
 			}
+			break;
 			}
 		}
+		return true;
 	}
 
 	void CSpectrum::doTransform()
@@ -765,7 +809,7 @@ namespace Signalizer
 		case TransformAlgorithm::FFT:
 		{
 			const auto lanczosFilterSize = 5;
-			int bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
+			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
 			std::size_t N = getFFTSpace<std::complex<double>>();
 
 			// we rely on mapping indexes, so we need N > 2 at least.
@@ -866,12 +910,12 @@ namespace Signalizer
 
 					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if (bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 					maxRBin = maxLBin = bin;
 
-					signed diff = bin - oldBin;
+					auto diff = bin - oldBin;
 					auto counter = diff ? 1 : 0;
 					// here we loop over all the bins that is mapped for a single coordinate
 					do
@@ -1071,11 +1115,11 @@ namespace Signalizer
 					ftype maxValue = 0, newMag = 0;
 					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if (bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 
-					signed diff = bin - oldBin;
+					auto diff = bin - oldBin;
 					auto counter = diff ? 1 : 0;
 					// here we loop over all the bins that is mapped for a single coordinate
 					do
@@ -1202,12 +1246,12 @@ namespace Signalizer
 
 					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if (bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 					maxRBin = maxLBin = bin;
 
-					signed diff = bin - oldBin;
+					auto diff = bin - oldBin;
 					auto counter = diff ? 1 : 0;
 					// here we loop over all the bins that is mapped for a single coordinate
 					do
@@ -1246,10 +1290,6 @@ namespace Signalizer
 				// fix up DC and nyquist bins (see previous function documentation)
 				//csf[N] = csf[0].imag() * 0.5;
 				csf[0] *= (fftType) 0.5;
-
-				// The index of the transform, where the bandwidth is higher than mapped pixels (so no more interpolation is needed)
-				// TODO: This can be calculated from view mapping scale and N pixels.
-				std::size_t bandWidthBreakingPoint = numPoints;
 
 				double fftBandwidth = 1.0 / (numBins * 2);
 				//double pxlBandwidth = 1.0 / numPoints;
@@ -1319,7 +1359,7 @@ namespace Signalizer
 
 						bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
 	#ifdef DEBUG
-						if (bin > getNumAudioElements < std::complex < ftype >> ())
+						if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
 							CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 	#endif
 						maxRBin = maxLBin = bin;
@@ -1330,7 +1370,7 @@ namespace Signalizer
 								break;
 						}
 
-						signed diff = bin - oldBin;
+						auto diff = bin - oldBin;
 						auto counter = diff ? 1 : 0;
 						// here we loop over all the bins that is mapped for a single coordinate
 						do
@@ -1359,30 +1399,6 @@ namespace Signalizer
 			}
 		break;
 		}
-		/*case Algorithm::MQDFT:
-		{
-			auto result = transformer.getTransformResult();
-			auto totalData = filterStates.size() * numChannels;
-
-			switch (channelConfiguration)
-			{
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Merge:
-				mapAndTransformDFTFilters<ChannelConfiguration::Left, float>(filterStates.data(), result.data(), filterResults.data(),
-					filterStates.size(), dbRange.low, dbRange.high, flt);
-				break;
-			case ChannelConfiguration::Separate:
-				mapAndTransformDFTFilters<ChannelConfiguration::Separate, float>(filterStates.data(), result.data(), filterResults.data(),
-					filterStates.size(), dbRange.low, dbRange.high, flt);
-				break;
-			case ChannelConfiguration::Phase:
-				mapAndTransformDFTFilters<ChannelConfiguration::Phase, float>(filterStates.data(), result.data(), filterResults.data(),
-					filterStates.size(), dbRange.low, dbRange.high, flt);
-				break;
-			}
-			break;
-		}*/
 		case TransformAlgorithm::RSNT:
 		{
 
@@ -1468,13 +1484,6 @@ namespace Signalizer
 		}
 		return false;
 	}
-
-	void CSpectrum::mapFrequencies()
-	{
-
-		throw std::runtime_error("Dont do this");
-
-	}
 	
 	bool CSpectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
@@ -1518,8 +1527,6 @@ namespace Signalizer
 			sfbuf.frameQueue.pushElement<true>(&frame);
 
 		}
-
-		sfbuf.currentCounter = 0;
 	}
 
 
@@ -1540,11 +1547,10 @@ namespace Signalizer
 	template<typename V>
 		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
-
+			cpl::CMutex audioLock;
 			// rest only for resonators.
 			if (state.displayMode == DisplayMode::ColourSpectrum)
 			{
-				cpl::CMutex lock(sfbuf);
 
 				std::int64_t n = numSamples;
 				std::size_t offset = 0;
@@ -1559,6 +1565,7 @@ namespace Signalizer
 					// do some resonation
 					if (state.algo == TransformAlgorithm::RSNT)
 					{
+						audioLock.acquire(audioResource);
 						fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
 						resonatingDispatch<V>(offBuf, numChannels, availableSamples);
 					}
@@ -1568,24 +1575,30 @@ namespace Signalizer
 					offset += availableSamples;
 					if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
 					{
+						audioLock.acquire(audioResource);
+						bool transformReady = true;
 						if (state.algo == TransformAlgorithm::FFT)
 						{
 							fpoint * offBuf[2] = { buffer[0], buffer[1] };
 							if (audioStream.getNumDeferredSamples() == 0)
 							{
-								prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset);
-								doTransform();
+								if(transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset))
+									doTransform();
 							}
 							else
 							{
 								// ignore the deferred samples and produce some views that is slightly out-of-date.
 								// this ONLY happens if something else is hogging the buffers.
-								prepareTransform(audioStream.getAudioBufferViews());
-								doTransform();
+								if(transformReady = prepareTransform(audioStream.getAudioBufferViews()))
+									doTransform();
 							}
 						}
 
-						addAudioFrame<V>();
+						if(transformReady)
+							addAudioFrame<V>();
+
+						sfbuf.currentCounter = 0;
+
 						// change this here. oh really?
 						sfbuf.sampleBufferSize = getBlobSamples();
 					}
@@ -1598,6 +1611,7 @@ namespace Signalizer
 			}
 			else if(state.algo == TransformAlgorithm::RSNT)
 			{
+				audioLock.acquire(audioResource);
 				resonatingDispatch<V>(buffer, numChannels, numSamples);
 			}
 

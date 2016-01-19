@@ -371,7 +371,7 @@ namespace Signalizer
 			// and apply the gain:
 			GLfloat gain = getGain();
 			matrixMod.scale(gain, gain, 1);
-			float sampleFade = 1.0 / audio.getNumSamples(), sleft, sright;
+			float sampleFade = 1.0f / audio.getNumSamples();
 			
 			if (!state.fadeHistory)
 			{
@@ -506,7 +506,7 @@ namespace Signalizer
 						outFade = vSampleFade - vOne;
 
 						// draw vertices.
-						for (cpl::Types::fint_t n = 0; n < vectorLength; ++n)
+						for (cpl::ssize_t n = 0; n < vectorLength; ++n)
 						{
 							drawer.addVertex(outX[n], outY[n], outFade[n]);
 						}
@@ -613,7 +613,7 @@ namespace Signalizer
 						outGreen = vGreen * vSampleFade;
 
 						// draw vertices.
-						for (cpl::Types::fint_t n = 0; n < vectorLength; ++n)
+						for (cpl::ssize_t n = 0; n < vectorLength; ++n)
 						{
 							drawer.addColour(outRed[n], outGreen[n], outBlue[n]);
 							drawer.addVertex(outX[n], outY[n], outFade[n]);
