@@ -70,7 +70,7 @@ namespace Signalizer
 			for (auto & dbDiv : dbGraph.getDivisions())
 			{
 				sprintf_s(buf, "%.2f", dbDiv.dbVal);
-				g.drawText(buf, 5, float(complexScale * dbDiv.coord), 100, 20, juce::Justification::centredLeft);
+				g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 			}
 
 		}
