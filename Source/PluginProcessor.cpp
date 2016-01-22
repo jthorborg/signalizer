@@ -11,6 +11,7 @@
 #include "PluginProcessor.h"
 #include "MainEditor.h"
 #include <cpl/CPresetManager.h>
+#include <cpl/Protected.h>
 
 //==============================================================================
 SignalizerAudioProcessor::SignalizerAudioProcessor()
@@ -18,7 +19,8 @@ SignalizerAudioProcessor::SignalizerAudioProcessor()
 	editor(nullptr), 
 	hasDefaultPresetBeenLoaded(false),
 	stream(16, true),
-	nChannels(2)
+	nChannels(2),
+	serializedData("HostState")
 {
 
 }
@@ -27,18 +29,15 @@ SignalizerAudioProcessor::~SignalizerAudioProcessor() noexcept
 {
 }
 
-void SignalizerAudioProcessor::onViewConstruction(cpl::CView * view)
+void SignalizerAudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
 {
-	
-	
-}
+	if (v == editor)
+	{
+		serializedData.clear();
+		editor->save(serializedData.getArchiver(), cpl::programInfo.versionInteger);
 
-void SignalizerAudioProcessor::onViewDestruction(cpl::CView * view)
-{
-	serializedData.clear();
-	view->save(serializedData, 1);
-
-	editor = nullptr;
+		editor = nullptr;
+	}
 }
 
 //==============================================================================
@@ -94,17 +93,16 @@ bool SignalizerAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* SignalizerAudioProcessor::createEditor()
 {
-	/*if (!hasDefaultPresetBeenLoaded)
-	{
-		hasDefaultPresetBeenLoaded = true;
-		juce::File result;
-		cpl::CPresetManager::instance().loadDefaultPreset(serializedData, result);
-		
-	}*/
-	editor = new Signalizer::MainEditor(this);
-	editor->addEventListener(this);
-	if (!serializedData.isEmpty())
-		editor->load(serializedData, 1);
+	cpl::CProtected::runProtectedCodeErrorHandling
+	(
+		[this]()
+		{
+			editor = new Signalizer::MainEditor(this);
+			editor->addEventListener(this);
+			if (!serializedData.isEmpty())
+				editor->load(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
+		}
+	);
 	return editor;
 }
 
@@ -114,7 +112,7 @@ void SignalizerAudioProcessor::getStateInformation (MemoryBlock& destData)
 	if (editor)
 	{
 		serializedData.clear();
-		editor->save(serializedData, 1);
+		editor->save(serializedData.getArchiver(), cpl::programInfo.versionInteger);
 	}
 	if (!serializedData.isEmpty())
 	{
@@ -131,7 +129,7 @@ void SignalizerAudioProcessor::setStateInformation (const void* data, int sizeIn
 		serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
 		if (editor)
 		{
-			editor->load(serializedData, 1);
+			editor->load(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
 		}
 	}
 	catch (const std::exception & e)

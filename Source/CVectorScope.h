@@ -174,6 +174,7 @@
 			struct Flags
 			{
 				cpl::ABoolFlag
+					firstRun,
 					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
 					/// </summary>

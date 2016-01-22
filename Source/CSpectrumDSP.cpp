@@ -523,7 +523,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- || i < size)
+							while (range-- && i < size)
 							{
 								buffer[i] = std::complex<fftType>
 								{
@@ -563,114 +563,30 @@ namespace Signalizer
 		auto const channelConfiguration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
 		switch (state.algo)
 		{
-		case TransformAlgorithm::FFT:
-		{
-			auto const numSamples = getFFTSpace<std::complex<double>>();
-			if(numSamples != 0)
-				cpl::signaldust::DustFFT_fwdDa(getAudioMemory<double>(), numSamples);
-			/*switch (channelConfiguration)
+			case TransformAlgorithm::FFT:
 			{
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Merge:
-				cpl::signaldust::DustFFT_fwdDa(getAudioMemory<double>(), numSamples);
+				auto const numSamples = getFFTSpace<std::complex<double>>();
+				if(numSamples != 0)
+					cpl::signaldust::DustFFT_fwdDa(getAudioMemory<double>(), numSamples);
+
 				break;
-			case ChannelConfiguration::Phase:
-			case ChannelConfiguration::Separate:
-				cpl::signaldust::DustFFT_fwdDa(getAudioMemory<double>(), numSamples);
-
-			}*/
-
-			break;
-		}
-		/*case Algorithm::MQDFT:
-		{
-			auto size = getWindowSize();
-			switch (channelConfiguration)
-			{
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Merge:
-				transformer.mqdft<1>(getAudioMemory<float>(), size);
-				break;
-			case ChannelConfiguration::Phase:
-			case ChannelConfiguration::Separate:
-				transformer.mqdft<2>(getAudioMemory<float>(), size);
-
 			}
-			break;
-		}
-		// Resonators dont need preparation as they are continious and real time
-		case Algorithm::RSNT:
-			break;*/
 		}
 	}
 
-	template<typename Ty>
-		struct DualComplex
-		{
-			typedef Ty type;
-
-			std::complex<type> val[2];
-
-		};
-	template<typename Ty>
-		inline DualComplex<Ty> getZFromNFFT(Ty * tsf, std::size_t idx, std::size_t N)
-		{
-			idx <<= 1;
-			N <<= 1;
-			Ty x1 = tsf[idx];
-			Ty x2 = tsf[N - idx];
-			Ty y1 = tsf[idx + 1];
-			Ty y2 = tsf[N - idx + 1];
-
-			DualComplex<Ty> ret;
-			//ret.val[0] = std::complex<Ty>((x1 + x2) * 0.5, (y1 + y2) * 0.5);
-			//ret.val[1] = std::complex<Ty>((y1 - y2) * 0.5, -(x1 - x2) * 0.5);
-
-			ret.val[0] = std::complex<Ty>((x1 + x2) * 0.5, (y1 - y2) * 0.5);
-			ret.val[1] = std::complex<Ty>((y1 + y2) * 0.5, -(x1 - x2) * 0.5);
-
-			return ret;
-		}
 
 
-	/*
-
-		all inputs must be normalized.
-
-		oldVals = state. First time must be zero. vector of floats of size. changed during call
-		newVals = current vector of floats/doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
-		output = vector of single floats, logarithmically mapped to 0 - 1 range, of size
-
-		oldVals will be changed during the call.
-
-			for mode = left/merge/mid/side/right
-				newVals is a complex vector of floats of size
-			for mode = separate, mid&side
-				newVals is a complex vector of floats of size * 2
-				newVals[n * 2 + 0] = lreal
-				newVals[n * 2 + 1] = limag
-				newVals[n * 2 + size + 0] = rreal
-				newVals[n * 2 + size + 1] = rimag
-			for mode = phase
-				newVals[n * 2 + 0] = mag
-				newVals[n * 2 + 1] = phase cancellation (with 1 being totally cancelled)
-
-	*/
-	template<class Scalar, class V2>
-		void mapAndTransformDFTFilters(ChannelConfiguration type, UComplexFilter<Scalar> * __RESTRICT__ oldVals,
-			const V2 & newVals, UComplexFilter<Scalar> * __RESTRICT__ output, std::size_t size,
-			float lowDbs, float highDbs, float clip, cpl::CPeakFilter<Scalar> filter)
+	template<class V2>
+		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip)
 		{
 
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
-			auto deltaYRecip = static_cast<Scalar>(1.0 / log(upperFraction / lowerFraction));
-			auto minFracRecip = static_cast<Scalar>(1.0 / lowerFraction);
-			auto halfRecip = Scalar(0.5);
+			auto deltaYRecip = static_cast<fpoint>(1.0 / log(upperFraction / lowerFraction));
+			auto minFracRecip = static_cast<fpoint>(1.0 / lowerFraction);
+			auto halfRecip = fpoint(0.5);
 
-			Scalar lowerClip = (Scalar)clip;
+			fpoint lowerClip = (fpoint)clip;
 
 			switch (type)
 			{
@@ -689,19 +605,23 @@ namespace Signalizer
 					// mag = abs(cmplx)
 					auto magnitude = sqrt(newReal * newReal + newImag * newImag);
 
-					oldVals[i].magnitude *= filter.pole;
 
-					if (magnitude > oldVals[i].magnitude)
+					for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 					{
-						oldVals[i].magnitude = (Scalar)magnitude;
-					} 
-					// log10(y / _min) / log10(_max / _min);
+						lineGraphs[k].states[i].magnitude *= lineGraphs[k].filter.pole;
 
-					auto deltaX = oldVals[i].magnitude * minFracRecip;
-					// deltaX mostly zero here - add simd check
-					auto result = deltaX > 0 ? log(deltaX) * deltaYRecip : lowerClip;
-					output[i].magnitude = (Scalar)result;
-					output[i].phase = 0;
+						if (magnitude > lineGraphs[k].states[i].magnitude)
+						{
+							lineGraphs[k].states[i].magnitude = (fpoint)magnitude;
+						}
+
+						auto deltaX = lineGraphs[k].states[i].magnitude * minFracRecip;
+						// deltaX mostly zero here - add simd check
+						auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
+						lineGraphs[k].results[i].magnitude = (fpoint)result;
+						lineGraphs[k].results[i].phase = 0;
+					}
+
 				}
 				break;
 			}
@@ -720,31 +640,38 @@ namespace Signalizer
 					auto lmag = sqrt(lreal * lreal + limag * limag);
 					auto rmag = sqrt(rreal * rreal + rimag * rimag);
 
-					oldVals[i].leftMagnitude *= filter.pole;
-					oldVals[i].rightMagnitude *= filter.pole;
+					for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+					{
+						lineGraphs[k].states[i].leftMagnitude *= lineGraphs[k].filter.pole;
+						lineGraphs[k].states[i].rightMagnitude *= lineGraphs[k].filter.pole;
 
-					if (lmag > oldVals[i].leftMagnitude)
-					{
-						oldVals[i].leftMagnitude = (Scalar)lmag;
-					} 
-					if (rmag > oldVals[i].rightMagnitude)
-					{
-						oldVals[i].rightMagnitude = (Scalar)rmag;
+						if (lmag > lineGraphs[k].states[i].leftMagnitude)
+						{
+							lineGraphs[k].states[i].leftMagnitude = (fpoint)lmag;
+						}
+						if (rmag > lineGraphs[k].states[i].rightMagnitude)
+						{
+							lineGraphs[k].states[i].rightMagnitude = (fpoint)rmag;
+						}
+						// log10(y / _min) / log10(_max / _min);
+						auto deltaLX = lineGraphs[k].states[i].leftMagnitude * minFracRecip;
+						auto deltaRX = lineGraphs[k].states[i].rightMagnitude * minFracRecip;
+						// deltaX mostly zero here - add simd check
+						auto lResult = deltaLX > 0 ? std::log(deltaLX) * deltaYRecip : lowerClip;
+						auto rResult = deltaRX > 0 ? std::log(deltaRX) * deltaYRecip : lowerClip;
+						lineGraphs[k].results[i].leftMagnitude = (fpoint)lResult;
+						lineGraphs[k].results[i].rightMagnitude = (fpoint)rResult;
 					}
-					// log10(y / _min) / log10(_max / _min);
-					auto deltaLX = oldVals[i].leftMagnitude * minFracRecip;
-					auto deltaRX = oldVals[i].rightMagnitude * minFracRecip;
-					// deltaX mostly zero here - add simd check
-					auto lResult = deltaLX > 0 ? log(deltaLX) * deltaYRecip : lowerClip;
-					auto rResult = deltaRX > 0 ? log(deltaRX) * deltaYRecip : lowerClip;
-					output[i].leftMagnitude = (Scalar)lResult;
-					output[i].rightMagnitude = (Scalar)rResult;
 				}
 				break;
 			}
 			case ChannelConfiguration::Phase:
 			{
-				auto const phaseFilter = std::pow(filter.pole, 0.3);
+				fpoint phaseFilters[LineGraphs::LineEnd];
+
+				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+					phaseFilters[k] = std::pow(lineGraphs[k].filter.pole, 0.3);
+
 				for (cpl::Types::fint_t i = 0; i < size; ++i)
 				{
 
@@ -753,25 +680,29 @@ namespace Signalizer
 					// mag = abs(cmplx)
 
 					mag *= halfRecip;
-					oldVals[i].magnitude *= filter.pole;
 
-					if (mag > oldVals[i].magnitude)
+					for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 					{
-						oldVals[i].magnitude = (Scalar)mag;
-					} 
-					phase *= mag;
+						lineGraphs[k].states[i].magnitude *= lineGraphs[k].filter.pole;
 
-					oldVals[i].phase = phase + phaseFilter * (oldVals[i].phase - phase);
+						if (mag > lineGraphs[k].states[i].magnitude)
+						{
+							lineGraphs[k].states[i].magnitude = (fpoint)mag;
+						}
+						phase *= mag;
+
+						lineGraphs[k].states[i].phase = phase + phaseFilters[k] * (lineGraphs[k].states[i].phase - phase);
 
 
-					// log10(y / _min) / log10(_max / _min);
-					// deltaX mostly zero here - add simd check
-					auto deltaX = oldVals[i].magnitude * minFracRecip;
-					auto deltaY = oldVals[i].phase * minFracRecip;
-					// deltaX mostly zero here - add simd check
-					auto result = deltaX > 0 ? log(deltaX) * deltaYRecip : lowerClip;
-					output[i].magnitude = (Scalar)result;
-					output[i].phase = (Scalar)(deltaY > 0 ? log(deltaY) * deltaYRecip : lowerClip);
+						// log10(y / _min) / log10(_max / _min);
+						// deltaX mostly zero here - add simd check
+						auto deltaX = lineGraphs[k].states[i].magnitude * minFracRecip;
+						auto deltaY = lineGraphs[k].states[i].phase * minFracRecip;
+						// deltaX mostly zero here - add simd check
+						auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
+						lineGraphs[k].results[i].magnitude = (fpoint)result;
+						lineGraphs[k].results[i].phase = (fpoint)(deltaY > 0 ? std::log(deltaY) * deltaYRecip : lowerClip);
+					}
 				}
 				break;
 			}
@@ -784,17 +715,17 @@ namespace Signalizer
 		void CSpectrum::postProcessTransform(const InVector & transform, std::size_t size)
 		{
 			auto const & dbRange = getDBs();
-			if (size > filterStates.size())
+			if (size > (std::size_t)getNumFilters())
 				CPL_RUNTIME_EXCEPTION("Incompatible incoming transform size.");
-			mapAndTransformDFTFilters<fpoint>(state.configuration, filterStates.data(), transform, filterResults.data(), size, dbRange.low, dbRange.high, kMinDbs, peakFilter);
+			mapAndTransformDFTFilters(state.configuration, transform, size, dbRange.low, dbRange.high, kMinDbs);
 		}
 
 	void CSpectrum::postProcessStdTransform()
 	{
 		if (state.algo == TransformAlgorithm::FFT)
-			postProcessTransform(getWorkingMemory<fftType>(), filterStates.size());
+			postProcessTransform(getWorkingMemory<fftType>(), getNumFilters());
 		else
-			postProcessTransform(getWorkingMemory<fpoint>(), filterStates.size());
+			postProcessTransform(getWorkingMemory<fpoint>(), getNumFilters());
 	}
 
 	std::size_t CSpectrum::mapToLinearSpace()

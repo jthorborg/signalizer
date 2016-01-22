@@ -237,7 +237,8 @@ namespace Signalizer
 		// starting from a clean slate?
 		CPL_DEBUGCHECKGL();
 
-		peakFilter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
+		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
 		bool lineTransformReady = false;
 
@@ -313,12 +314,14 @@ namespace Signalizer
 		void CSpectrum::renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
+			auto pW = oglImage.getWidth();
+			if (!pW)
+				return;
 
 			if (!state.isFrozen)
 			{
 
-
-				framePixelPosition %= (getWidth());
+				framePixelPosition %= pW;
 				double bufferSmoothing = state.bufferSmoothing;
 				auto approximateFrames = getApproximateStoredFrames();
 				/*if (approximateFrames == 0)
@@ -338,15 +341,14 @@ namespace Signalizer
 
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
-						ColourScale2<numSpectrumColours + 1, 4>(columnUpdate.data() + i, filterResults[i].magnitude, state.colourSpecs, state.normalizedSpecRatios);
-						//ColorScale(&columnUpdate[i * 4], filterResults[i].magnitude);
+						ColourScale2<numSpectrumColours + 1, 4>(columnUpdate.data() + i, lineGraphs[LineGraphs::LineMain].results[i].magnitude, state.colourSpecs, state.normalizedSpecRatios);
 					}
 					//CPL_DEBUGCHECKGL();
 					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
 					//CPL_DEBUGCHECKGL();
 
 					framePixelPosition++;
-					framePixelPosition %= (getWidth());
+					framePixelPosition %= pW;
 				}
 			}
 
@@ -355,8 +357,8 @@ namespace Signalizer
 			{
 				cpl::OpenGLEngine::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
 
-				imageDrawer.drawCircular((float)((double)(framePixelPosition) / (getWidth() - 1)));
-
+				imageDrawer.drawCircular((float)((double)(framePixelPosition) / (pW - 1)));
+				
 			}
 
 			CPL_DEBUGCHECKGL();
@@ -405,35 +407,39 @@ namespace Signalizer
 	{
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		int points = getAxisPoints() - 1;
-		switch (state.configuration)
+
+		for (std::size_t k = 0; k < LineGraphs::LineEnd; ++k)
 		{
-		case ChannelConfiguration::MidSide:
-		case ChannelConfiguration::Phase:
-		case ChannelConfiguration::Separate:
-		{
-			OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-			lineDrawer.addColour(state.colourTwo);
-			for (int i = 0; i < (points + 1); ++i)
+			switch (state.configuration)
 			{
-				lineDrawer.addVertex((float(i) / points) * 2 - 1, filterResults[i].rightMagnitude * 2 - 1, -0.5);
-			}
-		}
-		// (fall-through intentional)
-		case ChannelConfiguration::Left:
-		case ChannelConfiguration::Right:
-		case ChannelConfiguration::Merge:
-		case ChannelConfiguration::Side:
-		case ChannelConfiguration::Complex:
-		{
-			OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-			lineDrawer.addColour(state.colourOne);
-			for (int i = 0; i < (points + 1); ++i)
+			case ChannelConfiguration::MidSide:
+			case ChannelConfiguration::Phase:
+			case ChannelConfiguration::Separate:
 			{
-				lineDrawer.addVertex((float(i) / points) * 2 - 1, filterResults[i].leftMagnitude * 2 - 1, 0);
+				OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
+				lineDrawer.addColour(state.colourTwo[k]);
+				for (int i = 0; i < (points + 1); ++i)
+				{
+					lineDrawer.addVertex((float(i) / points) * 2 - 1, lineGraphs[k].results[i].rightMagnitude * 2 - 1, -0.5);
+				}
 			}
-		}
-		default:
-			break;
+			// (fall-through intentional)
+			case ChannelConfiguration::Left:
+			case ChannelConfiguration::Right:
+			case ChannelConfiguration::Merge:
+			case ChannelConfiguration::Side:
+			case ChannelConfiguration::Complex:
+			{
+				OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
+				lineDrawer.addColour(state.colourOne[k]);
+				for (int i = 0; i < (points + 1); ++i)
+				{
+					lineDrawer.addVertex((float(i) / points) * 2 - 1, lineGraphs[k].results[i].leftMagnitude * 2 - 1, 0);
+				}
+			}
+			default:
+				break;
+			}
 		}
 		// render grid
 		{

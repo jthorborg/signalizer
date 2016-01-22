@@ -119,6 +119,7 @@ namespace Signalizer
 		filters(),
 		kpresets(this, "vectorscope")
 	{
+		mtFlags.firstRun = true;
 		state.secondStereoFilterSpeed = 0.25f;
 		state.doStereoMeasurements = true;
 		setOpaque(true);
@@ -285,16 +286,26 @@ namespace Signalizer
 
 	void CVectorScope::handleFlagUpdates()
 	{
+		bool firstRun = false;
+
+		if (mtFlags.firstRun.cas())
+		{
+			firstRun = true;
+		}
+
 		if (mtFlags.audioWindowWasResized.cas())
 		{
-			const juce::MessageManagerLock lock;
+			if (!firstRun)
+			{
+				const juce::MessageManagerLock lock;
 
-			auto capacity = audioStream.getAudioHistoryCapacity();
-			if (capacity == 0)
-				kwindow.bSetInternal(0);
-			else
-				kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
-			kwindow.bRedraw();
+				auto capacity = audioStream.getAudioHistoryCapacity();
+				if (capacity == 0)
+					kwindow.bSetInternal(0);
+				else
+					kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+				kwindow.bRedraw();
+			}
 		}
 
 	}
@@ -489,8 +500,20 @@ ktransform.syncEditor();
 	{
 		if (ctrl == &kwindow)
 		{
-			auto bufLength = cpl::Math::round<std::size_t>(ctrl->bGetValue() * audioStream.getAudioHistoryCapacity());
-			audioStream.setAudioHistorySize(bufLength);
+			std::function<void(void)> retryResize = [&]()
+			{
+				auto currentCapacity = audioStream.getAudioHistoryCapacity();
+				if (currentCapacity > 0)
+				{
+					auto bufLength = cpl::Math::round<std::size_t>(kwindow.bGetValue() * audioStream.getAudioHistoryCapacity());
+					audioStream.setAudioHistorySize(bufLength);
+				}
+				else
+				{
+					cpl::GUIUtils::FutureMainEvent(200, retryResize, this);
+				}
+			};
+			retryResize();
 			return;
 		}
 		else if (ctrl == &kenvelopeMode)

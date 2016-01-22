@@ -21,7 +21,7 @@ namespace Signalizer
 	const double CSpectrum::kMinDbs = -24 * 16;
 	// the maximum level of dbs to display
 	const double CSpectrum::kMaxDbs = 24 * 4;
-
+	const double StretchMax = 20;
 	const double CSpectrum::minDBRange = 3.0;
 
 	std::unique_ptr<juce::Component> CSpectrum::createEditor()
@@ -42,8 +42,16 @@ namespace Signalizer
 				section->addControl(&khighDbs, 0);
 				section->addControl(&kblobSize, 0);
 				section->addControl(&kwindowSize, 1);
-				section->addControl(&kdecayRate, 0);
-				section->addControl(&kpctForDivision, 1);
+				section->addControl(&kpctForDivision, 0);
+				section->addControl(&kspectrumStretching, 1);
+				page->addSection(section);
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+				{
+					section->addControl(&klines[i].decay, i & 1);
+				}
 				page->addSection(section);
 			}
 		}
@@ -70,16 +78,19 @@ namespace Signalizer
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&kline1Colour, 0);
-				section->addControl(&kline2Colour, 1);
 				section->addControl(&kgridColour, 0);
 				section->addControl(&kbackgroundColour, 1);
+				for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+				{
+					section->addControl(&klines[i].colourOne, 0);
+					section->addControl(&klines[i].colourTwo, 1);
+				}
 				page->addSection(section);
 			}
 
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				for (int i = 0; i < ArraySize(kspecColours); ++i)
+				for (std::size_t i = 0; i < ArraySize(kspecColours); ++i)
 				{
 					section->addControl(&kspecColours[i], 0);
 					section->addControl(&kspecRatios[i], 1);
@@ -142,6 +153,8 @@ namespace Signalizer
 		listenToSource(stream);
 
 		state.minLogFreq = 10;
+
+		newc.stretch = 1;
 
 		//setWindowSize(200);
 
@@ -238,13 +251,10 @@ namespace Signalizer
 		klowDbs.bAddChangeListener(this);
 		khighDbs.bAddChangeListener(this);
 		kdspWin.bAddPassiveChangeListener(this);
-		kdecayRate.bAddPassiveChangeListener(this);
 		kwindowSize.bAddPassiveChangeListener(this);
-		kline1Colour.bAddPassiveChangeListener(this);
-		kline2Colour.bAddPassiveChangeListener(this);
+		kspectrumStretching.bAddPassiveChangeListener(this);
 		kgridColour.bAddPassiveChangeListener(this);
 		kpctForDivision.bAddPassiveChangeListener(this);
-		kdspWindow.bAddPassiveChangeListener(this);
 		kblobSize.bAddPassiveChangeListener(this);
 		kbackgroundColour.bAddPassiveChangeListener(this);
 		kframeUpdateSmoothing.bAddPassiveChangeListener(this);
@@ -263,29 +273,28 @@ namespace Signalizer
 
 		// ------- formatters -------
 		kwindowSize.bAddFormatter(this);
-		kdecayRate.bAddFormatter(this);
 		klowDbs.bAddFormatter(this);
 		khighDbs.bAddFormatter(this);
 		kblobSize.bAddFormatter(this);
 		kframeUpdateSmoothing.bAddFormatter(this);
+		kspectrumStretching.bAddFormatter(this);
 		// ------ titles -----------
 		kviewScaling.bSetTitle("Graph scale");
 		kalgorithm.bSetTitle("Transform algorithm");
 		kchannelConfiguration.bSetTitle("Channel configuration");
 		kdisplayMode.bSetTitle("Display mode");
-		kdspWindow.bSetTitle("Window kernel");
 		kframeUpdateSmoothing.bSetTitle("Upd. smoothing");
 		kbinInterpolation.bSetTitle("Bin interpolation");
 		klowDbs.bSetTitle("Lower limit");
 		khighDbs.bSetTitle("Upper limit");
 		kwindowSize.bSetTitle("Window size");
-		kdecayRate.bSetTitle("Filter decay rate");
 		kfreeQ.bSetTitle("Unbound Q");
 		kdiagnostics.bSetTitle("Diagnostics");
 		kdiagnostics.setToggleable(true);
 		kfreeQ.setToggleable(true);
-		kline1Colour.bSetTitle("Graph 1 colour");
-		kline2Colour.bSetTitle("Graph 2 colour");
+		kspectrumStretching.bSetTitle("Spectrum stretch");
+
+
 		kgridColour.bSetTitle("Grid colour");
 		kbackgroundColour.bSetTitle("Background colour");
 
@@ -307,15 +316,11 @@ namespace Signalizer
 		kalgorithm.bSetDescription("Select the algorithm used for transforming the incoming audio data.");
 		kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
 		kdisplayMode.bSetDescription("Select how the information is displayed; line graphs are updated each frame while the colour spectrum maintains the previous history.");
-		kdspWindow.bSetDescription("The window function describes a kernel applied to the input signal that alters the spectral leakage, through controlling the ratio between main lobe width and side-lobes.");
 		kbinInterpolation.bSetDescription("Choice of interpolation for transform algorithms that produce a discrete set of values instead of an continuous function.");
 		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 		klowDbs.bSetDescription("The lower limit of the displayed dynamic range.");
 		khighDbs.bSetDescription("The upper limit of the displayed dynamic range");
 		kwindowSize.bSetDescription("The window size of the audio data, affects time/frequency resolution.");
-		kdecayRate.bSetDescription("Allows the filters to decay more slowly, but still reacting to peaks.");
-		kline1Colour.bSetDescription("The colour of the first graph.");
-		kline2Colour.bSetDescription("The colour of the second graph.");
 		kgridColour.bSetDescription("The colour of the dB/frequency grid.");
 		kbackgroundColour.bSetDescription("The colour of the background.");
 		kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
@@ -323,6 +328,37 @@ namespace Signalizer
 		kframeUpdateSmoothing.bSetDescription("Reduces jitter in spectrum updates at the (possible) expense of higher graphical latency.");
 		kfreeQ.bSetDescription("Frees the quality factor from being bounded by the window size for transforms that support it. "
 			"Although it (possibly) makes response time slower, it also makes the time/frequency resolution exact, and is a choice for analyzing static material.");
+		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous.");
+
+
+		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
+		klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
+
+		klines[LineGraphs::LineMain].colourOne.bSetTitle("Graph 1 colour");
+		klines[LineGraphs::LineMain].colourTwo.bSetTitle("Graph 2 colour");
+		klines[LineGraphs::LineMain].colourOne.bAddPassiveChangeListener(this);
+		klines[LineGraphs::LineMain].colourTwo.bAddPassiveChangeListener(this);
+
+
+		klines[LineGraphs::LineMain].decay.bSetTitle("Main decay");
+		klines[LineGraphs::LineMain].decay.bSetDescription("Decay rate of the main graph channels; allows the graph to decay more slowly, but still reacting to peaks.");
+		klines[LineGraphs::LineMain].decay.bAddPassiveChangeListener(this);
+		klines[LineGraphs::LineMain].decay.bAddFormatter(this);
+
+		for (std::size_t i = LineGraphs::LineMain + 1; i < LineGraphs::LineEnd; ++i)
+		{
+			auto graphNumber = std::to_string(i);
+			klines[i].colourOne.bSetTitle("Aux 1 colour");
+			klines[i].colourTwo.bSetTitle("Aux 2 colour");
+			klines[i].colourOne.bAddPassiveChangeListener(this);
+			klines[i].colourTwo.bAddPassiveChangeListener(this);
+			klines[i].decay.bAddPassiveChangeListener(this);
+			klines[i].decay.bAddFormatter(this);
+			klines[i].decay.bSetTitle("Aux " + graphNumber + " decay");
+			klines[i].decay.bSetDescription("Decay rate of auxillary graph " + graphNumber + " channels; allows the graph to decay more slowly, but still reacting to peaks.");
+			klines[i].colourOne.bSetDescription("The colour of the first channel of auxillary graph " + graphNumber + ".");
+			klines[i].colourTwo.bSetDescription("The colour of the second channel of auxillary graph " + graphNumber + ".");
+		}
 
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
@@ -333,14 +369,18 @@ namespace Signalizer
 		archive << kalgorithm;
 		archive << kchannelConfiguration;
 		archive << kdisplayMode;
-		archive << kdspWindow; // TODO: Remove 
 		archive << khighDbs;
 		archive << klowDbs;
-		archive << kdecayRate;
 		archive << kwindowSize;
 		archive << kpctForDivision;
-		archive << kline1Colour;
-		archive << kline2Colour;
+
+		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+		{
+			archive << klines[i].colourOne;
+			archive << klines[i].colourTwo;
+			archive << klines[i].decay;
+		}
+
 		archive << kgridColour;
 		archive << kblobSize;
 		archive << kbackgroundColour;
@@ -356,6 +396,7 @@ namespace Signalizer
 		archive << state.viewRect;
 		archive << kdspWin;
 		archive << kfreeQ;
+		archive << kspectrumStretching;
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -366,15 +407,19 @@ namespace Signalizer
 			builder >> kalgorithm;
 			builder >> kchannelConfiguration;
 			builder >> kdisplayMode;
-			builder >> kdspWindow; // TODO: Remove
 			// set high first, so low isn't capped
 			builder >> khighDbs;
 			builder >> klowDbs;
-			builder >> kdecayRate;
 			builder >> kwindowSize;
 			builder >> kpctForDivision;
-			builder >> kline1Colour;
-			builder >> kline2Colour;
+
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			{
+				builder >> klines[i].colourOne;
+				builder >> klines[i].colourTwo;
+				builder >> klines[i].decay;
+			}
+
 			builder >> kgridColour;
 			builder >> kblobSize;
 			builder >> kbackgroundColour;
@@ -389,6 +434,7 @@ namespace Signalizer
 			builder >> state.viewRect;
 			builder >> kdspWin;
 			builder >> kfreeQ;
+			builder >> kspectrumStretching;
 		}
 		catch (std::exception & e)
 		{
@@ -533,11 +579,8 @@ namespace Signalizer
 	{
 		using namespace cpl;
 
-		if (ctrl == &kdecayRate)
-		{
-			peakFilter.setDecayAsFraction(ctrl->bGetValue(), 0.1);
-		}
-		else if (ctrl == &kviewScaling)
+
+		if (ctrl == &kviewScaling)
 		{
 			state.viewScale = kviewScaling.getZeroBasedSelIndex<ViewScaling>();
 			flags.viewChanged = true;
@@ -555,7 +598,19 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			setWindowSize(cpl::Math::round<std::size_t>(ctrl->bGetValue() * audioStream.getAudioHistoryCapacity()));
+			std::function<void(void)> retryResize = [&]() 
+			{
+				auto currentCapacity = audioStream.getAudioHistoryCapacity();
+				if (currentCapacity > 0)
+				{
+					setWindowSize(cpl::Math::round<std::size_t>(kwindowSize.bGetValue() * currentCapacity));
+				}
+				else
+				{
+					GUIUtils::FutureMainEvent(200, retryResize, this);
+				}
+			};
+			retryResize();
 		}
 		else if (ctrl == &kpctForDivision)
 		{
@@ -565,18 +620,9 @@ namespace Signalizer
 		}
 		else if (ctrl == &kalgorithm)
 		{
-			// TODO: synchronize any concurrent async frame postings with opengl
-			// linegraph rendering.
 			state.algo = kalgorithm.getZeroBasedSelIndex<TransformAlgorithm>();
+			flags.resetStateBuffers = true;
 			setTransformOptions();
-		}
-		else if (ctrl == &kline1Colour)
-		{
-			state.colourOne = kline1Colour.getControlColourAsColour();
-		}
-		else if (ctrl == &kline2Colour)
-		{
-			state.colourTwo = kline2Colour.getControlColourAsColour();
 		}
 		else if (ctrl == &kgridColour)
 		{
@@ -609,6 +655,11 @@ namespace Signalizer
 			cresonator.setFreeQ(kfreeQ.bGetBoolState());
 			flags.windowKernelChange = true;
 		}
+		else if (ctrl == &kspectrumStretching)
+		{
+			newc.stretch.store(cpl::Math::UnityScale::linear(ctrl->bGetValue(), 1.0, StretchMax), std::memory_order_release);
+			flags.resized = true;
+		}
 		else
 		{
 			for (int i = 0; i < numSpectrumColours; ++i)
@@ -616,13 +667,29 @@ namespace Signalizer
 				if (ctrl == (kspecColours + i))
 				{
 					state.colourSpecs[i + 1] = kspecColours[i].getControlColourAsColour();
-					break;
+					return;
 				}
 				else if (ctrl == (kspecRatios + i))
 				{
 					// one ratio change affects the normalization, so recalculate all:
 					calculateSpectrumColourRatios();
-					break;
+					return;
+				}
+			}
+
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			{
+				if (ctrl == &klines[i].colourOne)
+				{
+					state.colourOne[i] = klines[i].colourOne.getControlColourAsColour(); break;
+				}
+				else if	(ctrl == &klines[i].colourTwo)
+				{
+					state.colourTwo[i] = klines[i].colourTwo.getControlColourAsColour(); break;
+				}
+				else if (ctrl == &klines[i].decay)
+				{
+					lineGraphs[i].filter.setDecayAsFraction(ctrl->bGetValue(), 0.1); break;
 				}
 			}
 		}
@@ -684,7 +751,11 @@ namespace Signalizer
 			// need to repaint low dbs, in case it got changed:
 			auto newVal = cpl::Math::UnityScale::Inv::linear(actualDbs.low, kMinDbs, kMaxDbs);
 			if (newVal != klowDbs.bGetValue())
+			{
 				klowDbs.bSetInternal(cpl::Math::UnityScale::Inv::linear(actualDbs.low, kMinDbs, kMaxDbs));
+				klowDbs.bRedraw();
+			}
+
 
 		}
 
@@ -703,7 +774,7 @@ namespace Signalizer
 			CPL_RUNTIME_EXCEPTION("Function is NOT reentrant!");
 
 		flags.internalFlagHandlerRunning = true;
-
+		bool firstRun = false;
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
@@ -727,12 +798,14 @@ namespace Signalizer
 			audioLock.acquire(audioResource);
 			state.displayMode = newc.displayMode.load(std::memory_order_acquire);
 			flags.resized = true;
+			flags.resetStateBuffers = true;
 		}
 
 		std::size_t axisPoints = state.displayMode == DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
 		{
+			audioLock.acquire(audioResource);
 			flags.resized = true;
 			state.axisPoints = state.numFilters = axisPoints;
 		}
@@ -749,6 +822,7 @@ namespace Signalizer
 		{
 			framesPerUpdate = getOptimalFramesPerUpdate();
 			flags.audioWindowWasResized = true;
+			firstRun = true;
 		}
 
 		if (flags.initiateWindowResize.cas())
@@ -761,13 +835,20 @@ namespace Signalizer
 		{
 			audioLock.acquire(audioResource);
 			// TODO: rework this shit.
-			const juce::MessageManagerLock lock;
+
 			auto current = audioStream.getAudioHistorySize();
 			auto capacity = audioStream.getAudioHistoryCapacity();
-			if (capacity == 0)
-				kwindowSize.bSetInternal(0);
-			else
-				kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+
+			if (!firstRun)
+			{
+				const juce::MessageManagerLock lock;
+
+				if (capacity == 0)
+					kwindowSize.bSetInternal(0);
+				else
+					kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+			}
+
 			kwindowSize.bRedraw();
 
 			state.windowSize = getValidWindowSize(current);
@@ -796,15 +877,20 @@ namespace Signalizer
 		if (flags.resized.cas())
 		{
 			audioLock.acquire(audioResource);
-			filterResults.resize(numFilters);
-			filterStates.resize(numFilters);
+
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			{
+				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
+			}
+
+
 			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
 
 			columnUpdate.resize(getHeight());
 			// avoid doing it twice.
 			if (!glImageHasBeenResized)
 			{
-				oglImage.resize(getWidth(), getHeight(), true);
+				oglImage.resize(std::max(1u, cpl::Math::round<std::size_t>(getWidth() / newc.stretch.load(std::memory_order_acquire))), getHeight(), true);
 				glImageHasBeenResized = true;
 			}
 
@@ -864,6 +950,9 @@ namespace Signalizer
 
 			oldViewRect = state.viewRect;
 
+			audioLock.acquire(audioResource);
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+				lineGraphs[i].zero();
 		}
 
 		if (remapFrequencies)
@@ -959,8 +1048,8 @@ namespace Signalizer
 		{
 			audioLock.acquire(audioResource);
 			cresonator.resetState();
-			std::memset(filterStates.data(), 0, filterStates.size() * sizeof(UComplex));
-			std::memset(filterResults.data(), 0, filterResults.size() * sizeof(UComplex));
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+				lineGraphs[i].zero();
 			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
 			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
 		}
@@ -995,12 +1084,6 @@ namespace Signalizer
 			buffer = buf;
 			return true;
 		}
-		else if (ctrl == &kdecayRate)
-		{
-			sprintf_s(buf, "%.2f dB/s", 20 * std::log10(value));
-			buffer = buf;
-			return true;
-		}
 		else if (ctrl == &kwindowSize)
 		{
 			auto bufLength = cpl::Math::round<int>(value * audioStream.getAudioHistoryCapacity());
@@ -1020,6 +1103,24 @@ namespace Signalizer
 			buffer = buf;
 			return true;
 		}
+		else if (ctrl == &kspectrumStretching)
+		{
+			sprintf_s(buf, "%.2fx", cpl::Math::UnityScale::linear(ctrl->bGetValue(), 1.0, StretchMax));
+			buffer = buf;
+			return true;
+		}
+		else
+		{
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			{
+				if (ctrl == &klines[i].decay)
+				{
+					sprintf_s(buf, "%.2f dB/s", 20 * std::log10(value));
+					buffer = buf;
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 
@@ -1036,15 +1137,6 @@ namespace Signalizer
 				value = cpl::Math::UnityScale::Inv::linear(cpl::Math::confineTo(newVal, kMinDbs, kMaxDbs), kMinDbs, kMaxDbs);
 				return true;
 			}
-		}
-		else if (ctrl == &kdecayRate)
-		{
-			if (cpl::lexicalConversion(buffer, newVal))
-			{
-				value = cpl::Math::confineTo(std::pow(10, newVal / 20), 0.0, 1.0);
-				return true;
-			}
-			
 		}
 		else if (ctrl == &kwindowSize)
 		{
@@ -1077,8 +1169,30 @@ namespace Signalizer
 		{
 			if (cpl::lexicalConversion(buffer, newVal))
 			{
-				value = Math::UnityScale::Inv::linear(Math::confineTo(value, 0.0, 1.0), 0.0, 0.996);
+				value = Math::UnityScale::Inv::linear(Math::confineTo(newVal, 0.0, 1.0), 0.0, 0.996);
 				return true;
+			}
+		}
+		else if (ctrl == &kspectrumStretching)
+		{
+			if (cpl::lexicalConversion(buffer, newVal))
+			{
+				value = Math::UnityScale::Inv::linear(Math::confineTo(newVal, 1.0, StretchMax), 1.0, StretchMax);
+				return true;
+			}
+		}
+		else
+		{
+			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+			{
+				if (ctrl == &klines[i].decay)
+				{
+					if (cpl::lexicalConversion(buffer, newVal))
+					{
+						value = cpl::Math::confineTo(std::pow(10, newVal / 20), 0.0, 1.0);
+						return true;
+					}
+				}
 			}
 		}
 		return false;

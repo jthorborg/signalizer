@@ -53,6 +53,7 @@
 			void panelOpened(cpl::CTextTabBar<> * obj) override;
 			void panelClosed(cpl::CTextTabBar<> * obj) override;
 			void tabSelected(cpl::CTextTabBar<> * obj, int index) override;
+			void activeTabClicked(cpl::CTextTabBar<> * obj, int index) override;
 			void suspend() override;
 			void resume() override;
 

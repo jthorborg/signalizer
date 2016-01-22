@@ -1498,6 +1498,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\NewStuffAndLook.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\PlatformSpecific.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\promote.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\Protected.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\CDisplaySetup.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\COpenGLImage.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\CSubpixelScanlineRenderer.h" />

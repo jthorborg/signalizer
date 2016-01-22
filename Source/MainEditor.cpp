@@ -37,6 +37,8 @@ namespace Signalizer
 	const static int defaultLength = 700, defaultHeight = 480;
 	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 
+	const static juce::String MainEditorName = "Main Editor Settings";
+
 	const char * ViewIndexToMap[] = 
 	{
 		"Vectorscope",
@@ -135,6 +137,7 @@ namespace Signalizer
 	std::unique_ptr<juce::Component> MainEditor::createEditor()
 	{
 		auto content = new Signalizer::CContentPage();
+		content->setName(MainEditorName);
 		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -249,8 +252,13 @@ namespace Signalizer
 		{
 			editorStack.pop();
 
-			if(tabs.isOpen())
+			if(editorStack.empty() && tabs.isOpen())
 				tabs.closePanel();
+			else
+			{
+				resized();
+				repaint();
+			}
 		}
 	}
 	void MainEditor::clearEditors()
@@ -385,7 +393,13 @@ namespace Signalizer
 			else
 			{
 				// -- remove it
-				popEditor();
+				if (auto editor = getTopEditor())
+				{
+					if (editor->getName() == MainEditorName)
+					{
+						popEditor();
+					}
+				}
 			}
 		}
 		else if (c == &kkiosk)
@@ -448,7 +462,16 @@ namespace Signalizer
 				if (currentView)
 				{
 					currentView->setSwapInterval(1);
-					oglc.setContinuousRepainting(true);
+
+					// this is kind of stupid; the sync setting must be set after the context is created..
+					std::function<void(void)> f = [&]() 
+					{
+						if (oglc.isAttached())
+							oglc.setContinuousRepainting(true);
+						else
+							cpl::GUIUtils::FutureMainEvent(200, f, this);
+					};
+					f();
 				}
 			}
 			else
@@ -537,19 +560,21 @@ namespace Signalizer
 				kmaxHistorySize.indicateError();
 			}
 		}
-		// check if it was one of the colours
-		for (unsigned i = 0; i < colourControls.size(); ++i)
+		else
 		{
-			if (c == &colourControls[i])
+			// check if it was one of the colours
+			for (unsigned i = 0; i < colourControls.size(); ++i)
 			{
-				// change colour and broadcast event.
-				cpl::CLookAndFeel_CPL::defaultLook().getSchemeColour(i).colour = colourControls[i].getControlColourAsColour();
-				cpl::CLookAndFeel_CPL::defaultLook().updateColours();
-				repaint();
+				if (c == &colourControls[i])
+				{
+					// change colour and broadcast event.
+					cpl::CLookAndFeel_CPL::defaultLook().getSchemeColour(i).colour = colourControls[i].getControlColourAsColour();
+					cpl::CLookAndFeel_CPL::defaultLook().updateColours();
+					repaint();
+				}
+
 			}
-
 		}
-
 	}
 
 
@@ -803,6 +828,12 @@ namespace Signalizer
 		selTab = index;
 	}
 
+	void MainEditor::activeTabClicked(cpl::CTextTabBar<>* obj, int index)
+	{
+		ksettings.bSetValue(0);
+
+	}
+
 
 	void MainEditor::addTab(const std::string & name)
 	{
@@ -834,9 +865,30 @@ namespace Signalizer
 		}
 
 		// save any view data
-		for (auto & viewPair : views)			// watch out, or it'll save the std::unique_ptr!
-			data.getKey("Serialized Views").getKey(viewPair.first) << viewPair.second.get();
-			//viewPair.second->save(data.getKey("Serialized Views").getKey(viewPair.first), version);
+
+		// copy old session data
+
+		// walk the list of possible plugins
+		for (auto & viewName : ViewIndexToMap)
+		{		
+			
+			auto viewInstanceIt = views.find(viewName);
+			// see if they're instantiated, in which case
+			if (viewInstanceIt != views.end())
+			{
+				// serialize fresh data - // watch out, or it'll save the std::unique_ptr!
+				data.getKey("Serialized Views").getKey(viewInstanceIt->first) << viewInstanceIt->second.get();
+			}
+			else
+			{
+				// otherwise, see if we have some old session data:
+				auto serializedView = viewSettings.getKey("Serialized Views").getKey(viewName);
+				if (!serializedView.isEmpty())
+				{
+					data.getKey("Serialized Views").getKey(viewName) = serializedView;
+				}
+			}
+		}
 
 	}
 
@@ -1038,8 +1090,9 @@ namespace Signalizer
 
 		kfreeze.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		ksync.setBounds(leftBorder, 1, buttonSize, buttonSize);
-		leftBorder -= elementSize - elementBorder;
+		// TODO: erase ksync entirely
+		/*ksync.setBounds(leftBorder, 1, buttonSize, buttonSize);
+		leftBorder -= elementSize - elementBorder;*/
 		kidle.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kkiosk.setBounds(leftBorder, 1, buttonSize, buttonSize);
@@ -1195,7 +1248,8 @@ namespace Signalizer
 		// add stuff
 		addAndMakeVisible(ksettings);
 		addAndMakeVisible(kfreeze);
-		addAndMakeVisible(ksync);
+		// TODO: erase ksync
+		//addAndMakeVisible(ksync);
 		addAndMakeVisible(kkiosk);
 		addAndMakeVisible(tabs);
 		addAndMakeVisible(kidle);

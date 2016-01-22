@@ -298,6 +298,24 @@
 				T * getAudioMemory();
 
 			/// <summary>
+			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
+			/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
+			/// for mode = left / merge / mid / side / right
+			/// 	newVals is a complex vector of floats of size
+			/// 	for mode = separate, mid&side
+			/// 		newVals is a complex vector of floats of size * 2
+			/// 		newVals[n * 2 + 0] = lreal
+			/// 		newVals[n * 2 + 1] = limag
+			/// 		newVals[n * 2 + size + 0] = rreal
+			/// 		newVals[n * 2 + size + 1] = rimag
+			/// 		for mode = phase
+			/// 			newVals[n * 2 + 0] = mag
+			/// 			newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
+			/// </summary>
+			template<class V2>
+				void mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip);
+
+			/// <summary>
 			/// Returns the number of T elements available in the audio space buffer
 			/// (as returned by getAudioMemory<T>())
 			/// </summary>
@@ -354,6 +372,11 @@
 			template<typename V, class Vector>
 				std::size_t copyResonatorStateInto(Vector & output);
 
+			enum LineGraphs
+			{
+				LineMain, LineSecond, LineEnd
+			};
+
 			// vars
 
 			struct StateOptions
@@ -395,7 +418,7 @@
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourOne, colourTwo, colourGrid, colourBackground;
+				juce::Colour colourGrid, colourBackground, colourOne[LineGraphs::LineEnd], colourTwo[LineGraphs::LineEnd];
 
 				/// <summary>
 				/// Colours for spectrum
@@ -511,10 +534,17 @@
 			/// GUI elements
 			/// </summary>
 			juce::Component * editor;
-			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kdspWindow, kbinInterpolation;
+			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation;
 			cpl::CDSPWindowWidget kdspWin;
-			cpl::CKnobSlider klowDbs, khighDbs, kdecayRate, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing;
-			cpl::CColourControl kline1Colour, kline2Colour, kgridColour, kbackgroundColour;
+			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching;
+			cpl::CColourControl kgridColour, kbackgroundColour;
+
+			struct LineControl
+			{
+				cpl::CKnobSlider decay;
+				cpl::CColourControl colourOne, colourTwo;
+			} klines[LineGraphs::LineEnd];
+
 			cpl::CPresetWidget presetManager;
 			cpl::CButton kdiagnostics, kfreeQ;
 			/// <summary>
@@ -548,6 +578,7 @@
 				std::atomic<std::size_t> windowSize;
 				std::atomic<cpl::iCtrlPrec_t> divLimit;
 				std::atomic<ChannelConfiguration> configuration;
+				std::atomic<cpl::iCtrlPrec_t> stretch;
 			} newc;
 
 			/// <summary>
@@ -565,8 +596,35 @@
 			cpl::CPeakFilter<double> fpuFilter;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
 
+			struct LineGraphDesc
+			{
+				/// <summary>
+				/// The peak filter coefficient, describing the decay rate of the filters.
+				/// </summary>
+				cpl::CPeakFilter<fpoint> filter;
+				/// <summary>
+				/// The'raw' formatted state output of the mapped transform algorithms.
+				/// </summary>
+				cpl::aligned_vector<UComplex, 32> states;
+				/// <summary>
+				/// The decay/peak-filtered and scaled outputs of the transforms,
+				/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
+				/// Resized in displayReordered
+				/// </summary>
+				cpl::aligned_vector<UComplex, 32> results;
 
+				void resize(std::size_t n)
+				{
+					states.resize(n); results.resize(n);
+				}
+
+				void zero() {
+					std::memset(states.data(), 0, states.size() * sizeof(UComplex));
+					std::memset(results.data(), 0, results.size() * sizeof(UComplex));
+				}
+			};
 			// dsp objects
+			std::array<LineGraphDesc, LineGraphs::LineEnd> lineGraphs;
 			/// <summary>
 			/// The complex resonator used for iir spectrums
 			/// </summary>
@@ -580,21 +638,6 @@
 			/// The connected, incoming stream of data.
 			/// </summary>
 			AudioStream & audioStream;
-			/// <summary>
-			/// The peak filter coefficient, describing the decay rate of the filters.
-			/// </summary>
-			cpl::CPeakFilter<float> peakFilter;
-			/// <summary>
-			/// The'raw' formatted state output of the mapped transform algorithms.
-			/// Resized in displayReordered
-			/// </summary>
-			cpl::aligned_vector<UComplexFilter<fpoint>, 32> filterStates;
-			/// <summary>
-			/// The decay/peak-filtered and scaled outputs of the transforms,
-			/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
-			/// Resized in displayReordered
-			/// </summary>
-			cpl::aligned_vector<UComplexFilter<fpoint>, 32> filterResults;
 			/// <summary>
 			/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 			/// </summary>

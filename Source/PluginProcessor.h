@@ -18,6 +18,7 @@
 #include <cpl/CSerializer.h>
 #include <cpl/CViews.h>
 #include "CommonSignalizer.h"
+#include <cpl/gui/CPresetWidget.h>
 
 //==============================================================================
 /**
@@ -82,13 +83,12 @@ public:
     void getStateInformation (MemoryBlock& destData);
     void setStateInformation (const void* data, int sizeInBytes);
 	
-	void onViewConstruction(cpl::CView * view) override;
-	void onViewDestruction(cpl::CView * view) override;
+	void onServerDestruction(cpl::DestructionNotifier * v) override;
 	
 private:
     //==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SignalizerAudioProcessor)
-	cpl::CSerializer serializedData;
+	cpl::CPresetWidget::SerializerType serializedData;
 	Signalizer::MainEditor * editor;
 	Signalizer::AudioStream stream;
 	bool hasDefaultPresetBeenLoaded;
