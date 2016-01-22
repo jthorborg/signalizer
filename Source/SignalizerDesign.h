@@ -354,7 +354,7 @@
 
 		class CDefaultView
 		: 
-			public cpl::CSubView
+			public cpl::COpenGLView
 		{
 		public:
 			CDefaultView()
@@ -366,18 +366,29 @@
 				bouncer.setText("No view selected");
 				bouncer.collision();
 			}
-			void paint(juce::Graphics & g) override
+			void onOpenGLRendering() override
 			{
-				g.setColour(juce::Colours::black);
-				g.fillAll();
+				repaintMainContent2();
+
+				juce::OpenGLHelpers::clear(juce::Colours::black);
 			}
+
+			void onGraphicsRendering(juce::Graphics & g)
+			{
+				if (!isOpenGL())
+				{
+					g.fillAll(juce::Colours::black);
+					repaintMainContent2();
+				}
+			}
+
 			void setSpeed(int msToMoveAPixel)
 			{
 				timerSpeed = msToMoveAPixel;
 			}
 
 
-			void repaintMainContent() override
+			void repaintMainContent2()
 			{
 				// calculate how much we moved
 

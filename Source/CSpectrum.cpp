@@ -328,7 +328,7 @@ namespace Signalizer
 		kframeUpdateSmoothing.bSetDescription("Reduces jitter in spectrum updates at the (possible) expense of higher graphical latency.");
 		kfreeQ.bSetDescription("Frees the quality factor from being bounded by the window size for transforms that support it. "
 			"Although it (possibly) makes response time slower, it also makes the time/frequency resolution exact, and is a choice for analyzing static material.");
-		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous.");
+		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous).");
 
 
 		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");

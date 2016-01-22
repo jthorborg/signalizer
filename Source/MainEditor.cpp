@@ -785,12 +785,17 @@ namespace Signalizer
 			default:
 				break;
 			}
-			if (!view)
-				return;
-			views.emplace(mappedView, std::unique_ptr<cpl::CSubView>(view));
-			auto & key = viewSettings.getKey("Serialized Views").getKey(mappedView);
-			if (!key.isEmpty())
-				view->load(key, key.getMasterVersion());
+			if (view)
+			{
+				views.emplace(mappedView, std::unique_ptr<cpl::CSubView>(view));
+				auto & key = viewSettings.getKey("Serialized Views").getKey(mappedView);
+				if (!key.isEmpty())
+					view->load(key, key.getMasterVersion());
+			}
+			else
+			{
+				view = &defaultView;
+			}
 		}
 		else
 		{
