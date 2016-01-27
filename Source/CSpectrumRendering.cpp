@@ -48,12 +48,14 @@ namespace Signalizer
 			g.setColour(state.colourGrid);
 			const auto & divs = frequencyGraph.getDivisions();
 			const auto & cdivs = complexFrequencyGraph.getDivisions();
+			// text for frequency divisions
 			for (auto & sdiv : divs)
 			{
 				sprintf_s(buf, "%.2f", sdiv.frequency);
 				g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
 
 			}
+			// text for complex frequency divisions
 			if (state.configuration == ChannelConfiguration::Complex)
 			{
 				auto normalizedScaleX = 1.0 / frequencyGraph.getBounds().dist();
@@ -66,12 +68,14 @@ namespace Signalizer
 					g.drawText(buf, getWidth() * (normXC(sdiv.coord) + 1) * 0.5 + 5, 20, 100, 20, juce::Justification::centredLeft);
 				}
 			}
-
+			// text for db divisions
 			for (auto & dbDiv : dbGraph.getDivisions())
 			{
 				sprintf_s(buf, "%.2f", dbDiv.dbVal);
 				g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 			}
+
+			
 
 		}
 		else
@@ -115,6 +119,7 @@ namespace Signalizer
 			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
 		}
 
+		drawFrequencyTracking(g);
 
 		if (kdiagnostics.bGetValue() > 0.5)
 		{
@@ -138,6 +143,319 @@ namespace Signalizer
 			g.drawSingleLineText(text, 10, 20);
 
 		}
+	}
+
+	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
+	{
+		auto graphN = newc.frequencyTrackingGraph.load(std::memory_order_acquire);
+		if (graphN == LineGraphs::None)
+			return;
+
+
+		double
+			mouseFrequency = 0,
+			mouseDBs = 0,
+			peakFrequency = 0,
+			peakDBs = 0,
+			mouseFraction = 0,
+			mouseFractionOrth = 0,
+			peakFraction = 0,
+			peakFractionY = 0,
+			peakX = 0,
+			peakY = 0,
+			mouseX = 0,
+			mouseY = 0,
+			adjustedScallopLoss = scallopLoss,
+			peakDeviance = 0,
+			sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_relaxed),
+			maxFrequency = sampleRate / 2;
+
+		bool frequencyIsComplex = false;
+
+		char buf[1000];
+
+		double viewSize = state.viewRect.dist();
+
+		if (state.displayMode == DisplayMode::LineGraph)
+		{
+			mouseX = cmouse.x.load(std::memory_order_acquire);
+			mouseY = cmouse.y.load(std::memory_order_acquire);
+
+
+			g.drawLine(static_cast<float>(mouseX), 0, static_cast<float>(mouseX), getHeight(), 1);
+			g.drawLine(0, static_cast<float>(mouseY), getWidth(), static_cast<float>(mouseY), 1);
+
+			mouseFraction = mouseX / (getWidth() - 1);
+			mouseFractionOrth = mouseY / (getHeight() - 1);
+
+			if (state.viewScale == ViewScaling::Logarithmic)
+			{
+				if (state.configuration != ChannelConfiguration::Complex)
+				{
+					mouseFrequency = state.minLogFreq * std::pow(maxFrequency / state.minLogFreq, state.viewRect.left + viewSize * mouseFraction);
+				}
+				else
+				{
+					auto arg = state.viewRect.left + viewSize * mouseFraction;
+					if(arg < 0.5)
+						mouseFrequency = state.minLogFreq * std::pow(maxFrequency / state.minLogFreq, arg * 2);
+					else
+					{
+						arg -= 0.5;
+						auto power = state.minLogFreq * std::pow(maxFrequency / state.minLogFreq, 1.0 - arg * 2);
+						mouseFrequency = power;
+						frequencyIsComplex = true;
+					}
+				}
+			}
+			else
+			{
+				auto arg = state.viewRect.left + viewSize * mouseFraction;
+				if (state.configuration != ChannelConfiguration::Complex)
+				{
+					mouseFrequency = arg * maxFrequency;
+				}
+				else
+				{
+					if (arg < 0.5)
+					{
+						mouseFrequency = 2 * arg * maxFrequency;
+					}
+					else
+					{
+						arg -= 0.5;
+						mouseFrequency = (1.0 - arg * 2) * maxFrequency;
+						frequencyIsComplex = true;
+					}
+				}
+			}
+
+			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, getDBs().high, getDBs().low); // y coords are flipped..
+		}
+		else
+		{
+			// ?
+		}
+
+		mouseFraction = cpl::Math::confineTo(mouseFraction, 0, 1);
+
+		// calculate nearest peak
+		double const nearbyFractionToConsider = 0.03;
+
+		auto precisionError = 0.001;
+		auto interpolationError = 0.01;
+
+		// TODO: these special cases can be handled (on a rainy day)
+		if (state.configuration == ChannelConfiguration::Complex || !(state.algo == TransformAlgorithm::FFT && graphN == LineGraphs::Transform))
+		{
+
+			if (graphN == LineGraphs::Transform)
+				graphN = LineGraphs::LineMain;
+
+			auto & results = lineGraphs[graphN].results;
+			auto N = results.size();
+			auto pivot = cpl::Math::round<std::size_t>(N * mouseFraction);
+			auto range = cpl::Math::round<std::size_t>(N * nearbyFractionToConsider);
+
+			auto lowerBound = range > pivot ? 0 : pivot - range;
+			auto higherBound = range + pivot > N ? N : range + pivot;
+
+			auto peak = std::max_element(results.begin() + lowerBound, results.begin() + higherBound, 
+				[](auto & left, auto & right) { return left.leftMagnitude < right.leftMagnitude; });
+
+			// scan for continuously rising peaks at boundaries
+			if (peak == results.begin() + lowerBound && lowerBound != 0)
+			{
+				while (true)
+				{
+					auto nextPeak = peak - 1;
+					if (nextPeak == results.begin())
+						break;
+					else if (nextPeak->leftMagnitude < peak->leftMagnitude)
+						break;
+					else
+						peak = nextPeak;
+				}
+			}
+			else if (peak == results.begin() + (higherBound - 1))
+			{
+				while (true)
+				{
+					auto nextPeak = peak + 1;
+					if (nextPeak == results.end())
+						break;
+					else if (nextPeak->leftMagnitude < peak->leftMagnitude)
+						break;
+					else
+						peak = nextPeak;
+				}
+			}
+
+			auto peakOffset = std::distance(results.begin(), peak);
+
+			// interpolate using a parabolic fit
+			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
+
+			peakFrequency = mappedFrequencies[peakOffset];
+
+
+			auto offsetIsEnd = peakOffset == mappedFrequencies.size() - 1;
+			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
+
+			if (state.algo == TransformAlgorithm::FFT)
+			{
+				// non-smooth interpolations suffer from peak detection losses
+				if(state.binPolation != BinInterpolation::Lanczos)
+					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
+			}
+
+			peakX = peakOffset;
+			peakFractionY = results[peakOffset].leftMagnitude;
+			peakY = getHeight() - peakFractionY * getHeight();
+
+			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, getDBs().low, getDBs().high);
+
+			adjustedScallopLoss = 20 * std::log10(scallopLoss - precisionError * 0.1);
+
+		}
+		else
+		{
+			// search the original FFT
+			auto N = getFFTSpace<std::complex<fftType>>();
+			auto points = getNumFilters();
+			auto lowerBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction - nearbyFractionToConsider));
+			lowerBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(lowerBound, 0, points - 1)] / sampleRate));
+			auto higherBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction + nearbyFractionToConsider));
+			higherBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(higherBound, 0, points - 1)] / sampleRate));
+
+			lowerBound = cpl::Math::confineTo(lowerBound, 0, N);
+			higherBound = cpl::Math::confineTo(higherBound, 0, N);
+
+			auto source = getAudioMemory<std::complex<fftType>>();
+
+			auto peak = std::max_element(source + lowerBound, source + higherBound, 
+				[](auto & left, auto & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
+
+			// scan for continuously rising peaks at boundaries
+			if (peak == source + lowerBound && lowerBound != 0)
+			{
+				while (true)
+				{
+					auto nextPeak = peak - 1;
+					if (nextPeak == source)
+						break;
+					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
+						break;
+					else
+						peak = nextPeak;
+				}
+			}
+			else if (peak == source + (higherBound - 1))
+			{
+				while (true)
+				{
+					auto nextPeak = peak + 1;
+					if (nextPeak == source + N)
+						break;
+					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
+						break;
+					else
+						peak = nextPeak;
+				}
+			}
+
+			auto peakOffset = std::distance(source, peak);
+
+			auto const invSize = windowScale / (getWindowSize() * 0.5);
+
+			// interpolate using a parabolic fit
+			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
+			auto alpha = 20 * std::log10(std::abs(source[peakOffset == 0 ? 0 : peakOffset - 1] * invSize));
+			auto beta = 20 * std::log10(std::abs(source[peakOffset] * invSize));
+			auto gamma = 20 * std::log10(std::abs(source[peakOffset == N ? peakOffset : peakOffset + 1] * invSize));
+
+			auto phi = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
+
+			// global
+			peakFraction = 2 * (peakOffset + phi) / double(N);
+			peakFrequency = 0.5 * peakFraction * sampleRate;
+			// translate to local
+
+			peakDBs = beta - 0.25*(alpha - gamma) * phi;
+
+			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
+			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs, getDBs().low, getDBs().high);
+
+			peakY = getHeight() - peakY * getHeight();
+
+
+			// deviance firstly considers bin width in frequency, scaled by bin position (precision gets better as 
+			// frequency increases) and scaled by assumed precision interpolation
+			auto normalizedDeviation = (1.0 - peakFraction) / N;
+			peakDeviance = 2 * interpolationError * normalizedDeviation * sampleRate + precisionError;
+			adjustedScallopLoss = 1.0 - ((1.0 - scallopLoss) * interpolationError + normalizedDeviation); // subtract error
+			adjustedScallopLoss = 20 * std::log10(adjustedScallopLoss - precisionError * 0.2);
+		}
+
+		// draw a line to the peak from the mouse
+		if (std::isnormal(peakX) && std::isnormal(peakY))
+		{
+			g.drawLine((float)mouseX, (float)mouseY, (float)peakX, (float)peakY, 1.5f);
+
+			// this mechanism, although technically delayed by a frame, avoids recalculating
+			// the costly scalloping loss each frame.
+			auto truncatedPeak = (int)peakX;
+			if (truncatedPeak != lastPeak)
+			{
+				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak);
+				lastPeak = truncatedPeak;
+			}
+
+		}
+
+		// adjust for complex things
+		bool peakIsComplex = peakFrequency > sampleRate * 0.5;
+		if (peakIsComplex)
+			peakFrequency = sampleRate - peakFrequency;
+
+		// TODO: calculate at runtime, at some point.
+		double textOffset[2] = { 20, -85 };
+		double estimatedSize[2] = { peakIsComplex || frequencyIsComplex ? 155 : 145, 85 };
+
+		if (peakDBs > 1000)
+			peakDBs = std::numeric_limits<double>::infinity();
+		else if(peakDBs < -1000)
+			peakDBs = -std::numeric_limits<double>::infinity();
+
+		// TODO: use a monospace font for this part
+		sprintf_s(buf, u8"+x: \t%s%.5f Hz\n+y: \t%.5f dB\n\u039Bx: \t%s%.5f Hz\n\u039B~:\t%.3f Hz\u03C3\n\u039By: \t%.5f dB\n\u039BSL: \t+%.3f dB\u03C3 ", 
+			frequencyIsComplex ? "-i*" : "", mouseFrequency, mouseDBs, peakIsComplex ? "-i*" : "", peakFrequency, peakDeviance, peakDBs, -adjustedScallopLoss);
+
+		// render text rectangle
+		auto xpoint = mouseX + textOffset[0] ;
+		if (xpoint + estimatedSize[0] > getWidth())
+			xpoint = mouseX - (textOffset[0] + estimatedSize[0]);
+
+		auto ypoint = mouseY + textOffset[1];
+		if (ypoint  < 0)
+			ypoint = mouseY + (textOffset[0]);
+
+		juce::Rectangle<float> rect { (float)xpoint, (float)ypoint, (float)estimatedSize[0], (float)estimatedSize[1] };
+
+		auto rectInside = rect.withSizeKeepingCentre(estimatedSize[0] * 0.95f, estimatedSize[1] * 0.95f).toType<int>();
+
+		// clear background
+		// TODO: add a nice semi transparent effect!
+		g.setColour(state.colourBackground);
+		g.fillRoundedRectangle(rect, 2);
+
+
+		// reset colour
+		g.setColour(state.colourGrid.withMultipliedBrightness(1.1f));
+		g.drawRoundedRectangle(rect, 2, 0.7f);
+
+		g.drawFittedText(juce::CharPointer_UTF8(buf), rectInside, juce::Justification::centredLeft, 6);
+
 	}
 
 	void CSpectrum::initOpenGL()

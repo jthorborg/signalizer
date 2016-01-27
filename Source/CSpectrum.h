@@ -117,6 +117,7 @@
 			void mouseDrag(const MouseEvent& event) override;
 			void mouseUp(const MouseEvent& event) override;
 			void mouseDown(const MouseEvent& event) override;
+			void mouseMove(const MouseEvent& event) override;
 			void resized() override;
 
 
@@ -372,13 +373,28 @@
 			template<typename V, class Vector>
 				std::size_t copyResonatorStateInto(Vector & output);
 
+			void drawFrequencyTracking(juce::Graphics & g);
+
+			/// <summary>
+			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
+			/// </summary>
+			/// <param name="coordinate"></param>
+			/// <returns></returns>
+			double getScallopingLossAtCoordinate(std::size_t coordinate) const;
+			
+			/// <summary>
+			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.
+			/// This resets them, requesting a recalculation.
+			/// </summary>
+			void resetStaticViewAssumptions();
+
 			enum LineGraphs
 			{
-				LineMain, LineSecond, LineEnd
+				None = -2, Transform = -1, LineMain = 0, LineSecond, LineEnd
 			};
 
-			// vars
-
+			// TODO: technically, avoid any data races by making every member a std::atomic (or refactor everything that
+			// changes state into altering flags instead (check out valueChanged()))
 			struct StateOptions
 			{
 				bool isEditorOpen, isFrozen, isSuspended;
@@ -439,7 +455,7 @@
 				/// <summary>
 				/// Logarithmic displays has to start at a positive value.
 				/// </summary>
-				double minLogFreq;
+				double minLogFreq = 10;
 
 				/// <summary>
 				/// The window function applied to the input. Precomputed into windowKernel.
@@ -527,14 +543,15 @@
 					/// <summary>
 					/// Set to update how the transforms are displayed (spectrum, graphs, etc?)
 					/// </summary>
-					displayModeChange;
+					displayModeChange,
+					mouseMove;
 			} flags;
 
 			/// <summary>
 			/// GUI elements
 			/// </summary>
 			juce::Component * editor;
-			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation;
+			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation, kfrequencyTracker;
 			cpl::CDSPWindowWidget kdspWin;
 			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching;
 			cpl::CColourControl kgridColour, kbackgroundColour;
@@ -571,7 +588,8 @@
 			long long lastFrameTick, renderCycles;
 			bool wasResized, isSuspended;
 			cpl::Utility::Bounds<double> oldViewRect;
-
+			double scallopLoss;
+			int lastPeak;
 			struct NewChanges
 			{
 				std::atomic<DisplayMode> displayMode;
@@ -579,7 +597,15 @@
 				std::atomic<cpl::iCtrlPrec_t> divLimit;
 				std::atomic<ChannelConfiguration> configuration;
 				std::atomic<cpl::iCtrlPrec_t> stretch;
+				std::atomic<signed int> frequencyTrackingGraph;
+
 			} newc;
+
+			struct CurrentMouse
+			{
+				std::atomic<float>
+					x, y;
+			} cmouse;
 
 			/// <summary>
 			/// see cpl::dsp::windowScale

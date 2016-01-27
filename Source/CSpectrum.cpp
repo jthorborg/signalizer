@@ -17,6 +17,7 @@ namespace Signalizer
 	static const std::vector<std::string> ChannelNames = { "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side", "Complex" };
 	static const std::vector<std::string> DisplayModeNames = { "Line graph", "Colour spectrum" };
 	static const std::vector<std::string> BinInterpolationNames = { "None", "Linear", "Lanczos" };
+
 	// the minimum level of dbs to display
 	const double CSpectrum::kMinDbs = -24 * 16;
 	// the maximum level of dbs to display
@@ -34,6 +35,7 @@ namespace Signalizer
 				section->addControl(&kviewScaling, 0);
 				section->addControl(&kchannelConfiguration, 0);
 				section->addControl(&kdisplayMode, 1);
+				section->addControl(&kfrequencyTracker, 1);
 				page->addSection(section);
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -134,7 +136,10 @@ namespace Signalizer
 		audioThreadUsage(),
 		relayWidth(), relayHeight(), 
 		presetManager(this, "spectrum"),
-		newc()
+		newc(),
+		cmouse(),
+		lastPeak(),
+		scallopLoss()
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
@@ -163,7 +168,7 @@ namespace Signalizer
 
 		sfbuf.sampleBufferSize = 200;
 	
-
+		resetStaticViewAssumptions();
 	}
 
 	void CSpectrum::componentBeingDeleted(Component & component)
@@ -248,6 +253,7 @@ namespace Signalizer
 		kalgorithm.bAddPassiveChangeListener(this);
 		kchannelConfiguration.bAddPassiveChangeListener(this);
 		kdisplayMode.bAddPassiveChangeListener(this);
+		kfrequencyTracker.bAddPassiveChangeListener(this);
 		klowDbs.bAddChangeListener(this);
 		khighDbs.bAddChangeListener(this);
 		kdspWin.bAddPassiveChangeListener(this);
@@ -283,6 +289,7 @@ namespace Signalizer
 		kalgorithm.bSetTitle("Transform algorithm");
 		kchannelConfiguration.bSetTitle("Channel configuration");
 		kdisplayMode.bSetTitle("Display mode");
+		kfrequencyTracker.bSetTitle("Frequency tracking");
 		kframeUpdateSmoothing.bSetTitle("Upd. smoothing");
 		kbinInterpolation.bSetTitle("Bin interpolation");
 		klowDbs.bSetTitle("Lower limit");
@@ -308,6 +315,21 @@ namespace Signalizer
 		kdisplayMode.setValues(DisplayModeNames);
 		kbinInterpolation.setValues(BinInterpolationNames);
 
+
+		std::vector<std::string> frequencyTrackingOptions;
+
+		frequencyTrackingOptions.push_back("None");
+		frequencyTrackingOptions.push_back("Transform");
+		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+		{
+			if(i == LineGraphs::LineMain)
+				frequencyTrackingOptions.push_back("Main graph");
+			else
+				frequencyTrackingOptions.push_back("Aux graph " + std::to_string(i));
+		}
+
+		kfrequencyTracker.setValues(frequencyTrackingOptions);
+
 		//kviewScaling.setZeroBasedIndex(0); kalgorithm.setZeroBasedIndex(0); 
 
 
@@ -329,7 +351,7 @@ namespace Signalizer
 		kfreeQ.bSetDescription("Frees the quality factor from being bounded by the window size for transforms that support it. "
 			"Although it (possibly) makes response time slower, it also makes the time/frequency resolution exact, and is a choice for analyzing static material.");
 		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous).");
-
+		kfrequencyTracker.bSetDescription("Specifies which pair of graphs that is evaluated for nearby peak estimations.");
 
 		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
 		klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -397,6 +419,7 @@ namespace Signalizer
 		archive << kdspWin;
 		archive << kfreeQ;
 		archive << kspectrumStretching;
+		archive << kfrequencyTracker;
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -435,6 +458,7 @@ namespace Signalizer
 			builder >> kdspWin;
 			builder >> kfreeQ;
 			builder >> kspectrumStretching;
+			builder >> kfrequencyTracker;
 		}
 		catch (std::exception & e)
 		{
@@ -528,6 +552,14 @@ namespace Signalizer
 			state.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
 		}
 
+	}
+
+	void CSpectrum::mouseMove(const MouseEvent & event)
+	{
+		cmouse.x.store(event.position.x, std::memory_order_release);
+		cmouse.y.store(event.position.y, std::memory_order_release);
+
+		flags.mouseMove = true;
 	}
 
 	void CSpectrum::mouseDoubleClick(const MouseEvent& event)
@@ -658,7 +690,12 @@ namespace Signalizer
 		else if (ctrl == &kspectrumStretching)
 		{
 			newc.stretch.store(cpl::Math::UnityScale::linear(ctrl->bGetValue(), 1.0, StretchMax), std::memory_order_release);
-			flags.resized = true;
+			if(state.displayMode == DisplayMode::ColourSpectrum)
+				flags.resized = true;
+		}
+		else if (ctrl == &kfrequencyTracker)
+		{
+			newc.frequencyTrackingGraph.store(kfrequencyTracker.getZeroBasedSelIndex() + LineGraphs::None, std::memory_order_release);
 		}
 		else
 		{
@@ -847,9 +884,9 @@ namespace Signalizer
 					kwindowSize.bSetInternal(0);
 				else
 					kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+				kwindowSize.bRedraw();
 			}
 
-			kwindowSize.bRedraw();
 
 			state.windowSize = getValidWindowSize(current);
 			cresonator.setWindowSize(8, getWindowSize());
@@ -953,6 +990,8 @@ namespace Signalizer
 			audioLock.acquire(audioResource);
 			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
+
+			resetStaticViewAssumptions();
 		}
 
 		if (remapFrequencies)
@@ -1219,6 +1258,11 @@ namespace Signalizer
 	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
 		flags.audioWindowWasResized = true;
+	}
+
+	void CSpectrum::resetStaticViewAssumptions()
+	{
+		lastPeak = -1;
 	}
 
 };

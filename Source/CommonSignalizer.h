@@ -108,5 +108,13 @@
 			}
 		};
 	};
+	namespace std
+	{
+		template<typename T>
+			inline T abs(const Signalizer::UComplexFilter<T> & f)
+			{
+				return sqrt(f.real * f.real + f.imag * f.imag);
+			}
 
+	}
 #endif

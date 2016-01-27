@@ -1664,4 +1664,58 @@ namespace Signalizer
 	{
 		return getAxisPoints();
 	}
+
+	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate) const
+	{
+		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
+		if (state.displayMode == DisplayMode::LineGraph)
+		{
+			auto type = kdspWin.getParams().wType.load(std::memory_order_acquire);
+			auto alpha = kdspWin.getParams().wAlpha.load(std::memory_order_acquire);
+			auto beta = kdspWin.getParams().wBeta.load(std::memory_order_acquire);
+			auto symmetry = kdspWin.getParams().wSymmetry.load(std::memory_order_acquire);
+
+			bool canOvershoot = false;
+			auto sampleRate = getSampleRate();
+			double normalizedBandwidth = 0, fractionateScallopLoss = normalizedBandwidth;
+
+			
+			auto safeIndex = cpl::Math::confineTo<std::size_t>(coordinate, 0, mappedFrequencies.size() - 2);
+			if (state.algo == TransformAlgorithm::RSNT)
+			{
+				if (state.viewScale == ViewScaling::Linear)
+				{
+
+					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
+
+					normalizedBandwidth = std::min(0.5, normalizedBandwidth);
+				}
+
+				fractionateScallopLoss = cpl::dsp::windowScallopLoss(cpl::dsp::WindowTypes::Rectangular, 4, normalizedBandwidth, cpl::dsp::Windows::Shape::Periodic, alpha, beta);
+			}
+			else if (state.algo == TransformAlgorithm::FFT)
+			{
+				normalizedBandwidth = 0.5;
+
+				if (state.binPolation == BinInterpolation::Lanczos && newc.frequencyTrackingGraph.load(std::memory_order_acquire) != LineGraphs::Transform)
+				{
+					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
+					if (normalizedBandwidth < 0.5)
+					{
+						canOvershoot = true;
+					}
+					else
+					{
+						normalizedBandwidth = 0.5;
+					}
+
+				}
+
+				fractionateScallopLoss = cpl::dsp::windowScallopLoss(type, 4, normalizedBandwidth, symmetry, alpha, beta);
+			}
+
+			ret = fractionateScallopLoss;
+		}
+		return ret;
+	}
 };
