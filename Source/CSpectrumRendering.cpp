@@ -260,8 +260,10 @@ namespace Signalizer
 			auto lowerBound = range > pivot ? 0 : pivot - range;
 			auto higherBound = range + pivot > N ? N : range + pivot;
 
+			
+			
 			auto peak = std::max_element(results.begin() + lowerBound, results.begin() + higherBound, 
-				[](auto & left, auto & right) { return left.leftMagnitude < right.leftMagnitude; });
+				[](const UComplex & left, const UComplex & right) { return left.leftMagnitude < right.leftMagnitude; });
 
 			// scan for continuously rising peaks at boundaries
 			if (peak == results.begin() + lowerBound && lowerBound != 0)
@@ -334,7 +336,7 @@ namespace Signalizer
 			auto source = getAudioMemory<std::complex<fftType>>();
 
 			auto peak = std::max_element(source + lowerBound, source + higherBound, 
-				[](auto & left, auto & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
+				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
 			if (peak == source + lowerBound && lowerBound != 0)
@@ -420,7 +422,7 @@ namespace Signalizer
 
 		// TODO: calculate at runtime, at some point.
 		double textOffset[2] = { 20, -85 };
-		double estimatedSize[2] = { peakIsComplex || frequencyIsComplex ? 155 : 145, 85 };
+		double estimatedSize[2] = { static_cast<double>(peakIsComplex || frequencyIsComplex ? 155 : 145), 85 };
 
 		if (peakDBs > 1000)
 			peakDBs = std::numeric_limits<double>::infinity();
