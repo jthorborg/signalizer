@@ -128,7 +128,7 @@
 			// state variables.
 			int refreshRate;
 			int viewTopCoord;
-			std::size_t selTab;
+			std::int32_t selTab;
 			cpl::iCtrlPrec_t oldRefreshRate;
 			bool unFocused, idleInBack, isEditorVisible, firstKioskMode, hasAnyTabBeenSelected;
 			juce::Point<int> kioskCoords;
