@@ -927,7 +927,7 @@ namespace Signalizer
 			// avoid doing it twice.
 			if (!glImageHasBeenResized)
 			{
-				oglImage.resize(std::max(1u, cpl::Math::round<std::size_t>(getWidth() / newc.stretch.load(std::memory_order_acquire))), getHeight(), true);
+				oglImage.resize(std::max<std::size_t>(1, cpl::Math::round<std::size_t>(getWidth() / newc.stretch.load(std::memory_order_acquire))), getHeight(), true);
 				glImageHasBeenResized = true;
 			}
 

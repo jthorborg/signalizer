@@ -245,7 +245,7 @@
 			/// Returns the number of needed channels required to process the current
 			/// channel configuration.
 			/// </summary>
-			std::size_t CSpectrum::getStateConfigurationChannels() const noexcept;
+			std::size_t getStateConfigurationChannels() const noexcept;
 
 			/// <summary>
 			/// Transforms state.audioBlobSizeMs into samples.

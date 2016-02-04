@@ -1421,11 +1421,13 @@ namespace Signalizer
 		if (isSuspended)
 			return false;
 		auto const factor = std::is_same<AudioStream::DataType, float>::value ? 1 : 2;
-		switch (cpl::simd::max_vector_capacity<float>())
+		switch (cpl::simd::max_vector_capacity<fpoint>())
 		{
-		case 8:
-			audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
-			break;
+		#ifdef CPL_LLVM_SUPPORTS_AVX
+			case 8:
+				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
+				break;
+		#endif
 		case 4:
 			audioProcessing<typename cpl::simd::vector_of<fpoint, 4 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
 			break;
@@ -1513,14 +1515,14 @@ namespace Signalizer
 							fpoint * offBuf[2] = { buffer[0], buffer[1] };
 							if (audioStream.getNumDeferredSamples() == 0)
 							{
-								if(transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset))
+								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset)))
 									doTransform();
 							}
 							else
 							{
 								// ignore the deferred samples and produce some views that is slightly out-of-date.
 								// this ONLY happens if something else is hogging the buffers.
-								if(transformReady = prepareTransform(audioStream.getAudioBufferViews()))
+								if((transformReady = prepareTransform(audioStream.getAudioBufferViews())))
 									doTransform();
 							}
 						}
