@@ -726,7 +726,8 @@ namespace Signalizer
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		int points = getAxisPoints() - 1;
 
-		for (std::size_t k = 0; k < LineGraphs::LineEnd; ++k)
+		// draw back to front
+		for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
 		{
 			switch (state.configuration)
 			{
@@ -759,6 +760,10 @@ namespace Signalizer
 				break;
 			}
 		}
+		// TODO: flood fill
+
+		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		// render grid
 		{
 			OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);

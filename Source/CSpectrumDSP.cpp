@@ -1691,7 +1691,9 @@ namespace Signalizer
 					normalizedBandwidth = std::min(0.5, normalizedBandwidth);
 				}
 
-				fractionateScallopLoss = cpl::dsp::windowScallopLoss(cpl::dsp::WindowTypes::Rectangular, 4, normalizedBandwidth, cpl::dsp::Windows::Shape::Periodic, alpha, beta);
+				fractionateScallopLoss = cpl::dsp::windowScallopLoss(type, 4, normalizedBandwidth, cpl::dsp::Windows::Shape::Periodic, alpha, beta);
+				// resonators have, per definition, at least 3 dB bandwidth, so number is equal to 10^(-3/20)
+				fractionateScallopLoss = std::min(fractionateScallopLoss, 0.70794578438413791080221494218931);
 			}
 			else if (state.algo == TransformAlgorithm::FFT)
 			{
