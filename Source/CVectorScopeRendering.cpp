@@ -126,47 +126,47 @@ namespace Signalizer
 		handleFlagUpdates();
 		auto cStart = cpl::Misc::ClockCounter();
 		juce::OpenGLHelpers::clear(state.colourBackground);
-
-		cpl::OpenGLEngine::COpenGLStack openGLStack;
-		// set up openGL
-		openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		openGLStack.loadIdentityMatrix();
-
-		openGLStack.applyTransform3D(ktransform.getTransform3D());
-		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
-
-		// the peak filter has to run on the whole buffer each time.
-		if (state.envelopeMode == EnvelopeModes::PeakDecay)
 		{
-			runPeakFilter<cpl::simd::v8sf>(lockedView);
+			cpl::OpenGLEngine::COpenGLStack openGLStack;
+			// set up openGL
+			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+			openGLStack.loadIdentityMatrix();
+
+			openGLStack.applyTransform3D(ktransform.getTransform3D());
+			state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
+
+			// the peak filter has to run on the whole buffer each time.
+			if (state.envelopeMode == EnvelopeModes::PeakDecay)
+			{
+				runPeakFilter<cpl::simd::v8sf>(lockedView);
+			}
+			   
+			openGLStack.setLineSize(state.primitiveSize * 10);
+			openGLStack.setPointSize(state.primitiveSize * 10);
+
+			// draw actual stereoscopic plot
+			if (state.isPolar)
+			{
+				drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
+			}
+			else // is Lissajous
+			{
+				drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
+			}
+
+			openGLStack.setLineSize(2.0f);
+			
+			// draw graph and wireframe
+			drawWireFrame<cpl::simd::v4sf>(openGLStack);
+
+			// draw channel text(ures)
+			drawGraphText<cpl::simd::v4sf>(openGLStack, lockedView);
+
+			// draw 2d stuff (like stereo meters)
+			drawStereoMeters<cpl::simd::v4sf>(openGLStack, lockedView);
+
+			renderCycles = cpl::Misc::ClockCounter() - cStart;
 		}
-		   
-		openGLStack.setLineSize(state.primitiveSize * 10);
-		openGLStack.setPointSize(state.primitiveSize * 10);
-
-		// draw actual stereoscopic plot
-		if (state.isPolar)
-		{
-			drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
-		}
-		else // is Lissajous
-		{
-			drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
-		}
-
-		openGLStack.setLineSize(2.0f);
-		
-		// draw graph and wireframe
-		drawWireFrame<cpl::simd::v4sf>(openGLStack);
-
-		// draw channel text(ures)
-		drawGraphText<cpl::simd::v4sf>(openGLStack, lockedView);
-
-		// draw 2d stuff (like stereo meters)
-		drawStereoMeters<cpl::simd::v4sf>(openGLStack, lockedView);
-
-		renderCycles = cpl::Misc::ClockCounter() - cStart;
-
 		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 
 		auto tickNow = juce::Time::getHighResolutionTicks();
