@@ -165,7 +165,8 @@ namespace Signalizer
 
 
 		state.iAuxMode = true;
-
+		state.antialias = true;
+		state.primitiveSize = 0.1;
 		sfbuf.sampleBufferSize = 200;
 	
 		resetStaticViewAssumptions();
@@ -630,19 +631,42 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			std::function<void(void)> retryResize = [&]() 
-			{
-				auto currentCapacity = audioStream.getAudioHistoryCapacity();
-				if (currentCapacity > 0)
+			#ifndef CPL_CLANG_BUGGY_RECURSIVE_LAMBDAS
+				std::function<void(void)> retryResize = [&]()
 				{
-					setWindowSize(cpl::Math::round<std::size_t>(kwindowSize.bGetValue() * currentCapacity));
-				}
-				else
+					auto currentCapacity = audioStream.getAudioHistoryCapacity();
+					if (currentCapacity > 0)
+					{
+						setWindowSize(cpl::Math::round<std::size_t>(kwindowSize.bGetValue() * currentCapacity));
+					}
+					else
+					{
+						GUIUtils::FutureMainEvent(200, retryResize, this);
+					}
+				};
+				retryResize();
+			#else
+				struct RetryResizer
 				{
-					GUIUtils::FutureMainEvent(200, retryResize, this);
-				}
-			};
-			retryResize();
+					RetryResizer(CSpectrum * h) : handle(h) {};
+					CSpectrum * handle;
+					
+					void operator()()
+					{
+						auto currentCapacity = handle->audioStream.getAudioHistoryCapacity();
+						if (currentCapacity > 0)
+						{
+							handle->setWindowSize(cpl::Math::round<std::size_t>(handle->kwindowSize.bGetValue() * currentCapacity));
+						}
+						else
+						{
+							GUIUtils::FutureMainEvent(200, RetryResizer(handle), handle);
+						}
+						
+					}
+				};
+				RetryResizer(this)();
+			#endif
 		}
 		else if (ctrl == &kpctForDivision)
 		{

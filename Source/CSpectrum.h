@@ -296,7 +296,10 @@
 			void computeWindowKernel();
 
 			template<typename T>
-				T * getAudioMemory();
+				T * getAudioMemory()
+				{
+					return reinterpret_cast<T*>(audioMemory.data());
+				}
 
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
@@ -336,9 +339,14 @@
 			/// <summary>
 			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
 			/// Guaranteed to be < getNumAudioElements.
+			/// TODO: hoist into .inl file (other cases in this file as well)
 			/// </summary>
 			template<typename T>
-				std::size_t getFFTSpace() const noexcept;
+				std::size_t getFFTSpace() const noexcept
+				{
+					auto size = audioMemory.size();
+					return size ? (size - 1) / sizeof(T) : 0;
+				}
 
 			template<typename T>
 				T * getWorkingMemory();

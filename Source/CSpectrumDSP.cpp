@@ -8,13 +8,6 @@
 namespace Signalizer
 {
 
-	template<typename T>
-		T * CSpectrum::getAudioMemory()
-		{
-
-			return reinterpret_cast<T*>(audioMemory.data());
-		}
-
 	std::size_t CSpectrum::getStateConfigurationChannels() const noexcept
 	{
 		return state.configuration > ChannelConfiguration::OffsetForMono ? 2 : 1;
@@ -24,13 +17,6 @@ namespace Signalizer
 		std::size_t CSpectrum::getNumAudioElements() const noexcept
 		{
 			return audioMemory.size() / sizeof(T);
-		}
-
-	template<typename T>
-		std::size_t CSpectrum::getFFTSpace() const noexcept
-		{
-			auto size = audioMemory.size();
-			return size ? (size - 1) / sizeof(T) : 0;
 		}
 
 	template<typename T>
