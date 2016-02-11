@@ -69,12 +69,6 @@ namespace Signalizer
 	void CVectorScope::onGraphicsRendering(juce::Graphics & g)
 	{
 
-
-		if (state.normalizeGain && state.isEditorOpen)
-		{
-			setGainAsFraction(envelopeGain);
-		}
-
 		// do software rendering
 		if(!isOpenGL())
 		{
@@ -796,6 +790,7 @@ namespace Signalizer
 				if (std::isnormal(currentEnvelope))
 				{
 					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+					cpl::GUIUtils::MainEvent(*this, [=] { if (state.isEditorOpen) setGainAsFraction(envelopeGain); });
 				}
 			}
 		}

@@ -9,6 +9,8 @@
 	#include <cpl/gui/CPresetWidget.h>
 	#include <memory>
 	#include <cpl/simd.h>
+	#include <cpl/lib/CFIFOEventSystem.h>
+
 	namespace cpl
 	{
 		namespace OpenGLEngine
@@ -200,7 +202,6 @@
 			//cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
-			
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

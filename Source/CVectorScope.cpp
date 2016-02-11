@@ -297,14 +297,17 @@ namespace Signalizer
 		{
 			if (!firstRun)
 			{
-				const juce::MessageManagerLock lock;
-
 				auto capacity = audioStream.getAudioHistoryCapacity();
-				if (capacity == 0)
-					kwindow.bSetInternal(0);
-				else
-					kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
-				kwindow.bRedraw();
+				cpl::GUIUtils::MainEvent(*this, 
+					[=] 
+					{
+						if (capacity == 0)
+							kwindow.bSetInternal(0);
+						else
+							kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+						kwindow.bRedraw();
+					}
+				);
 			}
 		}
 
@@ -354,10 +357,10 @@ namespace Signalizer
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
-kgain.bSetValue(0.5f);
-auto & matrix = ktransform.getTransform3D();
-matrix.position.y = matrix.position.x = 0;
-ktransform.syncEditor();
+			kgain.bSetValue(0.5f);
+			auto & matrix = ktransform.getTransform3D();
+			matrix.position.y = matrix.position.x = 0;
+			ktransform.syncEditor();
 		}
 	}
 	void CVectorScope::mouseDrag(const MouseEvent& event)
@@ -500,28 +503,36 @@ ktransform.syncEditor();
 	{
 		if (ctrl == &kwindow)
 		{
-			std::function<void(void)> retryResize = [&]()
+			struct RetryResizer
 			{
-				auto currentCapacity = audioStream.getAudioHistoryCapacity();
-				if (currentCapacity > 0)
+				RetryResizer(CVectorScope * h) : handle(h) {};
+				CVectorScope * handle;
+
+				void operator()()
 				{
-					auto bufLength = cpl::Math::round<std::size_t>(kwindow.bGetValue() * audioStream.getAudioHistoryCapacity());
-					audioStream.setAudioHistorySize(bufLength);
-				}
-				else
-				{
-					cpl::GUIUtils::FutureMainEvent(200, retryResize, this);
+					auto currentCapacity = handle->audioStream.getAudioHistoryCapacity();
+					if (currentCapacity > 0)
+					{
+						auto bufLength = cpl::Math::round<std::size_t>(handle->kwindow.bGetValue() * handle->audioStream.getAudioHistoryCapacity());
+						handle->audioStream.setAudioHistorySize(bufLength);
+					}
+					else
+					{
+						cpl::GUIUtils::FutureMainEvent(200, RetryResizer(handle), handle);
+					}
+
 				}
 			};
-			retryResize();
+			RetryResizer(this)();
 			return;
 		}
 		else if (ctrl == &kenvelopeMode)
 		{
 			state.envelopeMode = kenvelopeMode.getZeroBasedSelIndex<EnvelopeModes>();
 			state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-			if (!state.normalizeGain)
-				envelopeGain = kgain.bGetValue();
+			// TODO: Consider if needed
+			/*if (!state.normalizeGain)
+				envelopeGain = kgain.bGetValue();*/
 		}
 		else if(ctrl == &kenvelopeSmooth)
 		{
@@ -680,6 +691,7 @@ ktransform.syncEditor();
 				if (std::isnormal(currentEnvelope))
 				{
 					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+					cpl::GUIUtils::MainEvent(*this, [=] { if(state.isEditorOpen) setGainAsFraction(envelopeGain); });
 				}
 			}
 

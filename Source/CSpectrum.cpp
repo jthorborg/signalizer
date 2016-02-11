@@ -166,9 +166,8 @@ namespace Signalizer
 
 		state.iAuxMode = true;
 		state.antialias = true;
-		state.primitiveSize = 0.1;
+		state.primitiveSize = 0.1f;
 		sfbuf.sampleBufferSize = 200;
-	
 		resetStaticViewAssumptions();
 	}
 
@@ -631,42 +630,26 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindowSize)
 		{
-			#ifndef CPL_CLANG_BUGGY_RECURSIVE_LAMBDAS
-				std::function<void(void)> retryResize = [&]()
+			struct RetryResizer
+			{
+				RetryResizer(CSpectrum * h) : handle(h) {};
+				CSpectrum * handle;
+					
+				void operator()()
 				{
-					auto currentCapacity = audioStream.getAudioHistoryCapacity();
+					auto currentCapacity = handle->audioStream.getAudioHistoryCapacity();
 					if (currentCapacity > 0)
 					{
-						setWindowSize(cpl::Math::round<std::size_t>(kwindowSize.bGetValue() * currentCapacity));
+						handle->setWindowSize(cpl::Math::round<std::size_t>(handle->kwindowSize.bGetValue() * currentCapacity));
 					}
 					else
 					{
-						GUIUtils::FutureMainEvent(200, retryResize, this);
+						GUIUtils::FutureMainEvent(200, RetryResizer(handle), handle);
 					}
-				};
-				retryResize();
-			#else
-				struct RetryResizer
-				{
-					RetryResizer(CSpectrum * h) : handle(h) {};
-					CSpectrum * handle;
-					
-					void operator()()
-					{
-						auto currentCapacity = handle->audioStream.getAudioHistoryCapacity();
-						if (currentCapacity > 0)
-						{
-							handle->setWindowSize(cpl::Math::round<std::size_t>(handle->kwindowSize.bGetValue() * currentCapacity));
-						}
-						else
-						{
-							GUIUtils::FutureMainEvent(200, RetryResizer(handle), handle);
-						}
 						
-					}
-				};
-				RetryResizer(this)();
-			#endif
+				}
+			};
+			RetryResizer(this)();
 		}
 		else if (ctrl == &kpctForDivision)
 		{
@@ -902,13 +885,17 @@ namespace Signalizer
 
 			if (!firstRun)
 			{
-				const juce::MessageManagerLock lock;
+				cpl::GUIUtils::MainEvent(*this, 
+					[=] 
+					{
+						if (capacity == 0)
+							kwindowSize.bSetInternal(0);
+						else
+							kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
+						kwindowSize.bRedraw();
+					}
+				);
 
-				if (capacity == 0)
-					kwindowSize.bSetInternal(0);
-				else
-					kwindowSize.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
-				kwindowSize.bRedraw();
 			}
 
 

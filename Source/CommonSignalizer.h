@@ -9,7 +9,7 @@
 	namespace Signalizer
 	{
 		typedef cpl::CAudioStream<float, 32> AudioStream;
-
+		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
 		enum class ChannelConfiguration
 		{
 			/// <summary>
