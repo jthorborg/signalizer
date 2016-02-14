@@ -148,7 +148,7 @@ namespace Signalizer
 	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
 		auto graphN = newc.frequencyTrackingGraph.load(std::memory_order_acquire);
-		if (graphN == LineGraphs::None)
+		if (graphN == LineGraphs::None || state.displayMode == DisplayMode::ColourSpectrum)
 			return;
 
 

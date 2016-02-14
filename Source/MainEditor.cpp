@@ -1080,9 +1080,10 @@ namespace Signalizer
 
 	void MainEditor::resized()
 	{
-		auto const elementSize = 26;
+		auto const elementSize = 25;
 		auto const elementBorder = 1; // border around all elements, from which the background shines through
 		auto const buttonSize = elementSize - elementBorder * 2;
+		auto const buttonSizeW = elementSize - elementBorder * 2;
 		rcc.setBounds(getWidth() - 15, getHeight() - 15, 15, 15);
 		// dont resize while user is dragging
 		if (rcc.isMouseButtonDown())
@@ -1091,19 +1092,23 @@ namespace Signalizer
 
 		auto const width = getWidth();
 		auto leftBorder = width - elementSize + elementBorder;
-		ksettings.setBounds(1, 1, buttonSize, buttonSize);
+		ksettings.setBounds(1, 1, buttonSizeW, buttonSize);
 
-		kfreeze.setBounds(leftBorder, 1, buttonSize, buttonSize);
+		kfreeze.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		// TODO: erase ksync entirely
 		/*ksync.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		leftBorder -= elementSize - elementBorder;*/
-		kidle.setBounds(leftBorder, 1, buttonSize, buttonSize);
+		kidle.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		kkiosk.setBounds(leftBorder, 1, buttonSize, buttonSize);
-		tabs.setBounds(ksettings.getBounds().getRight() + elementBorder, 0, 
+		kkiosk.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		tabs.setBounds
+		(
+			ksettings.getBounds().getRight() + elementBorder,
+			elementBorder,
 			getWidth() - (ksettings.getWidth() + getWidth() - leftBorder + elementBorder * 3),
-			elementSize - elementBorder);
+			elementSize - elementBorder * 2
+		 );
 
 
 		/*rightButtonOutlines.clear();
@@ -1135,7 +1140,7 @@ namespace Signalizer
 		}
 		else
 		{
-			viewTopCoord = tabs.getHeight() + elementBorder;
+			viewTopCoord = tabs.getBottom() + elementBorder;
 		}
 		// full screen components resize themselves.
 		if (currentView && !currentView->getIsFullScreen())

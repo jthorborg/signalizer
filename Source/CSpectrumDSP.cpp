@@ -1409,8 +1409,8 @@ namespace Signalizer
 		auto const factor = std::is_same<AudioStream::DataType, float>::value ? 1 : 2;
 		switch (cpl::simd::max_vector_capacity<fpoint>())
 		{
+		case 8:
 		#ifdef CPL_COMPILER_SUPPORTS_AVX
-			case 8:
 				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
 				break;
 		#endif

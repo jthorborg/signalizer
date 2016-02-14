@@ -93,6 +93,7 @@ bool SignalizerAudioProcessor::hasEditor() const
 
 AudioProcessorEditor* SignalizerAudioProcessor::createEditor()
 {
+	cpl::Misc::MsgBox("Attach debugger");
 	cpl::CProtected::runProtectedCodeErrorHandling
 	(
 		[this]()

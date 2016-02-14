@@ -47,6 +47,8 @@
 			void paint(juce::Graphics & g)
 			{
 				g.fillAll(cpl::GetColour(cpl::ColourEntry::activated));
+				g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
+				g.drawHorizontalLine(getHeight() - 1, icons.getRight(), getWidth());
 				return;
 			}
 
@@ -323,11 +325,12 @@
 			void resized() override
 			{
 				auto const elementSize = 25;
-				icons.setBounds(0, 0, elementSize, getHeight());
-				contents.setBounds(elementSize, 0, getWidth() - elementSize, getHeight());
+				auto const elementBorder = 1;
+				icons.setBounds(0, 0, elementSize - elementBorder, getHeight());
+				contents.setBounds(elementSize, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
 				if (selectedComponent)
 				{
-					selectedComponent->setBounds(0, 0, getWidth() - elementSize, getHeight());
+					selectedComponent->setBounds(0, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
 				}
 
 			}
