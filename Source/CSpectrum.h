@@ -54,6 +54,7 @@
 			static const double minDBRange;
 			static const double kMinDbs;
 			static const double kMaxDbs;
+			static const double primitiveMaxSize;
 			
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
@@ -561,7 +562,7 @@
 			juce::Component * editor;
 			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation, kfrequencyTracker;
 			cpl::CDSPWindowWidget kdspWin;
-			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching;
+			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching, kprimitiveSize;
 			cpl::CColourControl kgridColour, kbackgroundColour;
 
 			struct LineControl
@@ -606,7 +607,7 @@
 				std::atomic<ChannelConfiguration> configuration;
 				std::atomic<cpl::iCtrlPrec_t> stretch;
 				std::atomic<signed int> frequencyTrackingGraph;
-
+				std::atomic<float> primitiveSize;
 			} newc;
 
 			struct CurrentMouse

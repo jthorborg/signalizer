@@ -24,6 +24,7 @@ namespace Signalizer
 	const double CSpectrum::kMaxDbs = 24 * 4;
 	const double StretchMax = 20;
 	const double CSpectrum::minDBRange = 3.0;
+	const double CSpectrum::primitiveMaxSize = 10;
 
 	std::unique_ptr<juce::Component> CSpectrum::createEditor()
 	{
@@ -107,10 +108,16 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kframeUpdateSmoothing, 0);
-				section->addControl(&kdiagnostics, 1);
+				section->addControl(&kprimitiveSize, 1);
 				page->addSection(section);
 			}
 			page->addSection(&presetManager, "Preset", false);
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kdiagnostics, 0);
+				page->addSection(section);
+
+			}
 		}
 		editor = content;
 		editor->addComponentListener(this);
@@ -266,6 +273,8 @@ namespace Signalizer
 		kframeUpdateSmoothing.bAddPassiveChangeListener(this);
 		kbinInterpolation.bAddPassiveChangeListener(this);
 		kfreeQ.bAddPassiveChangeListener(this);
+		kprimitiveSize.bAddPassiveChangeListener(this);
+
 
 		for (int i = 0; i < ArraySize(kspecColours); ++i)
 		{
@@ -284,6 +293,7 @@ namespace Signalizer
 		kblobSize.bAddFormatter(this);
 		kframeUpdateSmoothing.bAddFormatter(this);
 		kspectrumStretching.bAddFormatter(this);
+		kprimitiveSize.bAddFormatter(this);
 		// ------ titles -----------
 		kviewScaling.bSetTitle("Graph scale");
 		kalgorithm.bSetTitle("Transform algorithm");
@@ -300,7 +310,7 @@ namespace Signalizer
 		kdiagnostics.setToggleable(true);
 		kfreeQ.setToggleable(true);
 		kspectrumStretching.bSetTitle("Spectrum stretch");
-
+		kprimitiveSize.bSetTitle("Primitive size");
 
 		kgridColour.bSetTitle("Grid colour");
 		kbackgroundColour.bSetTitle("Background colour");
@@ -352,6 +362,7 @@ namespace Signalizer
 			"Although it (possibly) makes response time slower, it also makes the time/frequency resolution exact, and is a choice for analyzing static material.");
 		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous).");
 		kfrequencyTracker.bSetDescription("Specifies which pair of graphs that is evaluated for nearby peak estimations.");
+		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 
 		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
 		klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -420,6 +431,7 @@ namespace Signalizer
 		archive << kfreeQ;
 		archive << kspectrumStretching;
 		archive << kfrequencyTracker;
+		archive << kprimitiveSize;
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -459,6 +471,7 @@ namespace Signalizer
 			builder >> kfreeQ;
 			builder >> kspectrumStretching;
 			builder >> kfrequencyTracker;
+			builder >> kprimitiveSize;
 		}
 		catch (std::exception & e)
 		{
@@ -704,6 +717,10 @@ namespace Signalizer
 		{
 			newc.frequencyTrackingGraph.store(kfrequencyTracker.getZeroBasedSelIndex() + LineGraphs::None, std::memory_order_release);
 		}
+		else if (ctrl == &kprimitiveSize)
+		{
+			newc.primitiveSize.store(static_cast<float>(ctrl->bGetValue()), std::memory_order_release);
+		}
 		else
 		{
 			for (int i = 0; i < numSpectrumColours; ++i)
@@ -825,7 +842,7 @@ namespace Signalizer
 
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
 		auto const sampleRate = getSampleRate();
-
+		state.primitiveSize = newc.primitiveSize.load(std::memory_order_relaxed);
 		auto newconf = newc.configuration.load(std::memory_order_acquire);
 		if (newconf != state.configuration)
 		{
@@ -1159,6 +1176,12 @@ namespace Signalizer
 			buffer = buf;
 			return true;
 		}
+		else if (ctrl == &kprimitiveSize)
+		{
+			sprintf(buf, "%.2f pts", ctrl->bGetValue() * primitiveMaxSize);
+			buffer = buf;
+			return true;
+		}
 		else
 		{
 			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
@@ -1228,6 +1251,14 @@ namespace Signalizer
 			if (cpl::lexicalConversion(buffer, newVal))
 			{
 				value = Math::UnityScale::Inv::linear(Math::confineTo(newVal, 1.0, StretchMax), 1.0, StretchMax);
+				return true;
+			}
+		}
+		else if (ctrl == &kprimitiveSize)
+		{
+			if (cpl::lexicalConversion(buffer, newVal))
+			{
+				value = cpl::Math::confineTo(newVal / primitiveMaxSize, 0.0, 1.0);
 				return true;
 			}
 		}

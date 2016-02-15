@@ -135,8 +135,8 @@ namespace Signalizer
 				runPeakFilter<cpl::simd::v8sf>(lockedView);
 			}
 			   
-			openGLStack.setLineSize(state.primitiveSize * 10);
-			openGLStack.setPointSize(state.primitiveSize * 10);
+			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
+			openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
 
 			// draw actual stereoscopic plot
 			if (state.isPolar)
@@ -148,7 +148,7 @@ namespace Signalizer
 				drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
 			}
 
-			openGLStack.setLineSize(2.0f);
+			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 			
 			// draw graph and wireframe
 			drawWireFrame<cpl::simd::v4sf>(openGLStack);

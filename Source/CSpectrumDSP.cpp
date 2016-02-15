@@ -1467,19 +1467,17 @@ namespace Signalizer
 		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			cpl::CMutex audioLock;
-			// rest only for resonators.
+
 			if (state.displayMode == DisplayMode::ColourSpectrum)
 			{
 
 				std::int64_t n = numSamples;
 				std::size_t offset = 0;
+
 				while (n > 0)
 				{
 					std::int64_t numRemainingSamples = sfbuf.sampleBufferSize - sfbuf.currentCounter;
-
 					const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
-
-
 
 					// do some resonation
 					if (state.algo == TransformAlgorithm::RSNT)
@@ -1489,9 +1487,8 @@ namespace Signalizer
 						resonatingDispatch<V>(offBuf, numChannels, availableSamples);
 					}
 
-
 					sfbuf.currentCounter += availableSamples;
-					offset += availableSamples;
+	
 					if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
 					{
 						audioLock.acquire(audioResource);
@@ -1522,6 +1519,7 @@ namespace Signalizer
 						sfbuf.sampleBufferSize = getBlobSamples();
 					}
 
+					offset += availableSamples;
 					n -= availableSamples;
 				}
 

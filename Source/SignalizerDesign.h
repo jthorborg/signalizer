@@ -19,6 +19,7 @@
 	#include <cpl/NewStuffAndLook.h>
 	#include <cpl/GraphicComponents.h>
 	#include <map>
+	#include <ctime>
 
 	namespace Signalizer
 	{
@@ -364,6 +365,7 @@
 				: lastTime(cpl::Misc::TimeCounter()),
 				fractionateMoves(0)
 			{
+				std::srand(std::time(nullptr));
 				setOpaque(true);
 				addAndMakeVisible(bouncer);
 				bouncer.setText("No view selected");
@@ -390,7 +392,13 @@
 				timerSpeed = msToMoveAPixel;
 			}
 
-
+			void resized() override
+			{
+				if (firstMove && getWidth() && getHeight())
+				{
+					bouncer.setTopLeftPosition(std::rand() % getWidth(), std::rand() % getHeight());
+				}
+			}
 			void repaintMainContent2()
 			{
 				// calculate how much we moved
@@ -409,7 +417,7 @@
 					}
 
 					// should repaint
-					bouncer.setTopLeftPosition(bounds.getPosition());
+					cpl::GUIUtils::MainEvent(*this, [this] { bouncer.setTopLeftPosition(bounds.getPosition()); });
 				}
 				//bouncer.repaint();
 			}
@@ -504,6 +512,7 @@
 			double fractionateMoves;
 			juce::Rectangle<int> bounds;
 			Bouncer bouncer;
+			bool firstMove = false;
 		};
 
 

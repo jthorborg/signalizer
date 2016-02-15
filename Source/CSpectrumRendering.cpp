@@ -585,19 +585,10 @@ namespace Signalizer
 		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 		CPL_DEBUGCHECKGL();
 
-		openGLStack.setLineSize(std::max(0.001f, state.primitiveSize * 10));
-		openGLStack.setPointSize(std::max(0.001f, state.primitiveSize * 10));
-		CPL_DEBUGCHECKGL();
+		openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()));
+		openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()));
 
 		CPL_DEBUGCHECKGL();
-
-		/// <summary>
-		/// 
-		/// </summary>
-		/// 
-		///
-
-
 
 		switch (state.displayMode)
 		{
@@ -682,7 +673,7 @@ namespace Signalizer
 			}
 
 			CPL_DEBUGCHECKGL();
-
+			ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 			// render grid
 			{
 				auto normalizedScale = 1.0 / getHeight();
@@ -727,7 +718,7 @@ namespace Signalizer
 	{
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		int points = getAxisPoints() - 1;
-
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize * primitiveMaxSize)));
 		// draw back to front
 		for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
 		{
@@ -765,6 +756,7 @@ namespace Signalizer
 		// TODO: flood fill
 
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
 		// render grid
 		{
