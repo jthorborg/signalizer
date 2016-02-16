@@ -139,14 +139,18 @@ namespace Signalizer
 			openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
 
 			// draw actual stereoscopic plot
-			if (state.isPolar)
+			if (lockedView.getNumChannels() >= 2)
 			{
-				drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
+				if (state.isPolar)
+				{
+					drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
+				}
+				else // is Lissajous
+				{
+					drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
+				}
 			}
-			else // is Lissajous
-			{
-				drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
-			}
+
 
 			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 			
@@ -734,7 +738,7 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
-			if (state.normalizeGain)
+			if (state.normalizeGain && audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 

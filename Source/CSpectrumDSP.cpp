@@ -90,6 +90,8 @@ namespace Signalizer
 
 		auto const channelConfiguration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
 
+		if (audio.getNumChannels() < 2)
+			return false;
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
