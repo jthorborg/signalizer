@@ -534,31 +534,54 @@ namespace Signalizer
 		}
 		else if (c == &kmaxHistorySize)
 		{
-			std::int64_t value;
-			std::string contents = kmaxHistorySize.getInputValue();
-			if (cpl::lexicalConversion(contents, value) && value >= 0)
-			{
-				auto msCapacity = cpl::Math::round<std::size_t>(engine->stream.getInfo().sampleRate * 0.001 * value);
 
-				engine->stream.setAudioHistoryCapacity(msCapacity);
-				if (contents.find_first_of("ms") == std::string::npos)
+			struct RetryResizeCapacity
+			{
+				RetryResizeCapacity(MainEditor * h) : handle(h) {};
+				MainEditor * handle;
+
+				void operator()()
 				{
-					contents.append(" ms");
-					kmaxHistorySize.setInputValueInternal(contents);
-				}
+					auto currentSampleRate = handle->engine->stream.getInfo().sampleRate.load(std::memory_order_acquire);
+					if (currentSampleRate > 0)
+					{
+						std::int64_t value;
+						std::string contents = handle->kmaxHistorySize.getInputValue();
+						if (cpl::lexicalConversion(contents, value) && value >= 0)
+						{
+							auto msCapacity = cpl::Math::round<std::size_t>(currentSampleRate * 0.001 * value);
 
-				kmaxHistorySize.indicateSuccess();
-			}
-			else
-			{
-				std::string result;
-				auto msCapacity = cpl::Math::round<std::size_t>(1000 * engine->stream.getAudioHistoryCapacity() / engine->stream.getInfo().sampleRate);
-				if (cpl::lexicalConversion(msCapacity, result))
-					kmaxHistorySize.setInputValueInternal(result + " ms");
-				else
-					kmaxHistorySize.setInputValueInternal("error");
-				kmaxHistorySize.indicateError();
-			}
+							handle->engine->stream.setAudioHistoryCapacity(msCapacity);
+
+							if (contents.find_first_of("ms") == std::string::npos)
+							{
+								contents.append(" ms");
+								handle->kmaxHistorySize.setInputValueInternal(contents);
+							}
+
+							handle->kmaxHistorySize.indicateSuccess();
+						}
+						else
+						{
+							std::string result;
+							auto msCapacity = cpl::Math::round<std::size_t>(1000 * handle->engine->stream.getAudioHistoryCapacity() / handle->engine->stream.getInfo().sampleRate);
+							if (cpl::lexicalConversion(msCapacity, result))
+								handle->kmaxHistorySize.setInputValueInternal(result + " ms");
+							else
+								handle->kmaxHistorySize.setInputValueInternal("error");
+							handle->kmaxHistorySize.indicateError();
+						}
+					}
+					else
+					{
+						cpl::GUIUtils::FutureMainEvent(200, RetryResizeCapacity(handle), handle);
+					}
+
+				}
+			};
+
+			RetryResizeCapacity(this)();
+
 		}
 		else
 		{

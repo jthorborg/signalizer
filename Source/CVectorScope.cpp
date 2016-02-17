@@ -404,8 +404,12 @@ namespace Signalizer
 		}
 		else if (ctrl == &kwindow)
 		{
-			auto bufLength = cpl::Math::round<int>(value * (1000 * audioStream.getAudioHistoryCapacity() / audioStream.getInfo().sampleRate));
-			sprintf(buf, "%d ms", bufLength);
+			auto sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_acquire);
+			auto bufLength = cpl::Math::round<int>(value * (1000 * audioStream.getAudioHistoryCapacity() / sampleRate));
+			if (sampleRate > 0)
+				sprintf(buf, "%d ms", bufLength);
+			else
+				sprintf(buf, "sample rate error");
 			buffer = buf;
 			return true;
 		}
