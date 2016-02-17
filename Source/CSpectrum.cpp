@@ -881,7 +881,7 @@ namespace Signalizer
 
 		if (flags.firstChange.cas())
 		{
-			framesPerUpdate = getOptimalFramesPerUpdate();
+			//framesPerUpdate = getOptimalFramesPerUpdate();
 			flags.audioWindowWasResized = true;
 			firstRun = true;
 		}

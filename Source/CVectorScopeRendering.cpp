@@ -116,6 +116,7 @@ namespace Signalizer
 
 	void CVectorScope::onOpenGLRendering()
 	{
+		CPL_DEBUGCHECKGL();
 		auto && lockedView = audioStream.getAudioBufferViews();
 		handleFlagUpdates();
 		auto cStart = cpl::Misc::ClockCounter();
@@ -150,19 +151,19 @@ namespace Signalizer
 					drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
 				}
 			}
-
+			CPL_DEBUGCHECKGL();
 
 			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 			
 			// draw graph and wireframe
 			drawWireFrame<cpl::simd::v4sf>(openGLStack);
-
+			CPL_DEBUGCHECKGL();
 			// draw channel text(ures)
 			drawGraphText<cpl::simd::v4sf>(openGLStack, lockedView);
-
+			CPL_DEBUGCHECKGL();
 			// draw 2d stuff (like stereo meters)
 			drawStereoMeters<cpl::simd::v4sf>(openGLStack, lockedView);
-
+			CPL_DEBUGCHECKGL();
 			renderCycles = cpl::Misc::ClockCounter() - cStart;
 		}
 		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });

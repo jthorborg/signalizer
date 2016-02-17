@@ -1637,7 +1637,7 @@ namespace Signalizer
 	{
 #pragma message cwarn("collect this somewhere.")
 		const double monitorRefreshRate = 60.0;
-		auto res = double(isOpenGL() ? (monitorRefreshRate / getSwapInterval())  : refreshRate) / getBlobSamples();
+		auto res = double(isOpenGL() ? (monitorRefreshRate / getSwapInterval()) : refreshRate) / getBlobSamples();
 		assert(std::isnormal(res));
 		return res;
 	}
