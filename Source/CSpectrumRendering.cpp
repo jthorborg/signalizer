@@ -301,7 +301,7 @@ namespace Signalizer
 			peakFrequency = mappedFrequencies[peakOffset];
 
 
-			auto offsetIsEnd = peakOffset == mappedFrequencies.size() - 1;
+			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
 			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
 
 			if (state.algo == TransformAlgorithm::FFT)
@@ -374,7 +374,7 @@ namespace Signalizer
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
 			auto alpha = 20 * std::log10(std::abs(source[peakOffset == 0 ? 0 : peakOffset - 1] * invSize));
 			auto beta = 20 * std::log10(std::abs(source[peakOffset] * invSize));
-			auto gamma = 20 * std::log10(std::abs(source[peakOffset == N ? peakOffset : peakOffset + 1] * invSize));
+			auto gamma = 20 * std::log10(std::abs(source[peakOffset == static_cast<std::ptrdiff_t>(N) ? peakOffset : peakOffset + 1] * invSize));
 
 			auto phi = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
 
@@ -716,8 +716,58 @@ namespace Signalizer
 	template<typename V>
 	void CSpectrum::renderLineGraph(cpl::OpenGLEngine::COpenGLStack & ogs)
 	{
-		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		int points = getAxisPoints() - 1;
+		// render the flood fill with alpha
+		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		ogs.setLineSize(static_cast<float>(oglc->getRenderingScale()));
+
+		OpenGLEngine::MatrixModification m;
+		m.translate(-1, -1, 0);
+		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
+
+		if (state.alphaFloodFill != 0.0f)
+		{
+
+			for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
+			{
+				switch (state.configuration)
+				{
+				case ChannelConfiguration::MidSide:
+				case ChannelConfiguration::Phase:
+				case ChannelConfiguration::Separate:
+				{
+					OpenGLEngine::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
+					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
+					for (int i = 0; i < (points + 1); ++i)
+					{
+						lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
+						lineDrawer.addVertex(i, 0, -0.5);
+					}
+				}
+				// (fall-through intentional)
+				case ChannelConfiguration::Left:
+				case ChannelConfiguration::Right:
+				case ChannelConfiguration::Merge:
+				case ChannelConfiguration::Side:
+				case ChannelConfiguration::Complex:
+				{
+					OpenGLEngine::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
+					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
+					for (int i = 0; i < (points + 1); ++i)
+					{
+						lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
+						lineDrawer.addVertex(i, 0, 0);
+					}
+				}
+				default:
+					break;
+				}
+			}
+		}
+
+
+		// render the line graphs
+		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize * primitiveMaxSize)));
 		// draw back to front
 		for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
@@ -732,7 +782,7 @@ namespace Signalizer
 				lineDrawer.addColour(state.colourTwo[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
-					lineDrawer.addVertex((float(i) / points) * 2 - 1, lineGraphs[k].results[i].rightMagnitude * 2 - 1, -0.5);
+					lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
 				}
 			}
 			// (fall-through intentional)
@@ -746,7 +796,7 @@ namespace Signalizer
 				lineDrawer.addColour(state.colourOne[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
-					lineDrawer.addVertex((float(i) / points) * 2 - 1, lineGraphs[k].results[i].leftMagnitude * 2 - 1, 0);
+					lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
 				}
 			}
 			default:
@@ -755,61 +805,72 @@ namespace Signalizer
 		}
 		// TODO: flood fill
 
+
+		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
 		// render grid
+		if (state.colourGrid.getARGB() != 0)
 		{
+			auto xDist = frequencyGraph.getBounds().dist();
+
+			auto normalizedScaleX = 1.0 / xDist;
+			auto normalizedScaleY = 1.0 / getHeight();
+			// TODO: fix using a matrix modification instead (cheaper)
+			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
+
+			{
+				OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+
+				// draw vertical lines.
+				const auto & lines = frequencyGraph.getLines();
+				const auto & clines = complexFrequencyGraph.getLines();
+
+				for (auto dline : lines)
+				{
+					auto line = static_cast<float>(dline);
+					lineDrawer.addVertex(line, -1.0f, 0.0f);
+					lineDrawer.addVertex(line, 1.0f, 0.0f);
+				}
+
+				for (auto dline : clines)
+				{
+					auto line = static_cast<float>(dline);
+					lineDrawer.addVertex(line, -1.0f, 0.0f);
+					lineDrawer.addVertex(line, 1.0f, 0.0f);
+				}
+
+				//m.scale(1, getHeight(), 1);
+				lineDrawer.addColour(state.colourGrid);
+				const auto & divs = frequencyGraph.getDivisions();
+				const auto & cdivs = complexFrequencyGraph.getDivisions();
+
+				for (auto & sdiv : divs)
+				{
+					auto line = static_cast<float>(sdiv.coord);
+					lineDrawer.addVertex(line, -1.0f, 0.0f);
+					lineDrawer.addVertex(line, 1.0f, 0.0f);
+				}
+
+				for (auto & sdiv : cdivs)
+				{
+					auto line = static_cast<float>(sdiv.coord);
+					lineDrawer.addVertex(line, -1.0f, 0.0f);
+					lineDrawer.addVertex(line, 1.0f, 0.0f);
+				}
+			}
+
+
+			m.translate(1, 1, 0);
+			m.scale(points, 0.5f, 1);
+
 			OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 
 			lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
-			auto xDist = frequencyGraph.getBounds().dist();
-			auto normalizedScaleX = 1.0 / xDist;
-			auto normalizedScaleY = 1.0 / getHeight();
-			// draw vertical lines.
-			const auto & lines = frequencyGraph.getLines();
-			const auto & clines = complexFrequencyGraph.getLines();
-			// TODO: fix using a matrix modification instead (cheaper)
-			auto normX = [=](double in) { return static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
-			auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
-			//auto normXC = normX;
-			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
-
-
-
-			for (auto dline : lines)
-			{
-				auto line = normX(dline);
-				lineDrawer.addVertex(line, -1.0f, 0.0f);
-				lineDrawer.addVertex(line, 1.0f, 0.0f);
-			}
-
-			for (auto dline : clines)
-			{
-				auto line = normXC(dline);
-				lineDrawer.addVertex(line, -1.0f, 0.0f);
-				lineDrawer.addVertex(line, 1.0f, 0.0f);
-			}
-
-			//m.scale(1, getHeight(), 1);
-			lineDrawer.addColour(state.colourGrid);
-			const auto & divs = frequencyGraph.getDivisions();
-			const auto & cdivs = complexFrequencyGraph.getDivisions();
-
-			for (auto & sdiv : divs)
-			{
-				auto line = normX(sdiv.coord);
-				lineDrawer.addVertex(line, -1.0f, 0.0f);
-				lineDrawer.addVertex(line, 1.0f, 0.0f);
-			}
-
-			for (auto & sdiv : cdivs)
-			{
-				auto line = normXC(sdiv.coord);
-				lineDrawer.addVertex(line, -1.0f, 0.0f);
-				lineDrawer.addVertex(line, 1.0f, 0.0f);
-			}
 
 			// draw horizontal lines:
 			for (auto & dbDiv : dbGraph.getDivisions())

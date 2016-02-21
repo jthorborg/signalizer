@@ -111,13 +111,14 @@ namespace Signalizer
 				section->addControl(&kprimitiveSize, 1);
 				page->addSection(section);
 			}
-			page->addSection(&presetManager, "Preset", false);
+
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&kdiagnostics, 0);
+				section->addControl(&kfloodFillAlpha, 0);
+				section->addControl(&kdiagnostics, 1);
 				page->addSection(section);
-
 			}
+			page->addSection(&presetManager, "Preset", false);
 		}
 		editor = content;
 		editor->addComponentListener(this);
@@ -274,7 +275,7 @@ namespace Signalizer
 		kbinInterpolation.bAddPassiveChangeListener(this);
 		kfreeQ.bAddPassiveChangeListener(this);
 		kprimitiveSize.bAddPassiveChangeListener(this);
-
+		kfloodFillAlpha.bAddPassiveChangeListener(this);
 
 		for (int i = 0; i < ArraySize(kspecColours); ++i)
 		{
@@ -311,7 +312,7 @@ namespace Signalizer
 		kfreeQ.setToggleable(true);
 		kspectrumStretching.bSetTitle("Spectrum stretch");
 		kprimitiveSize.bSetTitle("Primitive size");
-
+		kfloodFillAlpha.bSetTitle("Flood fill %");
 		kgridColour.bSetTitle("Grid colour");
 		kbackgroundColour.bSetTitle("Background colour");
 
@@ -363,7 +364,7 @@ namespace Signalizer
 		kspectrumStretching.bSetDescription("Stretches the spectrum horizontally, emulating a faster update rate (useful for transforms which are not continuous).");
 		kfrequencyTracker.bSetDescription("Specifies which pair of graphs that is evaluated for nearby peak estimations.");
 		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
-
+		kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
 		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
 		klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
 
@@ -432,6 +433,7 @@ namespace Signalizer
 		archive << kspectrumStretching;
 		archive << kfrequencyTracker;
 		archive << kprimitiveSize;
+		archive << kfloodFillAlpha;
 	}
 
 	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
@@ -472,6 +474,7 @@ namespace Signalizer
 			builder >> kspectrumStretching;
 			builder >> kfrequencyTracker;
 			builder >> kprimitiveSize;
+			builder >> kfloodFillAlpha;
 		}
 		catch (std::exception & e)
 		{
@@ -721,6 +724,10 @@ namespace Signalizer
 		{
 			newc.primitiveSize.store(static_cast<float>(ctrl->bGetValue()), std::memory_order_release);
 		}
+		else if (ctrl == &kfloodFillAlpha)
+		{
+			newc.alphaFloodFill.store(static_cast<float>(ctrl->bGetValue()), std::memory_order_release);
+		}
 		else
 		{
 			for (int i = 0; i < numSpectrumColours; ++i)
@@ -843,6 +850,7 @@ namespace Signalizer
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
 		auto const sampleRate = getSampleRate();
 		state.primitiveSize = newc.primitiveSize.load(std::memory_order_relaxed);
+		state.alphaFloodFill = newc.alphaFloodFill.load(std::memory_order_relaxed);
 		auto newconf = newc.configuration.load(std::memory_order_acquire);
 		if (newconf != state.configuration)
 		{

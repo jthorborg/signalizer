@@ -172,7 +172,7 @@
       <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\users\Janus\Desktop\Stuff2\Audio\Plugins\Signalizer\$(TargetFileName)"</Command>
+      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\Audio\VSTPlugins\Signalizer\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

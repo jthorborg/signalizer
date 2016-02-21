@@ -231,6 +231,10 @@ namespace Signalizer
 	}
 	void MainEditor::pushEditor(std::unique_ptr<juce::Component> newEditor)
 	{
+		if (auto editor = getTopEditor())
+		{
+			editor->setVisible(false);
+		}
 		if (newEditor.get())
 			editorStack.push(std::move(newEditor));
 
@@ -256,6 +260,10 @@ namespace Signalizer
 				tabs.closePanel();
 			else
 			{
+				if (auto editor = getTopEditor())
+				{
+					editor->setVisible(true);
+				}
 				resized();
 				repaint();
 			}
@@ -1152,14 +1160,14 @@ namespace Signalizer
 		if (editor)
 		{
 			auto maxHeight = elementSize * 5;
-
+			auto possibleBounds = std::make_pair(getWidth() - elementBorder * 2, maxHeight);
 			// content pages knows their own (dynamic) size.
 			if (auto signalizerEditor = dynamic_cast<Signalizer::CContentPage *>(editor))
 			{
-				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize().second));
+				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize(possibleBounds).second));
 			}
-			editor->setBounds(elementBorder, tabs.getBottom(), getWidth() - elementBorder * 2, maxHeight);
-			viewTopCoord = tabs.getHeight() + editor->getHeight() + elementBorder;
+			editor->setBounds(elementBorder, tabs.getBottom(), possibleBounds.first, maxHeight);
+			viewTopCoord = tabs.getHeight() + maxHeight + elementBorder;
 		}
 		else
 		{

@@ -36,24 +36,6 @@
 		{
 		public:
 
-			CContentPage()
-				: selectedComponent(nullptr), suggestedWidth(), suggestedHeight()
-			{
-				icons.setOrientation(icons.Vertical);
-				icons.addListener(this);
-				addAndMakeVisible(contents);
-				addAndMakeVisible(icons);
-			}
-
-			void paint(juce::Graphics & g)
-			{
-				g.fillAll(cpl::GetColour(cpl::ColourEntry::activated));
-				g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
-				g.drawHorizontalLine(getHeight() - 1, icons.getRight(), getWidth());
-				return;
-			}
-
-
 			class SeparatorSection
 			:
 				public juce::Component
@@ -62,9 +44,10 @@
 			public:
 				void paint(juce::Graphics & g) override
 				{
+					//g.setColour(juce::Colours::black);
 					g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
 					// antialias ends
-					g.drawLine(getWidth() / 2.f, getHeight() / 0.125f, getWidth() / 2.f, getHeight() / 0.125f, 2.3f);
+					g.drawLine(getWidth() / 2.f, getHeight() * 0.95f, getWidth() / 2.f, getHeight() * 0.1f, 0.5f);
 				}
 			};
 
@@ -141,10 +124,6 @@
 						if (section.hasOwnership)
 							delete section.component;
 					}
-					for (auto & separator : separators)
-					{
-						delete separator;
-					}
 				}
 				std::pair<int, int> getSuggestedSize() { return suggestedSize; }
 
@@ -158,9 +137,8 @@
 					std::string name;
 					bool hasOwnership;
 				};
-
 				std::vector<ContentEntry> sections;
-				std::vector<juce::Component *> separators;
+				std::vector<std::unique_ptr<juce::Component>> separators;
 				std::pair<int, int> suggestedSize;
 
 			};
@@ -322,16 +300,57 @@
 				//return selectedComponent ? selectedComponent->getSuggestedSize() : std::make_pair(0, 0);
 			}
 
+			std::pair<int, int> getSuggestedSize(std::pair<int, int> possibleBounds)
+			{
+				auto ret = std::make_pair(0, 0);
+				for (auto & pageCombo : pages)
+				{
+					auto bounds = pageCombo.second.getSuggestedSize();
+					ret.first = std::max(bounds.first, ret.first);
+					ret.second = std::max(bounds.second, ret.second);
+				}
+
+				auto const elementSize = 25;
+				auto const elementBorder = 1;
+
+				if (ret.first > possibleBounds.first - elementSize + elementBorder)
+					ret.second += 20;
+				return ret;
+				//return selectedComponent ? selectedComponent->getSuggestedSize() : std::make_pair(0, 0);
+			}
+
+			CContentPage()
+				: selectedComponent(nullptr)
+			{
+				icons.setOrientation(icons.Vertical);
+				icons.addListener(this);
+				addAndMakeVisible(contents);
+				addAndMakeVisible(icons);
+			}
+
+			void paint(juce::Graphics & g)
+			{
+				g.fillAll(cpl::GetColour(cpl::ColourEntry::activated));
+				g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
+				g.drawHorizontalLine(getHeight() - 1, icons.getRight(), getWidth());
+				return;
+			}
+
 		protected:
 			void resized() override
 			{
 				auto const elementSize = 25;
 				auto const elementBorder = 1;
+
 				icons.setBounds(0, 0, elementSize - elementBorder, getHeight());
 				contents.setBounds(elementSize, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
 				if (selectedComponent)
 				{
-					selectedComponent->setBounds(0, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
+					auto suggestedSize = selectedComponent->getSuggestedSize();
+					auto internalHeight = (getWidth() - elementSize + elementBorder) < suggestedSize.first ? suggestedSize.second : std::min(suggestedSize.second, getHeight());
+
+					selectedComponent->setBounds(0, 0, suggestedSize.first, internalHeight - elementBorder);
+					//selectedComponent->setBounds(0, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
 				}
 
 			}
@@ -340,17 +359,42 @@
 			{
 				if (object == &icons && (int)nameToIndex.size() > index)
 				{
-					contents.removeAllChildren();
+
 					selectedComponent = &pages[nameToIndex[index]];
-					contents.addAndMakeVisible(selectedComponent);
+					
+					auto currentComponent = contents.getViewedComponent();
+
+					contents.setViewedComponent(selectedComponent, false);
+
+					if (currentComponent != nullptr)
+					{
+#pragma message cwarn("Remove this code when JUCE viewport actually removes the old component")
+						// TODO: update this when juce actually removes the old component.
+						for (int i = 0; i < contents.getNumChildComponents(); ++i)
+						{
+							if (auto possibleContainer = contents.getChildComponent(i))
+							{
+								if (possibleContainer->getIndexOfChildComponent(currentComponent) != -1)
+								{
+									possibleContainer->removeChildComponent(currentComponent);
+									break;
+								}
+							}
+							else
+							{
+								break;
+							}
+						}
+					}
+
 					resized();
 				}
 			};
 
 		private:
-			int suggestedWidth, suggestedHeight;
+
 			COrderedTabPage * selectedComponent;
-			juce::Component contents;
+			juce::Viewport contents;
 			std::map<std::string, COrderedTabPage> pages;
 			std::vector<std::string> nameToIndex;
 			cpl::CIconTabBar icons;

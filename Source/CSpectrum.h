@@ -488,6 +488,8 @@
 				/// </summary>
 				double bufferSmoothing;
 
+				float alphaFloodFill;
+
 				std::size_t axisPoints, numFilters;
 			} state;
 			
@@ -562,7 +564,7 @@
 			juce::Component * editor;
 			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation, kfrequencyTracker;
 			cpl::CDSPWindowWidget kdspWin;
-			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching, kprimitiveSize;
+			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching, kprimitiveSize, kfloodFillAlpha;
 			cpl::CColourControl kgridColour, kbackgroundColour;
 
 			struct LineControl
@@ -608,6 +610,7 @@
 				std::atomic<cpl::iCtrlPrec_t> stretch;
 				std::atomic<signed int> frequencyTrackingGraph;
 				std::atomic<float> primitiveSize;
+				std::atomic<float> alphaFloodFill;
 			} newc;
 
 			struct CurrentMouse
@@ -697,10 +700,7 @@
 			cpl::aligned_vector<double, 32> windowKernel;
 
 			/// <summary>
-			/// All audio processing not done in the audio thread must acquire this lock. It is free to acquire and is 100% userspace.
-			/// The only time it may be locked is during initialization/resets, in which case audio drop-outs
-			/// is to be expected.
-			/// 
+			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock. 
 			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
 			/// </summary>
 			cpl::CMutex::Lockable audioResource;
