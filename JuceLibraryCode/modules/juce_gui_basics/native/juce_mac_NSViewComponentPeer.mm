@@ -1921,9 +1921,22 @@ void Desktop::setKioskComponent (Component* kioskComp, bool shouldBeEnabled, boo
             if (peer->hasNativeTitleBar())
                 [peer->window setStyleMask: NSBorderlessWindowMask];
 
-            [NSApp setPresentationOptions: (allowMenusAndBars ? (NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar)
-                                                              : (NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar))];
-            kioskComp->setBounds (Desktop::getInstance().getDisplays().getMainDisplay().totalArea);
+          
+			NSView * handle = (NSView*)kioskComp->getWindowHandle();
+			//NSRect frame = [handle convertRect: [handle bounds] toView: nil];
+			
+			//kioskComp->setBounds (Desktop::getInstance().getDisplays().getMainDisplay().totalArea);
+			NSRect frame = [handle.window convertRectToScreen:handle.frame];
+			
+			auto && currentDisplay = getDisplays().getDisplayContaining(juce::Point<int>(frame.origin.x, frame.origin.y));
+			if(&currentDisplay == &getDisplays().getMainDisplay())
+			{
+				[NSApp setPresentationOptions: (allowMenusAndBars ? (NSApplicationPresentationAutoHideDock | NSApplicationPresentationAutoHideMenuBar)
+												: (NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar))];
+			}
+			
+			kioskModeComponent->setBounds(currentDisplay.totalArea);
+			
             peer->becomeKeyWindow();
         }
         else

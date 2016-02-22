@@ -307,6 +307,7 @@ namespace Signalizer
 			if (views[0].size() != views[1].size() || views[0].size() < size)
 				return false;
 
+			// extra discarded samples in case the incoming buffer is larger than our own
 			std::size_t extraDiscardedSamples = views[0].size() - size;
 
 			switch (state.algo)
@@ -325,13 +326,9 @@ namespace Signalizer
 				case ChannelConfiguration::Right:
 				{
 					
-					// process preliminary
-					for (; i < stop; ++i)
-					{
-						buffer[i] = preliminaryAudio[channel][i] * windowKernel[i];
-					}
-
-					std::size_t offset = i + extraDiscardedSamples;
+					std::size_t offset = stop + extraDiscardedSamples;
+					auto sizeToStopAt = size - offset;
+					
 					// get rest from buffers - first indice is a special case.
 
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
@@ -347,7 +344,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- && i < size)
+							while (range-- && i < sizeToStopAt)
 							{
 								buffer[i] = *it++ * windowKernel[i];
 								i++;
@@ -361,17 +358,23 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
+					
+					
+					// process preliminary
+					for (std::size_t k = 0; k < stop; ++i, k++)
+					{
+						buffer[i] = preliminaryAudio[channel][k] * windowKernel[i];
+					}
+
+					
 					break;
 				}
 				case ChannelConfiguration::Merge:
 				{
-					for (; i < stop; ++i)
-					{
-						buffer[i] = (preliminaryAudio[0][i] + preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5;
-					}
 
 					std::size_t offset = i + extraDiscardedSamples;
-
+					auto sizeToStopAt = size - offset;
+					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -384,7 +387,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- && i < size)
+							while (range-- && i < sizeToStopAt)
 							{
 								buffer[i] = (*left++ + *right++) * windowKernel[i] * 0.5f;
 								i++;
@@ -398,17 +401,20 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
+					
+					for (std::size_t k = 0; k < stop; ++i, k++)
+					{
+						buffer[i] = (preliminaryAudio[0][k] + preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
+					}
+					
 					break;
 				}
 				case ChannelConfiguration::Side:
 				{
-					for (; i < stop; ++i)
-					{
-						buffer[i] = (preliminaryAudio[0][i] - preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5;
-					}
 
 					std::size_t offset = i + extraDiscardedSamples;
-
+					auto sizeToStopAt = size - offset;
+					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -421,7 +427,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- && i < size)
+							while (range-- && i < sizeToStopAt)
 							{
 								buffer[i] = (*left++ - *right++) * windowKernel[i] * (fftType)0.5;
 								i++;
@@ -435,21 +441,21 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
+					
+					for (std::size_t k = 0; k < stop; ++i, k++)
+					{
+						buffer[i] = (preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
+					}
+					
 					break;
 				}
 				case ChannelConfiguration::MidSide:
 				{
-					for (; i < stop; ++i)
-					{
-						buffer[i] = std::complex<fftType>
-						(
-							(preliminaryAudio[0][i] + preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5,
-							(preliminaryAudio[0][i] - preliminaryAudio[1][i]) * windowKernel[i] * (fftType)0.5
-						);
-					}
 
 					std::size_t offset = i + extraDiscardedSamples;
 
+					auto sizeToStopAt = size - offset;
+					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -462,7 +468,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- && i < size)
+							while (range-- && i < sizeToStopAt)
 							{
 								buffer[i] = std::complex<fftType>
 								(
@@ -482,23 +488,27 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
+					
+					for (std::size_t k = 0; k < stop; ++i, k++)
+					{
+						buffer[i] = std::complex<fftType>
+						(
+							(preliminaryAudio[0][k] + preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5,
+							(preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5
+						);
+					}
+					
 					break;
 				}
 				case ChannelConfiguration::Phase:
 				case ChannelConfiguration::Separate:
 				case ChannelConfiguration::Complex:
 				{
-					for (; i < stop; ++i)
-					{
-						buffer[i] = std::complex<fftType>
-						(
-							preliminaryAudio[0][i] * windowKernel[i],
-							preliminaryAudio[1][i] * windowKernel[i]
-						);
-					}
 
 					std::size_t offset = i + extraDiscardedSamples;
-
+					auto sizeToStopAt = size - offset;
+					
+					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -511,7 +521,7 @@ namespace Signalizer
 							range -= offset;
 							it += offset;
 
-							while (range-- && i < size)
+							while (range-- && i < sizeToStopAt)
 							{
 								buffer[i] = std::complex<fftType>
 								{
@@ -529,6 +539,16 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
+					
+					for (std::size_t k = 0; k < stop; ++i, k++)
+					{
+						buffer[i] = std::complex<fftType>
+						(
+							preliminaryAudio[0][k] * windowKernel[i],
+							preliminaryAudio[1][k] * windowKernel[i]
+						);
+					}
+					
 					break;
 				}
 				}
@@ -1497,10 +1517,10 @@ namespace Signalizer
 						bool transformReady = true;
 						if (state.algo == TransformAlgorithm::FFT)
 						{
-							fpoint * offBuf[2] = { buffer[0], buffer[1] };
+							fpoint * offBuf[2] = { buffer[0], buffer[1]};
 							if (audioStream.getNumDeferredSamples() == 0)
 							{
-								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset)))
+								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset + availableSamples)))
 									doTransform();
 							}
 							else

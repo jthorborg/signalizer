@@ -433,8 +433,11 @@ namespace Signalizer
 					currentView->getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
 					currentView->getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
-
-					juce::Desktop::getInstance().setKioskModeComponent(currentView->getWindow(), false);
+					bool useMenusAndBars = false;
+					#ifdef __MAC__
+						useMenusAndBars = true;
+					#endif
+					juce::Desktop::getInstance().setKioskModeComponent(currentView->getWindow(), useMenusAndBars);
 					currentView->setFullScreenMode(true);
 					currentView->getWindow()->setWantsKeyboardFocus(true);
 					currentView->getWindow()->grabKeyboardFocus();
