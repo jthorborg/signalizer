@@ -13,7 +13,7 @@
 
 	namespace cpl
 	{
-		namespace OpenGLEngine
+		namespace OpenGLRendering
 		{
 			class COpenGLStack;
 			
@@ -125,19 +125,19 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
-				void drawPolarPlot(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void drawRectPlot(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void drawWireFrame(cpl::OpenGLEngine::COpenGLStack &);
+				void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
-				void drawGraphText(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-				void drawStereoMeters(cpl::OpenGLEngine::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawStereoMeters(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 				void runPeakFilter(const AudioStream::AudioBufferAccess &);

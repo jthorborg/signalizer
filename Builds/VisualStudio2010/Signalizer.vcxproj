@@ -66,10 +66,10 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
@@ -331,23 +331,21 @@
     <ClCompile Include="..\..\Source\SignalizerDesign.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\SDKs\cpl\CAudioBuffer.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CAudioStream.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CBaseControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CCtrlEditSpace.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CDBMeterGraph.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CExclusiveFile.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\CFFT.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CFrequencyGraph.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\CLowPass.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CMutex.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\common.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\ComponentContainers.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\Common.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\ConcurrentServices.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CPlistEditor.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\CPLTests.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CPresetManager.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\CProcessorTimer.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CRsrcEditor.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CSerializer.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\CStackArray.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CThread.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CTimer.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CToolTip.h" />
@@ -357,8 +355,6 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CPeakFilter.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CSignalTransform.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\DSPWindows.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filterdesign.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filtering.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\IIRResonator.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\SDFTSystem.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts.h" />
@@ -366,46 +362,53 @@
     <ClInclude Include="..\..\..\SDKs\cpl\GraphicComponents.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\graphics.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\GUIUtils.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\BuildingBlocks.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CButton.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CColourControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CComboBox.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\CDSPWindowWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CInputControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CKnobSlider.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CKnobSliderEditor.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\ControlBase.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CPresetWidget.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CRadio.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CTransformWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CValueControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\DesignBase.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Interfaces.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\WidgetContainers.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\InstructionSet.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\intrintypes.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\LexicalConversion.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\LibraryOptions.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\AlignedAllocator.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\BlockingLockFreeQueue.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\CDataBuffer.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\CFIFOEventSystem.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\CLIFOStream.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\lib\LockFreeDataQueue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\LockFreeQueue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\readerwriterqueue\atomicops.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\lib\readerwriterqueue\readerwriterqueue.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\MacroConstants.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\MacSupport.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Mathext.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Misc.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\NewStuffAndLook.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\octave\octave_all.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\octave\signal\octave_signal.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\octave\signal\octave_signal_ultrawin.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\PlatformSpecific.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\promote.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Protected.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\rendering\CCircularOpenGLImage.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\CDisplaySetup.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\COpenGLImage.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\CSubpixelScanlineRenderer.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\CSubpixelSoftwareGraphics.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\DisplayOrientation.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLEngine.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRasterizers.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRendering.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\SubpixelRendering.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\resampling.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simd.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simdmath.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_cast.h" />
@@ -417,11 +420,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\stdext.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\SysStats.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Types.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\UselessAlgorithms.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\UserInterface.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\VectorGraphics.h" />
-    <ClInclude Include="..\..\..\SDKs\cpl\vf_lib\vf_gui\vf_FreeTypeFaces.h" />
     <ClInclude Include="..\..\Source\CommonSignalizer.h" />
     <ClInclude Include="..\..\Source\CSpectrum.h" />
     <ClInclude Include="..\..\Source\CVectorScope.h" />

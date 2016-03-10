@@ -93,7 +93,7 @@ namespace Signalizer
 
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				for (std::size_t i = 0; i < ArraySize(kspecColours); ++i)
+				for (std::size_t i = 0; i < CPL_ARRAYSIZE(kspecColours); ++i)
 				{
 					section->addControl(&kspecColours[i], 0);
 					section->addControl(&kspecRatios[i], 1);
@@ -277,7 +277,7 @@ namespace Signalizer
 		kprimitiveSize.bAddPassiveChangeListener(this);
 		kfloodFillAlpha.bAddPassiveChangeListener(this);
 
-		for (int i = 0; i < ArraySize(kspecColours); ++i)
+		for (int i = 0; i < CPL_ARRAYSIZE(kspecColours); ++i)
 		{
 			kspecColours[i].bAddPassiveChangeListener(this);
 			kspecRatios[i].bAddPassiveChangeListener(this);

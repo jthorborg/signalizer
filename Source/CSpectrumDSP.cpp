@@ -575,7 +575,7 @@ namespace Signalizer
 			{
 				auto const numSamples = getFFTSpace<std::complex<double>>();
 				if(numSamples != 0)
-					cpl::signaldust::DustFFT_fwdDa(getAudioMemory<double>(), numSamples);
+					signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(numSamples));
 
 				break;
 			}
@@ -749,7 +749,7 @@ namespace Signalizer
 		{
 			const auto lanczosFilterSize = 5;
 			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
-			std::size_t N = getFFTSpace<std::complex<double>>();
+			Types::fsint_t N = static_cast<Types::fsint_t>(getFFTSpace<std::complex<double>>());
 
 			// we rely on mapping indexes, so we need N > 2 at least.
 			if (N == 0)
@@ -1650,7 +1650,7 @@ namespace Signalizer
 
 	int CSpectrum::getAxisPoints() const noexcept
 	{
-		return state.axisPoints;
+		return static_cast<int>(state.axisPoints);
 	}
 
 	double CSpectrum::getOptimalFramesPerUpdate() const noexcept

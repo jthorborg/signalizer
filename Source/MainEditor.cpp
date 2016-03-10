@@ -166,7 +166,7 @@ namespace Signalizer
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				int numKnobsPerLine = colourControls.size() / 2;
+				int numKnobsPerLine = static_cast<int>(colourControls.size() / 2);
 				int rem = colourControls.size() % 2;
 
 				for (int y = 0; y < 2; ++y)
@@ -434,7 +434,7 @@ namespace Signalizer
 
 					currentView->getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
 					bool useMenusAndBars = false;
-					#ifdef __MAC__
+					#ifdef CPL_MAC
 						useMenusAndBars = true;
 					#endif
 					juce::Desktop::getInstance().setKioskModeComponent(currentView->getWindow(), useMenusAndBars);

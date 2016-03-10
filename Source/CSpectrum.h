@@ -3,7 +3,6 @@
 	#define _CSPECTRUM_H
 
 	#include <cpl/Common.h>
-	#include <cpl/CAudioBuffer.h>
 	#include <cpl/CViews.h>
 	#include <cpl/GraphicComponents.h>
 	#include <cpl/Utility.h>
@@ -24,7 +23,7 @@
 
 	namespace cpl
 	{
-		namespace OpenGLEngine
+		namespace OpenGLRendering
 		{
 			class COpenGLStack;
 			
@@ -356,10 +355,10 @@
 				std::size_t getNumWorkingElements() const noexcept;
 
 			template<typename V>
-				void renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack &);
+				void renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
-				void renderLineGraph(cpl::OpenGLEngine::COpenGLStack &);
+				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -585,7 +584,7 @@
 			/// </summary>
 
 			juce::MouseCursor displayCursor;
-			cpl::OpenGLEngine::COpenGLImage oglImage;
+			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::CFrequencyGraph frequencyGraph, complexFrequencyGraph;
 			cpl::CDBMeterGraph dbGraph;
 			cpl::CBoxFilter<double, 60> avgFps;

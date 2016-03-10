@@ -204,7 +204,7 @@
 								spaceAfterLargest ? std::max<std::size_t>(maxHeightInPrevRow, bounds.getHeight()) : bounds.getHeight();
 							offX += sepX;
 
-							controls[y][x].first->bGetView()->setTopLeftPosition(offX, offY);
+							controls[y][x].first->bGetView()->setTopLeftPosition(static_cast<int>(offX), static_cast<int>(offY));
 							offX += bounds.getWidth();
 						}
 
@@ -217,7 +217,7 @@
 					suggestedWidth += sepX;
 					if (!fromResized)
 					{
-						setSize(suggestedWidth, suggestedHeight);
+						setSize(static_cast<int>(suggestedWidth), static_cast<int>(suggestedHeight));
 					}
 				}
 
@@ -244,7 +244,7 @@
 
 				std::pair<int, int> getSuggestedSize()
 				{
-					return std::make_pair(suggestedWidth, suggestedHeight);
+					return std::make_pair(static_cast<int>(suggestedWidth), static_cast<int>(suggestedHeight));
 				}
 				virtual ~MatrixSection()
 				{

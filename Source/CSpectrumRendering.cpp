@@ -6,7 +6,6 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
-#include <cpl/dsp/filterdesign.h>
 #include <array>
 
 namespace Signalizer
@@ -33,8 +32,6 @@ namespace Signalizer
 	void CSpectrum::paint2DGraphics(juce::Graphics & g)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
-
-#pragma message cwarn("lel")
 
 		// ------- draw frequency graph
 
@@ -479,7 +476,7 @@ namespace Signalizer
 
 
 	template<std::size_t N, std::size_t V, cpl::GraphicsND::ComponentOrder order>
-		void ColourScale2(cpl::GraphicsND::UPixel<order> * __RESTRICT__ outPixel, 
+		void ColourScale2(cpl::GraphicsND::UPixel<order> * CPL_RESTRICT outPixel, 
 			float intensity, cpl::GraphicsND::UPixel<order> colours[N + 1], float normalizedScales[N])
 		{
 			intensity = cpl::Math::confineTo(intensity, 0.0f, 1.0f);
@@ -576,7 +573,7 @@ namespace Signalizer
 
 		juce::OpenGLHelpers::clear(state.colourBackground);
 
-		cpl::OpenGLEngine::COpenGLStack openGLStack;
+		cpl::OpenGLRendering::COpenGLStack openGLStack;
 		// set up openGL
 		//openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		openGLStack.loadIdentityMatrix();
@@ -622,7 +619,7 @@ namespace Signalizer
 
 
 	template<typename V>
-		void CSpectrum::renderColourSpectrum(cpl::OpenGLEngine::COpenGLStack & ogs)
+		void CSpectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
@@ -666,7 +663,7 @@ namespace Signalizer
 			CPL_DEBUGCHECKGL();
 
 			{
-				cpl::OpenGLEngine::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
+				cpl::OpenGLRendering::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
 
 				imageDrawer.drawCircular((float)((double)(framePixelPosition) / (pW - 1)));
 				
@@ -687,7 +684,7 @@ namespace Signalizer
 
 				float gradientOffset = 10.0f / getWidth() - 1.0f;
 
-				OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 
 				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
 
@@ -714,14 +711,14 @@ namespace Signalizer
 
 
 	template<typename V>
-	void CSpectrum::renderLineGraph(cpl::OpenGLEngine::COpenGLStack & ogs)
+	void CSpectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
 	{
 		int points = getAxisPoints() - 1;
 		// render the flood fill with alpha
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(static_cast<float>(oglc->getRenderingScale()));
 
-		OpenGLEngine::MatrixModification m;
+		OpenGLRendering::MatrixModification m;
 		m.translate(-1, -1, 0);
 		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
 
@@ -736,7 +733,7 @@ namespace Signalizer
 				case ChannelConfiguration::Phase:
 				case ChannelConfiguration::Separate:
 				{
-					OpenGLEngine::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
+					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
 					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
 					for (int i = 0; i < (points + 1); ++i)
 					{
@@ -751,7 +748,7 @@ namespace Signalizer
 				case ChannelConfiguration::Side:
 				case ChannelConfiguration::Complex:
 				{
-					OpenGLEngine::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
+					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
 					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
 					for (int i = 0; i < (points + 1); ++i)
 					{
@@ -778,7 +775,7 @@ namespace Signalizer
 			case ChannelConfiguration::Phase:
 			case ChannelConfiguration::Separate:
 			{
-				OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
+				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 				lineDrawer.addColour(state.colourTwo[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
@@ -792,7 +789,7 @@ namespace Signalizer
 			case ChannelConfiguration::Side:
 			case ChannelConfiguration::Complex:
 			{
-				OpenGLEngine::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
+				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 				lineDrawer.addColour(state.colourOne[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
@@ -813,15 +810,12 @@ namespace Signalizer
 		// render grid
 		if (state.colourGrid.getARGB() != 0)
 		{
-			auto xDist = frequencyGraph.getBounds().dist();
-
-			auto normalizedScaleX = 1.0 / xDist;
 			auto normalizedScaleY = 1.0 / getHeight();
 			// TODO: fix using a matrix modification instead (cheaper)
 			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
 
 			{
-				OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 
 				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
 
@@ -868,7 +862,7 @@ namespace Signalizer
 			m.translate(1, 1, 0);
 			m.scale(points, 0.5f, 1);
 
-			OpenGLEngine::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+			OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 
 			lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
 

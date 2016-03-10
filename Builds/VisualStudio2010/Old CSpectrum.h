@@ -543,8 +543,8 @@ namespace Signalizer
 
 	*/
 	template<ChannelConfiguration type, class Scalar, class V2>
-	void mapAndTransformDFTFilters(UComplexFilter<Scalar> * __RESTRICT__ oldVals,
-		const V2 & newVals, UComplexFilter<Scalar> * __RESTRICT__ output, std::size_t size,
+	void mapAndTransformDFTFilters(UComplexFilter<Scalar> * CPL_RESTRICT oldVals,
+		const V2 & newVals, UComplexFilter<Scalar> * CPL_RESTRICT output, std::size_t size,
 		float lowDbs, float highDbs, cpl::CPeakFilter<Scalar> filter)
 	{
 

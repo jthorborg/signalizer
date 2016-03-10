@@ -14,7 +14,6 @@
 	#include <cpl/Common.h>
 	#include "PluginProcessor.h"
 	#include <cpl/GraphicComponents.h>
-	#include <cpl/ComponentContainers.h>
 	#include <cpl/CBaseControl.h>
 	#include <cpl/CViews.h>
 	#include <cpl/gui/Controls.h>

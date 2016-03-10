@@ -69,7 +69,7 @@ void SignalizerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuff
 	if (nChannels != buffer.getNumChannels())
 	{
 		// woah, what?
-		BreakIfDebugged();
+		CPL_BREAKIFDEBUGGED();
 	}
 
 	// stream will take it from here.

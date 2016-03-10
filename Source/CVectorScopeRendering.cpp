@@ -6,7 +6,6 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
-#include <cpl/dsp/filterdesign.h>
 
 namespace Signalizer
 {
@@ -93,7 +92,7 @@ namespace Signalizer
 		
 		textures.clear();
 
-		for (int i = 0; i < ArraySize(ChannelDescriptions); ++i)
+		for (int i = 0; i < CPL_ARRAYSIZE(ChannelDescriptions); ++i)
 		{
 
 			juce::Image letter(juce::Image::ARGB, imageSize, imageSize, true);
@@ -122,7 +121,7 @@ namespace Signalizer
 		auto cStart = cpl::Misc::ClockCounter();
 		juce::OpenGLHelpers::clear(state.colourBackground);
 		{
-			cpl::OpenGLEngine::COpenGLStack openGLStack;
+			cpl::OpenGLRendering::COpenGLStack openGLStack;
 			// set up openGL
 			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 			openGLStack.loadIdentityMatrix();
@@ -176,7 +175,7 @@ namespace Signalizer
 
 	
 	template<typename V>
-		void CVectorScope::drawGraphText(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
+		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
@@ -186,7 +185,7 @@ namespace Signalizer
 				const float heightToWidthFactor = float(getHeight()) / getWidth();
 				using namespace cpl::simd;
 				
-				cpl::OpenGLEngine::MatrixModification m;
+				cpl::OpenGLRendering::MatrixModification m;
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
 				
@@ -218,7 +217,7 @@ namespace Signalizer
 				// render texture text at coordinates.
 				for (int i = 0; i < 4; ++i)
 				{
-					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[i]);
+					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[i]);
 					text.setColour(jcolour);
 					text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
 				}
@@ -228,7 +227,7 @@ namespace Signalizer
 				const float heightToWidthFactor = float(getHeight()) / getWidth();
 				using namespace cpl::simd;
 				
-				cpl::OpenGLEngine::MatrixModification m;
+				cpl::OpenGLRendering::MatrixModification m;
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
 				
@@ -239,17 +238,17 @@ namespace Signalizer
 				
 				// render texture text at coordinates.
 				{
-					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Left]);
+					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Left]);
 					text.setColour(jcolour);
 					text.drawAt({ -xcoord + nadd, ycoord, 0.1f, 0.1f });
 				}
 				{
-					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Center]);
+					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Center]);
 					text.setColour(jcolour);
 					text.drawAt({ 0 + nadd * 0.5f, 1, 0.1f, 0.1f });
 				}
 				{
-					cpl::OpenGLEngine::ImageDrawer text(openGLStack, *textures[Textures::Right]);
+					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Right]);
 					text.setColour(jcolour);
 					text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
 				}
@@ -258,13 +257,13 @@ namespace Signalizer
 	
 	
 	template<typename V>
-		void CVectorScope::drawWireFrame(cpl::OpenGLEngine::COpenGLStack & openGLStack)
+		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			using consts = cpl::simd::consts<float>;
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
+				cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
 				drawer.addColour(state.colourWire);
 				int nlines = 14;
 				auto rel = 1.0f / nlines;
@@ -302,7 +301,7 @@ namespace Signalizer
 				int numInt = lut->tableSize;
 				float advance = 1.0f / (numInt - 1);
 				{
-					cpl::OpenGLEngine::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
+					cpl::OpenGLRendering::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
 					drawer.addColour(state.colourWire);
 					
 					float oldY = 0.0f;
@@ -350,7 +349,7 @@ namespace Signalizer
 			
 			// Draw basic graph
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+				cpl::OpenGLRendering::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
 				drawer.addColour(state.colourGraph);
 				// front x, y axii
 				drawer.addVertex(-1.0f, 0.0f, 0.0f);
@@ -362,9 +361,9 @@ namespace Signalizer
 	
 	
 	template<typename V>
-		void CVectorScope::drawRectPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void CVectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
-			cpl::OpenGLEngine::MatrixModification matrixMod;
+			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
@@ -374,7 +373,7 @@ namespace Signalizer
 			
 			if (!state.fadeHistory)
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				
 				drawer.addColour(state.colourDraw);
 
@@ -390,7 +389,7 @@ namespace Signalizer
 			}
 			else
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				
 				auto jcolour = state.colourDraw;
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
@@ -416,14 +415,14 @@ namespace Signalizer
 	
 
 	template<typename V>
-		void CVectorScope::drawPolarPlot(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void CVectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type Ty;
 
-			cpl::OpenGLEngine::MatrixModification matrixMod;
+			cpl::OpenGLRendering::MatrixModification matrixMod;
 			auto const gain = (GLfloat)getGain();
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
@@ -457,7 +456,7 @@ namespace Signalizer
 
 			if(!state.fadeHistory)
 			{
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 				drawer.addColour(red, green, blue);
 				// iterate front of buffer, then back.
 
@@ -561,7 +560,7 @@ namespace Signalizer
 				suitable_container<V> outRed, outGreen, outBlue;
 				// iterate front of buffer, then back.
 
-				cpl::OpenGLEngine::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
 				for (ssize_t section = 0; section < 2; ++section)
 				{
@@ -662,10 +661,10 @@ namespace Signalizer
 		}
 
 	template<typename V>
-		void CVectorScope::drawStereoMeters(cpl::OpenGLEngine::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void CVectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			using namespace cpl;
-			OpenGLEngine::MatrixModification m;
+			OpenGLRendering::MatrixModification m;
 			m.loadIdentityMatrix();
 			const float heightToWidthFactor = float(getHeight()) / getWidth();
 
@@ -690,7 +689,7 @@ namespace Signalizer
 			
 			// this undoes the squashing due to variable aspect ratios.
 			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
-			OpenGLEngine::RectangleDrawer2D<> rect(openGLStack);
+			OpenGLRendering::RectangleDrawer2D<> rect(openGLStack);
 
 			// draw slow balance
 			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
