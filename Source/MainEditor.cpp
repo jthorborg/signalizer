@@ -475,14 +475,22 @@ namespace Signalizer
 					currentView->setSwapInterval(1);
 
 					// this is kind of stupid; the sync setting must be set after the context is created..
-					std::function<void(void)> f = [&]() 
+					struct RetrySync
 					{
-						if (oglc.isAttached())
-							oglc.setContinuousRepainting(true);
-						else
-							cpl::GUIUtils::FutureMainEvent(200, f, this);
+						RetrySync(MainEditor * h) : handle(h) {};
+						MainEditor * handle;
+
+						void operator()()
+						{
+							if (handle->oglc.isAttached())
+								handle->oglc.setContinuousRepainting(true);
+							else
+								cpl::GUIUtils::FutureMainEvent(200, RetrySync(handle), handle);
+						}
+
 					};
-					f();
+
+					RetrySync(this)();
 				}
 			}
 			else
@@ -651,7 +659,9 @@ namespace Signalizer
 				}
 			}
 		}
-		
+		// TODO: Query OpenGL for glGet GL_MAX_INTEGER_SAMPLES, to see what the maximum supported
+		// multisampling level is
+
 		if(sanitizedLevel > 0)
 		{
 			OpenGLPixelFormat fmt;
