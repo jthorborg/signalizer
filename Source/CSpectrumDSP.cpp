@@ -1101,7 +1101,7 @@ namespace Signalizer
 				csf[N >> 1] *= 0.5;
 				csf[(N >> 1) - 1] *= 0.5;
 
-				for (std::size_t i = 1; i < N; ++i)
+				for (decltype(N) i = 1; i < N; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
 				}
@@ -1234,7 +1234,7 @@ namespace Signalizer
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
 
-				for (std::size_t i = 1; i < N; ++i)
+				for (decltype(N) i = 1; i < N; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
 				}

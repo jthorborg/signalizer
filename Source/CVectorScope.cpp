@@ -59,7 +59,7 @@ namespace Signalizer
 			}
 		}
 
-		if (auto page = content->addPage("Rendering", "icons/svg/painting.svg"))
+		if (auto page = content->addPage("Rendering", "icons/svg/brush.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{

@@ -551,8 +551,11 @@ namespace Signalizer
 	void CSpectrum::onOpenGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
+
 		// starting from a clean slate?
 		CPL_DEBUGCHECKGL();
+		juce::OpenGLHelpers::clear(state.colourBackground);
+
 
 		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 			lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
@@ -570,8 +573,6 @@ namespace Signalizer
 		CPL_DEBUGCHECKGL();
 
 
-
-		juce::OpenGLHelpers::clear(state.colourBackground);
 
 		cpl::OpenGLRendering::COpenGLStack openGLStack;
 		// set up openGL

@@ -72,7 +72,7 @@
     <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath);C:\Users\Desktop\Google Drev\SDKs</IncludePath>
+    <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath)</IncludePath>
@@ -335,6 +335,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\CBaseControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CCtrlEditSpace.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CDBMeterGraph.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\CDrawableSVG.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CExclusiveFile.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CFrequencyGraph.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\CMutex.h" />
@@ -409,6 +410,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRasterizers.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRendering.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\rendering\SubpixelRendering.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\Resources.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simd.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simdmath.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_cast.h" />

@@ -33,6 +33,7 @@
 			protected	cpl::CBaseControl::PassiveListener,
 			private		cpl::CBaseControl::ValueFormatter,
 			public		cpl::CTopView, 
+			private		cpl::COpenGLView::OpenGLEventListener,
 			protected	cpl::CTextTabBar<>::CTabBarListener,
 			private		juce::ComponentBoundsConstrainer,
 			protected	juce::KeyListener,
@@ -83,12 +84,37 @@
 			void setSelectedPreset(juce::File newPreset);
 
 		protected:
+
+			void onOGLRendering(cpl::COpenGLView * view) override;
+			void onOGLContextCreation(cpl::COpenGLView * view) override;
+			void onOGLContextDestruction(cpl::COpenGLView * view) override;
+
 			// cpl::CBaseControl interface
 			void valueChanged(const cpl::CBaseControl * cbc) override;
 			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val) override;
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & valString, cpl::iCtrlPrec_t val) override;
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
+
+			struct Flags
+			{
+				cpl::ABoolFlag
+					/// <summary>
+					/// Set this to alter the swap interval
+					/// </summary>
+					swapIntervalChanged,
+					/// <summary>
+					/// Set this to alter whether the context is repainting continuously
+					/// </summary>
+					continuousRepaint;
+			} mtFlags;
+
+			struct NewChanges
+			{
+				std::atomic<int> swapInterval;
+				std::atomic<bool> repaintContinuously;
+			} newc;
+
 
 			// the z-ordering system ensures this is basically a FIFO system
 			void pushEditor(juce::Component * editor);
@@ -114,12 +140,12 @@
 
 			// Constant UI
 			cpl::CTextTabBar<> tabs;
-			cpl::CSVGButton ksettings, kfreeze, ksync, kidle, kkiosk;
+			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk;
 
 			// Editor controls
-			cpl::CButton kstableFps, kvsync, krefreshState;
+			cpl::CButton kstableFps, kvsync, krefreshState, kidle;
 			cpl::CInputControl kmaxHistorySize;
-			cpl::CKnobSlider krefreshRate;
+			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias;
 			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours>  colourControls;

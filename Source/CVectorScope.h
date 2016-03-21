@@ -54,6 +54,7 @@
 					{
 						
 						// describe first left upper part of circle
+						// maybe use the parabola like any sane person
 						this->table[i] = (T)std::sin(std::acos(1.0 - increase * i));
 					}
 					this->table[this->tableSize] = (T)1;

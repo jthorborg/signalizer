@@ -34,7 +34,9 @@ namespace cpl
 
 namespace Signalizer
 {
-	const static int defaultLength = 700, defaultHeight = 480;
+	const static int kdefaultMaxSkippedFrames = 10;
+
+	const static int kdefaultLength = 700, kdefaultHeight = 480;
 	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 
 	const static juce::String MainEditorName = "Main Editor Settings";
@@ -125,12 +127,10 @@ namespace Signalizer
 	{
 		setOpaque(true);
 		setMinimumSize(50, 50);
-		setBounds(0, 0, defaultLength, defaultHeight);
+		setBounds(0, 0, kdefaultLength, kdefaultHeight);
 		initUI();
 
 		kpresets.loadDefaultPreset();
-		oglc.setContinuousRepainting(false);
-
 	}
 
 
@@ -144,7 +144,8 @@ namespace Signalizer
 			{				
 				section->addControl(&krefreshRate, 0);
 				section->addControl(&kstableFps, 1);
-				section->addControl(&kvsync, 2);
+				section->addControl(&kswapInterval, 0);
+				section->addControl(&kvsync, 1);
 				page->addSection(section, "Update");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -158,11 +159,12 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&krefreshState, 0);
-				section->addControl(&kmaxHistorySize, 1);
+				section->addControl(&kidle, 1);
+				section->addControl(&kmaxHistorySize, 2);
 				page->addSection(section, "Utility");
 			}
 		}
-		if (auto page = content->addPage("Colours", "icons/svg/painting.svg"))
+		if (auto page = content->addPage("Colours", "icons/svg/brush.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
@@ -372,18 +374,6 @@ namespace Signalizer
 				engine->stream.setSuspendedState(false);
 			}
 		}
-		// syncing of audio stream with views
-		else if (c == &ksync)
-		{
-			if (value > 0.5)
-			{
-				currentView->setSyncing(true);
-			}
-			else
-			{
-				currentView->setSyncing(false);
-			}
-		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)
 		{
@@ -466,14 +456,21 @@ namespace Signalizer
 				juce::Timer::startTimer(refreshRate);
 			}
 		}
+		else if (c == &kswapInterval)
+		{
+			newc.swapInterval.store(
+				cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames),
+				std::memory_order_release
+			);
+			
+			mtFlags.swapIntervalChanged = true;
+		}
 		else if (c == &kvsync)
 		{
 			if (kvsync.bGetValue() > 0.5)
 			{
 				if (currentView)
 				{
-					currentView->setSwapInterval(1);
-
 					// this is kind of stupid; the sync setting must be set after the context is created..
 					struct RetrySync
 					{
@@ -497,7 +494,6 @@ namespace Signalizer
 			{
 				if (currentView)
 				{
-					currentView->setSwapInterval(-1);
 					oglc.setContinuousRepainting(false);
 				}
 			}
@@ -748,9 +744,14 @@ namespace Signalizer
 			if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
 			{
 				// init all openGL stuff.
-				setAntialiasing();
-				view->attachToOpenGL(oglc);
-				view->setSwapInterval(kvsync.bGetValue() > 0.5 ? 1 : -1);
+				if (auto oglView = dynamic_cast<cpl::COpenGLView*>(view))
+				{
+					oglView->addOpenGLEventListener(this);
+
+					setAntialiasing();
+					oglView->attachToOpenGL(oglc);
+				}
+
 			}
 			if (kkiosk.bGetValue() > 0.5)
 			{
@@ -865,8 +866,6 @@ namespace Signalizer
 			initiateView(currentView);
 			if (openNewEditor)
 				pushEditor(currentView->createEditor());
-
-			currentView->setSyncing(ksync.bGetBoolState());
 		}
 		
 		if (openNewEditor && ksettings.bGetBoolState())
@@ -894,7 +893,7 @@ namespace Signalizer
 
 		data << krefreshRate;
 		data << krenderEngine;
-		data << ksync;
+		data << khelp;
 		data << kfreeze;
 		data << kidle;
 		data << getBounds().withZeroOrigin();
@@ -907,6 +906,8 @@ namespace Signalizer
 		// stuff that gets set the last.
 		data << kantialias;
 		data << kvsync;
+		data << kswapInterval;
+
 
 		for (auto & colour : colourControls)
 		{
@@ -990,13 +991,15 @@ namespace Signalizer
 
 	void MainEditor::load(cpl::CSerializer & data, long long version)
 	{
+		data.setThrowsOnExhaustion(false);
+
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
 
 		data >> krefreshRate;
 		data >> krenderEngine;
-		data >> ksync;
+		data >> khelp;
 		data >> kfreeze;
 		data >> kidle;
 		data >> bounds;
@@ -1047,17 +1050,17 @@ namespace Signalizer
 		// set this kind of stuff after view is initiated. note, these cause events to be fired!
 		data >> kantialias;
 		data >> kvsync;
-
+		data >> kswapInterval;
 
 	}
 
 	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val)
 	{
+		double newVal = 0;
+
 		if (ctrl == &krefreshRate)
 		{
-			char * endPtr = nullptr;
-			auto newVal = strtod(valString.c_str(), &endPtr);
-			if (endPtr > valString.c_str())
+			if (cpl::lexicalConversion(valString, newVal))
 			{
 				newVal = cpl::Math::confineTo
 				(
@@ -1074,6 +1077,15 @@ namespace Signalizer
 				return true;
 			}
 		}
+		else if (ctrl == &kswapInterval)
+		{
+			if (cpl::lexicalConversion(valString, newVal))
+			{
+				newVal = cpl::Math::confineTo(newVal, 0, kdefaultMaxSkippedFrames);
+				val = cpl::Math::UnityScale::Inv::linear(newVal, 0.0, (double)kdefaultMaxSkippedFrames);
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -1083,6 +1095,13 @@ namespace Signalizer
 		{
 			auto refreshRateVal = cpl::Math::round<int>(cpl::Math::UnityScale::exp(val, 10.0, 1000.0));
 			valString = std::to_string(refreshRateVal) + " ms";
+			return true;
+		}
+		else if (ctrl == &kswapInterval)
+		{
+			char buf[100];
+			sprintf_s(buf, "%d frames", cpl::Math::round<int>(val * kdefaultMaxSkippedFrames));
+			valString = buf;
 			return true;
 		}
 		return false;
@@ -1140,10 +1159,10 @@ namespace Signalizer
 
 		kfreeze.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		// TODO: erase ksync entirely
-		/*ksync.setBounds(leftBorder, 1, buttonSize, buttonSize);
+		// TODO: erase khelp entirely
+		/*khelp.setBounds(leftBorder, 1, buttonSize, buttonSize);
 		leftBorder -= elementSize - elementBorder;*/
-		kidle.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		khelp.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kkiosk.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		tabs.setBounds
@@ -1162,7 +1181,7 @@ namespace Signalizer
 			rightButtonOutlines.addLineSegment(juce::Line<float>(1, ksettings.getBottom() - 0.2f, ksettings.getRight(), ksettings.getBottom() - 0.2f), 0.1f);
 		rightButtonOutlines.addLineSegment(juce::Line<float>(tabs.getRight(), 1.f, tabs.getRight(), (float)elementSize - 1), 0.1f);
 		rightButtonOutlines.addLineSegment(juce::Line<float>(kidle.getRight(), 1.f, kidle.getRight(), (float)elementSize - 1), 0.1f);
-		rightButtonOutlines.addLineSegment(juce::Line<float>(ksync.getRight(), 1.f, ksync.getRight(), (float)elementSize - 1), 0.1f);
+		rightButtonOutlines.addLineSegment(juce::Line<float>(khelp.getRight(), 1.f, khelp.getRight(), (float)elementSize - 1), 0.1f);
 		*/
 		//rightButtonOutlines.addRectangle(ksettings.getBounds());
 		//rightButtonOutlines.addRectangle(tabs.getBounds());
@@ -1211,7 +1230,8 @@ namespace Signalizer
 					focusGained(FocusChangeType::focusChangedDirectly);
 			}
 
-			currentView->repaintMainContent();
+			if(!kvsync.bGetBoolState())
+				currentView->repaintMainContent();
 		}
 	}
 	void MainEditor::hiResTimerCallback()
@@ -1229,7 +1249,8 @@ namespace Signalizer
 					focusGained(FocusChangeType::focusChangedDirectly);
 			}
 
-			currentView->repaintMainContent();
+			if (!kvsync.bGetBoolState())
+				currentView->repaintMainContent();
 		}
 
 	}
@@ -1252,6 +1273,25 @@ namespace Signalizer
 	}
 
 
+	void MainEditor::onOGLRendering(cpl::COpenGLView * view)
+	{
+		if (mtFlags.swapIntervalChanged.cas())
+		{
+			oglc.setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
+			view->setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
+		}
+	}
+
+	void MainEditor::onOGLContextCreation(cpl::COpenGLView * view)
+	{
+		mtFlags.swapIntervalChanged = true;
+	}
+
+	void MainEditor::onOGLContextDestruction(cpl::COpenGLView * view)
+	{
+
+	}
+
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1267,15 +1307,15 @@ namespace Signalizer
 		kvsync.bAddPassiveChangeListener(this);
 		tabs.addListener(this);
 		kmaxHistorySize.bAddPassiveChangeListener(this);
-
+		kswapInterval.bAddPassiveChangeListener(this);
 		kantialias.bAddPassiveChangeListener(this);
-		ksync.bAddPassiveChangeListener(this);
+		khelp.bAddPassiveChangeListener(this);
 		krefreshState.bAddPassiveChangeListener(this);
+		kswapInterval.bAddFormatter(this);
 		// design
-		kfreeze.setImage("icons/svg/snow1.svg");
-		kidle.setImage("icons/svg/idle.svg");
+		kfreeze.setImage("icons/svg/freeze.svg");
 		ksettings.setImage("icons/svg/gears.svg");
-		ksync.setImage("icons/svg/sync2.svg");
+		khelp.setImage("icons/svg/help.svg");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
 
 		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
@@ -1284,6 +1324,8 @@ namespace Signalizer
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
 		kantialias.bSetTitle("Antialiasing");
+		kidle.bSetTitle("Idle in back");
+		kswapInterval.bSetTitle("Swap interval");
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);
@@ -1302,11 +1344,10 @@ namespace Signalizer
 		// add stuff
 		addAndMakeVisible(ksettings);
 		addAndMakeVisible(kfreeze);
-		// TODO: erase ksync
-		//addAndMakeVisible(ksync);
+		addAndMakeVisible(khelp);
 		addAndMakeVisible(kkiosk);
 		addAndMakeVisible(tabs);
-		addAndMakeVisible(kidle);
+
 		tabs.setOrientation(tabs.Horizontal);
 		tabs.addTab("VectorScope").addTab("Oscilloscope").addTab("Spectrum").addTab("Statistics");
 
@@ -1323,14 +1364,17 @@ namespace Signalizer
 		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
-		ksync.bSetDescription("Synchronizes audio streams with view drawing; may incur buffer underruns for low settings.");
+		khelp.bSetDescription("Synchronizes audio streams with view drawing; may incur buffer underruns for low settings.");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");
 		krefreshState.bSetDescription("Resets any processing state in the active view to the default.");
 		kmaxHistorySize.bSetDescription("The maximum audio history capacity, set in the respective views. No limit, so be careful!");
-		
+		kswapInterval.bSetDescription("Determines the swap interval for the graphics context; a value of zero means the graphics will"
+			"update as fast as possible, a value of 1 means it updates synced to the vertical sync, a value of N means it updates every Nth vertical frame sync.");
+
+
 		// initial values that should be through handlers
 		kmaxHistorySize.setInputValue("1000");
 
