@@ -45,7 +45,7 @@
 				void paint(juce::Graphics & g) override
 				{
 					//g.setColour(juce::Colours::black);
-					g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
+					g.setColour(cpl::GetColour(cpl::ColourEntry::Separator));
 					// antialias ends
 					g.drawLine(getWidth() / 2.f, getHeight() * 0.95f, getWidth() / 2.f, getHeight() * 0.1f, 0.5f);
 				}
@@ -330,8 +330,8 @@
 
 			void paint(juce::Graphics & g)
 			{
-				g.fillAll(cpl::GetColour(cpl::ColourEntry::activated));
-				g.setColour(cpl::GetColour(cpl::ColourEntry::separator));
+				g.fillAll(cpl::GetColour(cpl::ColourEntry::Activated));
+				g.setColour(cpl::GetColour(cpl::ColourEntry::Separator));
 				g.drawHorizontalLine(getHeight() - 1, icons.getRight(), getWidth());
 				return;
 			}

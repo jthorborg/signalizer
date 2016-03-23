@@ -85,9 +85,14 @@
 
 		protected:
 
-			void onOGLRendering(cpl::COpenGLView * view) override;
-			void onOGLContextCreation(cpl::COpenGLView * view) override;
-			void onOGLContextDestruction(cpl::COpenGLView * view) override;
+			static const int elementSize = 25;
+			// border around all elements, from which the background shines through'
+			static const int elementBorder = 1;
+
+			int getViewTopCoordinate() const noexcept;
+			void onOGLRendering(cpl::COpenGLView * view) noexcept override;
+			void onOGLContextCreation(cpl::COpenGLView * view) noexcept override;
+			void onOGLContextDestruction(cpl::COpenGLView * view) noexcept override;
 
 			// cpl::CBaseControl interface
 			void valueChanged(const cpl::CBaseControl * cbc) override;
@@ -133,7 +138,7 @@
 			void enterFullscreenIfNeeded(juce::Point<int> where);
 			void enterFullscreenIfNeeded();
 			void exitFullscreen();
-
+			void setPreferredKioskCoords(juce::Point<int>) noexcept;
 
 			// Relations
 			SignalizerAudioProcessor * engine;
@@ -157,7 +162,7 @@
 			cpl::iCtrlPrec_t oldRefreshRate;
 			bool unFocused, idleInBack, isEditorVisible, firstKioskMode, hasAnyTabBeenSelected;
 			juce::Point<int> kioskCoords;
-
+			juce::Rectangle<int> preFullScreenSize;
 			// View related data
 			Signalizer::CDefaultView defaultView;
 			juce::OpenGLContext oglc;

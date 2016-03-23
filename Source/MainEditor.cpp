@@ -233,19 +233,21 @@ namespace Signalizer
 	}
 	void MainEditor::pushEditor(std::unique_ptr<juce::Component> newEditor)
 	{
+		if (!newEditor.get())
+			return;
+
 		if (auto editor = getTopEditor())
 		{
 			editor->setVisible(false);
 		}
-		if (newEditor.get())
-			editorStack.push(std::move(newEditor));
+
+		editorStack.push(std::move(newEditor));
 
 		// beware of move construction! newEditor is now invalid!
 		if (auto editor = getTopEditor())
 		{
 			addAndMakeVisible(editor);
 			resized();
-			repaint();
 		}
 	}
 	juce::Component * MainEditor::getTopEditor() const
@@ -419,6 +421,8 @@ namespace Signalizer
 						kioskCoords = currentView->getWindow()->getScreenPosition();
 					}
 
+					preFullScreenSize = getBounds().withZeroOrigin();
+
 					removeChildComponent(currentView->getWindow());
 					currentView->getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
@@ -435,7 +439,9 @@ namespace Signalizer
 
 					currentView->getWindow()->addKeyListener(this);
 					currentView->getWindow()->addComponentListener(this);
-
+					
+					// sets a minimal view when entering full screen
+					setBounds(getBounds().withBottom(getViewTopCoordinate()));
 				}
 				else
 				{
@@ -615,6 +621,11 @@ namespace Signalizer
 		}
 	}
 
+	void MainEditor::setPreferredKioskCoords(juce::Point<int> preferredCoords) noexcept
+	{
+		firstKioskMode = true;
+		kioskCoords = preferredCoords;
+	}
 
 	void MainEditor::panelOpened(cpl::CTextTabBar<> * obj)
 	{
@@ -623,9 +634,16 @@ namespace Signalizer
 		{
 			pushEditor(view->createEditor());
 		}
-		resized();
+
+		auto editorBottom = getViewTopCoordinate();
+
+		if (getBottom() < editorBottom)
+			setBounds(getBounds().withBottom(editorBottom));
+		else
+			resized();
 		repaint();
 	}
+
 	void MainEditor::panelClosed(cpl::CTextTabBar<> * obj)
 	{
 		clearEditors();
@@ -851,6 +869,10 @@ namespace Signalizer
 		// deattach old view
 		if (currentView)
 		{
+			if (currentView->getIsFullScreen() && view)
+				setPreferredKioskCoords(currentView->getWindow()->getPosition());
+
+
 			if (getTopEditor())
 				openNewEditor = true;
 
@@ -864,8 +886,22 @@ namespace Signalizer
 		if (currentView)
 		{
 			initiateView(currentView);
+
 			if (openNewEditor)
-				pushEditor(currentView->createEditor());
+			{
+				auto newEditor = currentView->createEditor();
+
+				if (newEditor.get())
+				{
+					pushEditor(std::move(newEditor));
+				}
+				else
+				{
+					tabs.closePanel();
+				}
+			}
+
+
 		}
 		
 		if (openNewEditor && ksettings.bGetBoolState())
@@ -983,8 +1019,16 @@ namespace Signalizer
 			currentView->getWindow()->setTopLeftPosition(0, 0);
 			addChildComponent(currentView->getWindow());
 			currentView->setFullScreenMode(false);
-			resized();
 
+			if (preFullScreenSize.getWidth() > 0 && preFullScreenSize.getHeight() > 0)
+			{
+				// restores from minimal window
+				setBounds(preFullScreenSize);
+			}
+			else
+			{
+				resized();
+			}
 		}
 
 	}
@@ -1141,10 +1185,29 @@ namespace Signalizer
 		suspend();
 	}
 
+	int MainEditor::getViewTopCoordinate() const noexcept
+	{
+		auto editor = getTopEditor();
+
+		if (editor)
+		{
+			auto maxHeight = elementSize * 5;
+			auto possibleBounds = std::make_pair(getWidth() - elementBorder * 2, maxHeight);
+			// content pages knows their own (dynamic) size.
+			if (auto signalizerEditor = dynamic_cast<Signalizer::CContentPage *>(editor))
+			{
+				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize(possibleBounds).second));
+			}
+			return tabs.getHeight() + maxHeight + elementBorder;
+		}
+		else
+		{
+			return tabs.getBottom() + elementBorder;
+		}
+	}
+
 	void MainEditor::resized()
 	{
-		auto const elementSize = 25;
-		auto const elementBorder = 1; // border around all elements, from which the background shines through
 		auto const buttonSize = elementSize - elementBorder * 2;
 		auto const buttonSizeW = elementSize - elementBorder * 2;
 		rcc.setBounds(getWidth() - 15, getHeight() - 15, 15, 15);
@@ -1159,12 +1222,11 @@ namespace Signalizer
 
 		kfreeze.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		// TODO: erase khelp entirely
-		/*khelp.setBounds(leftBorder, 1, buttonSize, buttonSize);
-		leftBorder -= elementSize - elementBorder;*/
+
 		khelp.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kkiosk.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+
 		tabs.setBounds
 		(
 			ksettings.getBounds().getRight() + elementBorder,
@@ -1174,23 +1236,10 @@ namespace Signalizer
 		 );
 
 
-		/*rightButtonOutlines.clear();
-		rightButtonOutlines.addLineSegment(juce::Line<float>(ksettings.getRight(), 1.f, ksettings.getRight(), (float)elementSize - 1), 0.1f);
-		// add a line underneath to seperate..
-		if (ksettings.bGetValue() > 0.1f)
-			rightButtonOutlines.addLineSegment(juce::Line<float>(1, ksettings.getBottom() - 0.2f, ksettings.getRight(), ksettings.getBottom() - 0.2f), 0.1f);
-		rightButtonOutlines.addLineSegment(juce::Line<float>(tabs.getRight(), 1.f, tabs.getRight(), (float)elementSize - 1), 0.1f);
-		rightButtonOutlines.addLineSegment(juce::Line<float>(kidle.getRight(), 1.f, kidle.getRight(), (float)elementSize - 1), 0.1f);
-		rightButtonOutlines.addLineSegment(juce::Line<float>(khelp.getRight(), 1.f, khelp.getRight(), (float)elementSize - 1), 0.1f);
-		*/
-		//rightButtonOutlines.addRectangle(ksettings.getBounds());
-		//rightButtonOutlines.addRectangle(tabs.getBounds());
-		//rightButtonOutlines.addRectangle(juce::Rectangle<int>(kidle.getX(), 0, elementSize * 3, elementSize));
-
-
 		auto editor = getTopEditor();
 		if (editor)
 		{
+			// TODO: refactor code to merge with getViewTopCoordinate -> getEditorRect()
 			auto maxHeight = elementSize * 5;
 			auto possibleBounds = std::make_pair(getWidth() - elementBorder * 2, maxHeight);
 			// content pages knows their own (dynamic) size.
@@ -1238,8 +1287,6 @@ namespace Signalizer
 	{
 		if (currentView)
 		{
-			
-
 			if (idleInBack)
 			{
 				const MessageManagerLock mml;
@@ -1252,28 +1299,26 @@ namespace Signalizer
 			if (!kvsync.bGetBoolState())
 				currentView->repaintMainContent();
 		}
-
 	}
-
 
 
 	//==============================================================================
 	void MainEditor::paint(Graphics& g)
 	{
 		// make sure to paint everything completely opaque.
-		g.setColour(cpl::GetColour(cpl::ColourEntry::separator).withAlpha(1.0f));
+		g.setColour(cpl::GetColour(cpl::ColourEntry::Separator).withAlpha(1.0f));
 		g.fillRect(getBounds().withZeroOrigin().withBottom(viewTopCoord));
 		if (kkiosk.bGetValue() > 0.5)
 		{
-			g.setColour(cpl::GetColour(cpl::ColourEntry::deactivated).withAlpha(1.0f));
+			g.setColour(cpl::GetColour(cpl::ColourEntry::Deactivated).withAlpha(1.0f));
 			g.fillRect(getBounds().withZeroOrigin().withTop(viewTopCoord));
-			g.setColour(cpl::GetColour(cpl::ColourEntry::auxfont));
+			g.setColour(cpl::GetColour(cpl::ColourEntry::AuxillaryText));
 			g.drawText("View is fullscreen", getBounds().withZeroOrigin().withTop(viewTopCoord), juce::Justification::centred, true);
 		}
 	}
 
 
-	void MainEditor::onOGLRendering(cpl::COpenGLView * view)
+	void MainEditor::onOGLRendering(cpl::COpenGLView * view) noexcept
 	{
 		if (mtFlags.swapIntervalChanged.cas())
 		{
@@ -1282,12 +1327,12 @@ namespace Signalizer
 		}
 	}
 
-	void MainEditor::onOGLContextCreation(cpl::COpenGLView * view)
+	void MainEditor::onOGLContextCreation(cpl::COpenGLView * view) noexcept
 	{
 		mtFlags.swapIntervalChanged = true;
 	}
 
-	void MainEditor::onOGLContextDestruction(cpl::COpenGLView * view)
+	void MainEditor::onOGLContextDestruction(cpl::COpenGLView * view) noexcept
 	{
 
 	}
