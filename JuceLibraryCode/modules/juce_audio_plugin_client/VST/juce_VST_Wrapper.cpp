@@ -829,11 +829,18 @@ public:
 
     void setParameter (VstInt32 index, float value) override
     {
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		CPL_TRACEGUARD_START
+#endif
         if (filter != nullptr)
         {
             jassert (isPositiveAndBelow (index, filter->getNumParameters()));
             filter->setParameter (index, value);
         }
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		CPL_TRACEGUARD_STOP("VST setParameter");
+#endif
+
     }
 
     void getParameterDisplay (VstInt32 index, char* text) override
@@ -1154,6 +1161,9 @@ public:
 
     VstIntPtr dispatcher (VstInt32 opCode, VstInt32 index, VstIntPtr value, void* ptr, float opt) override
     {
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		return CPL_TRACEGUARD_START
+#endif
         if (hasShutdown)
             return 0;
 
@@ -1223,6 +1233,9 @@ public:
         }
 
         return AudioEffectX::dispatcher (opCode, index, value, ptr, opt);
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		CPL_TRACEGUARD_STOP("VST dispatcher");
+#endif
     }
 
     void resizeHostWindow (int newWidth, int newHeight)

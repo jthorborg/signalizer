@@ -44,6 +44,8 @@
  #include "../juce_opengl/juce_opengl.h"
 #endif
 
+#include <cpl/Protected.h>
+
 //==============================================================================
 #if JUCE_MAC
  #import <WebKit/WebKit.h>

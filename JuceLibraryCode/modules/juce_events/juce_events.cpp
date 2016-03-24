@@ -42,6 +42,8 @@
  #include "../juce_gui_basics/juce_gui_basics.h"
 #endif
 
+
+
 //==============================================================================
 #if JUCE_MAC
  #import <IOKit/IOKitLib.h>
@@ -57,7 +59,7 @@
  #undef KeyPress
  #include <unistd.h>
 #endif
-
+#include <cpl/Protected.h>
 //==============================================================================
 namespace juce
 {
@@ -88,6 +90,7 @@ namespace juce
 
 #elif JUCE_WINDOWS
  #include "native/juce_win32_HiddenMessageWindow.h"
+
  #include "native/juce_win32_Messaging.cpp"
 
 #elif JUCE_LINUX

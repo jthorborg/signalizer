@@ -2352,13 +2352,19 @@ private:
 public:
     static LRESULT CALLBACK windowProc (HWND h, UINT message, WPARAM wParam, LPARAM lParam)
     {
-        if (HWNDComponentPeer* const peer = getOwnerOfWindow (h))
-        {
-            jassert (isValidPeer (peer));
-            return peer->peerWindowProc (h, message, wParam, lParam);
-        }
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		return CPL_TRACEGUARD_START
+#endif
+		if (HWNDComponentPeer* const peer = getOwnerOfWindow(h))
+		{
+			jassert(isValidPeer(peer));
+			return peer->peerWindowProc(h, message, wParam, lParam);
+		}
 
-        return DefWindowProcW (h, message, wParam, lParam);
+		return DefWindowProcW(h, message, wParam, lParam);
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		CPL_TRACEGUARD_STOP("Main window procedure");
+#endif
     }
 
 private:

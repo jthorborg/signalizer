@@ -52,39 +52,45 @@ namespace WindowsMessageHelpers
     //==============================================================================
     LRESULT CALLBACK messageWndProc (HWND h, const UINT message, const WPARAM wParam, const LPARAM lParam) noexcept
     {
-        if (h == juce_messageWindowHandle)
-        {
-            if (message == specialId)
-            {
-                // (These are trapped early in our dispatch loop, but must also be checked
-                // here in case some 3rd-party code is running the dispatch loop).
-                dispatchMessageFromLParam (lParam);
-                return 0;
-            }
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		return CPL_TRACEGUARD_START
+#endif
+		if (h == juce_messageWindowHandle)
+		{
+			if (message == specialId)
+			{
+				// (These are trapped early in our dispatch loop, but must also be checked
+				// here in case some 3rd-party code is running the dispatch loop).
+				dispatchMessageFromLParam (lParam);
+				return (LRESULT)0;
+			}
 
-            if (message == broadcastId)
-            {
-                const ScopedPointer<String> messageString ((String*) lParam);
-                MessageManager::getInstance()->deliverBroadcastMessage (*messageString);
-                return 0;
-            }
+			if (message == broadcastId)
+			{
+				const ScopedPointer<String> messageString ((String*) lParam);
+				MessageManager::getInstance()->deliverBroadcastMessage (*messageString);
+				return (LRESULT)0;
+			}
 
-            if (message == WM_COPYDATA)
-            {
-                const COPYDATASTRUCT* const data = reinterpret_cast<const COPYDATASTRUCT*> (lParam);
+			if (message == WM_COPYDATA)
+			{
+				const COPYDATASTRUCT* const data = reinterpret_cast<const COPYDATASTRUCT*> (lParam);
 
-                if (data->dwData == broadcastId)
-                {
-                    const String messageString (CharPointer_UTF32 ((const CharPointer_UTF32::CharType*) data->lpData),
-                                                data->cbData / sizeof (CharPointer_UTF32::CharType));
+				if (data->dwData == broadcastId)
+				{
+					const String messageString (CharPointer_UTF32 ((const CharPointer_UTF32::CharType*) data->lpData),
+												data->cbData / sizeof (CharPointer_UTF32::CharType));
 
-                    PostMessage (juce_messageWindowHandle, broadcastId, 0, (LPARAM) new String (messageString));
-                    return 0;
-                }
-            }
-        }
+					PostMessage (juce_messageWindowHandle, broadcastId, 0, (LPARAM) new String (messageString));
+					return (LRESULT)0;
+				}
+			}
+		}
 
-        return DefWindowProc (h, message, wParam, lParam);
+		return DefWindowProc (h, message, wParam, lParam);
+		#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+			CPL_TRACEGUARD_STOP("JUCE Message window procedure");
+		#endif
     }
 
     BOOL CALLBACK broadcastEnumWindowProc (HWND hwnd, LPARAM lParam)

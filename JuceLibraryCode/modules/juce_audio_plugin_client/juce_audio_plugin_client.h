@@ -30,6 +30,8 @@
 #include "../juce_audio_processors/juce_audio_processors.h"
 #include "utility/juce_CheckSettingMacros.h"
 
+#include <cpl/Protected.h>
+
 namespace juce
 {
  #include "utility/juce_PluginHostType.h"
