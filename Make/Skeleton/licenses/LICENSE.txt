@@ -1,0 +1,6 @@
+By using this program and/or source code, you agree to all product licenses found in this folder.
+Non-specific contains full licenses for products that only reference them.
+
+The source code of this program is licensed under GPL v3. The complimentary library, cpl, is also licensed under GPL v3.
+
+The source code of this program uses JUCE v3, which is licensed under GPL v3 as well.

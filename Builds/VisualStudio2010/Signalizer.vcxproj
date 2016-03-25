@@ -66,16 +66,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\users\janus\desktop\repos\SDKs\;C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;c:\code\sdks\;c:\code\sdks\cpl;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\Users\janus\Desktop\repos\SDKs\VST3 SDK;C:\Code\SDKs;C:\Code\SDKs\vstsdk2.4;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -117,6 +117,8 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -166,6 +168,8 @@
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -221,6 +225,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -278,13 +284,15 @@
       <LargeAddressAware>true</LargeAddressAware>
       <AdditionalOptions>/FORCE:multiple %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\users\Janus\Desktop\Stuff2\Audio\Plugins\Signalizer\$(TargetFileName)"</Command>
+      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" C:\Audio\VstPlugins\Signalizer\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

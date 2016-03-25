@@ -1165,12 +1165,12 @@ public:
 		return CPL_TRACEGUARD_START
 #endif
         if (hasShutdown)
-            return 0;
+            return (VstIntPtr)0;
 
         if (opCode == effEditIdle)
         {
             doIdleCallback();
-            return 0;
+            return (VstIntPtr)0;
         }
         else if (opCode == effEditOpen)
         {
@@ -1201,7 +1201,7 @@ public:
               #endif
                 editorComp->setVisible (true);
 
-                return 1;
+                return (VstIntPtr)1;
             }
         }
         else if (opCode == effEditClose)
@@ -1209,7 +1209,7 @@ public:
             checkWhetherMessageThreadIsCorrect();
             const MessageManagerLock mmLock;
             deleteEditor (true);
-            return 0;
+            return (VstIntPtr)0;
         }
         else if (opCode == effEditGetRect)
         {
@@ -1229,7 +1229,7 @@ public:
                 return (VstIntPtr) (pointer_sized_int) &editorSize;
             }
 
-            return 0;
+            return (VstIntPtr)0;
         }
 
         return AudioEffectX::dispatcher (opCode, index, value, ptr, opt);

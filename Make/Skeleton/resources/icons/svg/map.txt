@@ -1,0 +1,19 @@
+syntax: alias = name, license, origin/copyrigth
+full licenses can be found in ../../licenses
+
+freeze = Snowflakes Free, CC BY 3.0, Timothy Miller, https://www.iconfinder.com/icons/372618/christmas_cold_freezing_frost_frozen_holiday_snow_snowflake_winter_icon#size=128
+formulae = Function icon, free, GlyphPack by Design Revision, https://www.iconfinder.com/icons/383136/function_icon#size=512
+error = ic_error_outline_black_24px, CC BY 4.0, Google Icons 2016
+desktop = error
+wrench = Wrench icon, free, GlyphPack by Design Revision, https://www.iconfinder.com/icons/383193/wrench_icon#size=128
+save = ic_save_black_24px, CC BY 4.0, Google Icons 2016
+gears = Slthytove's Gears, no apparant license, http://konfabulator.wikia.com/wiki/Slthytove%27s_Gears
+gear = Gear icon, free, GlyphPack by Design Revision, https://www.iconfinder.com/icons/383132/gear_icon#size=128
+idle = 1458411840_48.Dashboard, free for commercial, https://www.iconfinder.com/icons/290102/control_panel_dashboard_gauge_measure_meter_speed_speedometer_icon#size=128
+errorcross = ic_clear_black_24px, CC BY 4.0, Google Icons 2016
+fullscreen = ic_aspect_ratio_black_24px, CC BY 4.0, Google Icons 2016
+graph = ic_trending_up_black_24px, CC BY 4.0, Google Icons 2016
+brush = Brush icon, free, GlyphPack by Design Revision, https://www.iconfinder.com/icons/383174/brush_icon#size=128
+successtick = ic_done_black_24px, CC BY 4.0, Google Icons 2016
+sync = ic_autorenew_black_24px, CC BY 4.0, Google Icons, 2016
+help = Help icon, MIT, Ionicons, https://www.iconfinder.com/icons/211675/help_icon#size=128

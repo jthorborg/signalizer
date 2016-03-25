@@ -1040,7 +1040,7 @@ namespace Signalizer
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
-
+		
 		data >> krefreshRate;
 		data >> krenderEngine;
 		data >> khelp;
