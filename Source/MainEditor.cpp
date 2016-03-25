@@ -103,7 +103,7 @@ namespace Signalizer
 	:
 		engine(e),
 		AudioProcessorEditor(e),
-		CTopView(this),
+		CTopView(this, "Signalizer main editor"),
 		rcc(this, this),
 		krenderEngine("Rendering Engine", RenderingEnginesList),
 		krefreshRate("Refresh Rate"),
@@ -851,9 +851,12 @@ namespace Signalizer
 			if (view)
 			{
 				views.emplace(mappedView, std::unique_ptr<cpl::CSubView>(view));
-				auto & key = viewSettings.getKey("Serialized Views").getKey(mappedView);
+				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
 				if (!key.isEmpty())
-					view->load(key, key.getMasterVersion());
+				{
+					key >> view;
+				}
+
 			}
 			else
 			{
@@ -924,7 +927,7 @@ namespace Signalizer
 		tabs.addTab(name);
 	}
 
-	void MainEditor::save(cpl::CSerializer & data, long long int version)
+	void MainEditor::serialize(cpl::CSerializer & data, long long int version)
 	{
 
 		data << krefreshRate;
@@ -947,7 +950,7 @@ namespace Signalizer
 
 		for (auto & colour : colourControls)
 		{
-			data.getKey("Colours").getKey(colour.bGetTitle()) << colour;
+			data.getContent("Colours").getContent(colour.bGetTitle()) << colour;
 		}
 
 		// save any view data
@@ -963,15 +966,15 @@ namespace Signalizer
 			if (viewInstanceIt != views.end())
 			{
 				// serialize fresh data - // watch out, or it'll save the std::unique_ptr!
-				data.getKey("Serialized Views").getKey(viewInstanceIt->first) << viewInstanceIt->second.get();
+				data.getContent("Serialized Views").getContent(viewInstanceIt->first) << viewInstanceIt->second.get();
 			}
 			else
 			{
 				// otherwise, see if we have some old session data:
-				auto serializedView = viewSettings.getKey("Serialized Views").getKey(viewName);
+				auto serializedView = viewSettings.getContent("Serialized Views").getContent(viewName);
 				if (!serializedView.isEmpty())
 				{
-					data.getKey("Serialized Views").getKey(viewName) = serializedView;
+					data.getContent("Serialized Views").getContent(viewName) = serializedView;
 				}
 			}
 		}
@@ -1033,10 +1036,8 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::load(cpl::CSerializer & data, long long version)
+	void MainEditor::deserialize(cpl::CSerializer & data, long long version)
 	{
-		data.setThrowsOnExhaustion(false);
-
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
@@ -1057,7 +1058,7 @@ namespace Signalizer
 		kkiosk.bAddPassiveChangeListener(this);
 		for (auto & colour : colourControls)
 		{
-			auto & content = viewSettings.getKey("Colours").getKey(colour.bGetTitle());
+			auto & content = viewSettings.getContent("Colours").getContent(colour.bGetTitle());
 			if (!content.isEmpty())
 				content >> colour;
 		}
@@ -1070,9 +1071,9 @@ namespace Signalizer
 		// reinitiaty any current views (will not be done through tab selection further down)
 		for (auto & viewPair : views)
 		{
-			auto & key = viewSettings.getKey("Serialized Views").getKey(viewPair.first);
+			auto & key = viewSettings.getContent("Serialized Views").getContent(viewPair.first);
 			if (!key.isEmpty())
-				viewPair.second->load(key, key.getMasterVersion());
+				key << viewPair.second;
 		}
 
 		// will take care of opening the correct view

@@ -406,8 +406,9 @@
 		{
 		public:
 			CDefaultView()
-				: lastTime(cpl::Misc::TimeCounter()),
-				fractionateMoves(0)
+				: lastTime(cpl::Misc::TimeCounter())
+				, fractionateMoves(0)
+				, COpenGLView("Signalizer default view")
 			{
 				std::srand(std::time(nullptr));
 				setOpaque(true);

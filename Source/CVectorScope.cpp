@@ -97,6 +97,7 @@ namespace Signalizer
 
 	CVectorScope::CVectorScope(AudioStream & data)
 	:
+		COpenGLView("Vectorscope view"),
 		audioStream(data),
 		kwindow("Window size", cpl::CKnobSlider::ControlType::ms),
 		krotation("Wave Z-rotation"),
@@ -237,7 +238,7 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CVectorScope::save(cpl::CSerializer::Archiver & archive, long long int version)
+	void CVectorScope::serialize(cpl::CSerializer::Archiver & archive, long long int version)
 	{
 		archive << kwindow;
 		archive << kgain;
@@ -259,7 +260,7 @@ namespace Signalizer
 		archive << kmeterColour;
 	}
 
-	void CVectorScope::load(cpl::CSerializer::Builder & builder, long long int version)
+	void CVectorScope::deserialize(cpl::CSerializer::Builder & builder, long long int version)
 	{
 		builder >> kwindow;
 		builder >> kgain;
@@ -703,7 +704,20 @@ namespace Signalizer
 
 	bool CVectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
+		switch (cpl::simd::max_vector_capacity<float>())
+		{
+		case 8:
+		#ifdef CPL_COMPILER_SUPPORTS_AVX
+				audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
+				break;
+		#endif
+		case 4:
+			audioProcessing<cpl::Types::v4sf>(buffer, numChannels, numSamples);
+			break;
+		default:
+			audioProcessing<float>(buffer, numChannels, numSamples);
+			break;
+		}
 		return false;
 	}
 

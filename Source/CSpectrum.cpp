@@ -129,6 +129,7 @@ namespace Signalizer
 
 	CSpectrum::CSpectrum(AudioStream & stream)
 	:
+		COpenGLView("Spectrum view"),
 		audioStream(stream),
 		processorSpeed(0),
 		lastFrameTick(0),
@@ -397,7 +398,7 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CSpectrum::save(cpl::CSerializer::Archiver & archive, long long int version)
+	void CSpectrum::serialize(cpl::CSerializer::Archiver & archive, long long int version)
 	{
 		archive << kviewScaling;
 		archive << kalgorithm;
@@ -436,51 +437,44 @@ namespace Signalizer
 		archive << kfloodFillAlpha;
 	}
 
-	void CSpectrum::load(cpl::CSerializer::Builder & builder, long long int version)
+	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, long long int version)
 	{
-		try
+
+		builder >> kviewScaling;
+		builder >> kalgorithm;
+		builder >> kchannelConfiguration;
+		builder >> kdisplayMode;
+		// set high first, so low isn't capped
+		builder >> khighDbs;
+		builder >> klowDbs;
+		builder >> kwindowSize;
+		builder >> kpctForDivision;
+
+		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 		{
-			builder >> kviewScaling;
-			builder >> kalgorithm;
-			builder >> kchannelConfiguration;
-			builder >> kdisplayMode;
-			// set high first, so low isn't capped
-			builder >> khighDbs;
-			builder >> klowDbs;
-			builder >> kwindowSize;
-			builder >> kpctForDivision;
-
-			for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
-			{
-				builder >> klines[i].colourOne;
-				builder >> klines[i].colourTwo;
-				builder >> klines[i].decay;
-			}
-
-			builder >> kgridColour;
-			builder >> kblobSize;
-			builder >> kbackgroundColour;
-			builder >> kframeUpdateSmoothing;
-
-			for (int i = 0; i < numSpectrumColours; ++i)
-			{
-				builder >> kspecColours[i];
-				builder >> kspecRatios[i];
-			}
-			builder >> kbinInterpolation;
-			builder >> state.viewRect;
-			builder >> kdspWin;
-			builder >> kfreeQ;
-			builder >> kspectrumStretching;
-			builder >> kfrequencyTracker;
-			builder >> kprimitiveSize;
-			builder >> kfloodFillAlpha;
+			builder >> klines[i].colourOne;
+			builder >> klines[i].colourTwo;
+			builder >> klines[i].decay;
 		}
-		catch (std::exception & e)
+
+		builder >> kgridColour;
+		builder >> kblobSize;
+		builder >> kbackgroundColour;
+		builder >> kframeUpdateSmoothing;
+
+		for (int i = 0; i < numSpectrumColours; ++i)
 		{
-			(void)e;
-			CPL_NOOP;
+			builder >> kspecColours[i];
+			builder >> kspecRatios[i];
 		}
+		builder >> kbinInterpolation;
+		builder >> state.viewRect;
+		builder >> kdspWin;
+		builder >> kfreeQ;
+		builder >> kspectrumStretching;
+		builder >> kfrequencyTracker;
+		builder >> kprimitiveSize;
+		builder >> kfloodFillAlpha;
 	}
 
 	void CSpectrum::resized()

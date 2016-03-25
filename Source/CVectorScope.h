@@ -99,9 +99,6 @@
 			void unfreeze() override;
 
 			std::unique_ptr<juce::Component> createEditor() override;
-			// CSerializer overrides
-			void load(cpl::CSerializer::Builder & builder, long long int version) override;
-			void save(cpl::CSerializer::Archiver & archive, long long int version) override;
 
 			// cbasecontrol overrides
 			void valueChanged(const cpl::CBaseControl *) override;
@@ -123,6 +120,12 @@
 			/// </summary>
 			virtual void handleFlagUpdates();
 		private:
+
+			void deserialize(cpl::CSerializer::Builder & builder, long long int version) override;
+			void serialize(cpl::CSerializer::Archiver & archive, long long int version) override;
+
+			template<typename V>
+				void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>

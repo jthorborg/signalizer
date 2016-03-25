@@ -47,8 +47,6 @@
 
 			// CView overrides
 			juce::Component * getWindow() override { return this; }
-			void load(cpl::CSerializer & se, long long int version) override;
-			void save(cpl::CSerializer & se, long long int version) override;
 			std::unique_ptr<juce::Component> createEditor() override;
 			void panelOpened(cpl::CTextTabBar<> * obj) override;
 			void panelClosed(cpl::CTextTabBar<> * obj) override;
@@ -100,6 +98,9 @@
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & valString, cpl::iCtrlPrec_t val) override;
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
+
+			void deserialize(cpl::CSerializer & se, long long int version) override;
+			void serialize(cpl::CSerializer & se, long long int version) override;
 
 			struct Flags
 			{

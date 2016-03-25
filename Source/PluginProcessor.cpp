@@ -34,7 +34,7 @@ void SignalizerAudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
 	if (v == editor)
 	{
 		serializedData.clear();
-		editor->save(serializedData.getArchiver(), cpl::programInfo.versionInteger);
+		editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.versionInteger);
 
 		editor = nullptr;
 	}
@@ -94,16 +94,12 @@ bool SignalizerAudioProcessor::hasEditor() const
 AudioProcessorEditor* SignalizerAudioProcessor::createEditor()
 {
 	//cpl::Misc::MsgBox("Attach debugger");
-	cpl::CProtected::runProtectedCodeErrorHandling
-	(
-		[this]()
-		{
-			editor = new Signalizer::MainEditor(this);
-			editor->addEventListener(this);
-			if (!serializedData.isEmpty())
-				editor->load(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
-		}
-	);
+
+	editor = new Signalizer::MainEditor(this);
+	editor->addEventListener(this);
+	if (!serializedData.isEmpty())
+		editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
+
 	return editor;
 }
 
@@ -113,7 +109,7 @@ void SignalizerAudioProcessor::getStateInformation (MemoryBlock& destData)
 	if (editor)
 	{
 		serializedData.clear();
-		editor->save(serializedData.getArchiver(), cpl::programInfo.versionInteger);
+		editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.versionInteger);
 	}
 	if (!serializedData.isEmpty())
 	{
@@ -130,7 +126,7 @@ void SignalizerAudioProcessor::setStateInformation (const void* data, int sizeIn
 		serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
 		if (editor)
 		{
-			editor->load(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
+			editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
 		}
 	}
 	catch (const std::exception & e)

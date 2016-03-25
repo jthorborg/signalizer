@@ -111,67 +111,84 @@ namespace Signalizer
 	{
 		textures.clear();
 	}
-
-
 	void CVectorScope::onOpenGLRendering()
 	{
-		CPL_DEBUGCHECKGL();
-		auto && lockedView = audioStream.getAudioBufferViews();
-		handleFlagUpdates();
-		auto cStart = cpl::Misc::ClockCounter();
-		juce::OpenGLHelpers::clear(state.colourBackground);
+		switch (cpl::simd::max_vector_capacity<float>())
 		{
-			cpl::OpenGLRendering::COpenGLStack openGLStack;
-			// set up openGL
-			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-			openGLStack.loadIdentityMatrix();
-
-			openGLStack.applyTransform3D(ktransform.getTransform3D());
-			state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
-
-			// the peak filter has to run on the whole buffer each time.
-			if (state.envelopeMode == EnvelopeModes::PeakDecay)
-			{
-				runPeakFilter<cpl::simd::v8sf>(lockedView);
-			}
-			   
-			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
-			openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
-
-			// draw actual stereoscopic plot
-			if (lockedView.getNumChannels() >= 2)
-			{
-				if (state.isPolar)
-				{
-					drawPolarPlot<cpl::simd::v4sf>(openGLStack, lockedView);
-				}
-				else // is Lissajous
-				{
-					drawRectPlot<cpl::simd::v4sf>(openGLStack, lockedView);
-				}
-			}
-			CPL_DEBUGCHECKGL();
-
-			openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-			
-			// draw graph and wireframe
-			drawWireFrame<cpl::simd::v4sf>(openGLStack);
-			CPL_DEBUGCHECKGL();
-			// draw channel text(ures)
-			drawGraphText<cpl::simd::v4sf>(openGLStack, lockedView);
-			CPL_DEBUGCHECKGL();
-			// draw 2d stuff (like stereo meters)
-			drawStereoMeters<cpl::simd::v4sf>(openGLStack, lockedView);
-			CPL_DEBUGCHECKGL();
-			renderCycles = cpl::Misc::ClockCounter() - cStart;
+		case 8:
+		#ifdef CPL_COMPILER_SUPPORTS_AVX
+				vectorGLRendering<cpl::Types::v8sf>();
+				break;
+		#endif
+		case 4:
+			vectorGLRendering<cpl::Types::v4sf>();
+			break;
+		default:
+			vectorGLRendering<float>();
+			break;
 		}
-		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
-
-		auto tickNow = juce::Time::getHighResolutionTicks();
-		avgFps.setNext(tickNow - lastFrameTick);
-		lastFrameTick = tickNow;
-
 	}
+
+	template<typename V>
+		void CVectorScope::vectorGLRendering()
+		{
+			CPL_DEBUGCHECKGL();
+			auto && lockedView = audioStream.getAudioBufferViews();
+			handleFlagUpdates();
+			auto cStart = cpl::Misc::ClockCounter();
+			juce::OpenGLHelpers::clear(state.colourBackground);
+			{
+				cpl::OpenGLRendering::COpenGLStack openGLStack;
+				// set up openGL
+				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+				openGLStack.loadIdentityMatrix();
+
+				openGLStack.applyTransform3D(ktransform.getTransform3D());
+				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
+
+				// the peak filter has to run on the whole buffer each time.
+				if (state.envelopeMode == EnvelopeModes::PeakDecay)
+				{
+					runPeakFilter<V>(lockedView);
+				}
+			   
+				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
+				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
+
+				// draw actual stereoscopic plot
+				if (lockedView.getNumChannels() >= 2)
+				{
+					if (state.isPolar)
+					{
+						drawPolarPlot<V>(openGLStack, lockedView);
+					}
+					else // is Lissajous
+					{
+						drawRectPlot<V>(openGLStack, lockedView);
+					}
+				}
+				CPL_DEBUGCHECKGL();
+
+				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
+			
+				// draw graph and wireframe
+				drawWireFrame<V>(openGLStack);
+				CPL_DEBUGCHECKGL();
+				// draw channel text(ures)
+				drawGraphText<V>(openGLStack, lockedView);
+				CPL_DEBUGCHECKGL();
+				// draw 2d stuff (like stereo meters)
+				drawStereoMeters<V>(openGLStack, lockedView);
+				CPL_DEBUGCHECKGL();
+				renderCycles = cpl::Misc::ClockCounter() - cStart;
+			}
+			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
+
+			auto tickNow = juce::Time::getHighResolutionTicks();
+			avgFps.setNext(tickNow - lastFrameTick);
+			lastFrameTick = tickNow;
+
+		}
 
 	
 	template<typename V>
