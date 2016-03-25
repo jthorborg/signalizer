@@ -99,8 +99,8 @@
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
 
-			void deserialize(cpl::CSerializer & se, long long int version) override;
-			void serialize(cpl::CSerializer & se, long long int version) override;
+			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
+			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
 			struct Flags
 			{

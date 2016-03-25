@@ -22,7 +22,7 @@ SignalizerAudioProcessor::SignalizerAudioProcessor()
 	nChannels(2),
 	serializedData("HostState")
 {
-
+	serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
 }
 
 SignalizerAudioProcessor::~SignalizerAudioProcessor() noexcept
@@ -34,7 +34,7 @@ void SignalizerAudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
 	if (v == editor)
 	{
 		serializedData.clear();
-		editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.versionInteger);
+		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
 
 		editor = nullptr;
 	}
@@ -109,7 +109,7 @@ void SignalizerAudioProcessor::getStateInformation (MemoryBlock& destData)
 	if (editor)
 	{
 		serializedData.clear();
-		editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.versionInteger);
+		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
 	}
 	if (!serializedData.isEmpty())
 	{
@@ -124,6 +124,7 @@ void SignalizerAudioProcessor::setStateInformation (const void* data, int sizeIn
 	{
 		serializedData.clear();
 		serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
+		// TODO: can make version check here.
 		if (editor)
 		{
 			editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());

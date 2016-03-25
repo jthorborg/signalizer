@@ -398,7 +398,7 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CSpectrum::serialize(cpl::CSerializer::Archiver & archive, long long int version)
+	void CSpectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
 	{
 		archive << kviewScaling;
 		archive << kalgorithm;
@@ -437,7 +437,7 @@ namespace Signalizer
 		archive << kfloodFillAlpha;
 	}
 
-	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, long long int version)
+	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
 	{
 
 		builder >> kviewScaling;

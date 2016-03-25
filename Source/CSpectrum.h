@@ -234,8 +234,8 @@
 			void calculateSpectrumColourRatios();
 		private:
 
-			void deserialize(cpl::CSerializer::Builder & builder, long long int version) override;
-			void serialize(cpl::CSerializer::Archiver & archive, long long int version) override;
+			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override;
+			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override;
 
 			void audioConsumerThread();
 

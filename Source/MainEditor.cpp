@@ -15,19 +15,18 @@ It contains the basic startup code for a Juce application.
 #include "SignalizerDesign.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
+#include "version.h"
 
 namespace cpl
 {
 	const ProgramInfo programInfo
 	{
-		"Signalizer", 
-		"0.1",
-		0x001000,
+		"Signalizer",
+		cpl::Version::fromParts(SIGNALIZER_MAJOR, SIGNALIZER_MINOR, SIGNALIZER_BUILD),
 		"Janus Thorborg",
 		"sgn",
 		false,
 		nullptr
-
 	};
 
 };
@@ -927,7 +926,7 @@ namespace Signalizer
 		tabs.addTab(name);
 	}
 
-	void MainEditor::serialize(cpl::CSerializer & data, long long int version)
+	void MainEditor::serialize(cpl::CSerializer & data, cpl::Version version)
 	{
 
 		data << krefreshRate;
@@ -1036,7 +1035,7 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::deserialize(cpl::CSerializer & data, long long version)
+	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);

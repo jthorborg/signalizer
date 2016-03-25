@@ -238,7 +238,7 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CVectorScope::serialize(cpl::CSerializer::Archiver & archive, long long int version)
+	void CVectorScope::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
 	{
 		archive << kwindow;
 		archive << kgain;
@@ -260,7 +260,7 @@ namespace Signalizer
 		archive << kmeterColour;
 	}
 
-	void CVectorScope::deserialize(cpl::CSerializer::Builder & builder, long long int version)
+	void CVectorScope::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
 	{
 		builder >> kwindow;
 		builder >> kgain;
