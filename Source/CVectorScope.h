@@ -206,6 +206,7 @@
 			//cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
+			double oldWindowSize;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

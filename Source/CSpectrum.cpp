@@ -148,7 +148,8 @@ namespace Signalizer
 		newc(),
 		cmouse(),
 		lastPeak(),
-		scallopLoss()
+		scallopLoss(),
+		oldWindowSize(-1)
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
@@ -194,11 +195,19 @@ namespace Signalizer
 	void CSpectrum::suspend()
 	{
 		isSuspended = true;
+		oldWindowSize = kwindowSize.bGetValue();
 	}
 
 	void CSpectrum::resume()
 	{
 		isSuspended = false;
+		// fix for other views altering our window size.
+			if(oldWindowSize != -1)
+			{
+				kwindowSize.bSetValue(oldWindowSize);
+				kwindowSize.bForceEvent(); // in case they (still) are the same
+			}
+
 		flags.openGLInitiation = true;
 	}
 

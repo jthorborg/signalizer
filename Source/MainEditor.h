@@ -135,7 +135,7 @@
 			void initUI();
 
 			void suspendView(cpl::CView * view);
-			void initiateView(cpl::CView * view);
+			void initiateView(cpl::CView * view, bool spawnNewEditor = false);
 			void enterFullscreenIfNeeded(juce::Point<int> where);
 			void enterFullscreenIfNeeded();
 			void exitFullscreen();

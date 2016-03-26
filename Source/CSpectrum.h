@@ -628,6 +628,7 @@
 			/// </summary>
 			std::size_t relayWidth, relayHeight;
 			int framePixelPosition;
+			double oldWindowSize;
 			int droppedAudioFrames;
 			double framesPerUpdate;
 			cpl::CPeakFilter<double> fpuFilter;

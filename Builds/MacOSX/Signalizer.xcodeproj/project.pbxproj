@@ -21,9 +21,10 @@
 		165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278E31A9B3675003E1953 /* CPLSource.cpp */; };
 		165278E61A9B36AD003E1953 /* MacSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = 165278E51A9B36AD003E1953 /* MacSupport.mm */; };
 		16B6897A1AB7228600170EE6 /* CVectorScopeRendering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */; };
-		16CE92A41C6E12DE0044A063 /* bmps in Resources */ = {isa = PBXBuildFile; fileRef = 16CE92A11C6E12DE0044A063 /* bmps */; };
-		16CE92A51C6E12DE0044A063 /* fonts in Resources */ = {isa = PBXBuildFile; fileRef = 16CE92A21C6E12DE0044A063 /* fonts */; };
-		16CE92A61C6E12DE0044A063 /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 16CE92A31C6E12DE0044A063 /* icons */; };
+		16F63B141CA6BBF400816394 /* licenses in Resources */ = {isa = PBXBuildFile; fileRef = 16F63B101CA6BBF400816394 /* licenses */; };
+		16F63B151CA6BBF400816394 /* presets in Resources */ = {isa = PBXBuildFile; fileRef = 16F63B111CA6BBF400816394 /* presets */; };
+		16F63B161CA6BBF400816394 /* READ ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 16F63B121CA6BBF400816394 /* READ ME.txt */; };
+		16F63B171CA6BBF400816394 /* resources in Resources */ = {isa = PBXBuildFile; fileRef = 16F63B131CA6BBF400816394 /* resources */; };
 		1BDB768996BF39F6D83070A2 /* AUEffectBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3177FDC74A3F3A30961620D6 /* AUEffectBase.cpp */; settings = {COMPILER_FLAGS = "-w"; }; };
 		2BD287D1E7CA9D97721B8161 /* juce_AU_Wrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3A6021B42D210342E83E1FE4 /* juce_AU_Wrapper.mm */; };
 		2ECBB4F4BE0687E74E635383 /* juce_gui_extra.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7642A5577832F6C6CE8191AC /* juce_gui_extra.mm */; };
@@ -192,9 +193,10 @@
 		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../../SDKs/cpl/MacSupport.mm; sourceTree = "<group>"; };
 		16A08833959E1D0DBAB33CD7 /* juce_ShapeButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ShapeButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ShapeButton.h; sourceTree = SOURCE_ROOT; };
 		16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CVectorScopeRendering.cpp; path = ../../Source/CVectorScopeRendering.cpp; sourceTree = "<group>"; };
-		16CE92A11C6E12DE0044A063 /* bmps */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bmps; path = ../../../SDKs/cpl/resources/bmps; sourceTree = "<group>"; };
-		16CE92A21C6E12DE0044A063 /* fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fonts; path = ../../../SDKs/cpl/resources/fonts; sourceTree = "<group>"; };
-		16CE92A31C6E12DE0044A063 /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../SDKs/cpl/resources/icons; sourceTree = "<group>"; };
+		16F63B101CA6BBF400816394 /* licenses */ = {isa = PBXFileReference; lastKnownFileType = folder; name = licenses; path = ../../Make/Skeleton/licenses; sourceTree = "<group>"; };
+		16F63B111CA6BBF400816394 /* presets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = presets; path = ../../Make/Skeleton/presets; sourceTree = "<group>"; };
+		16F63B121CA6BBF400816394 /* READ ME.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "READ ME.txt"; path = "../../Make/Skeleton/READ ME.txt"; sourceTree = "<group>"; };
+		16F63B131CA6BBF400816394 /* resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = resources; path = ../../Make/Skeleton/resources; sourceTree = "<group>"; };
 		175BB856301EC10A3CBA0643 /* juce_RectangleList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_RectangleList.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_RectangleList.h; sourceTree = SOURCE_ROOT; };
 		1776BE295A658BC7F0C0F92A /* juce_Path.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_Path.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_Path.h; sourceTree = SOURCE_ROOT; };
 		179F56554F4C5CA3A512069C /* juce_ApplicationCommandInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ApplicationCommandInfo.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandInfo.h; sourceTree = SOURCE_ROOT; };
@@ -2859,9 +2861,10 @@
 		EF580A6A9F0F45526A1A05AE /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				16CE92A11C6E12DE0044A063 /* bmps */,
-				16CE92A21C6E12DE0044A063 /* fonts */,
-				16CE92A31C6E12DE0044A063 /* icons */,
+				16F63B101CA6BBF400816394 /* licenses */,
+				16F63B111CA6BBF400816394 /* presets */,
+				16F63B121CA6BBF400816394 /* READ ME.txt */,
+				16F63B131CA6BBF400816394 /* resources */,
 				7D4308AE08AD9E2B5F3712F0 /* Info.plist */,
 				C02269DAA7634EF3F4939393 /* RecentFilesMenuTemplate.nib */,
 			);
@@ -3012,10 +3015,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				16CE92A51C6E12DE0044A063 /* fonts in Resources */,
-				16CE92A61C6E12DE0044A063 /* icons in Resources */,
-				16CE92A41C6E12DE0044A063 /* bmps in Resources */,
+				16F63B151CA6BBF400816394 /* presets in Resources */,
+				16F63B141CA6BBF400816394 /* licenses in Resources */,
+				16F63B171CA6BBF400816394 /* resources in Resources */,
 				2FBCDA600AE1B147FD84DC60 /* RecentFilesMenuTemplate.nib in Resources */,
+				16F63B161CA6BBF400816394 /* READ ME.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3117,7 +3121,7 @@
 		0F7224545BBBFF366798FC93 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;
@@ -3187,7 +3191,7 @@
 		645D1AC9A19CA8EF2881AEEF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_LINK_OBJC_RUNTIME = NO;

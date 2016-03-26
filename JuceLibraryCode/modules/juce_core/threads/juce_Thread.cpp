@@ -86,8 +86,9 @@ void Thread::threadEntryPoint()
     const CurrentThreadHolder::Ptr currentThreadHolder (getCurrentThreadHolder());
     currentThreadHolder->value = this;
 
-    JUCE_TRY
-    {
+#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+	CPL_TRACEGUARD_START
+#endif
         if (threadName.isNotEmpty())
             setCurrentThreadName (threadName);
 
@@ -100,8 +101,9 @@ void Thread::threadEntryPoint()
 
             run();
         }
-    }
-    JUCE_CATCH_ALL_ASSERT
+	#ifdef CPL_TRACEGUARD_ENTRYPOINTS
+		CPL_TRACEGUARD_STOP(threadName.toStdString().c_str());
+	#endif
 
     currentThreadHolder->value.releaseCurrentThreadStorage();
     closeThreadHandle();

@@ -118,7 +118,8 @@ namespace Signalizer
 		editor(nullptr),
 		state(),
 		filters(),
-		kpresets(this, "vectorscope")
+		kpresets(this, "vectorscope"),
+		oldWindowSize(-1)
 	{
 		mtFlags.firstRun = true;
 		state.secondStereoFilterSpeed = 0.25f;
@@ -142,12 +143,17 @@ namespace Signalizer
 
 	void CVectorScope::suspend()
 	{
-
+		oldWindowSize = kwindow.bGetValue();
 
 	}
 
 	void CVectorScope::resume()
 	{
+		if(oldWindowSize != -1)
+		{
+			kwindow.bSetValue(oldWindowSize);
+			kwindow.bForceEvent(); // in case they (still) are the same
+		}
 
 
 	}

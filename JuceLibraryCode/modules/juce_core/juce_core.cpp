@@ -106,6 +106,7 @@
 #if JUCE_ANDROID
  #include <android/log.h>
 #endif
+#include <cpl/Protected.h>
 
 
 //==============================================================================

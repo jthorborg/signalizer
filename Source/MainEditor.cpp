@@ -386,8 +386,8 @@ namespace Signalizer
 			if (value > 0.5)
 			{
 				// spawn the global setting editor
-				tabs.openPanel();
 				pushEditor(this->createEditor());
+				tabs.openPanel();
 			}
 			else
 			{
@@ -734,7 +734,10 @@ namespace Signalizer
 				}
 				
 			}
-			if (kkiosk.bGetValue() > 0.5 && juce::Desktop::getInstance().getKioskModeComponent() == view->getWindow())
+			
+			// serializing the main editor to a preset where the kkiosk is false, while the main editor has
+			// a full screen window creates a.. interesting situation (replaced && with || to be sure).
+			if (juce::Desktop::getInstance().getKioskModeComponent() == view->getWindow() || kkiosk.bGetValue() > 0.5)
 			{
 				exitFullscreen();
 			}
@@ -745,7 +748,7 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::initiateView(cpl::CView * view)
+	void MainEditor::initiateView(cpl::CView * view, bool spawnNewEditor)
 	{
 		if (view)
 		{
@@ -770,6 +773,22 @@ namespace Signalizer
 				}
 
 			}
+			
+			if (spawnNewEditor)
+			{
+				auto newEditor = currentView->createEditor();
+				
+				if (newEditor.get())
+				{
+					pushEditor(std::move(newEditor));
+					tabs.openPanel();
+				}
+				else
+				{
+					tabs.closePanel();
+				}
+			}
+			
 			if (kkiosk.bGetValue() > 0.5)
 			{
 				if (firstKioskMode)
@@ -887,23 +906,7 @@ namespace Signalizer
 		currentView = view;
 		if (currentView)
 		{
-			initiateView(currentView);
-
-			if (openNewEditor)
-			{
-				auto newEditor = currentView->createEditor();
-
-				if (newEditor.get())
-				{
-					pushEditor(std::move(newEditor));
-				}
-				else
-				{
-					tabs.closePanel();
-				}
-			}
-
-
+			initiateView(currentView, openNewEditor);
 		}
 		
 		if (openNewEditor && ksettings.bGetBoolState())
@@ -1082,6 +1085,14 @@ namespace Signalizer
 			// enter fullscreen at kioskCoords
 			if (kkiosk.bGetValue() > 0.5)
 				firstKioskMode = true;
+			
+			if(tabs.getSelectedTab() == selTab)
+			{
+				// TODO: rewrite the following
+				// tabSelected will NOT get called in this case, do it manually.
+				tabSelected(&tabs, selTab);
+			}
+			
 			tabs.setSelectedTab(selTab);
 		}
 		else

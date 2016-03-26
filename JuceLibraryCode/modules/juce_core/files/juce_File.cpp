@@ -122,7 +122,7 @@ String File::parseAbsolutePath (const String& p)
 
     if (path.startsWithChar ('~'))
     {
-        if (path[1] == Separator || path[1] == 0)
+        if (path[1] == separator || path[1] == 0)
         {
             // expand a name of the form "~/abc"
             path = File::getSpecialLocation (File::userHomeDirectory).getFullPathName()
@@ -137,7 +137,7 @@ String File::parseAbsolutePath (const String& p)
                 path = addTrailingSeparator (pw->pw_dir) + path.fromFirstOccurrenceOf ("/", false, false);
         }
     }
-    else if (! path.startsWithChar (Separator))
+    else if (! path.startsWithChar (separator))
     {
        #if JUCE_DEBUG || JUCE_LOG_ASSERTIONS
         if (! (path.startsWith ("./") || path.startsWith ("../")))
