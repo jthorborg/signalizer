@@ -55,6 +55,8 @@ if len(sys.argv) > 1:
 		if inc != -1:
 			parameters.append(arg[inc + 5:])
 
+flush_parameters = False
+
 # handle operations
 for param in parameters:
 	config.set("version", param, str(int(config.get("version", param)) + 1))
@@ -62,8 +64,7 @@ for param in parameters:
 
 # write new configuration?
 if len(parameters) > 0:
-	with open("config.ini", "w") as f:
-		config.write(f, True)
+	flush_parameters = True
 
 #configurations
 major = config.get("version", "major")
@@ -81,7 +82,7 @@ print("------> Building Signalizer v. " + version_string + " release targets")
 com_path = os.path.join
 
 #overwrite resource to embed version numbers
-setup_resource(com_path(vcxpath, "resource.rc"), major, minor, build, name, desc)
+setup_resource(com_path(vcxpath, "resources.rc"), major, minor, build, name, desc)
 
 targets = [["x86", '"Release|win32"'], ["x64", '"Release|x64"']]
 
@@ -124,3 +125,9 @@ print("------> " + zx)
 
 # clean up dirs
 sh.rmtree("Signalizer Windows")
+
+# done, if we made it here, increase the conf build
+
+if flush_parameters:
+	with open("config.ini", "w") as f:
+		config.write(f, True)

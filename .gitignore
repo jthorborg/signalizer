@@ -224,12 +224,7 @@ Builds/MacOSX/Signalizer.xcodeproj/project.xcworkspace/xcshareddata/Signalizer.x
 Builds/VisualStudio2010/Debug/
 Builds/VisualStudio2010/x64/
 Builds/VisualStudio2010/Release/
-Builds/VisualStudio2010/Header.h
-Builds/VisualStudio2010/Header1.h
 Builds/VisualStudio2010/Signalizer.sdf
-Builds/VisualStudio2010/Signalizer.vcxproj.filters
-Builds/VisualStudio2010/new semi fast.h
-Builds/VisualStudio2010/old fast code.h
 Builds/VisualStudio2010/Signalizer.opensdf
 *.psess
 *.vsp

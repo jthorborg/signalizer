@@ -437,6 +437,7 @@ namespace Signalizer
 			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			using namespace cpl::simd;
+			using cpl::simd::abs;
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;

@@ -66,16 +66,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -885,7 +885,6 @@
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
     <ClInclude Include="..\..\Source\SignalizerDesign.h" />
-    <ClInclude Include="Old CSpectrum.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info" />
