@@ -180,6 +180,7 @@
 		1611A6CB1B518658003A3DC5 /* CSpectrum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSpectrum.h; path = ../../Source/CSpectrum.h; sourceTree = "<group>"; };
 		1611A6CC1B518658003A3DC5 /* CSpectrumDSP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CSpectrumDSP.cpp; path = ../../Source/CSpectrumDSP.cpp; sourceTree = "<group>"; };
 		1611A6CD1B518658003A3DC5 /* CSpectrumRendering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CSpectrumRendering.cpp; path = ../../Source/CSpectrumRendering.cpp; sourceTree = "<group>"; };
+		164258781CA968A2005FF772 /* CViews.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CViews.h; path = ../../../SDKs/cpl/CViews.h; sourceTree = "<group>"; };
 		1650C16B3B86FBA8808D697A /* juce_AudioCDReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_AudioCDReader.h; path = ../../JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.h; sourceTree = SOURCE_ROOT; };
 		165278D71A9B3662003E1953 /* CVectorScope.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CVectorScope.cpp; path = ../../Source/CVectorScope.cpp; sourceTree = "<group>"; };
 		165278D81A9B3662003E1953 /* CVectorScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CVectorScope.h; path = ../../Source/CVectorScope.h; sourceTree = "<group>"; };
@@ -1131,6 +1132,7 @@
 		03D49D1FEB68BE606F87E75A /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				164258791CA968A8005FF772 /* cpl */,
 				EA24685F8B6142E3520D09E9 /* Signalizer */,
 				F4DE3441A816EEE18EA91829 /* Juce Modules */,
 				486CDB739588781E735366C4 /* Juce Library Code */,
@@ -1221,6 +1223,14 @@
 				C249FC5CC7A85CBE8BCDF1E8 /* juce_Time.h */,
 			);
 			name = time;
+			sourceTree = "<group>";
+		};
+		164258791CA968A8005FF772 /* cpl */ = {
+			isa = PBXGroup;
+			children = (
+				164258781CA968A2005FF772 /* CViews.h */,
+			);
+			name = cpl;
 			sourceTree = "<group>";
 		};
 		1647B831A424A2A9ADA429B1 /* undomanager */ = {

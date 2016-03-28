@@ -81,6 +81,8 @@
 			// doesn't actually change anything - only updates the selected value in the preset list.
 			void setSelectedPreset(juce::File newPreset);
 
+			void showAboutBox();
+		
 		protected:
 
 			static const int elementSize = 25;
@@ -99,6 +101,8 @@
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
 
+			typedef std::vector<std::unique_ptr<juce::Component>>::iterator EditorIterator;
+		
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
@@ -125,15 +129,17 @@
 			// the z-ordering system ensures this is basically a FIFO system
 			void pushEditor(juce::Component * editor);
 			void pushEditor(std::unique_ptr<juce::Component> editor);
+			template<typename Pred>
+				bool removeAnyEditor(Pred pred);
 			juce::Component * getTopEditor() const;
 			void popEditor();
+			void deleteEditor(EditorIterator i);
 			void clearEditors();
 			cpl::CView * viewFromIndex(std::size_t index);
 			void addTab(const std::string & name);
 			void restoreTab();
 			int getRenderEngine();
 			void initUI();
-
 			void suspendView(cpl::CView * view);
 			void initiateView(cpl::CView * view, bool spawnNewEditor = false);
 			void enterFullscreenIfNeeded(juce::Point<int> where);
@@ -161,14 +167,16 @@
 			int viewTopCoord;
 			std::int32_t selTab;
 			cpl::iCtrlPrec_t oldRefreshRate;
-			bool unFocused, idleInBack, isEditorVisible, firstKioskMode, hasAnyTabBeenSelected;
+			// TODO: refactor to not use. Do not trust.
+			bool isEditorVisible;
+			bool unFocused, idleInBack, firstKioskMode, hasAnyTabBeenSelected;
 			juce::Point<int> kioskCoords;
 			juce::Rectangle<int> preFullScreenSize;
 			// View related data
 			Signalizer::CDefaultView defaultView;
 			juce::OpenGLContext oglc;
 			std::map<std::string, std::unique_ptr<cpl::CSubView>> views;
-			std::stack<std::unique_ptr<juce::Component>> editorStack;
+			std::vector<std::unique_ptr<juce::Component>> editorStack;
 			cpl::CView * currentView;
 			ResizableCornerComponent rcc;
 			cpl::CSerializer viewSettings;

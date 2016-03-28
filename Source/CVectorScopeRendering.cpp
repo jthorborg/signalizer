@@ -132,6 +132,7 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::vectorGLRendering()
 		{
+			
 			CPL_DEBUGCHECKGL();
 			auto && lockedView = audioStream.getAudioBufferViews();
 			handleFlagUpdates();
@@ -142,7 +143,6 @@ namespace Signalizer
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
-
 				openGLStack.applyTransform3D(ktransform.getTransform3D());
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
@@ -194,6 +194,7 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
+			openGLStack.enable(GL_TEXTURE_2D);
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
 			if(!state.isPolar)

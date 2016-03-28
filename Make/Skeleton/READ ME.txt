@@ -7,8 +7,26 @@ The source code of the complimentary library cpl is found here: https://bitbucke
 
 3. There is no manual, only tool-tips.
 
-4. Signalizer and cpl is written by Janus Lynggard Thorborg (hereby 'author') in the period of 2012 .. to now. All contents, unless otherwise noted, are copyrighted to the author.
+4. Signalizer and cpl is written by Janus Lynggard Thorborg (hereby 'author') in the period of 2012 .. to now. All content, unless otherwise noted, are copyrighted to the author.
 
 5. Signalizer has a homepage: http://jthorborg.com/index.html?ipage=signalizer
 
 6. Contact details for any inquires: http://jthorborg.com/index.html?ipage=contact
+
+FAQ:
+
+Q: Framerate appears slow, even though diagnostics reports a very stable measure, while using vertical sync.
+A: Especially on OS X, weird stuff can happen with the frame scheduling and syncing, if the window is not in full screen and focused. Try altering the "swap interval" in the main settings to 2.
+
+Q: The program crashed.
+A: Please, if you can, send a copy of the generated "Signalizer exceptions.log" (if any) and a description of the circumstances around the crash to me (see contact details above (6)). For OS X, the generated log is inside the bundle (Signalizer/Contents/Resources/). If you get the chance, please attach the operating-system generated fault description.
+
+Q: I got some nice code changes.
+A: Make a pull request - or contact me.
+
+Q: I got a feature request.
+A: Contact me (6).
+
+Q: I'm getting errors when i load a preset.
+A: The preset is probably from an older version. Perhaps send the error to me.
+

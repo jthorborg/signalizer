@@ -130,6 +130,7 @@ namespace Signalizer
 		initUI();
 
 		kpresets.loadDefaultPreset();
+		oglc.setComponentPaintingEnabled(false);
 	}
 
 
@@ -240,42 +241,49 @@ namespace Signalizer
 			editor->setVisible(false);
 		}
 
-		editorStack.push(std::move(newEditor));
+		editorStack.push_back(std::move(newEditor));
 
 		// beware of move construction! newEditor is now invalid!
 		if (auto editor = getTopEditor())
 		{
 			addAndMakeVisible(editor);
 			resized();
+			repaint();
 		}
 	}
 	juce::Component * MainEditor::getTopEditor() const
 	{
-		return editorStack.empty() ? nullptr : editorStack.top().get();
+		return editorStack.empty() ? nullptr : editorStack.back().get();
 	}
+	
+	void MainEditor::deleteEditor(MainEditor::EditorIterator i)
+	{
+		editorStack.erase(i);
+		
+		if(editorStack.empty() && tabs.isOpen())
+			tabs.closePanel();
+		else
+		{
+			if (auto editor = getTopEditor())
+			{
+				editor->setVisible(true);
+			}
+			resized();
+			repaint();
+		}
+	}
+
 	void MainEditor::popEditor()
 	{
 		if (!editorStack.empty())
 		{
-			editorStack.pop();
-
-			if(editorStack.empty() && tabs.isOpen())
-				tabs.closePanel();
-			else
-			{
-				if (auto editor = getTopEditor())
-				{
-					editor->setVisible(true);
-				}
-				resized();
-				repaint();
-			}
+			return deleteEditor(editorStack.begin() + editorStack.size() - 1);
 		}
 	}
 	void MainEditor::clearEditors()
 	{
 		while (!editorStack.empty())
-			editorStack.pop();
+			popEditor();
 	}
 	cpl::CView * MainEditor::viewFromIndex(std::size_t index)
 	{
@@ -357,6 +365,7 @@ namespace Signalizer
 
 	void MainEditor::valueChanged(const cpl::CBaseControl * c)
 	{
+		// TODO: refactor all behaviour here out to semantic functions
 		// bail out early if we aren't showing anything.
 		if (!currentView)
 			return;
@@ -552,6 +561,10 @@ namespace Signalizer
 			if (currentView)
 				currentView->resetState();
 		}
+		else if(c == &khelp)
+		{
+			showAboutBox();
+		}
 		else if (c == &kmaxHistorySize)
 		{
 
@@ -629,10 +642,15 @@ namespace Signalizer
 	void MainEditor::panelOpened(cpl::CTextTabBar<> * obj)
 	{
 		isEditorVisible = true;
-		if (cpl::CView * view = viewFromIndex(selTab))
+		// -- settings editor spawned the panel view
+		if(!ksettings.bGetBoolState() && !getTopEditor())
 		{
-			pushEditor(view->createEditor());
+			if (cpl::CView * view = viewFromIndex(selTab))
+			{
+				pushEditor(view->createEditor());
+			}
 		}
+
 
 		auto editorBottom = getViewTopCoordinate();
 
@@ -648,7 +666,7 @@ namespace Signalizer
 		clearEditors();
 		ksettings.setToggleState(false, NotificationType::dontSendNotification);
 		resized();
-		repaint();
+		isEditorVisible = false;
 	}
 	
 	void MainEditor::setAntialiasing(int multisamplingLevel)
@@ -714,6 +732,7 @@ namespace Signalizer
 	{
 		if (view)
 		{
+			view->suspend();
 			if (oglc.isAttached())
 			{
 				view->detachFromOpenGL(oglc);
@@ -743,7 +762,6 @@ namespace Signalizer
 			}
 			removeChildComponent(currentView->getWindow());
 			view->getWindow()->removeMouseListener(this);
-			view->suspend();
 		}
 
 	}
@@ -757,7 +775,7 @@ namespace Signalizer
 				// trying to add the same window twice without suspending it?
 				jassertfalse;
 			}
-			view->resume();
+
 			currentView = view;
 			addAndMakeVisible(view->getWindow());
 
@@ -798,6 +816,7 @@ namespace Signalizer
 			}
 			resized();
 			view->getWindow()->addMouseListener(this, true);
+			view->resume();
 		}
 		else
 		{
@@ -917,10 +936,35 @@ namespace Signalizer
 		selTab = index;
 	}
 
+	template<typename Pred>
+		bool MainEditor::removeAnyEditor(Pred pred)
+	{
+		bool alteredStack = false;
+		for(int i = 0; i < editorStack.size(); ++i)
+		{
+			while(i < editorStack.size() && pred(editorStack[i].get()))
+			{
+				alteredStack = true;
+				deleteEditor(editorStack.begin() + i);
+			}
+		}
+		return alteredStack;
+	}
+
 	void MainEditor::activeTabClicked(cpl::CTextTabBar<>* obj, int index)
 	{
-		ksettings.bSetValue(0);
-
+		// TODO: spawn the clicked editor, if it doesn't exist.
+		if(ksettings.bGetBoolState())
+		{
+			bool intializeNew = removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
+			ksettings.bSetInternal(0);
+			// make sure an editor is active
+			if(editorStack.empty() && currentView)
+			{
+				pushEditor(currentView->createEditor());
+			}
+			
+		}
 	}
 
 
@@ -1348,6 +1392,32 @@ namespace Signalizer
 
 	}
 
+	void MainEditor::showAboutBox()
+	{
+		khelp.bSetInternal(1);
+		using namespace cpl;
+		std::string contents =
+			programInfo.name + " " + programInfo.version.toString() + newl + newl +
+			"Written by Janus Lynggaard Thorborg, (C) 2016" + newl +
+			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
+			"Open the readme file (contains information you must read upon first use)?";
+		
+		auto ret = Misc::MsgBox(contents, "About " + programInfo.name, Misc::MsgStyle::sYesNo | Misc::MsgIcon::iInfo);
+		switch (ret) {
+			case Misc::MsgButton::bYes:
+				#ifdef CPL_WINDOWS
+					std::system(("Notepad.exe \"" + Misc::DirectoryPath() + "/READ ME.txt\"").c_str());
+				#elif defined(CPL_MAC)
+					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
+					std::system((cmdLine).c_str());
+				#else 
+					#error "Implement a text-opener for your platform.
+				#endif
+				break;
+		}
+		khelp.bSetInternal(0);
+	}
+	
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1420,7 +1490,7 @@ namespace Signalizer
 		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
-		khelp.bSetDescription("Synchronizes audio streams with view drawing; may incur buffer underruns for low settings.");
+		khelp.bSetDescription("About this program");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");

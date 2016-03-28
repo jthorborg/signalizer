@@ -572,15 +572,11 @@ namespace Signalizer
 		// flags may have altered ogl state
 		CPL_DEBUGCHECKGL();
 
-
-
 		cpl::OpenGLRendering::COpenGLStack openGLStack;
 		// set up openGL
 		//openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		openGLStack.loadIdentityMatrix();
 		CPL_DEBUGCHECKGL();
-
-		state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 		CPL_DEBUGCHECKGL();
 
 		openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()));
@@ -723,9 +719,10 @@ namespace Signalizer
 		m.translate(-1, -1, 0);
 		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
 
+
 		if (state.alphaFloodFill != 0.0f)
 		{
-
+			// Flood fill
 			for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
 			{
 				switch (state.configuration)
@@ -763,7 +760,8 @@ namespace Signalizer
 			}
 		}
 
-
+		state.antialias ? ogs.enable(GL_MULTISAMPLE) : ogs.disable(GL_MULTISAMPLE);
+		
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize * primitiveMaxSize)));
@@ -801,8 +799,6 @@ namespace Signalizer
 				break;
 			}
 		}
-		// TODO: flood fill
-
 
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

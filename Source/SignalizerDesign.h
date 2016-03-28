@@ -416,6 +416,23 @@
 				bouncer.setText("No view selected");
 				bouncer.collision();
 			}
+			
+			void resume() override
+			{
+				if(isOpenGL())
+				{
+					getAttachedContext()->setComponentPaintingEnabled(true);
+				}
+			}
+			
+			void suspend() override
+			{
+				if(isOpenGL())
+				{
+					// TODO: ensure old state is reversed.
+					getAttachedContext()->setComponentPaintingEnabled(false);
+				}
+			}
 			void onOpenGLRendering() override
 			{
 				repaintMainContent2();
