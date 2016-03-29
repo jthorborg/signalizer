@@ -175,7 +175,15 @@
 			// View related data
 			Signalizer::CDefaultView defaultView;
 			juce::OpenGLContext oglc;
-			std::map<std::string, std::unique_ptr<cpl::CSubView>> views;
+
+			struct ViewWithSerializedFlag
+			{
+				std::unique_ptr<cpl::CSubView> view;
+				bool hasBeenRestored;
+			};
+
+			// .first = whether the view has been serialized.
+			std::map<std::string, ViewWithSerializedFlag> views;
 			std::vector<std::unique_ptr<juce::Component>> editorStack;
 			cpl::CView * currentView;
 			ResizableCornerComponent rcc;

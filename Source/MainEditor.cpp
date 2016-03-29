@@ -291,7 +291,7 @@ namespace Signalizer
 		if ((ViewTypes)index < ViewTypes::end)
 			it = views.find(ViewIndexToMap[index]);
 
-		return (it != views.end()) ? it->second.get() : nullptr;
+		return (it != views.end()) ? it->second.view.get() : nullptr;
 	}
 
 	void MainEditor::setRefreshRate(int rate)
@@ -887,7 +887,7 @@ namespace Signalizer
 			}
 			if (view)
 			{
-				views.emplace(mappedView, std::unique_ptr<cpl::CSubView>(view));
+				views.emplace(mappedView, ViewWithSerializedFlag {std::unique_ptr<cpl::CSubView>(view), false });
 				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
 				if (!key.isEmpty())
 				{
@@ -902,7 +902,17 @@ namespace Signalizer
 		}
 		else
 		{
-			view = it->second.get();
+			view = it->second.view.get();
+			// in general, constructing a view != when it should be serialized
+			if (!it->second.hasBeenRestored)
+			{
+				// TODO: Merge with same lines above.
+				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
+				if (!key.isEmpty())
+				{
+					key >> view;
+				}
+			}
 		}
 		// if any editor is open currently, we have to close it and open the new.
 		bool openNewEditor = false;
@@ -1012,7 +1022,7 @@ namespace Signalizer
 			if (viewInstanceIt != views.end())
 			{
 				// serialize fresh data - // watch out, or it'll save the std::unique_ptr!
-				data.getContent("Serialized Views").getContent(viewInstanceIt->first) << viewInstanceIt->second.get();
+				data.getContent("Serialized Views").getContent(viewInstanceIt->first) << viewInstanceIt->second.view.get();
 			}
 			else
 			{
@@ -1084,6 +1094,9 @@ namespace Signalizer
 
 	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
+		for (auto & currentViewEntry : views)
+			currentViewEntry.second.hasBeenRestored = false;
+
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
