@@ -4,6 +4,8 @@ import os
 import sys
 import shutil as sh
 import zipfile as zip
+import common as cm
+import subprocess
 
 def setup_resource(outputfile, major, minor, build, name, description):
 	version_comma = str(major) + "," + str(minor) + "," + str(build) + ",0"
@@ -79,12 +81,13 @@ vcxpath = "../builds/visualstudio2010"
 zipoutput = "../Releases/Signalizer Windows VST " + version_string
 #diagnostic
 print("------> Building Signalizer v. " + version_string + " release targets")
-com_path = os.path.join
 
 #overwrite resource to embed version numbers
-setup_resource(com_path(vcxpath, "resources.rc"), major, minor, build, name, desc)
+setup_resource(cm.join(vcxpath, "resources.rc"), major, minor, build, name, desc)
 
 targets = [["x86", '"Release|win32"'], ["x64", '"Release|x64"']]
+
+cm.rewrite_version_header("../Source/version.h", major, minor, build)
 
 #run all targets
 
@@ -95,26 +98,28 @@ for option in targets:
 
 
 # output dirs
-release_dir = com_path("Signalizer Windows", "Release " + version_string)
-release_debug_dir = com_path("Signalizer Windows", "Debug " + version_string)
+release_dir = cm.join("Signalizer Windows", "Release " + version_string)
+release_debug_dir = cm.join("Signalizer Windows", "Debug " + version_string)
 
 # build skeleton
 for p in [release_debug_dir, release_dir]:
-	sh.copytree("Skeleton", p, option[0])
+    sh.copytree("Skeleton", p, option[0])
+    cm.create_build_file(cm.join(p, "Build.log"), version_string)
 
 print("\n------> All builds finished, generating skeletons...")
 
 # copy in builds
-x32release = com_path(com_path(vcxpath, "Release"))
-x64release = com_path(com_path(com_path(vcxpath, "x64")), "Release")
+x32release = cm.join(cm.join(vcxpath, "Release"))
+x64release = cm.join(cm.join(cm.join(vcxpath, "x64")), "Release")
 
-sh.copy(com_path(x32release, "Signalizer.dll"), com_path(release_dir, "Signalizer " + targets[0][0] + ".dll"))
-sh.copy(com_path(x64release, "Signalizer.dll"), com_path(release_dir, "Signalizer " + targets[1][0] + ".dll"))
+# who needs for loops anyway
+sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_dir, "Signalizer " + targets[0][0] + ".dll"))
+sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_dir, "Signalizer " + targets[1][0] + ".dll"))
 
-sh.copy(com_path(x32release, "Signalizer.dll"), com_path(release_debug_dir, "Signalizer " + targets[0][0] + ".dll"))
-sh.copy(com_path(x64release, "Signalizer.dll"), com_path(release_debug_dir, "Signalizer " + targets[1][0] + ".dll"))
-sh.copy(com_path(x64release, "Signalizer.pdb"), com_path(release_debug_dir, "Signalizer " + targets[0][0] + ".pdb"))
-sh.copy(com_path(x32release, "Signalizer.pdb"), com_path(release_debug_dir, "Signalizer " + targets[1][0] + ".pdb"))
+sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".dll"))
+sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".dll"))
+sh.copy(cm.join(x64release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".pdb"))
+sh.copy(cm.join(x32release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".pdb"))
 
 print("------> Zipping output directories...")
 

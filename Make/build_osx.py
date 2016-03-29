@@ -4,10 +4,9 @@ import os
 import sys
 import shutil as sh
 import zipfile as zip
-from time import gmtime, strftime
-import getpass
-import platform
 import subprocess
+import common as cm
+
 from datetime import date
 
 def compiler_invoke(arch, vstring, reloutdir):
@@ -16,7 +15,7 @@ def compiler_invoke(arch, vstring, reloutdir):
 			   "-project ../builds/macosx/signalizer.xcodeproj "
 			   "-scheme Signalizer "
 			   "-configuration Release "
-			   "CONFIGURATION_BUILD_DIR=" + com_path(os.getcwd(), reloutdir) + "/ "
+			   "CONFIGURATION_BUILD_DIR=" + cm.join(os.getcwd(), reloutdir) + "/ "
 			   # Following optional line removes nearly all symbol info, so it creates smaller packages but not really that great for debugging.
 			   #"DEPLOYMENT_POSTPROCESSING=YES "
 			   "STRIP_INSTALLED_PRODUCT=YES "
@@ -29,24 +28,8 @@ def compiler_invoke(arch, vstring, reloutdir):
 	print("---------> Compiler invocation: \n" + command)
 	return os.system(command)
 
-def rewrite_version_header(where, major, minor, build):
-	contents = "#define SIGNALIZER_MAJOR " + major + "\n#define SIGNALIZER_MINOR " + minor + "\n#define SIGNALIZER_BUILD " + build + "\n"
-	with open(where, "w") as out:
-		out.writelines(contents)
-
-def create_build_file(where, vstring):
-	# add latest git commit to build log
-	git = subprocess.Popen("git --git-dir ../.git log -2", shell=True, stdout=subprocess.PIPE)
-	git_log = git.stdout.read();
-
-	build_info = strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ": Signalizer " + vstring + " built on " + platform.system() + " " + platform.release() + " by " + getpass.getuser() + "\n\n"
-
-	with open(where, "w") as out:
-		out.writelines(build_info)
-		out.writelines(git_log)
-
 def set_plist_option(rel_plist_path, command):
-	full_path = com_path(os.getcwd(), rel_plist_path)
+	full_path = cm.join(os.getcwd(), rel_plist_path)
 	os.system('/usr/libexec/PlistBuddy -c "' + command + '" "' + full_path + '"')
 
 # parse config
@@ -90,15 +73,12 @@ zipoutput = "../Releases/Signalizer OS X " + version_string
 #diagnostic
 print("------> Building Signalizer v. " + version_string + " release targets (" + str(version_int))
 
-
-com_path = os.path.join
-
 # [0] = arg to clang, [1] = output folder
-targets = [["i386", com_path(build_folder, "x32")], ["x86_64", com_path(build_folder, "x64")]]
+targets = [["i386", cm.join(build_folder, "x32")], ["x86_64", cm.join(build_folder, "x64")]]
 
 # rewrite program internal version
 
-rewrite_version_header("../Source/version.h", major, minor, build)
+cm.rewrite_version_header("../Source/version.h", major, minor, build)
 
 #run all targets
 for option in targets:
@@ -107,7 +87,7 @@ for option in targets:
 		sh.rmtree(build_folder)
 		exit(1)
 	else:
-		create_build_file(com_path(com_path(com_path(com_path(option[1], "Signalizer.component"), "Contents"), "Resources"), "Build.log"), version_string)
+		cm.create_build_file(cm.join(cm.join(cm.join(cm.join(option[1], "Signalizer.component"), "Contents"), "Resources"), "Build.log"), version_string)
 
 
 print("\n------> All builds finished, generating plugin permutations ...")
@@ -115,8 +95,8 @@ print("\n------> All builds finished, generating plugin permutations ...")
 # make build permutations and set up the plist file
 
 for option in targets:
-	original = com_path(option[1], "Signalizer.component")
-	plist = com_path(com_path(original, "Contents"), "Info.plist")
+	original = cm.join(option[1], "Signalizer.component")
+	plist = cm.join(cm.join(original, "Contents"), "Info.plist")
 	# set bundle description
 	set_plist_option(plist, "Set :CFBundleIdentifier com." + company + "." + name)
 	set_plist_option(plist, "Set :CFBundleShortVersionString " + version_string)
@@ -132,8 +112,8 @@ for option in targets:
 	set_plist_option(plist, "Set :AudioComponents:0:version " + str(version_int))
 	
 	# permute
-	sh.copytree(original, com_path(option[1], "Signalizer.vst"))
-	sh.copytree(original, com_path(option[1], "Signalizer.vst3"))
+	sh.copytree(original, cm.join(option[1], "Signalizer.vst"))
+	sh.copytree(original, cm.join(option[1], "Signalizer.vst3"))
 
 
 print("------> Zipping output directories...")

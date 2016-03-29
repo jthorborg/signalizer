@@ -1,3 +1,5 @@
+<note: the following paragraf applies only to the content found in cpl/lib/readerwriterqueue>
+
 This license applies to all the code in this repository except that written by third
 parties, namely the files in benchmarks/ext, which have their own licenses, and Jeff
 Preshing's semaphore implementation (used in the blocking queue) which has a zlib

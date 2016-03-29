@@ -5,13 +5,34 @@ Hello, and thank you for trying out Signalizer! Any feedback is welcome.
 2. Signalizer is open source completely free to use. It may be redistributed and altered according to its license, GPL v3. The program is licensed under GPL v3. The source code repository is found here: https://bitbucket.org/Mayae/signalizer
 The source code of the complimentary library cpl is found here: https://bitbucket.org/Mayae/cpl
 
-3. There is no manual, only tool-tips.
+3a. This software additionally uses the following software:
 
-4. Signalizer and cpl is written by Janus Lynggard Thorborg (hereby 'author') in the period of 2012 .. to now. All content, unless otherwise noted, are copyrighted to the author.
+	JUCE by Roli as the graphic- and audio foundation, GPL v3 licensed.
+	GNU Octave for some DSP operations, GPL v3 licensed.
+	ReaderWriterQueue, a C++ generic lock-free queue structure by Cameron Desrochers, BSD alike licensed.
+	DustFFT by SignalDust (Teemu Voipio), custom permissive license.
 
-5. Signalizer has a homepage: http://jthorborg.com/index.html?ipage=signalizer
+3b. Additionally, graphical resources from the following packages are includes in this package:
 
-6. Contact details for any inquires: http://jthorborg.com/index.html?ipage=contact
+	Snowflakes Free, CC BY 3.0, Timothy Miller
+	GlyphPack by Design Revision, free
+	Slthytove's Gears, no apparant license
+	Google Icons 2016, CC BY 4.0
+	Ionicons, MIT
+	An icon made by Umar Irshad, "DashBoard", free
+
+	See the file called 'map.txt'
+	
+
+Note: All licenses can be found and examined in the /licenses/ folder.
+
+4. There is no manual, only tool-tips.
+
+5. Signalizer and cpl is written by Janus Lynggard Thorborg (hereby 'author') in the period of 2012 .. to now. All content, unless otherwise noted, are copyrighted to the author.
+
+6. Signalizer has a homepage: http://jthorborg.com/index.html?ipage=signalizer
+
+7. Contact details for any inquires: http://jthorborg.com/index.html?ipage=contact
 
 FAQ:
 

@@ -940,7 +940,7 @@ namespace Signalizer
 		bool MainEditor::removeAnyEditor(Pred pred)
 	{
 		bool alteredStack = false;
-		for(int i = 0; i < editorStack.size(); ++i)
+		for(std::size_t i = 0; i < editorStack.size(); ++i)
 		{
 			while(i < editorStack.size() && pred(editorStack[i].get()))
 			{
@@ -956,7 +956,7 @@ namespace Signalizer
 		// TODO: spawn the clicked editor, if it doesn't exist.
 		if(ksettings.bGetBoolState())
 		{
-			bool intializeNew = removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
+			removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
 			ksettings.bSetInternal(0);
 			// make sure an editor is active
 			if(editorStack.empty() && currentView)
