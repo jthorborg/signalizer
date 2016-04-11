@@ -9,7 +9,7 @@
 	#include <cpl/gui/CPresetWidget.h>
 	#include <memory>
 	#include <cpl/simd.h>
-	#include <cpl/lib/CFIFOEventSystem.h>
+	#include <cpl/lib/CMessageSystem.h>
 
 	namespace cpl
 	{
@@ -69,7 +69,8 @@
 			protected cpl::CBaseControl::PassiveListener,
 			protected cpl::CBaseControl::ValueFormatter,
 			protected AudioStream::Listener,
-			protected juce::ComponentListener
+			protected juce::ComponentListener,
+			public cpl::CMessageSystem::MessageHandler
 		{
 
 		public:
@@ -107,6 +108,8 @@
 			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
 			bool isEditorOpen() const;
 			double getGain();
+			bool handleMessage(cpl::CMessageSystem::CoalescedMessage & m) override;
+
 		protected:
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
@@ -201,7 +204,6 @@
 				EnvelopeModes envelopeMode;
 			} state;
 			
-			// data
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;

@@ -188,7 +188,7 @@
 			cpl::CView * currentView;
 			ResizableCornerComponent rcc;
 			cpl::CSerializer viewSettings;
-
+			//cpl::CMessageSystem messageSystem;
 		};
 	};
 

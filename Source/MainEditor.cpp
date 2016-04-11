@@ -887,11 +887,12 @@ namespace Signalizer
 			}
 			if (view)
 			{
-				views.emplace(mappedView, ViewWithSerializedFlag {std::unique_ptr<cpl::CSubView>(view), false });
+				auto && entry = views.emplace(mappedView, ViewWithSerializedFlag {std::unique_ptr<cpl::CSubView>(view), false });
 				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
 				if (!key.isEmpty())
 				{
 					key >> view;
+					entry.first->second.hasBeenRestored = true;
 				}
 
 			}
@@ -911,6 +912,7 @@ namespace Signalizer
 				if (!key.isEmpty())
 				{
 					key >> view;
+					it->second.hasBeenRestored = true;
 				}
 			}
 		}
@@ -985,6 +987,8 @@ namespace Signalizer
 
 	void MainEditor::serialize(cpl::CSerializer & data, cpl::Version version)
 	{
+		for (auto & currentViewEntry : views)
+			currentViewEntry.second.hasBeenRestored = false;
 
 		data << krefreshRate;
 		data << krenderEngine;
@@ -1094,8 +1098,6 @@ namespace Signalizer
 
 	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
-		for (auto & currentViewEntry : views)
-			currentViewEntry.second.hasBeenRestored = false;
 
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);

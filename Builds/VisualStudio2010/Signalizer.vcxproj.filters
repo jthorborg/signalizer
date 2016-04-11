@@ -2339,9 +2339,6 @@
     <ClInclude Include="..\..\..\SDKs\cpl\MacSupport.h">
       <Filter>Signalizer\cpl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\MainEditor.h">
-      <Filter>Signalizer\cpl</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\Mathext.h">
       <Filter>Signalizer\cpl</Filter>
     </ClInclude>
@@ -2438,6 +2435,9 @@
     <ClInclude Include="..\..\Source\SignalizerDesign.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\MainEditor.h">
+      <Filter>Signalizer\Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
@@ -2487,13 +2487,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\Source\Notes\Bugs.txt">
-      <Filter>Signalizer\cpl</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include=".\resources.rc">
       <Filter>Signalizer\juce source files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\Source\Notes\Bugs.txt">
+      <Filter>Signalizer</Filter>
+    </Text>
   </ItemGroup>
 </Project>

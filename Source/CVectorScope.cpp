@@ -446,6 +446,11 @@ namespace Signalizer
 		return envelopeGain;
 	}
 
+	bool CVectorScope::handleMessage(cpl::CMessageSystem::CoalescedMessage & m)
+	{
+		return false;
+	}
+
 	double CVectorScope::mapScaleToFraction(double valueInDBs)
 	{
 		return cpl::Math::UnityScale::Inv::exp(cpl::Math::dbToFraction(valueInDBs), lowerAutoGainBounds, higherAutoGainBounds);

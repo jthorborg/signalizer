@@ -776,6 +776,9 @@ ReferenceCountedObject* OpenGLContext::getAssociatedObject (const char* name) co
     jassert (c != nullptr && nativeContext != nullptr);
     jassert (getCurrentContext() != nullptr);
 
+	if (c == nullptr || nativeContext == nullptr)
+		return nullptr;
+
     const int index = c->associatedObjectNames.indexOf (name);
     return index >= 0 ? c->associatedObjects.getUnchecked (index) : nullptr;
 }
