@@ -140,10 +140,16 @@ namespace Signalizer
 		}
 	}
 
+	void CVectorScope::timerCallback()
+	{
+		if (state.isEditorOpen && state.normalizeGain)
+			setGainAsFraction(envelopeGain);
+	}
 
 	void CVectorScope::suspend()
 	{
 		oldWindowSize = kwindow.bGetValue();
+		stopTimer();
 
 	}
 
@@ -155,7 +161,7 @@ namespace Signalizer
 			kwindow.bForceEvent(); // in case they (still) are the same
 		}
 
-
+		startTimer(50);
 	}
 
 	juce::Component * CVectorScope::getWindow()
@@ -510,6 +516,9 @@ namespace Signalizer
 		}
 		return false;
 	}
+	
+
+	
 	void CVectorScope::onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject)
 	{
 		// hmmm.....

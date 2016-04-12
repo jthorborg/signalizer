@@ -70,7 +70,8 @@
 			protected cpl::CBaseControl::ValueFormatter,
 			protected AudioStream::Listener,
 			protected juce::ComponentListener,
-			public cpl::CMessageSystem::MessageHandler
+			public cpl::CMessageSystem::MessageHandler,
+			public juce::Timer
 		{
 
 		public:
@@ -114,9 +115,8 @@
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
 			void componentBeingDeleted(Component & 	component) override;
-
+			virtual void timerCallback() override;
 			virtual void paint2DGraphics(juce::Graphics & g);
-
 			/// <summary>
 			/// Handles all set flags in mtFlags.
 			/// Make sure the audioStream is locked while doing this.
