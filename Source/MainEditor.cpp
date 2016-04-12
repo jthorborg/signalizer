@@ -987,8 +987,6 @@ namespace Signalizer
 
 	void MainEditor::serialize(cpl::CSerializer & data, cpl::Version version)
 	{
-		for (auto & currentViewEntry : views)
-			currentViewEntry.second.hasBeenRestored = false;
 
 		data << krefreshRate;
 		data << krenderEngine;
@@ -1098,7 +1096,9 @@ namespace Signalizer
 
 	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
-
+		for (auto & currentViewEntry : views)
+			currentViewEntry.second.hasBeenRestored = false;
+		
 		viewSettings = data;
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
