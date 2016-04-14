@@ -417,6 +417,11 @@
 				bouncer.collision();
 			}
 			
+			~CDefaultView()
+			{
+				notifyDestruction();
+			}
+			
 			void resume() override
 			{
 				if(isOpenGL())
