@@ -6,7 +6,7 @@
 	<array>
 		<dict>
 			<key>description</key>
-			<string>Inspect audio.</string>
+			<string>Real-time audio visualization plugin</string>
 			<key>factoryFunction</key>
 			<string>SignalizerAUFactory</string>
 			<key>manufacturer</key>
@@ -18,7 +18,7 @@
 			<key>type</key>
 			<string>aufx</string>
 			<key>version</key>
-			<integer>256</integer>
+			<integer>8589934596</integer>
 		</dict>
 	</array>
 	<key>BuildMachineOSBuild</key>
@@ -26,17 +26,17 @@
 	<key>CFBundleExecutable</key>
 	<string>Signalizer</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.yourcompany.Signalizer</string>
+	<string>com.Lightbridge.Signalizer</string>
 	<key>CFBundleName</key>
 	<string>Signalizer</string>
 	<key>CFBundlePackageType</key>
 	<string>TDMw</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1.0</string>
+	<string>0.2.4</string>
 	<key>CFBundleSignature</key>
 	<string>PTul</string>
 	<key>CFBundleVersion</key>
-	<string>0.1.0</string>
+	<string>0.2.4</string>
 	<key>DTCompiler</key>
 	<string>com.apple.compilers.llvm.clang.1_0</string>
 	<key>DTPlatformBuild</key>
@@ -54,6 +54,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Lightbridge</string>
+	<string>Copyright (c) 2016 Janus Lynggaard Thorborg</string>
 </dict>
 </plist>

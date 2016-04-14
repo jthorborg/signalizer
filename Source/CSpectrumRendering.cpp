@@ -36,44 +36,44 @@ namespace Signalizer
 		// ------- draw frequency graph
 
 		char buf[200];
-
-		g.setColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
+		bool skipText = state.colourGrid.getAlpha() == 0;
+		
 		if (state.displayMode == DisplayMode::LineGraph)
 		{
-			auto complexScale = state.configuration == ChannelConfiguration::Complex ? 2.0f : 1.0f;
-			g.setColour(state.colourGrid);
-			const auto & divs = frequencyGraph.getDivisions();
-			const auto & cdivs = complexFrequencyGraph.getDivisions();
-			// text for frequency divisions
-			for (auto & sdiv : divs)
+			if(!skipText)
 			{
-				sprintf_s(buf, "%.2f", sdiv.frequency);
-				g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
+				auto complexScale = state.configuration == ChannelConfiguration::Complex ? 2.0f : 1.0f;
+				g.setColour(state.colourGrid);
 
-			}
-			// text for complex frequency divisions
-			if (state.configuration == ChannelConfiguration::Complex)
-			{
-				auto normalizedScaleX = 1.0 / frequencyGraph.getBounds().dist();
-				auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
-
-				for (auto & sdiv : cdivs)
+				const auto & divs = frequencyGraph.getDivisions();
+				const auto & cdivs = complexFrequencyGraph.getDivisions();
+				// text for frequency divisions
+				for (auto & sdiv : divs)
 				{
-					sprintf_s(buf, "-i*%.2f", sdiv.frequency);
-					// transform back and forth from unit cartesion... should insert a TODO here.
-					g.drawText(buf, getWidth() * (normXC(sdiv.coord) + 1) * 0.5 + 5, 20, 100, 20, juce::Justification::centredLeft);
+					sprintf_s(buf, "%.2f", sdiv.frequency);
+					g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
+
+				}
+				// text for complex frequency divisions
+				if (state.configuration == ChannelConfiguration::Complex)
+				{
+					auto normalizedScaleX = 1.0 / frequencyGraph.getBounds().dist();
+					auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
+
+					for (auto & sdiv : cdivs)
+					{
+						sprintf_s(buf, "-i*%.2f", sdiv.frequency);
+						// transform back and forth from unit cartesion... should insert a TODO here.
+						g.drawText(buf, getWidth() * (normXC(sdiv.coord) + 1) * 0.5 + 5, 20, 100, 20, juce::Justification::centredLeft);
+					}
+				}
+				// text for db divisions
+				for (auto & dbDiv : dbGraph.getDivisions())
+				{
+					sprintf_s(buf, "%.2f", dbDiv.dbVal);
+					g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 				}
 			}
-			// text for db divisions
-			for (auto & dbDiv : dbGraph.getDivisions())
-			{
-				sprintf_s(buf, "%.2f", dbDiv.dbVal);
-				g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
-			}
-
-			
-
 		}
 		else
 		{
@@ -82,16 +82,18 @@ namespace Signalizer
 			
 			float gradientOffset = 10.0f;
 
-			g.setColour(state.colourGrid);
-			const auto & divs = frequencyGraph.getDivisions();
-
-
-			for (auto & sdiv : divs)
+			if(!skipText)
 			{
-				sprintf_s(buf, "%.2f", sdiv.frequency);
-				g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+				g.setColour(state.colourGrid);
+				const auto & divs = frequencyGraph.getDivisions();
+				
+				
+				for (auto & sdiv : divs)
+				{
+					sprintf_s(buf, "%.2f", sdiv.frequency);
+					g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+				}
 			}
-
 
 			// draw gradient
 
@@ -148,7 +150,9 @@ namespace Signalizer
 		if (graphN == LineGraphs::None || state.displayMode == DisplayMode::ColourSpectrum)
 			return;
 
-
+		if(state.colourGrid.getAlpha() == 0)
+			return;
+		
 		double
 			mouseFrequency = 0,
 			mouseDBs = 0,

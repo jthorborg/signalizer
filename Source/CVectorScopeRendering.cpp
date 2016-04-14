@@ -115,6 +115,8 @@ namespace Signalizer
 	{
 		switch (cpl::simd::max_vector_capacity<float>())
 		{
+		case 32:
+		case 16:
 		case 8:
 		#ifdef CPL_COMPILER_SUPPORTS_AVX
 				vectorGLRendering<cpl::Types::v8sf>();

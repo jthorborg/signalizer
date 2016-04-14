@@ -57,7 +57,7 @@
 #endif
 
 #ifndef USE_COREGRAPHICS_RENDERING
- #define USE_COREGRAPHICS_RENDERING 1
+ #define USE_COREGRAPHICS_RENDERING 0
 #endif
 
 //=============================================================================

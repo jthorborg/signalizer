@@ -80,6 +80,22 @@ targets = [["i386", cm.join(build_folder, "x32")], ["x86_64", cm.join(build_fold
 
 cm.rewrite_version_header("../Source/version.h", major, minor, build)
 
+# rewrite build plist
+plist = cm.join("../Builds/MacOSX/Info.plist")
+set_plist_option(plist, "Set :CFBundleIdentifier com." + company + "." + name)
+set_plist_option(plist, "Set :CFBundleShortVersionString " + version_string)
+set_plist_option(plist, "Set :CFBundleVersion " + version_string)
+set_plist_option(plist, "Set :NSHumanReadableCopyright Copyright (c) " + str(date.today().year) + " " + author)
+
+# set the audio unit plugin description
+set_plist_option(plist, "Set :AudioComponents:0:description " + desc)
+set_plist_option(plist, "Set :AudioComponents:0:manufacturer " + manu4)
+set_plist_option(plist, "Set :AudioComponents:0:name " + company + ": " + name)
+set_plist_option(plist, "Set :AudioComponents:0:subtype " + sub4)
+set_plist_option(plist, "Set :AudioComponents:0:type aufx")
+set_plist_option(plist, "Set :AudioComponents:0:version " + str(version_int))
+
+
 #run all targets
 for option in targets:
 	if compiler_invoke(option[0], version_string, option[1]) != 0:
@@ -96,21 +112,6 @@ print("\n------> All builds finished, generating plugin permutations ...")
 
 for option in targets:
 	original = cm.join(option[1], "Signalizer.component")
-	plist = cm.join(cm.join(original, "Contents"), "Info.plist")
-	# set bundle description
-	set_plist_option(plist, "Set :CFBundleIdentifier com." + company + "." + name)
-	set_plist_option(plist, "Set :CFBundleShortVersionString " + version_string)
-	set_plist_option(plist, "Set :CFBundleVersion " + version_string)
-	set_plist_option(plist, "Set :NSHumanReadableCopyright Copyright (c) " + str(date.today().year) + " " + author)
-	
-	# set the audio unit plugin description
-	set_plist_option(plist, "Set :AudioComponents:0:description " + desc)
-	set_plist_option(plist, "Set :AudioComponents:0:manufacturer " + manu4)
-	set_plist_option(plist, "Set :AudioComponents:0:name " + company + ": " + name)
-	set_plist_option(plist, "Set :AudioComponents:0:subtype " + sub4)
-	set_plist_option(plist, "Set :AudioComponents:0:type aufx")
-	set_plist_option(plist, "Set :AudioComponents:0:version " + str(version_int))
-	
 	# permute
 	sh.copytree(original, cm.join(option[1], "Signalizer.vst"))
 	sh.copytree(original, cm.join(option[1], "Signalizer.vst3"))

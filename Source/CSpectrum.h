@@ -598,6 +598,7 @@
 			long long lastFrameTick, renderCycles;
 			bool wasResized, isSuspended;
 			cpl::Utility::Bounds<double> oldViewRect;
+			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
 			double scallopLoss;
 			int lastPeak;
 			struct NewChanges

@@ -308,7 +308,7 @@ namespace Signalizer
 
 		if (mtFlags.audioWindowWasResized.cas())
 		{
-			if (!firstRun)
+			if (!firstRun && hasMainThreadInitializedAudioStreamDependenant.load(std::memory_order_acquire))
 			{
 				auto capacity = audioStream.getAudioHistoryCapacity();
 				cpl::GUIUtils::MainEvent(*this, 
@@ -540,6 +540,7 @@ namespace Signalizer
 					{
 						auto bufLength = cpl::Math::round<std::size_t>(handle->kwindow.bGetValue() * handle->audioStream.getAudioHistoryCapacity());
 						handle->audioStream.setAudioHistorySize(bufLength);
+						handle->hasMainThreadInitializedAudioStreamDependenant.store(true, std::memory_order_release);
 					}
 					else
 					{
@@ -716,7 +717,6 @@ namespace Signalizer
 				if (std::isnormal(currentEnvelope))
 				{
 					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
-					cpl::GUIUtils::MainEvent(*this, [=] { if(state.isEditorOpen) setGainAsFraction(envelopeGain); });
 				}
 			}
 
@@ -726,6 +726,8 @@ namespace Signalizer
 	{
 		switch (cpl::simd::max_vector_capacity<float>())
 		{
+		case 32:
+		case 16:
 		case 8:
 		#ifdef CPL_COMPILER_SUPPORTS_AVX
 				audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);

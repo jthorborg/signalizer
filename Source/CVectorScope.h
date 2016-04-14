@@ -209,6 +209,7 @@
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
 			double oldWindowSize;
+			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

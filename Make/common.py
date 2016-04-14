@@ -11,7 +11,7 @@ def rewrite_version_header(where, major, minor, build):
 
 def create_build_file(where, vstring):
 	# add latest git commit to build log
-	git = subprocess.Popen("git --git-dir ../.git log -2", shell = True, stdout=subprocess.PIPE)
+	git = subprocess.Popen("git --git-dir ../.git log -5", shell = True, stdout=subprocess.PIPE)
 	git_log = git.stdout.read()
 
 	build_info = strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ": Signalizer " + vstring + " built on " + platform.system() + " " + platform.release() + " by " + getpass.getuser() + "\n\n"

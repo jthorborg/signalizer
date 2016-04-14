@@ -660,6 +660,7 @@ namespace Signalizer
 					if (currentCapacity > 0)
 					{
 						handle->setWindowSize(cpl::Math::round<std::size_t>(handle->kwindowSize.bGetValue() * currentCapacity));
+						handle->hasMainThreadInitializedAudioStreamDependenant.store(true, std::memory_order_release);
 					}
 					else
 					{
@@ -911,7 +912,7 @@ namespace Signalizer
 			auto current = audioStream.getAudioHistorySize();
 			auto capacity = audioStream.getAudioHistoryCapacity();
 
-			if (!firstRun)
+			if (!firstRun && hasMainThreadInitializedAudioStreamDependenant.load(std::memory_order_acquire))
 			{
 				cpl::GUIUtils::MainEvent(*this, 
 					[=] 
