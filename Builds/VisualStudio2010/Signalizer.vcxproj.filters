@@ -798,6 +798,9 @@
     <ClCompile Include="..\..\Source\SignalizerDesign.cpp">
       <Filter>Signalizer\Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\InstanceLog.cpp">
+      <Filter>Signalizer\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">
@@ -2439,6 +2442,9 @@
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\version.h">
+      <Filter>Signalizer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\InstanceLog.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
   </ItemGroup>

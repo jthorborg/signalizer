@@ -6,7 +6,7 @@ import platform
 
 def rewrite_version_header(where, major, minor, build):
 	build_info = get_custom_build_info().replace('\n', "\\n").replace('\r', "\\n")
-	contents = "#define SIGNALIZER_MAJOR " + major + "\n#define SIGNALIZER_MINOR " + minor + "\n#define SIGNALIZER_BUILD " + build + "\n#define SIGNALIZER_BUILD_INFO " + build_info + "\n"
+	contents = "#define SIGNALIZER_MAJOR " + major + "\n#define SIGNALIZER_MINOR " + minor + "\n#define SIGNALIZER_BUILD " + build + "\n#define SIGNALIZER_BUILD_INFO \"" + build_info + "\"\n"
 	with open(where, "w") as out:
 		out.writelines(contents)
 
@@ -23,12 +23,12 @@ def create_build_file(where, vstring):
            # error sometimes?
 		out.writelines(git_log.decode('ascii'))
 
-
-join = os.path.join
-
+		
 def get_custom_build_info():
     git = subprocess.Popen("git --git-dir ../.git branch -q", shell = True, stdout=subprocess.PIPE)
     git_branch = git.stdout.read()
     git = subprocess.Popen("git --git-dir ../.git describe --always", shell = True, stdout=subprocess.PIPE)
     git_description = git.stdout.read()
-    return git_branch + "\n" + git_description
+    return git_branch.decode('ascii') + "\n" + git_description.decode('ascii')
+
+join = os.path.join

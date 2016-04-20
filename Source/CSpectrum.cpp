@@ -504,6 +504,7 @@ namespace Signalizer
 			builder >> kspecColours[i];
 			builder >> kspecRatios[i];
 		}
+
 		builder >> kbinInterpolation;
 		builder >> state.viewRect;
 		builder >> kdspWin;
@@ -512,6 +513,11 @@ namespace Signalizer
 		builder >> kfrequencyTracker;
 		builder >> kprimitiveSize;
 		builder >> kfloodFillAlpha;
+
+		if (version > cpl::Version::fromParts(0, 2, 5))
+		{
+
+		}
 	}
 
 	void CSpectrum::resized()

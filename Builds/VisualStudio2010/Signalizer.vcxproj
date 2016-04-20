@@ -302,6 +302,7 @@
     <ClCompile Include="..\..\Source\CSpectrumRendering.cpp" />
     <ClCompile Include="..\..\Source\CVectorScope.cpp" />
     <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp" />
+    <ClCompile Include="..\..\Source\InstanceLog.cpp" />
     <ClCompile Include="..\..\Source\MainEditor.cpp" />
     <ClCompile Include="..\..\Source\PluginProcessor.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\AAX\juce_AAX_Wrapper.cpp" />
@@ -434,6 +435,7 @@
     <ClInclude Include="..\..\Source\CommonSignalizer.h" />
     <ClInclude Include="..\..\Source\CSpectrum.h" />
     <ClInclude Include="..\..\Source\CVectorScope.h" />
+    <ClInclude Include="..\..\Source\InstanceLog.h" />
     <ClInclude Include="..\..\Source\MainEditor.h" />
     <ClInclude Include="..\..\Source\PluginProcessor.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h" />
