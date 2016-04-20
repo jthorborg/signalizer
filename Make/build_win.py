@@ -120,8 +120,8 @@ sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_dir, "Signalizer 
 
 sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".dll"))
 sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".dll"))
-sh.copy(cm.join(x64release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".pdb"))
-sh.copy(cm.join(x32release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".pdb"))
+sh.copy(cm.join(x32release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".pdb"))
+sh.copy(cm.join(x64release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".pdb"))
 
 print("------> Zipping output directories...")
 
