@@ -1,18 +1,35 @@
-/*
-  ==============================================================================
+/*************************************************************************************
+ 
+	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
+ 
+	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
+ 
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+ 
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+ 
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+	See \licenses\ for additional details on licenses associated with this program.
+ 
+**************************************************************************************
+ 
+	file:PluginProcessor.h
 
-    This file was auto-generated!
-
-    It contains the basic startup code for a Juce application.
-
-  ==============================================================================
-*/
-
+		Defines the processing interface of the plugin.
+ 
+*************************************************************************************/
 #ifndef PLUGINPROCESSOR_H_INCLUDED
 #define PLUGINPROCESSOR_H_INCLUDED
-//#define JUCE_ENABLE_REPAINT_DEBUGGING 1
-#include "../JuceLibraryCode/JuceHeader.h"
 
+#include <cpl/Common.h>
 #include <cpl/CAudioStream.h>
 #include <cpl/GraphicComponents.h>
 #include <cpl/CSerializer.h>
@@ -20,16 +37,11 @@
 #include "CommonSignalizer.h"
 #include <cpl/gui/CPresetWidget.h>
 
-//==============================================================================
-/**
-*/
 
-class SignalizerAudioProcessorEditor;
 namespace Signalizer
 {
 	class MainEditor;
 };
-
 
 class SignalizerAudioProcessor  : public juce::AudioProcessor, cpl::CView::EventListener
 {
@@ -95,4 +107,4 @@ private:
 	int nChannels;
 };
 
-#endif  // PLUGINPROCESSOR_H_INCLUDED
+#endif 

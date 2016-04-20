@@ -5,7 +5,8 @@ import getpass
 import platform
 
 def rewrite_version_header(where, major, minor, build):
-	contents = "#define SIGNALIZER_MAJOR " + major + "\n#define SIGNALIZER_MINOR " + minor + "\n#define SIGNALIZER_BUILD " + build + "\n"
+	build_info = get_custom_build_info().replace('\n', "\\n").replace('\r', "\\n")
+	contents = "#define SIGNALIZER_MAJOR " + major + "\n#define SIGNALIZER_MINOR " + minor + "\n#define SIGNALIZER_BUILD " + build + "\n#define SIGNALIZER_BUILD_INFO " + build_info + "\n"
 	with open(where, "w") as out:
 		out.writelines(contents)
 
@@ -14,7 +15,8 @@ def create_build_file(where, vstring):
 	git = subprocess.Popen("git --git-dir ../.git log -5", shell = True, stdout=subprocess.PIPE)
 	git_log = git.stdout.read()
 
-	build_info = strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ": Signalizer " + vstring + " built on " + platform.system() + " " + platform.release() + " by " + getpass.getuser() + "\n\n"
+	build_info = strftime("%Y-%m-%d %H:%M:%S", gmtime()) + ": Signalizer " + vstring + " built on " + platform.system() + " " + platform.release() + " by " + getpass.getuser() + "\n"
+	build_info += get_custom_build_info() + "\n\n"
 
 	with open(where, "w") as out:
 		out.writelines(build_info)
@@ -23,3 +25,10 @@ def create_build_file(where, vstring):
 
 
 join = os.path.join
+
+def get_custom_build_info():
+    git = subprocess.Popen("git --git-dir ../.git branch -q", shell = True, stdout=subprocess.PIPE)
+    git_branch = git.stdout.read()
+    git = subprocess.Popen("git --git-dir ../.git describe --always", shell = True, stdout=subprocess.PIPE)
+    git_description = git.stdout.read()
+    return git_branch + "\n" + git_description

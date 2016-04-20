@@ -11,4 +11,4 @@ https://bitbucket.org/Mayae/cpl/overview
 
 For Windows, you will need Visual Studio 2013+.
 
-Additionally, you may need to set up include directories to point to your specific SDK locations.
+Additionally, you may need to set up include directories to point to your specific SDK locations. Note that you cannot reference cpl directly, it has to be in a folder (like /sdks/ or something that you reference).

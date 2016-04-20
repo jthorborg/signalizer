@@ -87,6 +87,8 @@ setup_resource(cm.join(vcxpath, "resources.rc"), major, minor, build, name, desc
 
 targets = [["x86", '"Release|win32"'], ["x64", '"Release|x64"']]
 
+
+
 cm.rewrite_version_header("../Source/version.h", major, minor, build)
 
 #run all targets

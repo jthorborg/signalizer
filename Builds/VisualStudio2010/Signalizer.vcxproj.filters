@@ -2438,6 +2438,9 @@
     <ClInclude Include="..\..\Source\MainEditor.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\version.h">
+      <Filter>Signalizer\Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
