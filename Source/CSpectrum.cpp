@@ -135,18 +135,27 @@ namespace Signalizer
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&kframeUpdateSmoothing, 0);
-				section->addControl(&kprimitiveSize, 1);
+				section->addControl(&presetManager, 0);
 				page->addSection(section);
 			}
-
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kfloodFillAlpha, 0);
 				section->addControl(&kdiagnostics, 1);
 				page->addSection(section);
 			}
-			page->addSection(&presetManager, "Preset", false);
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kframeUpdateSmoothing, 0);
+				section->addControl(&kprimitiveSize, 1);
+				page->addSection(section);
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kslope, 0);
+				page->addSection(section);
+			}
+
 		}
 		editor = content;
 		editor->addComponentListener(this);
@@ -295,6 +304,7 @@ namespace Signalizer
 		onAsyncChangedProperties(audioStream, audioStream.getInfo());
 
 		// ------ listeners --------
+		kslope.bAddPassiveChangeListener(this);
 		kviewScaling.bAddPassiveChangeListener(this);
 		kalgorithm.bAddPassiveChangeListener(this);
 		kchannelConfiguration.bAddPassiveChangeListener(this);
@@ -472,6 +482,7 @@ namespace Signalizer
 		archive << kfrequencyTracker;
 		archive << kprimitiveSize;
 		archive << kfloodFillAlpha;
+		archive << kslope;
 	}
 
 	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
@@ -516,7 +527,7 @@ namespace Signalizer
 
 		if (version > cpl::Version::fromParts(0, 2, 5))
 		{
-
+			builder >> kslope;
 		}
 	}
 
@@ -766,6 +777,10 @@ namespace Signalizer
 		{
 			newc.alphaFloodFill.store(static_cast<float>(ctrl->bGetValue()), std::memory_order_release);
 		}
+		else if (ctrl == &kslope)
+		{
+			flags.slopeMapChanged = true;
+		}
 		else
 		{
 			for (int i = 0; i < numSpectrumColours; ++i)
@@ -994,7 +1009,7 @@ namespace Signalizer
 				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
 			}
 
-
+			slopeMap.resize(numFilters);
 			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
 
 			columnUpdate.resize(getHeight());
@@ -1010,6 +1025,7 @@ namespace Signalizer
 			flags.viewChanged = true;
 			remapFrequencies = true;
 			flags.dynamicRangeChange = true;
+			flags.slopeMapChanged = true;
 		}
 
 		if (flags.dynamicRangeChange.cas())
@@ -1128,8 +1144,19 @@ namespace Signalizer
 				}
 			}
 			remapResonator = true;
-			
+			flags.slopeMapChanged = true;
 		}
+
+		if (flags.slopeMapChanged.cas())
+		{
+			cpl::CPowerSlopeWidget::PowerFunction slopeFunction = kslope.derive();
+
+			for (std::size_t i = 0; i < numFilters; ++i)
+			{
+				slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
+			}
+		}
+
 		if (flags.windowKernelChange.cas())
 		{
 			windowScale = kdspWin.generateWindow<fftType>(windowKernel, getWindowSize());
@@ -1337,9 +1364,6 @@ namespace Signalizer
 
 			if (numChannels != 2)
 				return;
-
-
-
 
 		}
 

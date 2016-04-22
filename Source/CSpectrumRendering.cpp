@@ -175,6 +175,7 @@ namespace Signalizer
 	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
 		auto graphN = newc.frequencyTrackingGraph.load(std::memory_order_acquire);
+		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
 		if (graphN == LineGraphs::None || state.displayMode == DisplayMode::ColourSpectrum)
 			return;
 
@@ -194,8 +195,11 @@ namespace Signalizer
 			peakY = 0,
 			mouseX = 0,
 			mouseY = 0,
+			mouseSlope = 0,
 			adjustedScallopLoss = scallopLoss,
 			peakDeviance = 0,
+			peakSlope = 0,
+			peakSlopeDbs = 0,
 			sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_relaxed),
 			maxFrequency = sampleRate / 2;
 
@@ -216,6 +220,7 @@ namespace Signalizer
 
 			mouseFraction = mouseX / (getWidth() - 1);
 			mouseFractionOrth = mouseY / (getHeight() - 1);
+			mouseSlope = 20 * std::log10(slopeMap[mouseX]);
 
 			if (state.viewScale == ViewScaling::Logarithmic)
 			{
@@ -289,9 +294,9 @@ namespace Signalizer
 			auto lowerBound = range > pivot ? 0 : pivot - range;
 			auto higherBound = range + pivot > N ? N : range + pivot;
 
-			
-			
-			auto peak = std::max_element(results.begin() + lowerBound, results.begin() + higherBound, 
+
+
+			auto peak = std::max_element(results.begin() + lowerBound, results.begin() + higherBound,
 				[](const UComplex & left, const UComplex & right) { return left.leftMagnitude < right.leftMagnitude; });
 
 			// scan for continuously rising peaks at boundaries
@@ -336,11 +341,15 @@ namespace Signalizer
 			if (state.algo == TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
-				if(state.binPolation != BinInterpolation::Lanczos)
+				if (state.binPolation != BinInterpolation::Lanczos)
 					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
 			}
 
 			peakX = peakOffset;
+
+			peakSlope = slopeMap[peakOffset];
+
+
 			peakFractionY = results[peakOffset].leftMagnitude;
 			peakY = getHeight() - peakFractionY * getHeight();
 
@@ -415,8 +424,15 @@ namespace Signalizer
 			peakDBs = beta - 0.25*(alpha - gamma) * phi;
 
 			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
-			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs, getDBs().low, getDBs().high);
 
+			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
+
+			peakDBs += 20 * std::log10(peakSlope);
+
+			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs , getDBs().low, getDBs().high);
+
+			// notice we only adjust the resulting peak value with the slope if we are inside a non-processed transform
+			// (like the raw fft), because it hasn't itself been 'sloped' yet
 			peakY = getHeight() - peakY * getHeight();
 
 
@@ -431,6 +447,7 @@ namespace Signalizer
 		// draw a line to the peak from the mouse
 		if (std::isnormal(peakX) && std::isnormal(peakY))
 		{
+
 			g.drawLine((float)mouseX, (float)mouseY, (float)peakX, (float)peakY, 1.5f);
 
 			// this mechanism, although technically delayed by a frame, avoids recalculating
@@ -444,14 +461,17 @@ namespace Signalizer
 
 		}
 
+		peakSlopeDbs = 20 * std::log10(peakSlope);
+
 		// adjust for complex things
 		bool peakIsComplex = peakFrequency > sampleRate * 0.5;
 		if (peakIsComplex)
 			peakFrequency = sampleRate - peakFrequency;
 
 		// TODO: calculate at runtime, at some point.
-		double textOffset[2] = { 20, -85 };
-		double estimatedSize[2] = { static_cast<double>(peakIsComplex || frequencyIsComplex ? 155 : 145), 85 };
+
+		double estimatedSize[2] = { static_cast<double>(peakIsComplex || frequencyIsComplex ? 165 : 145), 115 };
+		double textOffset[2] = { 20, -estimatedSize[1] };
 
 		if (peakDBs > 1000)
 			peakDBs = std::numeric_limits<double>::infinity();
@@ -459,8 +479,9 @@ namespace Signalizer
 			peakDBs = -std::numeric_limits<double>::infinity();
 
 		// TODO: use a monospace font for this part
-		sprintf_s(buf, u8"+x: \t%s%.5f Hz\n+y: \t%.5f dB\n\u039Bx: \t%s%.5f Hz\n\u039B~:\t%.3f Hz\u03C3\n\u039By: \t%.5f dB\n\u039BSL: \t+%.3f dB\u03C3 ", 
-			frequencyIsComplex ? "-i*" : "", mouseFrequency, mouseDBs, peakIsComplex ? "-i*" : "", peakFrequency, peakDeviance, peakDBs, -adjustedScallopLoss);
+		// also: is printf-style really more readable than C++ formatting..
+		sprintf_s(buf, u8"+x: \t%s%.5f Hz\n+y: \t%.5f dB\n+/: \t%.2f dB\n\u039Bx: \t%s%.5f Hz\n\u039B~:\t%.3f Hz\u03C3\n\u039By: \t%.5f dB\n\u039B/: \t%.2f dB\n\u039BSL: \t+%.3f dB\u03C3 ",
+			frequencyIsComplex ? "-i*" : "", mouseFrequency, mouseDBs, mouseSlope, peakIsComplex ? "-i*" : "", peakFrequency, peakDeviance, peakDBs, peakSlopeDbs, -adjustedScallopLoss);
 
 		// render text rectangle
 		auto xpoint = mouseX + textOffset[0] ;
@@ -583,7 +604,7 @@ namespace Signalizer
 	void CSpectrum::onOpenGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
-
+		cpl::CFastMutex audioLock;
 		// starting from a clean slate?
 		CPL_DEBUGCHECKGL();
 		juce::OpenGLHelpers::clear(state.colourBackground);
@@ -599,7 +620,11 @@ namespace Signalizer
 			handleFlagUpdates();
 			// line graph data for ffts are rendered now.
 			if (state.displayMode == DisplayMode::LineGraph)
+			{
+				audioLock.acquire(audioResource);
 				lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
+			}
+
 		}
 		// flags may have altered ogl state
 		CPL_DEBUGCHECKGL();
@@ -623,6 +648,7 @@ namespace Signalizer
 			// such that only we have access to it.
 			if (lineTransformReady)
 			{
+				audioLock.acquire(audioResource);
 				doTransform();
 				mapToLinearSpace();
 				postProcessStdTransform();
@@ -633,10 +659,6 @@ namespace Signalizer
 			renderColourSpectrum<Types::v8sf>(openGLStack); break;
 
 		}
-
-
-
-
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
 		auto tickNow = juce::Time::getHighResolutionTicks();
 		avgFps.setNext(tickNow - lastFrameTick);
@@ -841,7 +863,7 @@ namespace Signalizer
 		{
 			auto normalizedScaleY = 1.0 / getHeight();
 			// TODO: fix using a matrix modification instead (cheaper)
-			auto normY = [=](double in) {  return static_cast<float>(1.0 - normalizedScaleY * in * 2.0); };
+			auto normY = [=](double in) {  return static_cast<float>(normalizedScaleY * in * 2.0); };
 
 			{
 				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
@@ -888,8 +910,7 @@ namespace Signalizer
 			}
 
 
-			m.translate(1, 1, 0);
-			m.scale(points, 0.5f, 1);
+			m.loadIdentityMatrix();
 
 			OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 
@@ -898,7 +919,7 @@ namespace Signalizer
 			// draw horizontal lines:
 			for (auto & dbDiv : dbGraph.getDivisions())
 			{
-				auto line = normY(dbDiv.coord);
+				auto line = 1 - (float)dbDiv.fraction * 2;
 				lineDrawer.addVertex(-1.0f, line, 0.0f);
 				lineDrawer.addVertex(1.0f, line, 0.0f);
 			}

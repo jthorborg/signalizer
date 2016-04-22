@@ -2447,6 +2447,9 @@
     <ClInclude Include="..\..\Source\InstanceLog.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\CPowerSlopeWidget.h">
+      <Filter>Signalizer\cpl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

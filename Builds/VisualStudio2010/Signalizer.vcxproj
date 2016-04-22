@@ -382,6 +382,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CKnobSliderEditor.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\ControlBase.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\CPowerSlopeWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CPresetWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CTransformWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CValueControl.h" />

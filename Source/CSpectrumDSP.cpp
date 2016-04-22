@@ -110,16 +110,17 @@ namespace Signalizer
 
 	bool CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
 	{
+		if (audio.getNumChannels() < 2)
+			return false;
+
+		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
 		auto size = getWindowSize(); // the size of the transform, containing samples
 									 // the quantized (to next power of 2) samples of this transform
 									 // that is, the size + additional zero-padding
 		auto fullSize = getFFTSpace<std::complex<double>>();
 
-		auto const channelConfiguration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
-
-		if (audio.getNumChannels() < 2)
-			return false;
+		auto const channelConfiguration = state.configuration;
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -323,7 +324,7 @@ namespace Signalizer
 									 // that is, the size + additional zero-padding
 		auto fullSize = getFFTSpace<std::complex<double>>();
 
-		auto const channelConfiguration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
+		auto const channelConfiguration = state.configuration;
 
 
 		{
@@ -347,18 +348,18 @@ namespace Signalizer
 				std::size_t i = 0;
 				std::size_t stop = std::min(numSamples, size);
 
+				std::size_t offset = stop + extraDiscardedSamples;
+				auto sizeToStopAt = size - offset;
+
 				switch (channelConfiguration)
 				{
 				case ChannelConfiguration::Left:
 					channel = 0;
 				case ChannelConfiguration::Right:
 				{
-					
-					std::size_t offset = stop + extraDiscardedSamples;
-					auto sizeToStopAt = size - offset;
-					
-					// get rest from buffers - first indice is a special case.
-
+					// get start from buffers - first indice is a special case.
+					// notice the buffers are reversed in time, so we pull old data first with an offset,
+					// and then fill in the new
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -399,10 +400,6 @@ namespace Signalizer
 				}
 				case ChannelConfiguration::Merge:
 				{
-
-					std::size_t offset = i + extraDiscardedSamples;
-					auto sizeToStopAt = size - offset;
-					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -439,10 +436,6 @@ namespace Signalizer
 				}
 				case ChannelConfiguration::Side:
 				{
-
-					std::size_t offset = i + extraDiscardedSamples;
-					auto sizeToStopAt = size - offset;
-					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -479,11 +472,6 @@ namespace Signalizer
 				}
 				case ChannelConfiguration::MidSide:
 				{
-
-					std::size_t offset = i + extraDiscardedSamples;
-
-					auto sizeToStopAt = size - offset;
-					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -532,10 +520,6 @@ namespace Signalizer
 				case ChannelConfiguration::Separate:
 				case ChannelConfiguration::Complex:
 				{
-
-					std::size_t offset = i + extraDiscardedSamples;
-					auto sizeToStopAt = size - offset;
-					
 					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -596,7 +580,9 @@ namespace Signalizer
 
 	void CSpectrum::doTransform()
 	{
-		auto const channelConfiguration = kchannelConfiguration.getZeroBasedSelIndex<ChannelConfiguration>();
+		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
+
+		auto const channelConfiguration = state.configuration;
 		switch (state.algo)
 		{
 			case TransformAlgorithm::FFT:
@@ -615,6 +601,7 @@ namespace Signalizer
 	template<class V2>
 		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip)
 		{
+			cpl::CPowerSlopeWidget::PowerFunction slope = kslope.derive();
 
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
@@ -651,7 +638,7 @@ namespace Signalizer
 							lineGraphs[k].states[i].magnitude = (fpoint)magnitude;
 						}
 
-						auto deltaX = lineGraphs[k].states[i].magnitude * minFracRecip;
+						auto deltaX = slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
 						// deltaX mostly zero here - add simd check
 						auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
 						lineGraphs[k].results[i].magnitude = (fpoint)result;
@@ -690,8 +677,8 @@ namespace Signalizer
 							lineGraphs[k].states[i].rightMagnitude = (fpoint)rmag;
 						}
 						// log10(y / _min) / log10(_max / _min);
-						auto deltaLX = lineGraphs[k].states[i].leftMagnitude * minFracRecip;
-						auto deltaRX = lineGraphs[k].states[i].rightMagnitude * minFracRecip;
+						auto deltaLX = slopeMap[i] * lineGraphs[k].states[i].leftMagnitude * minFracRecip;
+						auto deltaRX = slopeMap[i] * lineGraphs[k].states[i].rightMagnitude * minFracRecip;
 						// deltaX mostly zero here - add simd check
 						auto lResult = deltaLX > 0 ? std::log(deltaLX) * deltaYRecip : lowerClip;
 						auto rResult = deltaRX > 0 ? std::log(deltaRX) * deltaYRecip : lowerClip;
@@ -732,8 +719,8 @@ namespace Signalizer
 
 						// log10(y / _min) / log10(_max / _min);
 						// deltaX mostly zero here - add simd check
-						auto deltaX = lineGraphs[k].states[i].magnitude * minFracRecip;
-						auto deltaY = lineGraphs[k].states[i].phase * minFracRecip;
+						auto deltaX = slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
+						auto deltaY = slopeMap[i] * lineGraphs[k].states[i].phase * minFracRecip;
 						// deltaX mostly zero here - add simd check
 						auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
 						lineGraphs[k].results[i].magnitude = (fpoint)result;
@@ -766,6 +753,8 @@ namespace Signalizer
 
 	std::size_t CSpectrum::mapToLinearSpace()
 	{
+		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
+
 		using namespace cpl;
 		std::size_t numPoints = getAxisPoints();
 
@@ -1462,10 +1451,10 @@ namespace Signalizer
 		case 32:
 		case 16:
 		case 8:
-		#ifdef CPL_COMPILER_SUPPORTS_AVX
+			#ifdef CPL_COMPILER_SUPPORTS_AVX
 				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
 				break;
-		#endif
+			#endif
 		case 4:
 			audioProcessing<typename cpl::simd::vector_of<fpoint, 4 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
 			break;
@@ -1479,6 +1468,8 @@ namespace Signalizer
 	template<typename V>
 	void CSpectrum::addAudioFrame()
 	{
+		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
+
 		auto filters = mapToLinearSpace();
 
 		if (state.algo == TransformAlgorithm::RSNT)
@@ -1591,6 +1582,8 @@ namespace Signalizer
 	template<typename V>
 	void CSpectrum::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
+
 		// TODO: asserts?
 		if (numChannels > 2)
 			return;

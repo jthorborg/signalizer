@@ -45,9 +45,7 @@
 	#include <cpl/lib/LockFreeQueue.h>
 	#include <cpl/lib/BlockingLockFreeQueue.h>
 	#include <vector>
-	#include <cpl/gui/CPresetWidget.h>
 	#include "CommonSignalizer.h"
-	#include <cpl/gui/CDSPWindowWidget.h>
 
 	namespace cpl
 	{
@@ -579,6 +577,10 @@
 					/// Set to update how the transforms are displayed (spectrum, graphs, etc?)
 					/// </summary>
 					displayModeChange,
+					/// <summary>
+					/// Set this to recalculate the slopes
+					/// </summary>
+					slopeMapChanged,
 					mouseMove;
 			} flags;
 
@@ -588,6 +590,7 @@
 			juce::Component * editor;
 			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation, kfrequencyTracker;
 			cpl::CDSPWindowWidget kdspWin;
+			cpl::CPowerSlopeWidget kslope;
 			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching, kprimitiveSize, kfloodFillAlpha;
 			cpl::CColourControl kgridColour, kbackgroundColour;
 
@@ -725,6 +728,7 @@
 			/// </summary>
 			cpl::aligned_vector<double, 32> windowKernel;
 
+			cpl::aligned_vector<fpoint, 32> slopeMap;
 			/// <summary>
 			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock. 
 			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
