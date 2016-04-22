@@ -205,7 +205,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <FloatingPointModel>Precise</FloatingPointModel>
+      <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
@@ -265,7 +265,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

@@ -101,12 +101,15 @@ for option in targets:
 
 # output dirs
 release_dir = cm.join("Signalizer Windows", "Release " + version_string)
-release_debug_dir = cm.join("Signalizer Windows", "Debug " + version_string)
+release_debug_dirs = [cm.join("Signalizer Windows", "Debug " + version_string + " " + targets[0][0]), cm.join("Signalizer Windows", "Debug " + version_string + " " + targets[1][0])]
+
+cm.create_build_file("Build.log", version_string)
 
 # build skeleton
-for p in [release_debug_dir, release_dir]:
-    sh.copytree("Skeleton", p, option[0])
-    cm.create_build_file(cm.join(p, "Build.log"), version_string)
+for p in [release_debug_dirs[0], release_debug_dirs[1], release_dir]:
+    sh.copytree("Skeleton", p)
+    sh.copyfile("Build.log", cm.join(p, "Build.log"))
+
 
 print("\n------> All builds finished, generating skeletons...")
 
@@ -118,10 +121,10 @@ x64release = cm.join(cm.join(cm.join(vcxpath, "x64")), "Release")
 sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_dir, "Signalizer " + targets[0][0] + ".dll"))
 sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_dir, "Signalizer " + targets[1][0] + ".dll"))
 
-sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".dll"))
-sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".dll"))
-sh.copy(cm.join(x32release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[0][0] + ".pdb"))
-sh.copy(cm.join(x64release, "Signalizer.pdb"), cm.join(release_debug_dir, "Signalizer " + targets[1][0] + ".pdb"))
+sh.copy(cm.join(x32release, "Signalizer.dll"), cm.join(release_debug_dirs[0], "Signalizer " + targets[0][0] + ".dll"))
+sh.copy(cm.join(x32release, "Signalizer.pdb"), cm.join(release_debug_dirs[0], "Signalizer.pdb")) # important that its name is signalizer.pdb
+sh.copy(cm.join(x64release, "Signalizer.dll"), cm.join(release_debug_dirs[1], "Signalizer " + targets[1][0] + ".dll"))
+sh.copy(cm.join(x64release, "Signalizer.pdb"), cm.join(release_debug_dirs[1], "Signalizer.pdb")) # see above
 
 print("------> Zipping output directories...")
 
@@ -132,7 +135,7 @@ print("------> " + zx)
 
 # clean up dirs
 sh.rmtree("Signalizer Windows")
-
+os.remove("Build.log")
 # done, if we made it here, increase the conf build
 
 if flush_parameters:

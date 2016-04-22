@@ -227,7 +227,7 @@ bool SignalizerAudioProcessor::producesMidi() const
 
 bool SignalizerAudioProcessor::silenceInProducesSilenceOut() const
 {
-    return false;
+    return true;
 }
 
 double SignalizerAudioProcessor::getTailLengthSeconds() const

@@ -17,7 +17,7 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-// (You can add your own code in this section, and the Introjucer will not overwrite it)
+#include "../Source/version.h"
 
 // [END_USER_CODE_SECTION]
 
@@ -239,7 +239,7 @@
  #define JucePlugin_ManufacturerWebsite    "www.jthorborg.com"
 #endif
 #ifndef  JucePlugin_ManufacturerEmail
- #define JucePlugin_ManufacturerEmail      "support@yourcompany.com"
+ #define JucePlugin_ManufacturerEmail      "contact@jthorborg.com"
 #endif
 #ifndef  JucePlugin_ManufacturerCode
  #define JucePlugin_ManufacturerCode       'LbJt'
@@ -272,13 +272,13 @@
  #define JucePlugin_EditorRequiresKeyboardFocus  0
 #endif
 #ifndef  JucePlugin_Version
- #define JucePlugin_Version                0.1.0
+ #define JucePlugin_Version                SIGNALIZER_MAJOR.SIGNALIZER_MINOR.SIGNALIZER_BUILD
 #endif
 #ifndef  JucePlugin_VersionCode
- #define JucePlugin_VersionCode            0x100
+ #define JucePlugin_VersionCode            SIGNALIZER_VST_VERSION_HEX
 #endif
 #ifndef  JucePlugin_VersionString
- #define JucePlugin_VersionString          "0.1.0"
+ #define JucePlugin_VersionString          SIGNALIZER_VERSION_STRING
 #endif
 #ifndef  JucePlugin_VSTUniqueID
  #define JucePlugin_VSTUniqueID            JucePlugin_PluginCode
@@ -302,7 +302,7 @@
  #define JucePlugin_AUManufacturerCode     JucePlugin_ManufacturerCode
 #endif
 #ifndef  JucePlugin_CFBundleIdentifier
- #define JucePlugin_CFBundleIdentifier     com.yourcompany.Signalizer
+ #define JucePlugin_CFBundleIdentifier     com.Lightbridge.Signalizer
 #endif
 #ifndef  JucePlugin_RTASCategory
  #define JucePlugin_RTASCategory           ePlugInCategory_None
@@ -320,7 +320,7 @@
  #define JucePlugin_RTASDisableMultiMono   0
 #endif
 #ifndef  JucePlugin_AAXIdentifier
- #define JucePlugin_AAXIdentifier          com.yourcompany.Signalizer
+ #define JucePlugin_AAXIdentifier          com.Lightbridge.Signalizer
 #endif
 #ifndef  JucePlugin_AAXManufacturerCode
  #define JucePlugin_AAXManufacturerCode    JucePlugin_ManufacturerCode
