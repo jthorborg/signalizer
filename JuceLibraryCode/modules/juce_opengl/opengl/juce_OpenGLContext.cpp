@@ -531,6 +531,23 @@ public:
     }
    #endif
 
+	void detach()
+	{
+		stopTimer();
+
+		Component& comp = *getComponent();
+
+#if JUCE_MAC
+		[[(NSView*)comp.getWindowHandle() window] disableScreenUpdatesUntilFlush];
+#endif
+
+		if (CachedImage* const oldCachedImage = CachedImage::get(comp))
+			oldCachedImage->stop(); // (must stop this before detaching it from the component)
+
+		comp.setCachedComponentImage(nullptr);
+		context.nativeContext = nullptr;
+	}
+
 private:
     OpenGLContext& context;
 
@@ -566,23 +583,6 @@ private:
         newCachedImage->updateViewportSize (true);
 
         startTimer (400);
-    }
-
-    void detach()
-    {
-        stopTimer();
-
-        Component& comp = *getComponent();
-
-       #if JUCE_MAC
-        [[(NSView*) comp.getWindowHandle() window] disableScreenUpdatesUntilFlush];
-       #endif
-
-        if (CachedImage* const oldCachedImage = CachedImage::get (comp))
-            oldCachedImage->stop(); // (must stop this before detaching it from the component)
-
-        comp.setCachedComponentImage (nullptr);
-        context.nativeContext = nullptr;
     }
 
     void timerCallback() override
@@ -674,7 +674,11 @@ void OpenGLContext::attachTo (Component& component)
 
 void OpenGLContext::detach()
 {
-    attachment = nullptr;
+	if (Attachment* a = attachment)
+	{
+		a->detach(); // must detach before nulling our pointer
+		attachment = nullptr;
+	}
     nativeContext = nullptr;
 }
 

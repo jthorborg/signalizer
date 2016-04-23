@@ -291,7 +291,7 @@ namespace Signalizer
 		archive << kgraphColour;
 		archive << kbackgroundColour;
 		archive << kdrawingColour;
-		archive << ktransform.getTransform3D();
+		archive << ktransform;
 		archive << kskeletonColour;
 		archive << kprimitiveSize;
 		archive << kenvelopeMode;
@@ -313,7 +313,7 @@ namespace Signalizer
 		builder >> kgraphColour;
 		builder >> kbackgroundColour;
 		builder >> kdrawingColour;
-		builder >> ktransform.getTransform3D();
+		builder >> ktransform;
 		builder >> kskeletonColour;
 		builder >> kprimitiveSize;
 		builder >> kenvelopeMode;
@@ -321,9 +321,6 @@ namespace Signalizer
 		builder >> kopMode;
 		builder >> kstereoSmooth;
 		builder >> kmeterColour;
-
-		ktransform.syncEditor();
-
 	}
 
 	void CVectorScope::handleFlagUpdates()

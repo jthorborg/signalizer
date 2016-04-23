@@ -39,9 +39,13 @@ Note: All licenses can be found and examined in the /licenses/ folder.
 	Views allow you to 'drag' them with the mouse, as well as 'scroll' them with the
 	mouse wheel. What this exactly means depends on the view. Additionally, double-clicking 
 	the view will reset its bounds to some default size. Some views also allow alternate
-	dragging styles if you hold down shift or control.
+	dragging styles if you hold down shift or control. Rightclicking anywhere will do the opposite 
+	of the current global freeze mode, ie. if the view is frozen, it will be thawed while you rightclick.
+
 
 	For knobs, they obey being more precise if you hold down control while dragging them.
+	Many controls support 'editor spaces' which allows typing of precise values, or design them
+	(like colours). This functionality is accessed through double-clicking the control.
 	Esc will dismiss active modal boxes, full screen modes and so on. Tab will move to the
 	next input control. Context menus are available where you would expect them.
 
