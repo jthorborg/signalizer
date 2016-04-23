@@ -32,7 +32,7 @@
 	#define SIGNALIZER_COMMON_SIGNALIZER_H
 
 	#include <cpl/Common.h>
-	#include <cpl/CViews.h>
+	#include <cpl/gui/gui.h>
 	#include <cpl/CAudioStream.h>
 	#include <complex>
 

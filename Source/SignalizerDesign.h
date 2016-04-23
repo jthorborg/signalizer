@@ -33,10 +33,8 @@
 	#include <cpl/common.h>
 	#include <string>
 	#include <vector>
-	#include <cpl/CBaseControl.h>
-	#include <cpl/CViews.h>
-	#include <cpl/NewStuffAndLook.h>
-	#include <cpl/GraphicComponents.h>
+	#include <cpl/gui/gui.h>
+	#include <cpl/gui/NewStuffAndLook.h>
 	#include <map>
 	#include <ctime>
 

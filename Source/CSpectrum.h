@@ -31,10 +31,8 @@
 	#define SIGNALIZER_CSPECTRUM_H
 
 	#include <cpl/Common.h>
-	#include <cpl/CViews.h>
-	#include <cpl/GraphicComponents.h>
+	#include <cpl/gui/gui.h>
 	#include <cpl/Utility.h>
-	#include <cpl/gui/Controls.h>
 	#include <cpl/dsp/CComplexResonator.h>
 	#include <memory>
 	#include <cpl/rendering/COpenGLImage.h>

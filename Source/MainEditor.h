@@ -34,10 +34,7 @@
 
 	#include <cpl/Common.h>
 	#include "PluginProcessor.h"
-	#include <cpl/GraphicComponents.h>
-	#include <cpl/CBaseControl.h>
-	#include <cpl/CViews.h>
-	#include <cpl/gui/Controls.h>
+	#include <cpl/gui/gui.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"

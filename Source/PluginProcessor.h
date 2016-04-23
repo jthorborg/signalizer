@@ -31,11 +31,10 @@
 
 #include <cpl/Common.h>
 #include <cpl/CAudioStream.h>
-#include <cpl/GraphicComponents.h>
 #include <cpl/CSerializer.h>
-#include <cpl/CViews.h>
+#include <cpl/gui/CViews.h>
 #include "CommonSignalizer.h"
-#include <cpl/gui/CPresetWidget.h>
+#include <cpl/gui/widgets/CPresetWidget.h>
 
 
 namespace Signalizer

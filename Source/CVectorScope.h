@@ -31,10 +31,9 @@
 	#define SIGNALIZER_CVECTORSCOPE_H
 
 	#include "CommonSignalizer.h"
-	#include <cpl/GraphicComponents.h>
 	#include <cpl/Utility.h>
-	#include <cpl/gui/Controls.h>
-	#include <cpl/gui/CPresetWidget.h>
+	#include <cpl/gui/controls/Controls.h>
+	#include <cpl/gui/Widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
 	#include <cpl/lib/CMessageSystem.h>
