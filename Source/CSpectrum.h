@@ -586,10 +586,28 @@
 			/// GUI elements
 			/// </summary>
 			juce::Component * editor;
-			cpl::CComboBox kviewScaling, kalgorithm, kchannelConfiguration, kdisplayMode, kbinInterpolation, kfrequencyTracker;
+			cpl::CComboBox 
+				kviewScaling, 
+				kalgorithm, 
+				kchannelConfiguration,
+				kdisplayMode, 
+				kbinInterpolation, 
+				kfrequencyTracker;
+
 			cpl::CDSPWindowWidget kdspWin;
 			cpl::CPowerSlopeWidget kslope;
-			cpl::CKnobSlider klowDbs, khighDbs, kwindowSize, kpctForDivision, kblobSize, kframeUpdateSmoothing, kspectrumStretching, kprimitiveSize, kfloodFillAlpha;
+			cpl::CKnobSlider 
+				klowDbs, 
+				khighDbs, 
+				kwindowSize, 
+				kpctForDivision, 
+				kblobSize, 
+				kframeUpdateSmoothing, 
+				kspectrumStretching, 
+				kprimitiveSize, 
+				kfloodFillAlpha,
+				kreferenceTuning;
+
 			cpl::CColourControl kgridColour, kbackgroundColour;
 
 			struct LineControl
@@ -637,6 +655,7 @@
 				std::atomic<signed int> frequencyTrackingGraph;
 				std::atomic<float> primitiveSize;
 				std::atomic<float> alphaFloodFill;
+				std::atomic<double> referenceTuning;
 			} newc;
 
 			struct CurrentMouse

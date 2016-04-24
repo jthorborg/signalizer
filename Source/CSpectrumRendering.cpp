@@ -38,8 +38,42 @@
 
 namespace Signalizer
 {
+	static const char * Semitones[] =
+	{
+		"C ",
+		"C#",
+		"D ",
+		"D#",
+		"E ",
+		"F ",
+		"F#",
+		"G ",
+		"G#",
+		"A ",
+		"A#",
+		"B "
+	};
 
 	using namespace cpl;
+
+	/// <summary>
+	/// 
+	/// </summary>
+	static std::string frequencyToSemitone(double a4Ref, double frequency)
+	{
+		if (!std::isnormal(frequency))
+			return "nan";
+		auto note = 12 * std::log2(frequency / a4Ref) + 49;
+		auto roundedNote = cpl::Math::round<int>(note);
+		auto semitoneIndex = (roundedNote - 4) % 12;
+		while(semitoneIndex < 0)
+			semitoneIndex += 12;
+		auto octave = (roundedNote - semitoneIndex) / 12;
+		auto detune = cpl::Math::round<int>(1000 * (note - roundedNote));
+		char buf[100];
+		sprintf_s(buf, "%s%d%+3.1fc", Semitones[semitoneIndex], octave, detune * 0.1);
+		return buf;
+	}
 
 	void CSpectrum::onGraphicsRendering(juce::Graphics & g)
 	{
@@ -205,7 +239,7 @@ namespace Signalizer
 
 		bool frequencyIsComplex = false;
 
-		char buf[1000];
+		char buf[2000];
 
 		double viewSize = state.viewRect.dist();
 
@@ -214,6 +248,9 @@ namespace Signalizer
 			mouseX = cmouse.x.load(std::memory_order_acquire);
 			mouseY = cmouse.y.load(std::memory_order_acquire);
 
+			// a possible concurrent bug
+			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints());
+			mouseY = cpl::Math::confineTo(mouseY, 0, getHeight());
 
 			g.drawLine(static_cast<float>(mouseX), 0, static_cast<float>(mouseX), getHeight(), 1);
 			g.drawLine(0, static_cast<float>(mouseY), getWidth(), static_cast<float>(mouseY), 1);
@@ -470,7 +507,7 @@ namespace Signalizer
 
 		// TODO: calculate at runtime, at some point.
 
-		double estimatedSize[2] = { static_cast<double>(peakIsComplex || frequencyIsComplex ? 165 : 145), 115 };
+		double estimatedSize[2] = { static_cast<double>(peakIsComplex || frequencyIsComplex ? 170 : 150), 135 };
 		double textOffset[2] = { 20, -estimatedSize[1] };
 
 		if (peakDBs > 1000)
@@ -478,10 +515,34 @@ namespace Signalizer
 		else if(peakDBs < -1000)
 			peakDBs = -std::numeric_limits<double>::infinity();
 
+		std::string mouseNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), mouseFrequency);
+		std::string freqNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), peakFrequency);
+
+
 		// TODO: use a monospace font for this part
 		// also: is printf-style really more readable than C++ formatting..
-		sprintf_s(buf, u8"+x: \t%s%.5f Hz\n+y: \t%.5f dB\n+/: \t%.2f dB\n\u039Bx: \t%s%.5f Hz\n\u039B~:\t%.3f Hz\u03C3\n\u039By: \t%.5f dB\n\u039B/: \t%.2f dB\n\u039BSL: \t+%.3f dB\u03C3 ",
-			frequencyIsComplex ? "-i*" : "", mouseFrequency, mouseDBs, mouseSlope, peakIsComplex ? "-i*" : "", peakFrequency, peakDeviance, peakDBs, peakSlopeDbs, -adjustedScallopLoss);
+		sprintf_s(buf, 
+			u8"+x:  %s%11.5f Hz\n"
+			u8"+x:  %s\n"
+			u8"+y:  %+9.5f dB\n"
+			u8"+/:  %+7.3f dB\n"
+			u8"\u039Bx:  %s%11.5f Hz\n"
+			u8"\u039Bx:  %s\n"
+			u8"\u039B~:  %6.3f Hz\u03C3\n"
+			u8"\u039By:  %+9.5f dB\n"
+			u8"\u039B/:  %+7.3f dB\n"
+			u8"\u039BSL: +%6.4f dB\u03C3 ",
+			frequencyIsComplex ? "-i*" : "", mouseFrequency, 
+			mouseNote.c_str(),
+			mouseDBs,
+			mouseSlope, 
+			peakIsComplex ? "-i*" : "", peakFrequency, 
+			freqNote.c_str(),
+			peakDeviance, 
+			peakDBs,
+			peakSlopeDbs, 
+			-adjustedScallopLoss
+		);
 
 		// render text rectangle
 		auto xpoint = mouseX + textOffset[0] ;
@@ -505,6 +566,8 @@ namespace Signalizer
 		// reset colour
 		g.setColour(state.colourGrid.withMultipliedBrightness(1.1f));
 		g.drawRoundedRectangle(rect, 2, 0.7f);
+
+		g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText * 0.9f, 0));
 
 		g.drawFittedText(juce::CharPointer_UTF8(buf), rectInside, juce::Justification::centredLeft, 6);
 

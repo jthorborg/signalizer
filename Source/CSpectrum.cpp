@@ -53,6 +53,8 @@ namespace Signalizer
 	const double StretchMax = 20;
 	const double CSpectrum::minDBRange = 3.0;
 	const double CSpectrum::primitiveMaxSize = 10;
+	const double kReferenceMax = 880;
+	const double kReferenceMin = 220;
 
 	std::unique_ptr<juce::Component> CSpectrum::createEditor()
 	{
@@ -99,11 +101,19 @@ namespace Signalizer
 				section->addControl(&kdspWin, 0);
 				page->addSection(section);
 			}
+
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&kslope, 0);
+				page->addSection(section);
+			}
+
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kfreeQ, 0);
 				page->addSection(section);
 			}
+
 		}
 		if (auto page = content->addPage("Rendering", "icons/svg/brush.svg"))
 		{
@@ -138,23 +148,17 @@ namespace Signalizer
 				section->addControl(&presetManager, 0);
 				page->addSection(section);
 			}
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kfloodFillAlpha, 0);
-				section->addControl(&kdiagnostics, 1);
-				page->addSection(section);
-			}
+
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kframeUpdateSmoothing, 0);
 				section->addControl(&kprimitiveSize, 1);
+				section->addControl(&kfloodFillAlpha, 0);
+				section->addControl(&kreferenceTuning, 1);
+				section->addControl(&kdiagnostics, 0);
 				page->addSection(section);
 			}
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kslope, 0);
-				page->addSection(section);
-			}
+
 
 		}
 		editor = content;
@@ -324,6 +328,7 @@ namespace Signalizer
 		kfreeQ.bAddPassiveChangeListener(this);
 		kprimitiveSize.bAddPassiveChangeListener(this);
 		kfloodFillAlpha.bAddPassiveChangeListener(this);
+		kreferenceTuning.bAddPassiveChangeListener(this);
 
 		for (int i = 0; i < CPL_ARRAYSIZE(kspecColours); ++i)
 		{
@@ -343,6 +348,7 @@ namespace Signalizer
 		kframeUpdateSmoothing.bAddFormatter(this);
 		kspectrumStretching.bAddFormatter(this);
 		kprimitiveSize.bAddFormatter(this);
+		kreferenceTuning.bAddFormatter(this);
 		// ------ titles -----------
 		kviewScaling.bSetTitle("Graph scale");
 		kalgorithm.bSetTitle("Transform algorithm");
@@ -363,7 +369,7 @@ namespace Signalizer
 		kfloodFillAlpha.bSetTitle("Flood fill %");
 		kgridColour.bSetTitle("Grid colour");
 		kbackgroundColour.bSetTitle("Background colour");
-
+		kreferenceTuning.bSetTitle("A4 ref. tuning");
 		kpctForDivision.bSetTitle("Grid div. space");
 		kblobSize.bSetTitle("Update speed");
 
@@ -413,6 +419,8 @@ namespace Signalizer
 		kfrequencyTracker.bSetDescription("Specifies which pair of graphs that is evaluated for nearby peak estimations.");
 		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 		kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
+		kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
+		
 		klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
 		klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
 
@@ -443,6 +451,11 @@ namespace Signalizer
 		}
 
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+
+		// default values
+
+		kreferenceTuning.bInterpretAndSet("440");
+
 	}
 
 	void CSpectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
@@ -483,6 +496,7 @@ namespace Signalizer
 		archive << kprimitiveSize;
 		archive << kfloodFillAlpha;
 		archive << kslope;
+		archive << kreferenceTuning;
 	}
 
 	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
@@ -525,9 +539,10 @@ namespace Signalizer
 		builder >> kprimitiveSize;
 		builder >> kfloodFillAlpha;
 
-		if (version > cpl::Version::fromParts(0, 2, 5))
+		if (version > cpl::Version::fromParts(0, 2, 6))
 		{
 			builder >> kslope;
+			builder >> kreferenceTuning;
 		}
 	}
 
@@ -780,6 +795,10 @@ namespace Signalizer
 		else if (ctrl == &kslope)
 		{
 			flags.slopeMapChanged = true;
+		}
+		else if (ctrl == &kreferenceTuning)
+		{
+			newc.referenceTuning.store(cpl::Math::UnityScale::linear(ctrl->bGetValue(), kReferenceMin, kReferenceMax), std::memory_order_release);
 		}
 		else
 		{
@@ -1217,6 +1236,7 @@ namespace Signalizer
 	{
 		using namespace cpl;
 		char buf[200];
+
 		if (ctrl == &klowDbs || ctrl == &khighDbs)
 		{
 			auto val = Math::UnityScale::linear<double>(value, kMinDbs, kMaxDbs);
@@ -1245,13 +1265,19 @@ namespace Signalizer
 		}
 		else if (ctrl == &kspectrumStretching)
 		{
-			sprintf_s(buf, "%.2fx", cpl::Math::UnityScale::linear(ctrl->bGetValue(), 1.0, StretchMax));
+			sprintf_s(buf, "%.2fx", cpl::Math::UnityScale::linear(value, 1.0, StretchMax));
 			buffer = buf;
 			return true;
 		}
 		else if (ctrl == &kprimitiveSize)
 		{
-			sprintf(buf, "%.2f pts", ctrl->bGetValue() * primitiveMaxSize);
+			sprintf(buf, "%.2f pts", value * primitiveMaxSize);
+			buffer = buf;
+			return true;
+		}
+		else if (ctrl == &kreferenceTuning)
+		{
+			sprintf_s(buf, "%.4f Hz", cpl::Math::UnityScale::linear(value, kReferenceMin, kReferenceMax));
 			buffer = buf;
 			return true;
 		}
@@ -1332,6 +1358,14 @@ namespace Signalizer
 			if (cpl::lexicalConversion(buffer, newVal))
 			{
 				value = cpl::Math::confineTo(newVal / primitiveMaxSize, 0.0, 1.0);
+				return true;
+			}
+		}
+		else if (ctrl == &kreferenceTuning)
+		{
+			if (cpl::lexicalConversion(buffer, newVal))
+			{
+				value = cpl::Math::confineTo(cpl::Math::UnityScale::Inv::linear(newVal, kReferenceMin, kReferenceMax), 0.0, 1.0);
 				return true;
 			}
 		}
