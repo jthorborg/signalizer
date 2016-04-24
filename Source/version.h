@@ -1,7 +1,7 @@
 #define SIGNALIZER_MAJOR 0
 #define SIGNALIZER_MINOR 2
 #define SIGNALIZER_BUILD 7
-#define SIGNALIZER_BUILD_INFO "* dev\n  master\n\n85ec02f\n"
+#define SIGNALIZER_BUILD_INFO "* dev\n  master\n\n58febb8\n"
 
 #define SIGNALIZER_VERSION_STRING "0.2.7"
 #define SIGNALIZER_VST_VERSION_HEX 0x000207
