@@ -38,8 +38,10 @@
 
 	namespace Signalizer
 	{
-		typedef cpl::CAudioStream<float, 32> AudioStream;
+		// TODO: Figure out why sizes around 256 causes buffer overruns
+		typedef cpl::CAudioStream<float, 64> AudioStream;
 		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
+		
 		enum class ChannelConfiguration
 		{
 			/// <summary>

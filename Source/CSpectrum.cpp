@@ -676,6 +676,11 @@ namespace Signalizer
 			flags.dynamicRangeChange = true;
 			flags.viewChanged = true;
 		}
+		
+		cmouse.x.store(event.position.x, std::memory_order_release);
+		cmouse.y.store(event.position.y, std::memory_order_release);
+		
+		flags.mouseMove = true;
 	}
 	void CSpectrum::mouseUp(const MouseEvent& event)
 	{

@@ -13,6 +13,15 @@ def compiler_invoke(arch, vstring, reloutdir):
 	command = (
 			   "xcodebuild "
 			   "-project ../builds/macosx/signalizer.xcodeproj "
+			   "clean"
+			   )
+	
+	if os.system(command) != 0:
+		return -1
+	
+	command = (
+			   "xcodebuild "
+			   "-project ../builds/macosx/signalizer.xcodeproj "
 			   "-scheme Signalizer "
 			   "-configuration Release "
 			   "CONFIGURATION_BUILD_DIR=" + cm.join(os.getcwd(), reloutdir) + "/ "

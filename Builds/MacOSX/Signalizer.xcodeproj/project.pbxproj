@@ -192,6 +192,8 @@
 		165278DE1A9B3662003E1953 /* SignalizerDesign.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SignalizerDesign.h; path = ../../Source/SignalizerDesign.h; sourceTree = "<group>"; };
 		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../../SDKs/cpl/CPLSource.cpp; sourceTree = "<group>"; };
 		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../../SDKs/cpl/MacSupport.mm; sourceTree = "<group>"; };
+		169638031CCD70B100C805A5 /* CommonSignalizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CommonSignalizer.h; path = ../../Source/CommonSignalizer.h; sourceTree = "<group>"; };
+		169638041CCD779A00C805A5 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../../Source/version.h; sourceTree = "<group>"; };
 		16A08833959E1D0DBAB33CD7 /* juce_ShapeButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ShapeButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ShapeButton.h; sourceTree = SOURCE_ROOT; };
 		16B689791AB7228600170EE6 /* CVectorScopeRendering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CVectorScopeRendering.cpp; path = ../../Source/CVectorScopeRendering.cpp; sourceTree = "<group>"; };
 		16F63B101CA6BBF400816394 /* licenses */ = {isa = PBXFileReference; lastKnownFileType = folder; name = licenses; path = ../../Make/Skeleton/licenses; sourceTree = "<group>"; };
@@ -2837,6 +2839,8 @@
 		EA24685F8B6142E3520D09E9 /* Signalizer */ = {
 			isa = PBXGroup;
 			children = (
+				169638041CCD779A00C805A5 /* version.h */,
+				169638031CCD70B100C805A5 /* CommonSignalizer.h */,
 				1611A6CA1B518658003A3DC5 /* CSpectrum.cpp */,
 				1611A6CB1B518658003A3DC5 /* CSpectrum.h */,
 				1611A6CC1B518658003A3DC5 /* CSpectrumDSP.cpp */,

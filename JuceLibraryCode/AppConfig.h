@@ -17,8 +17,15 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
+#ifdef _MSC_VER
+
 #include "../Source/version.h"
 
+#else
+
+#include "../../Source/version.h"
+
+#endif
 // [END_USER_CODE_SECTION]
 
 //==============================================================================
@@ -276,6 +283,7 @@
 #endif
 #ifndef  JucePlugin_VersionCode
  #define JucePlugin_VersionCode            SIGNALIZER_VST_VERSION_HEX
+ //#define JucePlugin_VersionCode            0x000207
 #endif
 #ifndef  JucePlugin_VersionString
  #define JucePlugin_VersionString          SIGNALIZER_VERSION_STRING
