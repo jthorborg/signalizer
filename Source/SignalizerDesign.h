@@ -383,7 +383,7 @@
 
 					contents.setViewedComponent(selectedComponent, false);
 
-					if (currentComponent != nullptr)
+					if (currentComponent != nullptr && selectedComponent != currentComponent)
 					{
 #pragma message cwarn("Remove this code when JUCE viewport actually removes the old component")
 						// TODO: update this when juce actually removes the old component.
