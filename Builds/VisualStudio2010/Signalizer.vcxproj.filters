@@ -352,6 +352,15 @@
     <Filter Include="Signalizer\Source\cpl\simd">
       <UniqueIdentifier>{462c6008-6c82-4df6-abea-06a6d5245520}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\Spectrum">
+      <UniqueIdentifier>{d28c03ee-f932-41be-9574-1b9aecfa6b06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Oscilloscope">
+      <UniqueIdentifier>{c58a4579-17e9-480d-994a-9e2138dd2695}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Vectorscope">
+      <UniqueIdentifier>{79aa4f2c-7a69-4dd7-bb34-f55ead80aafa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -807,21 +816,6 @@
     <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
       <Filter>Signalizer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrum.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScope.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\MainEditor.cpp">
       <Filter>Signalizer\Source</Filter>
     </ClCompile>
@@ -833,6 +827,21 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\InstanceLog.cpp">
       <Filter>Signalizer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrum.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CVectorScope.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2183,12 +2192,6 @@
     <ClInclude Include="..\..\Source\CommonSignalizer.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\CSpectrum.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\CVectorScope.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
@@ -2509,6 +2512,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h">
       <Filter>Signalizer\Source\cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\CSpectrum.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\CVectorScope.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

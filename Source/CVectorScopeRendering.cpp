@@ -418,7 +418,7 @@ namespace Signalizer
 			// and apply the gain:
 			GLfloat gain = getGain();
 			matrixMod.scale(gain, gain, 1);
-			float sampleFade = 1.0f / audio.getNumSamples();
+			float sampleFade = 1.0f / std::max<int>(1, audio.getNumSamples() - 1);
 			
 			if (!state.fadeHistory)
 			{

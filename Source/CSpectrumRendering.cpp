@@ -63,7 +63,7 @@ namespace Signalizer
 	{
 		if (!std::isnormal(frequency))
 			return "nan";
-		auto note = 12 * std::log2(frequency / a4Ref) + 49;
+		auto note = 12 * std::log2(std::abs(frequency / a4Ref)) + 49;
 		auto roundedNote = cpl::Math::round<int>(note);
 		auto semitoneIndex = (roundedNote - 4) % 12;
 		while(semitoneIndex < 0)
@@ -410,7 +410,7 @@ namespace Signalizer
 
 			auto source = getAudioMemory<std::complex<fftType>>();
 
-			auto peak = std::max_element(source + lowerBound, source + higherBound, 
+			auto peak = std::max_element(source + lowerBound, source + higherBound + 1, 
 				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
@@ -447,6 +447,8 @@ namespace Signalizer
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
+			// jos suggests doing the fit in logarithmic domain, it tends to create nans and infs we wouldn't have got otherwise -
+			// explaning the various isnormal() checks
 			auto alpha = 20 * std::log10(std::abs(source[peakOffset == 0 ? 0 : peakOffset - 1] * invSize));
 			auto beta = 20 * std::log10(std::abs(source[peakOffset] * invSize));
 			auto gamma = 20 * std::log10(std::abs(source[peakOffset == static_cast<std::ptrdiff_t>(N) ? peakOffset : peakOffset + 1] * invSize));
@@ -454,11 +456,13 @@ namespace Signalizer
 			auto phi = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
 
 			// global
-			peakFraction = 2 * (peakOffset + phi) / double(N);
+			peakFraction = 2 * (peakOffset + (std::isnormal(phi) ? phi : 0)) / double(N);
 			peakFrequency = 0.5 * peakFraction * sampleRate;
 			// translate to local
 
 			peakDBs = beta - 0.25*(alpha - gamma) * phi;
+			if (!std::isnormal(peakDBs))
+				peakDBs = 20 * std::log10(std::abs(source[peakOffset]) / (N * 0.5));
 
 			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
 

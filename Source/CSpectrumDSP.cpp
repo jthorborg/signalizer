@@ -774,8 +774,8 @@ namespace Signalizer
 
 			std::size_t numBins = N >> 1;
 			auto const topFrequency = getSampleRate() / 2;
-			auto const freqToBin = double(numBins) / topFrequency;
-			auto const pointsToBin = double(numBins) / numPoints;
+			auto const freqToBin = double(numBins ) / topFrequency;
+			auto const pointsToBin = double(numBins ) / numPoints;
 
 			typedef fftType ftype;
 
@@ -829,7 +829,7 @@ namespace Signalizer
 						if (bwForLine > fftBandwidth)
 							break;
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 						csp[x] = invSize * csf[index];
 					}
 					break;
@@ -1541,7 +1541,9 @@ namespace Signalizer
 							fpoint * offBuf[2] = { buffer[0], buffer[1]};
 							if (audioStream.getNumDeferredSamples() == 0)
 							{
-								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset + availableSamples)))
+								// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
+								// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
+								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
 									doTransform();
 							}
 							else
