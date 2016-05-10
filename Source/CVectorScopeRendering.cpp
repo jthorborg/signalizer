@@ -226,6 +226,7 @@ namespace Signalizer
 		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			openGLStack.enable(GL_TEXTURE_2D);
+			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
 			if(!state.isPolar)
@@ -309,6 +310,7 @@ namespace Signalizer
 		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			using consts = cpl::simd::consts<float>;
+			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
@@ -399,6 +401,7 @@ namespace Signalizer
 			// Draw basic graph
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
 				drawer.addColour(state.colourGraph);
 				// front x, y axii
 				drawer.addVertex(-1.0f, 0.0f, 0.0f);

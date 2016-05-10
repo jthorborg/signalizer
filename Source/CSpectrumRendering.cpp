@@ -840,6 +840,8 @@ namespace Signalizer
 		m.translate(-1, -1, 0);
 		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
 
+		// removes most of the weird black lines on flood fills.
+		ogs.disable(GL_MULTISAMPLE);
 
 		if (state.alphaFloodFill != 0.0f)
 		{
@@ -921,7 +923,7 @@ namespace Signalizer
 			}
 		}
 
-		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
