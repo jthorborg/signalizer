@@ -926,17 +926,18 @@ namespace Signalizer
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
 		// render grid
-		if (state.colourGrid.getARGB() != 0)
+		if (state.colourGrid.getAlpha() != 0)
 		{
 			auto normalizedScaleY = 1.0 / getHeight();
 			// TODO: fix using a matrix modification instead (cheaper)
 			auto normY = [=](double in) {  return static_cast<float>(normalizedScaleY * in * 2.0); };
 
 			{
+				const float cscale = state.configuration == ChannelConfiguration::Complex ? 2 : 1;
+				const float width = getWidth();
+
 				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-
 				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
 
 				// draw vertical lines.
 				const auto & lines = frequencyGraph.getLines();
@@ -944,14 +945,14 @@ namespace Signalizer
 
 				for (auto dline : lines)
 				{
-					auto line = static_cast<float>(dline);
+					auto line = cscale * static_cast<float>(dline);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
 
 				for (auto dline : clines)
 				{
-					auto line = static_cast<float>(dline);
+					auto line = static_cast<float>(width - cscale *  dline);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
@@ -963,14 +964,14 @@ namespace Signalizer
 
 				for (auto & sdiv : divs)
 				{
-					auto line = static_cast<float>(sdiv.coord);
+					auto line = cscale * static_cast<float>(sdiv.coord);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
 
 				for (auto & sdiv : cdivs)
 				{
-					auto line = static_cast<float>(sdiv.coord);
+					auto line = static_cast<float>(width - cscale * sdiv.coord);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}

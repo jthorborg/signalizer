@@ -1182,7 +1182,7 @@ namespace Signalizer
 							break;
 
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 
 						csp[x] = invSize * csf[index];
 						csp[numFilters + x] = invSize * csf[N - index];
