@@ -53,6 +53,7 @@ void SignalizerAudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
 	if (v == editor)
 	{
 		serializedData.clear();
+		serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
 		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
 
 		editor = nullptr;
@@ -128,11 +129,12 @@ void SignalizerAudioProcessor::getStateInformation (MemoryBlock& destData)
 	if (editor)
 	{
 		serializedData.clear();
-		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
+		serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
+		editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.version);
 	}
 	if (!serializedData.isEmpty())
 	{
-		auto compiledData = serializedData.compile();
+		auto compiledData = serializedData.compile(true);
 		destData.append(compiledData.getBlock(), compiledData.getSize());
 	}
 }
