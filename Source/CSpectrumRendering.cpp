@@ -249,8 +249,8 @@ namespace Signalizer
 			mouseY = cmouse.y.load(std::memory_order_acquire);
 
 			// a possible concurrent bug
-			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints());
-			mouseY = cpl::Math::confineTo(mouseY, 0, getHeight());
+			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints() - 1);
+			mouseY = cpl::Math::confineTo(mouseY, 0, getHeight() - 1);
 
 			g.drawLine(static_cast<float>(mouseX), 0, static_cast<float>(mouseX), getHeight(), 1);
 			g.drawLine(0, static_cast<float>(mouseY), getWidth(), static_cast<float>(mouseY), 1);
