@@ -2519,6 +2519,12 @@
     <ClInclude Include="..\..\Source\CVectorScope.h">
       <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h">
+      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h">
+      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
