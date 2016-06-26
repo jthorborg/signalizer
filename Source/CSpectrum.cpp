@@ -308,32 +308,32 @@ namespace Signalizer
 		onAsyncChangedProperties(audioStream, audioStream.getInfo());
 
 		// ------ listeners --------
-		kslope.bAddPassiveChangeListener(this);
-		kviewScaling.bAddPassiveChangeListener(this);
-		kalgorithm.bAddPassiveChangeListener(this);
-		kchannelConfiguration.bAddPassiveChangeListener(this);
-		kdisplayMode.bAddPassiveChangeListener(this);
-		kfrequencyTracker.bAddPassiveChangeListener(this);
+		kslope.bAddChangeListener(this);
+		kviewScaling.bAddChangeListener(this);
+		kalgorithm.bAddChangeListener(this);
+		kchannelConfiguration.bAddChangeListener(this);
+		kdisplayMode.bAddChangeListener(this);
+		kfrequencyTracker.bAddChangeListener(this);
 		klowDbs.bAddChangeListener(this);
 		khighDbs.bAddChangeListener(this);
-		kdspWin.bAddPassiveChangeListener(this);
-		kwindowSize.bAddPassiveChangeListener(this);
-		kspectrumStretching.bAddPassiveChangeListener(this);
-		kgridColour.bAddPassiveChangeListener(this);
-		kpctForDivision.bAddPassiveChangeListener(this);
-		kblobSize.bAddPassiveChangeListener(this);
-		kbackgroundColour.bAddPassiveChangeListener(this);
-		kframeUpdateSmoothing.bAddPassiveChangeListener(this);
-		kbinInterpolation.bAddPassiveChangeListener(this);
-		kfreeQ.bAddPassiveChangeListener(this);
-		kprimitiveSize.bAddPassiveChangeListener(this);
-		kfloodFillAlpha.bAddPassiveChangeListener(this);
-		kreferenceTuning.bAddPassiveChangeListener(this);
+		kdspWin.bAddChangeListener(this);
+		kwindowSize.bAddChangeListener(this);
+		kspectrumStretching.bAddChangeListener(this);
+		kgridColour.bAddChangeListener(this);
+		kpctForDivision.bAddChangeListener(this);
+		kblobSize.bAddChangeListener(this);
+		kbackgroundColour.bAddChangeListener(this);
+		kframeUpdateSmoothing.bAddChangeListener(this);
+		kbinInterpolation.bAddChangeListener(this);
+		kfreeQ.bAddChangeListener(this);
+		kprimitiveSize.bAddChangeListener(this);
+		kfloodFillAlpha.bAddChangeListener(this);
+		kreferenceTuning.bAddChangeListener(this);
 
 		for (int i = 0; i < CPL_ARRAYSIZE(kspecColours); ++i)
 		{
-			kspecColours[i].bAddPassiveChangeListener(this);
-			kspecRatios[i].bAddPassiveChangeListener(this);
+			kspecColours[i].bAddChangeListener(this);
+			kspecRatios[i].bAddChangeListener(this);
 			kspecColours[i].bSetTitle("Spectrum " + std::to_string(i + 1));
 			kspecRatios[i].bSetTitle("Gradient ratio " + std::to_string(i + 1));
 			kspecRatios[i].bSetDescription("How large a part of the gradient this colour occupies (the 4 values are normalized).");
@@ -426,13 +426,13 @@ namespace Signalizer
 
 		klines[LineGraphs::LineMain].colourOne.bSetTitle("Graph 1 colour");
 		klines[LineGraphs::LineMain].colourTwo.bSetTitle("Graph 2 colour");
-		klines[LineGraphs::LineMain].colourOne.bAddPassiveChangeListener(this);
-		klines[LineGraphs::LineMain].colourTwo.bAddPassiveChangeListener(this);
+		klines[LineGraphs::LineMain].colourOne.bAddChangeListener(this);
+		klines[LineGraphs::LineMain].colourTwo.bAddChangeListener(this);
 
 
 		klines[LineGraphs::LineMain].decay.bSetTitle("Main decay");
 		klines[LineGraphs::LineMain].decay.bSetDescription("Decay rate of the main graph channels; allows the graph to decay more slowly, but still reacting to peaks.");
-		klines[LineGraphs::LineMain].decay.bAddPassiveChangeListener(this);
+		klines[LineGraphs::LineMain].decay.bAddChangeListener(this);
 		klines[LineGraphs::LineMain].decay.bAddFormatter(this);
 
 		for (std::size_t i = LineGraphs::LineMain + 1; i < LineGraphs::LineEnd; ++i)
@@ -440,9 +440,9 @@ namespace Signalizer
 			auto graphNumber = std::to_string(i);
 			klines[i].colourOne.bSetTitle("Aux 1 colour");
 			klines[i].colourTwo.bSetTitle("Aux 2 colour");
-			klines[i].colourOne.bAddPassiveChangeListener(this);
-			klines[i].colourTwo.bAddPassiveChangeListener(this);
-			klines[i].decay.bAddPassiveChangeListener(this);
+			klines[i].colourOne.bAddChangeListener(this);
+			klines[i].colourTwo.bAddChangeListener(this);
+			klines[i].decay.bAddChangeListener(this);
 			klines[i].decay.bAddFormatter(this);
 			klines[i].decay.bSetTitle("Aux " + graphNumber + " decay");
 			klines[i].decay.bSetDescription("Decay rate of auxillary graph " + graphNumber + " channels; allows the graph to decay more slowly, but still reacting to peaks.");
@@ -759,7 +759,7 @@ namespace Signalizer
 		}
 		else if (ctrl == &kdspWin)
 		{
-			state.dspWindow = kdspWin.getParams().wType.load(std::memory_order_acquire);
+			state.dspWindow = kdspWin.getValueReference().getWindowType();
 			flags.windowKernelChange = true;
 		}
 		else if (ctrl == &kblobSize)
@@ -844,22 +844,11 @@ namespace Signalizer
 	{
 		if (state.algo == TransformAlgorithm::FFT)
 		{
-			// enable all windows
-			for (std::size_t i = 0; i < (size_t)cpl::dsp::WindowTypes::End; i++)
-			{
-				kdspWin.getWindowList().setEnabledStateFor(i, true);
-			}
+			kdspWin.setWindowOptions(cpl::CDSPWindowWidget::ChoiceOptions::All);
 		}
 		else if(state.algo == TransformAlgorithm::RSNT)
 		{
-			// disable the windows unsupported by resonating algorithms
-			for (std::size_t i = 0; i < (size_t)cpl::dsp::WindowTypes::End; i++)
-			{
-				if(cpl::dsp::windowHasFiniteDFT((cpl::dsp::WindowTypes)i))
-					kdspWin.getWindowList().setEnabledStateFor(i, true);
-				else
-					kdspWin.getWindowList().setEnabledStateFor(i, false);
-			}
+			kdspWin.setWindowOptions(cpl::CDSPWindowWidget::ChoiceOptions::FiniteDFTWindows);
 		}
 
 		if (newc.displayMode.load(std::memory_order_acquire) == DisplayMode::ColourSpectrum)
@@ -883,7 +872,7 @@ namespace Signalizer
 		}
 	}
 
-	bool CSpectrum::valueChanged(cpl::CBaseControl * ctrl)
+	/* bool CSpectrum::valueChanged(cpl::CBaseControl * ctrl)
 	{
 		if (ctrl == &khighDbs || ctrl == &klowDbs)
 		{
@@ -905,7 +894,7 @@ namespace Signalizer
 		}
 
 		return false;
-	}
+	} */
 
 	std::size_t CSpectrum::getWindowSize() const noexcept
 	{
@@ -1173,7 +1162,7 @@ namespace Signalizer
 
 		if (flags.slopeMapChanged.cas())
 		{
-			cpl::CPowerSlopeWidget::PowerFunction slopeFunction = kslope.derive();
+			cpl::PowerSlopeValue::PowerFunction slopeFunction = kslope.getValueReference().derive();
 
 			for (std::size_t i = 0; i < numFilters; ++i)
 			{
@@ -1183,14 +1172,14 @@ namespace Signalizer
 
 		if (flags.windowKernelChange.cas())
 		{
-			windowScale = kdspWin.generateWindow<fftType>(windowKernel, getWindowSize());
+			windowScale = kdspWin.getValueReference().generateWindow<fftType>(windowKernel, getWindowSize());
 			remapResonator = true;
 		}
 
 		if (remapResonator)
 		{
 			audioLock.acquire(audioResource);
-			auto window = kdspWin.getParams().wType.load(std::memory_order_acquire);
+			auto window = kdspWin.getValueReference().getWindowType();
 			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
 			flags.frequencyGraphChange = true;
 			relayWidth = getWidth();

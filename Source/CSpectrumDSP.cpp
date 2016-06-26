@@ -601,7 +601,7 @@ namespace Signalizer
 	template<class V2>
 		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip)
 		{
-			cpl::CPowerSlopeWidget::PowerFunction slope = kslope.derive();
+			cpl::PowerSlopeValue::PowerFunction slope = kslope.getValueReference().derive();
 
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
@@ -1698,15 +1698,17 @@ namespace Signalizer
 		return getAxisPoints();
 	}
 
-	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate) const
+	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate)
 	{
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
 		if (state.displayMode == DisplayMode::LineGraph)
 		{
-			auto type = kdspWin.getParams().wType.load(std::memory_order_acquire);
-			auto alpha = kdspWin.getParams().wAlpha.load(std::memory_order_acquire);
-			auto beta = kdspWin.getParams().wBeta.load(std::memory_order_acquire);
-			auto symmetry = kdspWin.getParams().wSymmetry.load(std::memory_order_acquire);
+#pragma message cwarn("Fix this to use direct values")
+			auto & value = kdspWin.getValueReference();
+			auto type = value.getWindowType();
+			auto alpha = value.getAlpha();
+			auto beta = value.getBeta();
+			auto symmetry = value.getWindowShape();
 
 			bool canOvershoot = false;
 			auto sampleRate = getSampleRate();

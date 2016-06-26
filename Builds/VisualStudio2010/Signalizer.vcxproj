@@ -397,6 +397,14 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CTransformWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\WidgetBase.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\Widgets.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomFormatters.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomTransforms.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\ParameterSystem.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\ColourValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\PowerFunctionValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\TransformValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\Values.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\InstructionSet.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\intrintypes.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\LexicalConversion.h" />

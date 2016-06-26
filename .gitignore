@@ -229,3 +229,5 @@ Builds/VisualStudio2010/Signalizer.opensdf
 *.psess
 *.vsp
 Builds/VisualStudio2010/Signalizer.sln.ide/
+*.opendb
+*.db

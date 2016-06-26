@@ -48,7 +48,7 @@
 			public		AudioProcessorEditor, 
 			private		juce::Timer, 
 			private		juce::HighResolutionTimer,
-			protected	cpl::CBaseControl::PassiveListener,
+			protected	cpl::CBaseControl::Listener,
 			private		cpl::CBaseControl::ValueFormatter,
 			public		cpl::CTopView, 
 			private		cpl::COpenGLView::OpenGLEventListener,
@@ -60,7 +60,7 @@
 
 		public:
 
-			MainEditor(SignalizerAudioProcessor * e);
+			MainEditor(AudioProcessor * e, ParameterSet * params);
 			~MainEditor();
 
 			// CView overrides
@@ -166,7 +166,7 @@
 			void setPreferredKioskCoords(juce::Point<int>) noexcept;
 
 			// Relations
-			SignalizerAudioProcessor * engine;
+			AudioProcessor * engine;
 
 			// Constant UI
 			cpl::CTextTabBar<> tabs;
@@ -206,6 +206,7 @@
 			cpl::CView * currentView;
 			ResizableCornerComponent rcc;
 			cpl::CSerializer viewSettings;
+			ParameterSet * params;
 			//cpl::CMessageSystem messageSystem;
 		};
 	};

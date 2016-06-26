@@ -124,21 +124,11 @@ namespace Signalizer
 
 	}
 
-	CVectorScope::CVectorScope(AudioStream & data)
+	CVectorScope::CVectorScope(AudioStream & data, ParameterSet * params)
 	:
 		COpenGLView("Vectorscope view"),
+		kdrawingColour(&static_cast<Content*>(params->getUserContent())->drawingColour),
 		audioStream(data),
-		kwindow("Window size", cpl::CKnobSlider::ControlType::ms),
-		krotation("Wave Z-rotation"),
-		kgain("Input gain"),
-		kgraphColour("Graph colour"),
-		kbackgroundColour("Background colour"),
-		kdrawingColour("Drawing colour"),
-		kskeletonColour("Skeleton colour"),
-		kprimitiveSize("Primitive size"),
-		kmeterColour("Meter colour"),
-		kenvelopeSmooth("Env. window", cpl::CKnobSlider::ControlType::ms),
-		kstereoSmooth("Stereo window", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
 		//audioStreamCopy(2),
 		lastFrameTick(0),
@@ -208,25 +198,38 @@ namespace Signalizer
 
 	void CVectorScope::initPanelAndControls()
 	{
+		// titles
+		kwindow.bSetTitle("Window size");
+		kwindow.bSetTitle("Wave Z-rotation");
+		kwindow.bSetTitle("Input gain");
+		kgraphColour.bSetTitle("Graph colour");
+		kbackgroundColour.bSetTitle("Background colour");
+		kdrawingColour.bSetTitle("Drawing colour");
+		kskeletonColour.bSetTitle("Skeleton colour");
+		kprimitiveSize.bSetTitle("Primitive size");
+		kmeterColour.bSetTitle("Meter colour");
+		kenvelopeSmooth.bSetTitle("Env. window");
+		kstereoSmooth.bSetTitle("Stereo window");
+
 		// listeners
-		kwindow.bAddPassiveChangeListener(this);
-		kgain.bAddPassiveChangeListener(this);
-		kenvelopeMode.bAddPassiveChangeListener(this);
-		kopMode.bAddPassiveChangeListener(this);
-		kenvelopeSmooth.bAddPassiveChangeListener(this);
-		krotation.bAddPassiveChangeListener(this);
-		kantiAlias.bAddPassiveChangeListener(this);
-		kfadeOld.bAddPassiveChangeListener(this);
-		kdrawLines.bAddPassiveChangeListener(this);
-		kdrawingColour.bAddPassiveChangeListener(this);
-		kgraphColour.bAddPassiveChangeListener(this);
-		kskeletonColour.bAddPassiveChangeListener(this);
-		kbackgroundColour.bAddPassiveChangeListener(this);
-		kprimitiveSize.bAddPassiveChangeListener(this);
-		kdiagnostics.bAddPassiveChangeListener(this);
-		kopMode.bAddPassiveChangeListener(this);
-		kstereoSmooth.bAddPassiveChangeListener(this);
-		kmeterColour.bAddPassiveChangeListener(this);
+		kwindow.bAddChangeListener(this);
+		kgain.bAddChangeListener(this);
+		kenvelopeMode.bAddChangeListener(this);
+		kopMode.bAddChangeListener(this);
+		kenvelopeSmooth.bAddChangeListener(this);
+		krotation.bAddChangeListener(this);
+		kantiAlias.bAddChangeListener(this);
+		kfadeOld.bAddChangeListener(this);
+		kdrawLines.bAddChangeListener(this);
+		kdrawingColour.bAddChangeListener(this);
+		kgraphColour.bAddChangeListener(this);
+		kskeletonColour.bAddChangeListener(this);
+		kbackgroundColour.bAddChangeListener(this);
+		kprimitiveSize.bAddChangeListener(this);
+		kdiagnostics.bAddChangeListener(this);
+		kopMode.bAddChangeListener(this);
+		kstereoSmooth.bAddChangeListener(this);
+		kmeterColour.bAddChangeListener(this);
 		// formatters
 		kwindow.bAddFormatter(this);
 		kgain.bAddFormatter(this);
@@ -373,20 +376,22 @@ namespace Signalizer
 		}
 		else /* zoom graph */
 		{
-
-			auto & matrix = ktransform.getTransform3D();
+			// TODO: dont use value references (use direct)
+			auto & matrix = ktransform.getValueReference();
 			//matrix.scale.x += amount;
 			//matrix.scale.y += amount;
-			auto actualAmount = (1 + amount / 5) * matrix.scale.z;
-			auto deltaIncrease = (actualAmount - matrix.scale.z) / matrix.scale.z;
-			matrix.scale.z = actualAmount;
+			auto Z = matrix.getValueIndex(matrix.Scale, matrix.Z).getTransformedValue();
+			auto actualAmount = (1 + amount / 5) * Z;
+			auto deltaIncrease = (actualAmount - Z) / Z;
+			matrix.getValueIndex(matrix.Scale, matrix.Z).setTransformedValue(actualAmount);
 
-			matrix.scale.x *= 1 + deltaIncrease;
-			matrix.scale.y *= 1 + deltaIncrease;
-			//matrix.position.x *=  1 + normalizedSign * deltaIncrease;
-			//matrix.position.y *= 1 + normalizedSign * deltaIncrease;
-			ktransform.syncEditor();
+			matrix.getValueIndex(matrix.Scale, matrix.X).setTransformedValue(
+				matrix.getValueIndex(matrix.Scale, matrix.X).getTransformedValue() * (1 + deltaIncrease)
+			);
 
+			matrix.getValueIndex(matrix.Scale, matrix.Y).setTransformedValue(
+				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
+			);
 		}
 		
 	}
@@ -396,38 +401,45 @@ namespace Signalizer
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
+			// TODO: reset to preset
 			kgain.bSetValue(0.5f);
-			auto & matrix = ktransform.getTransform3D();
-			matrix.position.y = matrix.position.x = 0;
-			ktransform.syncEditor();
+			auto & matrix = ktransform.getValueReference();
+			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
+			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
 		}
 	}
 	void CVectorScope::mouseDrag(const MouseEvent& event)
 	{
-		auto & matrix = ktransform.getTransform3D();
+		auto & matrix = ktransform.getValueReference();
 		auto factor = float(getWidth()) / getHeight();
 		auto deltaDifference = event.position - lastMousePos;
 		if (event.mods.isCtrlDown())
 		{
-			matrix.rotation.y = std::fmod(deltaDifference.x * 0.3f + matrix.rotation.y, 360.f);
-			matrix.rotation.x = std::fmod(deltaDifference.y * 0.3f + matrix.rotation.x, 360.f);
+			auto yvalue = matrix.getValueIndex(matrix.Rotation, matrix.Y).getTransformedValue();
+			matrix.getValueIndex(matrix.Rotation, matrix.Y).setTransformedValue(std::fmod(deltaDifference.x * 0.3f + yvalue, 360.f));
+
+			auto xvalue = matrix.getValueIndex(matrix.Rotation, matrix.X).getTransformedValue();
+			matrix.getValueIndex(matrix.Rotation, matrix.X).setTransformedValue(std::fmod(deltaDifference.y * 0.3f + xvalue, 360.f));
 		}
 		else
 		{
-			matrix.position.x += deltaDifference.x / 500.f;
-			matrix.position.y += factor * -deltaDifference.y / 500.f;
-		}
-		ktransform.syncEditor();
 
+			auto xvalue = matrix.getValueIndex(matrix.Position, matrix.X).getTransformedValue();
+			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
+
+			auto yvalue = matrix.getValueIndex(matrix.Position, matrix.Y).getTransformedValue();
+			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
+		}
 
 		lastMousePos = event.position;
 	}
 	void CVectorScope::mouseUp(const MouseEvent& event)
 	{
-
+		// TODO: implement beginChangeGesture()
 	}
 	void CVectorScope::mouseDown(const MouseEvent& event)
 	{
+		// TODO: implement endChangeGesture()
 		lastMousePos = event.position;
 	}
 

@@ -93,7 +93,7 @@
 		class CVectorScope 
 		: 
 			public cpl::COpenGLView, 
-			protected cpl::CBaseControl::PassiveListener,
+			protected cpl::CBaseControl::Listener,
 			protected cpl::CBaseControl::ValueFormatter,
 			protected AudioStream::Listener,
 			protected juce::ComponentListener,
@@ -106,7 +106,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(AudioStream & data);
+			CVectorScope(AudioStream & data, ParameterSet * params);
 			virtual ~CVectorScope();
 
 			// Component overrides

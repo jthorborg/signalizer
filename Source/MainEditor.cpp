@@ -124,14 +124,14 @@ namespace Signalizer
 		"16"
 	};
 
-	MainEditor::MainEditor(SignalizerAudioProcessor * e)
+	MainEditor::MainEditor(AudioProcessor * e, ParameterSet * params)
 	:
 		engine(e),
+		params(params),
 		AudioProcessorEditor(e),
 		CTopView(this, "Signalizer main editor"),
 		rcc(this, this),
 		krenderEngine("Rendering Engine", RenderingEnginesList),
-		krefreshRate("Refresh Rate"),
 		refreshRate(0),
 		oldRefreshRate(0),
 		unFocused(true), 
@@ -900,7 +900,7 @@ namespace Signalizer
 			switch ((ViewTypes)index)
 			{
 			case ViewTypes::Vectorscope:
-				view = new CVectorScope(engine->stream);
+				view = new CVectorScope(engine->stream, params);
 				break;
 			case ViewTypes::Oscilloscope:
 			//	view = new COscilloscope(engine->audioBuffer);
@@ -917,6 +917,7 @@ namespace Signalizer
 				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
 				if (!key.isEmpty())
 				{
+					
 					key >> view;
 					entry.first->second.hasBeenRestored = true;
 				}
@@ -937,7 +938,7 @@ namespace Signalizer
 				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
 				if (!key.isEmpty())
 				{
-					key >> view;
+					key << cpl::Serialization::ScopedModifier(cpl::CSerializer::Modifiers::RestoreValue, false) >> view;
 					it->second.hasBeenRestored = true;
 				}
 			}
@@ -1140,9 +1141,9 @@ namespace Signalizer
 		data >> kioskCoords;
 		data >> hasAnyTabBeenSelected;
 		// kind of a hack, but we don't really want to enter kiosk mode immediately.
-		kkiosk.bRemovePassiveChangeListener(this);
+		kkiosk.bRemoveChangeListener(this);
 		data >> kkiosk;
-		kkiosk.bAddPassiveChangeListener(this);
+		kkiosk.bAddChangeListener(this);
 		for (auto & colour : colourControls)
 		{
 			auto & content = viewSettings.getContent("Colours").getContent(colour.bGetTitle());
@@ -1463,22 +1464,26 @@ namespace Signalizer
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
+		// titles
+		krefreshRate.bSetTitle("Refresh Rate");
+
+
 		// add listeners
 		krefreshRate.bAddFormatter(this);
-		kfreeze.bAddPassiveChangeListener(this);
-		kkiosk.bAddPassiveChangeListener(this);
-		kidle.bAddPassiveChangeListener(this);
-		krenderEngine.bAddPassiveChangeListener(this);
-		krefreshRate.bAddPassiveChangeListener(this);
-		ksettings.bAddPassiveChangeListener(this);
-		kstableFps.bAddPassiveChangeListener(this);
-		kvsync.bAddPassiveChangeListener(this);
+		kfreeze.bAddChangeListener(this);
+		kkiosk.bAddChangeListener(this);
+		kidle.bAddChangeListener(this);
+		krenderEngine.bAddChangeListener(this);
+		krefreshRate.bAddChangeListener(this);
+		ksettings.bAddChangeListener(this);
+		kstableFps.bAddChangeListener(this);
+		kvsync.bAddChangeListener(this);
 		tabs.addListener(this);
-		kmaxHistorySize.bAddPassiveChangeListener(this);
-		kswapInterval.bAddPassiveChangeListener(this);
-		kantialias.bAddPassiveChangeListener(this);
-		khelp.bAddPassiveChangeListener(this);
-		krefreshState.bAddPassiveChangeListener(this);
+		kmaxHistorySize.bAddChangeListener(this);
+		kswapInterval.bAddChangeListener(this);
+		kantialias.bAddChangeListener(this);
+		khelp.bAddChangeListener(this);
+		krefreshState.bAddChangeListener(this);
 		kswapInterval.bAddFormatter(this);
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1502,10 +1507,10 @@ namespace Signalizer
 		for (unsigned i = 0; i < colourControls.size(); ++i)
 		{
 			auto & schemeColour = lnf.getSchemeColour(i);
-			colourControls[i].setControlColour(schemeColour.colour.getPixelARGB());
+			colourControls[i].setControlColour(schemeColour.colour);
 			colourControls[i].bSetTitle(schemeColour.name);
 			colourControls[i].bSetDescription(schemeColour.description);
-			colourControls[i].bAddPassiveChangeListener(this);
+			colourControls[i].bAddChangeListener(this);
 
 		}
 

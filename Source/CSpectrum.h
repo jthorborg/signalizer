@@ -61,9 +61,8 @@
 		class CSpectrum
 		: 
 			public cpl::COpenGLView, 
-			protected cpl::CBaseControl::PassiveListener,
-			protected cpl::CBaseControl::ValueFormatter,
 			protected cpl::CBaseControl::Listener,
+			protected cpl::CBaseControl::ValueFormatter,
 			protected AudioStream::Listener,
 			protected juce::ComponentListener
 		{
@@ -158,7 +157,6 @@
 
 			// cbasecontrol overrides
 			void valueChanged(const cpl::CBaseControl *) override;
-			bool valueChanged(cpl::CBaseControl *) override;
 			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value) override;
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value) override;
 			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
@@ -409,7 +407,7 @@
 			/// </summary>
 			/// <param name="coordinate"></param>
 			/// <returns></returns>
-			double getScallopingLossAtCoordinate(std::size_t coordinate) const;
+			double getScallopingLossAtCoordinate(std::size_t coordinate);
 			
 			/// <summary>
 			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.

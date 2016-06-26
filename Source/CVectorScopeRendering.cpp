@@ -174,7 +174,9 @@ namespace Signalizer
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
-				openGLStack.applyTransform3D(ktransform.getTransform3D());
+				cpl::GraphicsND::Transform3D<GLfloat> transform(1);
+				ktransform.getValueReference().fillTransform3D(transform);
+				openGLStack.applyTransform3D(transform);
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
 				// the peak filter has to run on the whole buffer each time.
