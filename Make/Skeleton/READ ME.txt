@@ -2,7 +2,7 @@ Hello, and thank you for trying out Signalizer! Any feedback is welcome.
 
 1. Please read and agree to all licenses found in /licenses/ before using and/or redistributing the program (the least permissive license is GPL v3).
 
-2. Signalizer is open source completely free to use. It may be redistributed and altered according to its license, GPL v3. The program is licensed under GPL v3. The source code repository is found here: https://bitbucket.org/Mayae/signalizer
+2. Signalizer is open source and completely free to use. It may be redistributed and altered according to its license, GPL v3. The program is licensed under GPL v3. The source code repository is found here: https://bitbucket.org/Mayae/signalizer
 The source code of the complimentary library cpl is found here: https://bitbucket.org/Mayae/cpl
 
 3a. This software additionally uses the following software:

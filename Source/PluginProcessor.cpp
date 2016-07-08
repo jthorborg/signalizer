@@ -37,37 +37,6 @@
 namespace Signalizer
 {
 
-	std::unique_ptr<ParameterSet> CreateParameters(int offset, bool shouldCreateShortNames, ParameterSet::AutomatedProcessor & processor)
-	{
-
-
-		auto content = std::make_unique<Content>();
-		auto ret = std::make_unique<ParameterSet>("Vectorscope", "VS.", processor, offset);
-
-		ret->registerSingleParameter(content->autoGain.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->operationalMode.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->envelopeWindow.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->stereoWindow.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->inputGain.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->windowSize.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->waveZRotation.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->antialias.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->fadeOlderPoints.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->interconnectSamples.generateUpdateRegistrator());
-		ret->registerSingleParameter(content->diagnostics.generateUpdateRegistrator());
-
-		ret->registerParameterBundle(&content->drawingColour, "Draw");
-		ret->registerParameterBundle(&content->graphColour, "Graph");
-		ret->registerParameterBundle(&content->backgroundColour, "BckG");
-		ret->registerParameterBundle(&content->skeletonColour, "Sklt");
-		ret->registerParameterBundle(&content->primitiveSize, "PSize");
-		ret->registerParameterBundle(&content->transform, "SPC");
-		ret->setUserData(content.release());
-
-		ret->seal();
-
-		return std::move(ret);
-	}
 
 	//==============================================================================
 	AudioProcessor::AudioProcessor()
@@ -79,7 +48,22 @@ namespace Signalizer
 	{
 		serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
 
-		parameterSet = CreateParameters(0, false, *this);
+		std::size_t offset = 0;
+		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
+		{
+			parameterMap.insert({
+					ParameterCreationList[i].first,
+					ParameterCreationList[i].second(parameterMap.size(), false, *this)
+			});
+		}
+
+		/*juce::File f;
+
+		cpl::CPresetManager::instance().loadPreset(
+			cpl::CPresetManager::instance().getPresetDirectory() + DefaultPresetName + "." + cpl::programInfo.programAbbr,
+			serializedData,
+			f
+		); */
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -168,7 +152,7 @@ namespace Signalizer
 	{
 		//cpl::Misc::MsgBox("Attach debugger");
 
-		editor = new Signalizer::MainEditor(this, parameterSet.get());
+		editor = new Signalizer::MainEditor(this, &parameterMap);
 		editor->addEventListener(this);
 		if (!serializedData.isEmpty())
 			editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
@@ -179,6 +163,7 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::getStateInformation(MemoryBlock& destData)
 	{
+
 		if (editor)
 		{
 			serializedData.clear();
@@ -220,45 +205,28 @@ namespace Signalizer
 
 	int AudioProcessor::getNumParameters()
 	{
-		return parameterSet->size();
+		return static_cast<int>(parameterMap.size());
 	}
 
 	float AudioProcessor::getParameter(int index)
 	{
-		if (auto param = parameterSet->findParameter(index))
-		{
-			return param->getValueNormalized<float>();
-		}
+		return parameterMap.findParameter(index)->getValueNormalized<float>();
 
-		return 0;
 	}
 
 	void AudioProcessor::setParameter(int index, float newValue)
 	{
-		if (auto param = parameterSet->findParameter(index))
-		{
-			return param->updateFromHostNormalized(newValue);
-		}
+		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
 	}
 
 	const String AudioProcessor::getParameterName(int index)
 	{
-		if (auto param = parameterSet->findParameter(index))
-		{
-			return param->getExportedName();
-		}
-		
-		return "<no such parameter>";
+		return parameterMap.findParameter(index)->getExportedName();
 	}
 
 	const String AudioProcessor::getParameterText(int index)
 	{
-		if (auto param = parameterSet->findParameter(index))
-		{
-			return param->getDisplayText();
-		}
-
-		return "<no such parameter>";
+		return parameterMap.findParameter(index)->getDisplayText();
 	}
 
 	const String AudioProcessor::getInputChannelName(int channelIndex) const
@@ -339,5 +307,6 @@ namespace Signalizer
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
+	MessageBox(nullptr, "hi", "hey", MB_OK);
     return new Signalizer::AudioProcessor();
 }

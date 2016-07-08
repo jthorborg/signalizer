@@ -48,6 +48,45 @@ namespace Signalizer
 		friend class MainEditor;
 
 	public:
+
+		struct ParameterMap
+		{
+			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)
+			{
+				map.emplace_back(std::move(entry));
+			}
+
+			ParameterSet::ParameterView * findParameter(cpl::Parameters::Handle index)
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+					if (auto param = parameterSets[i]->findParameter(index))
+						return param;
+
+				CPL_RUNTIME_EXCEPTION("Parameter index from host is out of bounds");
+			}
+
+			ParameterSet * getSet(const std::string & s) noexcept
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+				{
+					if (map[i].first == s)
+						return parameterSets[i];
+				}
+
+				return nullptr;
+			}
+
+			std::size_t size() const noexcept { 
+				std::size_t r(0);
+				for (auto & i : parameterSets)
+					r += i->size();
+				return r;
+			};
+
+			std::vector<ParameterSet *> parameterSets;
+			std::vector<std::pair<std::string, std::unique_ptr<ProcessorState>>> map;
+		};
+
 		//==============================================================================
 		AudioProcessor();
 		~AudioProcessor() noexcept;
@@ -110,7 +149,9 @@ namespace Signalizer
 		bool hasDefaultPresetBeenLoaded;
 		int nChannels;
 
-		std::unique_ptr<ParameterSet> parameterSet;
+
+
+		ParameterMap parameterMap;
 	};
 };
 #endif 

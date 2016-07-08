@@ -182,7 +182,7 @@ namespace Signalizer
 
 		drawFrequencyTracking(g);
 
-		if (kdiagnostics.bGetValue() > 0.5)
+		if (kdiagnostics.getValueReference().getNormalizedValue() > 0.5)
 		{
 			char text[1000];
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());

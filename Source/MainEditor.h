@@ -60,7 +60,7 @@
 
 		public:
 
-			MainEditor(AudioProcessor * e, ParameterSet * params);
+			MainEditor(AudioProcessor * e, AudioProcessor::ParameterMap * params);
 			~MainEditor();
 
 			// CView overrides
@@ -206,7 +206,7 @@
 			cpl::CView * currentView;
 			ResizableCornerComponent rcc;
 			cpl::CSerializer viewSettings;
-			ParameterSet * params;
+			AudioProcessor::ParameterMap * params;
 			//cpl::CMessageSystem messageSystem;
 		};
 	};

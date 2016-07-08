@@ -907,6 +907,7 @@
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
     <ClInclude Include="..\..\Source\SignalizerDesign.h" />
+    <ClInclude Include="..\..\Source\VectorScopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />
   </ItemGroup>
   <ItemGroup>

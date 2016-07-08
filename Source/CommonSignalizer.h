@@ -52,115 +52,33 @@
 		/// </summary>
 		typedef float PFloat;
 
-		class RTListenerParameter : public cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>>
-		{
-
-		};
-
 		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
-
 		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
 
 
 		// TODO: Figure out why sizes around 256 causes buffer overruns
 		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
 		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
-		
-		class Content : public cpl::Parameters::UserContent
+
+		class ProcessorState
+			: public cpl::SafeSerializableObject
 		{
 		public:
 
-			Content()
-				: dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
-				, windowRange(0, 1000)
-				, degreeRange(0, 360)
+			virtual std::unique_ptr<juce::Component> createEditor() = 0;
+			virtual ParameterSet & getParameterSet() = 0;
 
+			virtual ~ProcessorState() {}
 
-				, msFormatter("ms")
-				, degreeFormatter("degs")
-				, ptsFormatter("pts")
-				, gainModeFormatter(gainModeTransformer)
-				, opModeFormatter(opModeTransformer)
-
-
-				, autoGain("Auto-gain mode", gainModeTransformer, gainModeFormatter)
-				, operationalMode("Operational mode", opModeTransformer, opModeFormatter)
-				, envelopeWindow("Env. window", windowRange, msFormatter)
-				, stereoWindow("Stereo window", windowRange, msFormatter)
-				, inputGain("Input gain", dbRange, dbFormatter)
-				, windowSize("Window size", windowRange, msFormatter)
-				, waveZRotation("Wave Z-rotation", degreeRange, degreeFormatter)
-				, antialias("Antialias", boolRange, boolFormatter)
-				, fadeOlderPoints("Fade old points", boolRange, boolFormatter)
-				, interconnectSamples("Connect samples", boolRange, boolFormatter)
-				, diagnostics("Diagnostics", boolRange, boolFormatter)
-
-				, colourBehavior()
-				, drawingColour(colourBehavior)
-				, graphColour(colourBehavior)
-				, backgroundColour(colourBehavior)
-				, skeletonColour(colourBehavior)
-				, meterColour(colourBehavior)
-				, primitiveSize(colourBehavior)
-
-				, tsfBehaviour()
-				, transform(tsfBehaviour)
-			{
-				opModeFormatter.setValues({ "Lissajous", "Polar" });
-				gainModeFormatter.setValues({ "None", "RMS", "Peak decay" });
-			}
-
-			cpl::UnitFormatter<double>
-				msFormatter,
-				degreeFormatter,
-				ptsFormatter;
-
-			cpl::DBFormatter<double> dbFormatter;
-			cpl::BooleanFormatter<double> boolFormatter;
-			cpl::ChoiceFormatter<double>
-				gainModeFormatter,
-				opModeFormatter;
-
-			cpl::ChoiceTransformer<double>
-				gainModeTransformer,
-				opModeTransformer;
-
-			cpl::BooleanRange<double> boolRange;
-
-			cpl::ExponentialRange<double> dbRange;
-			cpl::LinearRange<double>
-				degreeRange,
-				windowRange;
-			cpl::UnityRange<double> unityRange;
-
-
-			cpl::ParameterValue<ParameterSet::UIParameterView>
-				autoGain,
-				operationalMode,
-				envelopeWindow,
-				stereoWindow,
-				inputGain,
-				windowSize,
-				waveZRotation,
-				antialias,
-				fadeOlderPoints,
-				interconnectSamples,
-				diagnostics;
-
-			cpl::ParameterColourValue<ParameterSet::UIParameterView>::SharedBehaviour colourBehavior;
-
-			cpl::ParameterColourValue<ParameterSet::UIParameterView>
-				drawingColour,
-				graphColour,
-				backgroundColour,
-				skeletonColour,
-				meterColour,
-				primitiveSize;
-
-			cpl::ParameterTransformValue<ParameterSet::UIParameterView>::SharedBehaviour<ParameterSet::UIParameterView::ValueType> tsfBehaviour;
-
-			cpl::ParameterTransformValue<ParameterSet::UIParameterView> transform;
 		};
+
+		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, ParameterSet::AutomatedProcessor & processor);
+		
+		
+		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
+		extern std::string MainEditorPresetName;
+		extern std::string DefaultPresetName;
+
 
 		enum class ChannelConfiguration
 		{

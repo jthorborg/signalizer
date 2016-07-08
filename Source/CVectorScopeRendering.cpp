@@ -76,7 +76,7 @@ namespace Signalizer
 
 		auto cStart = cpl::Misc::ClockCounter();
 
-		if (kdiagnostics.bGetValue() > 0.5)
+		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
@@ -175,7 +175,7 @@ namespace Signalizer
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
 				cpl::GraphicsND::Transform3D<GLfloat> transform(1);
-				ktransform.getValueReference().fillTransform3D(transform);
+				content->transform.fillTransform3D(transform);
 				openGLStack.applyTransform3D(transform);
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
@@ -185,8 +185,8 @@ namespace Signalizer
 					runPeakFilter<V>(lockedView);
 				}
 			   
-				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
-				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
+				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
+				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
 				// draw actual stereoscopic plot
 				if (lockedView.getNumChannels() >= 2)
@@ -421,9 +421,9 @@ namespace Signalizer
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
-			GLfloat gain = getGain();
+			auto gain = (GLfloat)state.envelopeGain;
 			matrixMod.scale(gain, gain, 1);
-			float sampleFade = 1.0f / std::max<int>(1, audio.getNumSamples() - 1);
+			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 			
 			if (!state.fadeHistory)
 			{
@@ -478,7 +478,7 @@ namespace Signalizer
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
-			auto const gain = (GLfloat)getGain();
+			auto const gain = (GLfloat)state.envelopeGain;
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
@@ -848,7 +848,10 @@ namespace Signalizer
 
 				if (std::isnormal(currentEnvelope))
 				{
-					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+					content->inputGain.getParameterView().updateFromProcessorTransformed(
+						currentEnvelope,
+						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
+					);
 				}
 			}
 		}

@@ -2558,6 +2558,9 @@
     <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h">
       <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\VectorScopeParameters.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

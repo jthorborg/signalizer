@@ -60,6 +60,9 @@ namespace Signalizer
 
 	const static juce::String MainEditorName = "Main Editor Settings";
 
+	std::string MainEditorPresetName = "main";
+	std::string DefaultPresetName = "default";
+
 	const char * ViewIndexToMap[] = 
 	{
 		"Vectorscope",
@@ -74,6 +77,19 @@ namespace Signalizer
 		Oscilloscope,
 		Spectrum,
 		end
+	};
+
+	template<typename T>
+	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, ParameterSet::AutomatedProcessor & processor)
+	{
+		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, processor));
+	}
+
+	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
+	{
+		{
+			ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent>
+		}
 	};
 
 	enum class Editors
@@ -124,7 +140,7 @@ namespace Signalizer
 		"16"
 	};
 
-	MainEditor::MainEditor(AudioProcessor * e, ParameterSet * params)
+	MainEditor::MainEditor(AudioProcessor * e, AudioProcessor::ParameterMap * params)
 	:
 		engine(e),
 		params(params),
@@ -139,13 +155,10 @@ namespace Signalizer
 		isEditorVisible(false),
 		selTab(0),
 		currentView(nullptr),
-		kstableFps("Stable FPS"),
-		kvsync("Vertical Sync"),
 		kioskCoords(-1, -1),
 		firstKioskMode(false),
 		hasAnyTabBeenSelected(false),
 		viewTopCoord(0),
-		krefreshState("Reset state"),
 		kpresets(this, "main", kpresets.WithDefault),
 		kmaxHistorySize("History size")
 
@@ -323,7 +336,7 @@ namespace Signalizer
 	void MainEditor::setRefreshRate(int rate)
 	{
 		refreshRate = cpl::Math::confineTo(rate, 10, 1000);
-		if (kstableFps.bGetValue() > 0.5)
+		if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
 		{
 			juce::HighResolutionTimer::startTimer(refreshRate);
 		}
@@ -485,7 +498,7 @@ namespace Signalizer
 		}
 		else if (c == &kstableFps)
 		{
-			if (kstableFps.bGetValue() > 0.5)
+			if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
 			{
 				juce::Timer::stopTimer();
 				juce::HighResolutionTimer::startTimer(refreshRate);
@@ -507,7 +520,7 @@ namespace Signalizer
 		}
 		else if (c == &kvsync)
 		{
-			if (kvsync.bGetValue() > 0.5)
+			if (kvsync.getValueReference().getNormalizedValue() > 0.5)
 			{
 				if (currentView)
 				{
@@ -900,7 +913,7 @@ namespace Signalizer
 			switch ((ViewTypes)index)
 			{
 			case ViewTypes::Vectorscope:
-				view = new CVectorScope(engine->stream, params);
+				view = new CVectorScope(engine->stream, params->getSet(mappedView));
 				break;
 			case ViewTypes::Oscilloscope:
 			//	view = new COscilloscope(engine->audioBuffer);
@@ -1363,7 +1376,10 @@ namespace Signalizer
 
 	void MainEditor::timerCallback()
 	{
-		
+		for (auto & paramSet : params->parameterSets)
+		{
+			paramSet->pulseUI();
+		}
 		if (currentView)
 		{
 			//const MessageManagerLock mml;
@@ -1496,9 +1512,12 @@ namespace Signalizer
 		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
+		krefreshState.bSetTitle("Reset state");
 		kantialias.bSetTitle("Antialiasing");
 		kidle.bSetTitle("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
+		kstableFps.bSetTitle("Stable FPS");
+		kvsync.bSetTitle("Vertical Sync");
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);
