@@ -40,30 +40,21 @@ namespace Signalizer
 
 	//==============================================================================
 	AudioProcessor::AudioProcessor()
-		: editor(nullptr)
-		, hasDefaultPresetBeenLoaded(false)
-		, stream(16, true)
+		: stream(16, true)
 		, nChannels(2)
-		, serializedData("HostState")
+		, dsoEditor(
+			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
+			[](MainEditor & editor, auto & sz, auto v) { editor.serializeEditorSettings(sz, v); },
+			[](MainEditor & editor, auto & sz, auto v) { editor.deserializeEditorSettings(sz, v); }
+		)
 	{
-		serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
-
-		std::size_t offset = 0;
 		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
 		{
 			parameterMap.insert({
 					ParameterCreationList[i].first,
-					ParameterCreationList[i].second(parameterMap.size(), false, *this)
+					ParameterCreationList[i].second(parameterMap.numParams(), false, *this)
 			});
 		}
-
-		/*juce::File f;
-
-		cpl::CPresetManager::instance().loadPreset(
-			cpl::CPresetManager::instance().getPresetDirectory() + DefaultPresetName + "." + cpl::programInfo.programAbbr,
-			serializedData,
-			f
-		); */
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -83,18 +74,7 @@ namespace Signalizer
 
 	AudioProcessor::~AudioProcessor() noexcept
 	{
-	}
-
-	void AudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
-	{
-		if (v == editor)
-		{
-			serializedData.clear();
-			serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
-			editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
-
-			editor = nullptr;
-		}
+		notifyDestruction();
 	}
 
 	//==============================================================================
@@ -116,8 +96,6 @@ namespace Signalizer
 
 	void AudioProcessor::releaseResources()
 	{
-		// When playback stops, you can use this as an opportunity to free up any
-		// spare memory, etc.
 	}
 
 	void AudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
@@ -150,50 +128,146 @@ namespace Signalizer
 
 	AudioProcessorEditor* AudioProcessor::createEditor()
 	{
-		//cpl::Misc::MsgBox("Attach debugger");
-
-		editor = new Signalizer::MainEditor(this, &parameterMap);
-		editor->addEventListener(this);
-		if (!serializedData.isEmpty())
-			editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
-
-		return editor;
+		std::lock_guard<std::mutex> lock(editorCreationMutex);
+		return dsoEditor.getUnique().acquire();
 	}
 
 	//==============================================================================
 	void AudioProcessor::getStateInformation(MemoryBlock& destData)
 	{
+		std::lock_guard<std::mutex> lock(editorCreationMutex);
 
-		if (editor)
+		cpl::CPresetWidget::SerializerType serializer("HostState");
+		auto & editorContent = serializer.getArchiver().getContent("Editor");
+
+		if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
 		{
-			serializedData.clear();
-			serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
-			editor->serializeObject(serializedData.getArchiver(), cpl::programInfo.version);
+			// writing to this value with acquire/release ensures we see any changes concurrently here 
+			std::atomic_int editorSerializationState = 0;
+
+			cpl::GUIUtils::MainEvent(
+				*this,
+				[&]
+				{
+					// interesting: host closed our window after calling getStateInformation but still while waiting for it to end..
+					if (!dsoEditor.hasCached())
+					{
+						editorSerializationState.store(2, std::memory_order_release);
+						return;
+					}
+
+					// if the object dies after this, it's a framework implementation issues (deleting windows not on the main thread??)
+					editorContent = dsoEditor.getState();
+					editorSerializationState.store(1, std::memory_order_release);
+				}
+			);
+
+			int exitState = 0;
+			// maybe use future
+			cpl::Misc::WaitOnCondition(2000, [&] { return !(exitState = editorSerializationState.load(std::memory_order_acquire)); });
+
+			// editor death, dso should have content - no new window can exist due to lock
+			if (exitState == 2)
+			{
+				editorContent = dsoEditor.getState();
+			}
+			// if not - content should already be stored concurrently
 		}
-		if (!serializedData.isEmpty())
+		else
 		{
-			auto compiledData = serializedData.compile(true);
+			// state is protected by either being on the main thread or having the window creation lock
+			editorContent = dsoEditor.getState();
+
+		}
+
+		auto & parameterState = serializer.getArchiver().getContent("Parameters");
+		parameterState.clear();
+		parameterState.setMasterVersion(cpl::programInfo.version);
+
+		for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
+		{
+			parameterState.getContent(parameterMap.getSet(i)->getName()) << *parameterMap.getState(i);
+		}
+
+		if (!serializer.isEmpty())
+		{
+			auto compiledData = serializer.compile(true);
 			destData.append(compiledData.getBlock(), compiledData.getSize());
 		}
 	}
 
 	void AudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 	{
+		SerializerType serializer("HostState");
+
 		try
 		{
-			serializedData.clear();
-			serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
-			// TODO: can make version check here.
-			if (editor)
-			{
-				editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
-			}
+			serializer.build(cpl::WeakContentWrapper(data, sizeInBytes));
 		}
 		catch (const std::exception & e)
 		{
-			cpl::Misc::MsgBox(std::string("Error loading state information:\n") + e.what(), "Signalizer");
+			cpl::Misc::MsgBox(std::string("Error reading state information:\n") + e.what(), "Signalizer");
 		}
 
+		if (serializer.isEmpty())
+			return;
+
+		auto & editorContent = serializer.getBuilder().getLocalVersion() < cpl::Version(0, 2, 8) ? serializer.getBuilder() : serializer.getBuilder().getContent("Editor");
+
+		if (!editorContent.isEmpty())
+		{
+			std::lock_guard<std::mutex> lock(editorCreationMutex);
+
+			if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
+			{
+				// writing to this value with acquire/release ensures we see any changes concurrently here 
+				std::atomic_int editorSerializationState = 0;
+
+				cpl::GUIUtils::MainEvent(
+					*this,
+					[&]
+					{
+						// interesting: host closed our window after calling setStateInformation but still while waiting for it to end..
+						if (!dsoEditor.hasCached())
+						{
+							editorSerializationState.store(2, std::memory_order_release);
+							return;
+						}
+
+						// if the object dies after this, it's a framework implementation issues (deleting windows not on the main thread??)
+						dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+						editorSerializationState.store(1, std::memory_order_release);
+					}
+				);
+
+				int exitState = 0;
+				// maybe use future
+				cpl::Misc::WaitOnCondition(2000, [&] { return !(exitState = editorSerializationState.load(std::memory_order_acquire)); });
+
+				// editor death, dso should have content - no new window can exist due to lock
+				if (exitState == 2)
+				{
+					dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+				}
+				// if not - content should already be stored concurrently
+			}
+			else
+			{
+				// state is protected by either being on the main thread or having the window creation lock
+				dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+			}
+		}
+
+		auto & parameterStates = serializer.getBuilder().getContent("Parameters");
+		if (!parameterStates.isEmpty())
+		{
+			for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
+			{
+				auto & serializedParameterState = parameterStates.getContent(parameterMap.getSet(i)->getName());
+				if(!serializedParameterState.isEmpty())
+					serializedParameterState >> *parameterMap.getState(i);
+			}
+		}
 	}
 
 
@@ -205,7 +279,7 @@ namespace Signalizer
 
 	int AudioProcessor::getNumParameters()
 	{
-		return static_cast<int>(parameterMap.size());
+		return static_cast<int>(parameterMap.numParams());
 	}
 
 	float AudioProcessor::getParameter(int index)
