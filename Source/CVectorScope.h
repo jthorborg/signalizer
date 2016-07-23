@@ -101,7 +101,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(AudioStream & data, ParameterSet * params);
+			CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params);
 			virtual ~CVectorScope();
 
 			// Component overrides
@@ -121,8 +121,6 @@
 			void resume() override;
 			void freeze() override;
 			void unfreeze() override;
-
-			std::unique_ptr<juce::Component> createEditor() override { return content->createEditor(); }
 
 			// cbasecontrol overrides
 			bool isEditorOpen() const;

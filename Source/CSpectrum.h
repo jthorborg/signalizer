@@ -128,7 +128,7 @@
 				double low, high;
 			};
 
-			CSpectrum(AudioStream & data);
+			CSpectrum(const std::string & nameId, AudioStream & data, ProcessorState * state);
 			virtual ~CSpectrum();
 
 			// Component overrides
@@ -153,7 +153,7 @@
 			void freeze() override;
 			void unfreeze() override;
 			void resetState() override;
-			std::unique_ptr<juce::Component> createEditor() override;
+			std::unique_ptr<juce::Component> createEditor();
 
 			// cbasecontrol overrides
 			void valueChanged(const cpl::CBaseControl *) override;

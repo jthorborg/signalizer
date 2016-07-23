@@ -60,9 +60,9 @@ namespace Signalizer
 	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	CVectorScope::CVectorScope(AudioStream & data, ParameterSet * params)
+	CVectorScope::CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params)
 	:
-		COpenGLView("Vectorscope view"),
+		COpenGLView(nameId),
 		audioStream(data),
 		processorSpeed(0), 
 		lastFrameTick(0),
@@ -72,7 +72,7 @@ namespace Signalizer
 		filters(),
 		oldWindowSize(-1)
 	{
-		if (!(content = dynamic_cast<VectorScopeContent *>(params->getUserContent())))
+		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
 		}

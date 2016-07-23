@@ -36,7 +36,7 @@
 	namespace Signalizer
 	{
 
-		class VectorScopeContent 
+		class VectorScopeContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
 		{
@@ -44,7 +44,10 @@
 
 			class VectorScopeController 
 				: public CContentPage
-				, public cpl::SafeSerializableObject
+				// the preset widget controls the complete serialization logic,
+				// for outside serialization we implementent specific access instead
+				// to only serialize GUI settings.
+				, private cpl::SafeSerializableObject
 			{
 			public:
 
@@ -72,6 +75,11 @@
 				{
 					initControls();
 					initUI();
+				}
+
+				~VectorScopeController()
+				{
+					notifyDestruction();
 				}
 
 				void initControls()
@@ -186,8 +194,7 @@
 					}
 				}
 
-
-				void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
+				void serializeEditorSettings(cpl::CSerializer::Archiver & archive, cpl::Version version) override
 				{
 					archive << kwindow;
 					archive << kgain;
@@ -209,14 +216,13 @@
 					archive << kmeterColour;
 				}
 
-				void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
+				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version) override
 				{
 					// in general, controls should never restore values. However, older versions
 					// of Signalizer does exactly this, so to keep backwards-compatibility, we 
 					// can obtain the preset values through this.
 					cpl::Serialization::ScopedModifier m(cpl::CSerializer::Modifiers::RestoreValue, version < cpl::Version(0, 2, 8));
 					builder << m;
-
 
 					builder >> kwindow;
 					builder >> kgain;
@@ -239,6 +245,39 @@
 				}
 
 			private:
+
+				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
+				void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override
+				{
+					if (version < cpl::Version(0, 2, 8))
+					{
+						// presets from < 0.2.8 only store editor settings with values
+						serializeEditorSettings(archive, version);
+					}
+					else
+					{
+						// store parameter and editor settings separately
+						serializeEditorSettings(archive.getContent("Editor"), version);
+						archive.getContent("Parameters") << parent;
+					}
+
+				}
+
+				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
+				void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
+				{
+					if (version < cpl::Version(0, 2, 8))
+					{
+						// presets from < 0.2.8 only store editor settings with values
+						deserializeEditorSettings(builder, version);
+					}
+					else
+					{
+						// store parameter and editor settings separately
+						deserializeEditorSettings(builder.getContent("Editor"), version);
+						builder.getContent("Parameters") >> parent;
+					}
+				}
 
 				cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
 				cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
@@ -312,7 +351,7 @@
 				parameterSet.seal();
 			}
 
-			virtual std::unique_ptr<juce::Component> createEditor() override
+			virtual std::unique_ptr<StateEditor> createEditor() override
 			{
 				return std::make_unique<VectorScopeController>(*this);
 			}

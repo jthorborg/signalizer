@@ -168,29 +168,29 @@ namespace Signalizer
 
 	}
 
-	CSpectrum::CSpectrum(AudioStream & stream)
-	:
-		COpenGLView("Spectrum view"),
-		audioStream(stream),
-		processorSpeed(0),
-		lastFrameTick(0),
-		lastMousePos(),
-		editor(nullptr),
-		state(),
-		framePixelPosition(),
-		isSuspended(),
-		frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
-		complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10),
-		flags(),
-		droppedAudioFrames(),
-		audioThreadUsage(),
-		relayWidth(), relayHeight(), 
-		presetManager(this, "spectrum"),
-		newc(),
-		cmouse(),
-		lastPeak(),
-		scallopLoss(),
-		oldWindowSize(-1)
+	CSpectrum::CSpectrum(const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
+		: COpenGLView(nameId)
+		, audioStream(stream)
+		, processorSpeed(0)
+		, lastFrameTick(0)
+		, lastMousePos()
+		, editor(nullptr)
+		, state()
+		, framePixelPosition()
+		, isSuspended()
+		, frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
+		, complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
+		, flags()
+		, droppedAudioFrames()
+		, audioThreadUsage()
+		, relayWidth()
+		, relayHeight()
+		, presetManager(this, "spectrum")
+		, newc()
+		, cmouse()
+		, lastPeak()
+		, scallopLoss()
+		, oldWindowSize(-1)
 	{
 		setOpaque(true);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
