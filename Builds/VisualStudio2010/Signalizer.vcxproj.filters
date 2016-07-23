@@ -2561,6 +2561,9 @@
     <ClInclude Include="..\..\Source\VectorScopeParameters.h">
       <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\SentientViewState.h">
+      <Filter>Signalizer\Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

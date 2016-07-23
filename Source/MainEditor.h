@@ -33,15 +33,16 @@
 	#define _MAINEDITOR_H
 
 	#include <cpl/Common.h>
-	#include "PluginProcessor.h"
 	#include <cpl/gui/gui.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"
 	#include <array>
+	#include "SentientViewState.h"
 
 	namespace Signalizer
 	{
+		class AudioProcessor;
 
 		class MainEditor
 		: 
@@ -60,12 +61,12 @@
 
 		public:
 
-			MainEditor(AudioProcessor * e, AudioProcessor::ParameterMap * params);
+			MainEditor(AudioProcessor * e, ParameterMap * params);
 			~MainEditor();
 
 			// CView overrides
 			juce::Component * getWindow() override { return this; }
-			std::unique_ptr<juce::Component> createEditor() override;
+			std::unique_ptr<StateEditor> createEditor();
 			void panelOpened(cpl::CTextTabBar<> * obj) override;
 			void panelClosed(cpl::CTextTabBar<> * obj) override;
 			void tabSelected(cpl::CTextTabBar<> * obj, int index) override;
@@ -96,11 +97,9 @@
 
 			// no parameter = fetch antialiasing from UI combo box
 			void setAntialiasing(int multiSamplingLevel = -1);
-			// doesn't actually change anything - only updates the selected value in the preset list.
-			void setSelectedPreset(juce::File newPreset);
 
 			void showAboutBox();
-		
+
 		protected:
 
 			static const int elementSize = 25;
@@ -119,8 +118,10 @@
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
 
-			typedef std::vector<std::unique_ptr<juce::Component>>::iterator EditorIterator;
-		
+			bool hasCurrentView() const noexcept { return currentView != nullptr; }
+			cpl::CSubView & activeView() noexcept { return *currentView->getViewDSO().getCached().get(); }
+			typedef std::vector<UniqueHandle<StateEditor>>::iterator EditorIterator;
+
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
@@ -145,21 +146,19 @@
 
 
 			// the z-ordering system ensures this is basically a FIFO system
-			void pushEditor(juce::Component * editor);
-			void pushEditor(std::unique_ptr<juce::Component> editor);
+			void pushEditor(StateEditor * editor);
+			void pushEditor(UniqueHandle<StateEditor> editor);
 			template<typename Pred>
 				bool removeAnyEditor(Pred pred);
-			juce::Component * getTopEditor() const;
+			StateEditor * getTopEditor() const;
 			void popEditor();
 			void deleteEditor(EditorIterator i);
 			void clearEditors();
-			cpl::CView * viewFromIndex(std::size_t index);
 			void addTab(const std::string & name);
-			void restoreTab();
 			int getRenderEngine();
 			void initUI();
-			void suspendView(cpl::CView * view);
-			void initiateView(cpl::CView * view, bool spawnNewEditor = false);
+			void suspendView(SentientViewState & view);
+			void initiateView(SentientViewState &, bool spawnNewEditor = false);
 			void enterFullscreenIfNeeded(juce::Point<int> where);
 			void enterFullscreenIfNeeded();
 			void exitFullscreen();
@@ -173,12 +172,12 @@
 			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk;
 
 			// Editor controls
-			cpl::CButton kstableFps, kvsync, krefreshState, kidle;
+			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs;
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias;
 			cpl::CPresetWidget kpresets;
-			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours>  colourControls;
+			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours> colourControls;
 
 			// state variables.
 			int refreshRate;
@@ -194,19 +193,13 @@
 			Signalizer::CDefaultView defaultView;
 			juce::OpenGLContext oglc;
 
-			struct ViewWithSerializedFlag
-			{
-				std::unique_ptr<cpl::CSubView> view;
-				bool hasBeenRestored;
-			};
+			std::vector<SentientViewState> views;
 
-			// .first = whether the view has been serialized.
-			std::map<std::string, ViewWithSerializedFlag> views;
-			std::vector<std::unique_ptr<juce::Component>> editorStack;
-			cpl::CView * currentView;
+			std::vector<UniqueHandle<StateEditor>> editorStack;
+			SentientViewState * currentView;
 			ResizableCornerComponent rcc;
 			cpl::CSerializer viewSettings;
-			AudioProcessor::ParameterMap * params;
+			ParameterMap * params;
 			//cpl::CMessageSystem messageSystem;
 		};
 	};

@@ -36,6 +36,8 @@
 	#include <cpl/CAudioStream.h>
 	#include <complex>
 	#include <cpl/infrastructure/parameters/ParameterSystem.h>
+	#include "SignalizerDesign.h"
+
 
 	namespace Signalizer
 	{
@@ -65,7 +67,7 @@
 		{
 		public:
 
-			virtual std::unique_ptr<juce::Component> createEditor() = 0;
+			virtual std::unique_ptr<StateEditor> createEditor() = 0;
 			virtual ParameterSet & getParameterSet() = 0;
 
 			virtual ~ProcessorState() {}
@@ -76,7 +78,7 @@
 		
 		
 		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
-		extern std::string MainEditorPresetName;
+		extern std::string MainPresetName;
 		extern std::string DefaultPresetName;
 
 
@@ -176,6 +178,283 @@
 			{
 				return std::complex<Scalar>(real, imag);
 			}
+		};
+
+		template<typename T>
+		struct UniqueHandle
+		{
+		public:
+
+			UniqueHandle(std::unique_ptr<T> && ref)
+			{
+				handle.reset(ref.release());
+				handle.get_deleter().doDelete = true;
+			}
+
+			UniqueHandle<T> & operator = (std::unique_ptr<T> && ref)
+			{
+				handle.reset(ref.release());
+				handle.get_deleter().doDelete = true;
+				ref.get_deleter().doDelete = false;
+				return *this;
+			}
+
+			UniqueHandle<T> weakCopy()
+			{
+				UniqueHandle<T> ret;
+				ret.handle.reset(handle.get());
+				ret.handle.get_deleter().doDelete = false;
+				return std::move(ret);
+			}
+
+			T * operator -> () const noexcept { return *get(); }
+			T * operator -> () noexcept { return *get(); }
+
+			T * get() noexcept { return handle.get(); }
+			T * get() const noexcept { return handle.get(); }
+
+			/// <summary>
+			/// Transforms ownership of the contained object. Throws if it isn't owned.
+			/// </summary>
+			T * acquire()
+			{
+				if (!handle.get_deleter().doDelete)
+					CPL_RUNTIME_EXCEPTION("UniqueHandle asked to release ownership of something it doesn't own");
+				handle.get_deleter().doDelete = false;
+				return handle.release();  
+			}
+
+			/// <summary>
+			/// Deletes the object if owned, and clears afterwards.
+			/// </summary>
+			void forget() noexcept
+			{
+				handle = nullptr;
+			}
+
+			/// <summary>
+			/// May leak memory. Removes reference to any object, but doesn't delete it.
+			/// </summary>
+			void clear() noexcept
+			{
+				handle.release();
+			}
+
+			static UniqueHandle<T> null() { return {}; }
+
+		private:
+
+			UniqueHandle()
+			{
+				handle.get_deleter().doDelete = false;
+			}
+
+			std::unique_ptr<T, cpl::Utility::MaybeDelete<T>> handle;
+		};
+
+
+
+		/// <summary>
+		/// Provides a optionally lazily loaded instance of some object, where you can (de)serialize the state independently of the instance
+		/// Premise: 
+		/// </summary>
+		template<typename T>
+		class DecoupledStateObject
+		{
+			static_assert(std::is_base_of<cpl::DestructionNotifier, T>::value, "State object must be able to notify of destruction");
+
+		public:
+
+			typedef std::function<void(T &, cpl::CSerializer::Archiver &, cpl::Version)> FSerializer;
+			typedef std::function<void(T &, cpl::CSerializer::Builder &, cpl::Version)> FDeserializer;
+			typedef std::function<std::unique_ptr<T>()> FGenerator;
+
+			DecoupledStateObject(FGenerator generatorFunc, FSerializer serializerFunc, FDeserializer deserializerFunc)
+				: generator(generatorFunc)
+				, serializer(serializerFunc)
+				, deserializer(deserializerFunc)
+				, objectDeathHook(*this)
+				, cachedObject(UniqueHandle<T>::null())
+			{
+
+			}
+
+			UniqueHandle<T> getUnique()
+			{
+				UniqueHandle<T> ret = hasCached() ? std::move(cachedObject) : create();
+				cachedObject = ret.weakCopy();
+				return std::move(ret);
+			}
+
+			UniqueHandle<T> getCached() { if (!hasCached()) cachedObject = create(); return cachedObject.weakCopy(); }
+			bool hasCached() const noexcept { return cachedObject.get() != nullptr; }
+
+			void setState(cpl::CSerializer::Builder & builder, cpl::Version v)
+			{
+				if (hasCached())
+				{
+					deserializeState(*getCached().get());
+				}
+				else
+				{
+					state = builder;
+					state.setMasterVersion(v);
+				}
+			}
+
+			/// <summary>
+			/// If serialized state is refreshed, the version will be updated
+			/// </summary>
+			/// <returns></returns>
+			const cpl::CSerializer::Builder & getState()
+			{
+				if (hasCached())
+				{
+					serializeState(*getCached().get());
+				}
+				return state;
+			}
+
+		private:
+
+			void onObjectDestruction(cpl::DestructionNotifier * obj)
+			{
+				CPL_RUNTIME_ASSERTION(obj);
+				CPL_RUNTIME_ASSERTION(obj == cachedObject.get());
+
+				serializeState(*getCached().get());
+
+				cachedObject.clear();
+			}
+
+			void serializeState(T & obj)
+			{
+				state.clear();
+				state.setMasterVersion(cpl::programInfo.version);
+				serializer(obj, state, cpl::programInfo.version);
+			}
+
+			void deserializeState(T & obj)
+			{
+				deserializer(obj, state, state.getLocalVersion());
+			}
+
+			UniqueHandle<T> create()
+			{
+				auto uref = generator();
+				if (!state.isEmpty())
+					deserializeState(*uref);
+				objectDeathHook.listenToObject(uref.get());
+				return std::move(uref);
+			}
+
+			class DestructionDelegate
+				: public cpl::DestructionNotifier::EventListener
+			{
+			public:
+				DestructionDelegate(DecoupledStateObject<T> & parentToNotify) : parent(parentToNotify) { }
+
+				void listenToObject(cpl::DestructionNotifier * notifier)
+				{
+					notif = notifier;
+					notifier->addEventListener(this);
+				}
+
+				virtual void onServerDestruction(cpl::DestructionNotifier * v) override
+				{
+					parent.onObjectDestruction(v);
+					hasDied = true;
+				}
+
+				~DestructionDelegate()
+				{
+					if (!hasDied && notif)
+					{
+						notif->removeEventListener(this);
+					}
+				}
+
+			private:
+				bool hasDied = false;
+				DecoupledStateObject<T> & parent;
+				cpl::DestructionNotifier * notif = nullptr;
+			};
+
+			FGenerator generator;
+			FSerializer serializer;
+			FDeserializer deserializer;
+
+			DestructionDelegate objectDeathHook;
+			cpl::CSerializer state;
+			UniqueHandle<T> cachedObject;
+		};
+
+		struct ParameterMap
+		{
+			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)
+			{
+				parameterSets.push_back(&entry.second->getParameterSet());
+				map.emplace_back(std::move(entry));
+			}
+
+			ParameterSet::ParameterView * findParameter(cpl::Parameters::Handle index)
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+					if (auto param = parameterSets[i]->findParameter(index))
+						return param;
+
+				CPL_RUNTIME_EXCEPTION("Parameter index from host is out of bounds");
+			}
+
+			ParameterSet * getSet(const std::string & s) noexcept
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+				{
+					if (map[i].first == s)
+						return parameterSets[i];
+				}
+
+				return nullptr;
+			}
+
+			ParameterSet * getSet(std::size_t i) noexcept
+			{
+				return parameterSets[i];
+			}
+
+			ProcessorState * getState(std::size_t i) noexcept
+			{
+				return map[i].second.get();
+			}
+
+
+			ProcessorState * getState(const std::string & s) noexcept
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+				{
+					if (map[i].first == s)
+						return map[i].second.get();
+				}
+
+				return nullptr;
+			}
+
+			std::size_t numSetsAndState() const noexcept
+			{
+				return parameterSets.size();
+			}
+
+			std::size_t numParams() const noexcept {
+				std::size_t r(0);
+				for (auto & i : parameterSets)
+					r += i->size();
+				return r;
+			};
+
+		private:
+
+			std::vector<ParameterSet *> parameterSets;
+			std::vector<std::pair<std::string, std::unique_ptr<ProcessorState>>> map;
 		};
 	};
 	namespace std
