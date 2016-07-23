@@ -43,6 +43,7 @@ namespace Signalizer
 
 	class AudioProcessor final
 		: public juce::AudioProcessor
+		, public cpl::SafeSerializableObject
 		, cpl::DestructionNotifier
 		, ParameterSet::AutomatedProcessor
 	{
@@ -97,6 +98,9 @@ namespace Signalizer
 		//==============================================================================
 		void getStateInformation(MemoryBlock& destData);
 		void setStateInformation(const void* data, int sizeInBytes);
+
+		void deserialize(cpl::CSerializer & se, cpl::Version version) override;
+		void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
 	private:
 
