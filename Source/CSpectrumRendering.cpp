@@ -100,7 +100,7 @@ namespace Signalizer
 		char buf[200];
 		bool skipText = state.colourGrid.getAlpha() == 0;
 		
-		if (state.displayMode == DisplayMode::LineGraph)
+		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 			if(!skipText)
 			{
@@ -165,7 +165,7 @@ namespace Signalizer
 
 			double gradientPos = 0.0;
 
-			for (int i = 0; i < numSpectrumColours + 1; i++)
+			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
 			{
 				gradientPos += state.normalizedSpecRatios[i];
 				gradient.addColour(gradientPos, state.colourSpecs[i].toJuceColour());
@@ -182,7 +182,7 @@ namespace Signalizer
 
 		drawFrequencyTracking(g);
 
-		if (kdiagnostics.getValueReference().getNormalizedValue() > 0.5)
+		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
@@ -208,9 +208,9 @@ namespace Signalizer
 
 	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
-		auto graphN = newc.frequencyTrackingGraph.load(std::memory_order_acquire);
+		auto graphN = state.frequencyTrackingGraph;
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
-		if (graphN == LineGraphs::None || state.displayMode == DisplayMode::ColourSpectrum)
+		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
 
 		if(state.colourGrid.getAlpha() == 0)
@@ -243,7 +243,7 @@ namespace Signalizer
 
 		double viewSize = state.viewRect.dist();
 
-		if (state.displayMode == DisplayMode::LineGraph)
+		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 			mouseX = cmouse.x.load(std::memory_order_acquire);
 			mouseY = cmouse.y.load(std::memory_order_acquire);
@@ -259,7 +259,7 @@ namespace Signalizer
 			mouseFractionOrth = mouseY / (getHeight() - 1);
 			mouseSlope = 20 * std::log10(slopeMap[mouseX]);
 
-			if (state.viewScale == ViewScaling::Logarithmic)
+			if (state.viewScale == SpectrumContent::ViewScaling::Logarithmic)
 			{
 				if (state.configuration != ChannelConfiguration::Complex)
 				{
@@ -300,8 +300,8 @@ namespace Signalizer
 					}
 				}
 			}
-
-			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, getDBs().high, getDBs().low); // y coords are flipped..
+			auto & dbs = getDBs();
+			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, dbs.high, dbs.low); // y coords are flipped..
 		}
 		else
 		{
@@ -317,11 +317,11 @@ namespace Signalizer
 		auto interpolationError = 0.01;
 
 		// TODO: these special cases can be handled (on a rainy day)
-		if (state.configuration == ChannelConfiguration::Complex || !(state.algo == TransformAlgorithm::FFT && graphN == LineGraphs::Transform))
+		if (state.configuration == ChannelConfiguration::Complex || !(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
 		{
 
-			if (graphN == LineGraphs::Transform)
-				graphN = LineGraphs::LineMain;
+			if (graphN == SpectrumContent::LineGraphs::Transform)
+				graphN = SpectrumContent::LineGraphs::LineMain;
 
 			auto & results = lineGraphs[graphN].results;
 			auto N = results.size();
@@ -375,10 +375,10 @@ namespace Signalizer
 			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
 			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
 
-			if (state.algo == TransformAlgorithm::FFT)
+			if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
-				if (state.binPolation != BinInterpolation::Lanczos)
+				if (state.binPolation != SpectrumContent::BinInterpolation::Lanczos)
 					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
 			}
 
@@ -389,8 +389,8 @@ namespace Signalizer
 
 			peakFractionY = results[peakOffset].leftMagnitude;
 			peakY = getHeight() - peakFractionY * getHeight();
-
-			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, getDBs().low, getDBs().high);
+			auto & dbs = getDBs();
+			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, dbs.low, dbs.high);
 
 			adjustedScallopLoss = 20 * std::log10(scallopLoss - precisionError * 0.1);
 
@@ -469,8 +469,8 @@ namespace Signalizer
 			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
 
 			peakDBs += 20 * std::log10(peakSlope);
-
-			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs , getDBs().low, getDBs().high);
+			auto & dbs = getDBs();
+			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs, dbs.low, dbs.high);
 
 			// notice we only adjust the resulting peak value with the slope if we are inside a non-processed transform
 			// (like the raw fft), because it hasn't itself been 'sloped' yet
@@ -519,8 +519,9 @@ namespace Signalizer
 		else if(peakDBs < -1000)
 			peakDBs = -std::numeric_limits<double>::infinity();
 
-		std::string mouseNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), mouseFrequency);
-		std::string freqNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), peakFrequency);
+		auto reference = content->referenceTuning.getTransformedValue();
+		std::string mouseNote = frequencyToSemitone(reference, mouseFrequency);
+		std::string freqNote = frequencyToSemitone(reference, peakFrequency);
 
 
 		// TODO: use a monospace font for this part
@@ -677,7 +678,7 @@ namespace Signalizer
 		juce::OpenGLHelpers::clear(state.colourBackground);
 
 
-		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+		for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 			lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
 		bool lineTransformReady = false;
@@ -686,7 +687,7 @@ namespace Signalizer
 		{
 			handleFlagUpdates();
 			// line graph data for ffts are rendered now.
-			if (state.displayMode == DisplayMode::LineGraph)
+			if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 			{
 				audioLock.acquire(audioResource);
 				lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
@@ -710,7 +711,7 @@ namespace Signalizer
 
 		switch (state.displayMode)
 		{
-		case DisplayMode::LineGraph:
+		case SpectrumContent::DisplayMode::LineGraph:
 			// no need to lock in this case, as this display mode is exclusively switched,
 			// such that only we have access to it.
 			if (lineTransformReady)
@@ -721,7 +722,7 @@ namespace Signalizer
 				postProcessStdTransform();
 			}
 			renderLineGraph<Types::v8sf>(openGLStack); break;
-		case DisplayMode::ColourSpectrum:
+		case SpectrumContent::DisplayMode::ColourSpectrum:
 			// mapping and processing is already done here.
 			renderColourSpectrum<Types::v8sf>(openGLStack); break;
 
@@ -746,19 +747,17 @@ namespace Signalizer
 
 			if (!state.isFrozen)
 			{
-
 				framePixelPosition %= pW;
-				double bufferSmoothing = state.bufferSmoothing;
 				auto approximateFrames = getApproximateStoredFrames();
 				/*if (approximateFrames == 0)
 					approximateFrames = framesPerUpdate;*/
 				std::size_t processedFrames = 0;
-				framesPerUpdate = approximateFrames + bufferSmoothing * (framesPerUpdate - approximateFrames);
+				framesPerUpdate = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
 				// 
-				bool shouldCap = state.bufferSmoothing != 0.0;
+				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
 				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
 				{
@@ -767,7 +766,12 @@ namespace Signalizer
 
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
-						ColourScale2<numSpectrumColours + 1, 4>(columnUpdate.data() + i, lineGraphs[LineGraphs::LineMain].results[i].magnitude, state.colourSpecs, state.normalizedSpecRatios);
+						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
+							columnUpdate.data() + i, 
+							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
+							state.colourSpecs, 
+							state.normalizedSpecRatios
+						);
 					}
 					//CPL_DEBUGCHECKGL();
 					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
@@ -846,7 +850,7 @@ namespace Signalizer
 		if (state.alphaFloodFill != 0.0f)
 		{
 			// Flood fill
-			for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
+			for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 			{
 				switch (state.configuration)
 				{
@@ -887,9 +891,9 @@ namespace Signalizer
 		
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize * primitiveMaxSize)));
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize)));
 		// draw back to front
-		for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
+		for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 		{
 			switch (state.configuration)
 			{

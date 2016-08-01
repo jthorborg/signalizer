@@ -44,6 +44,7 @@
 	#include <cpl/lib/BlockingLockFreeQueue.h>
 	#include <vector>
 	#include "CommonSignalizer.h"
+	#include "SpectrumParameters.h"
 
 	namespace cpl
 	{
@@ -61,19 +62,11 @@
 		class CSpectrum
 		: 
 			public cpl::COpenGLView, 
-			protected cpl::CBaseControl::Listener,
-			protected cpl::CBaseControl::ValueFormatter,
 			protected AudioStream::Listener,
-			protected juce::ComponentListener
+			private ParameterSet::RTListener
 		{
 
 		public:
-
-			static const std::size_t numSpectrumColours = 5;
-			static const double minDBRange;
-			static const double kMinDbs;
-			static const double kMaxDbs;
-			static const double primitiveMaxSize;
 			
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
@@ -95,30 +88,6 @@
 				std::uint64_t sampleCounter;
 			
 				cpl::CLockFreeQueue<FrameVector *> frameQueue;
-			};
-
-			enum class BinInterpolation
-			{
-				None,
-				Linear,
-				Lanczos
-			};
-
-			enum class DisplayMode
-			{
-				LineGraph,
-				ColourSpectrum
-			};
-
-			enum class TransformAlgorithm
-			{
-				FFT, RSNT
-			};
-
-			enum class ViewScaling
-			{
-				Linear,
-				Logarithmic
 			};
 
 			
@@ -155,18 +124,12 @@
 			void resetState() override;
 			std::unique_ptr<juce::Component> createEditor();
 
-			// cbasecontrol overrides
-			void valueChanged(const cpl::CBaseControl *) override;
-			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value) override;
-			bool valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value) override;
-			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
 			bool isEditorOpen() const;
 
 			// interface
 
 
 			void setDBs(double low, double high, bool updateControls = false);
-			void setDBs(DBRange &, bool updateControls = false);
 			DBRange getDBs() const noexcept;
 
 			/// <summary>
@@ -179,13 +142,13 @@
 
 		protected:
 
-			void setTransformOptions();
-
 			virtual void paint2DGraphics(juce::Graphics & g);
 
-			bool onAsyncAudio(const AudioStream & source, float ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
+
+			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-			void componentBeingDeleted(Component & 	component) override;
+
 
 			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
@@ -325,18 +288,18 @@
 			/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
 			/// for mode = left / merge / mid / side / right
 			/// 	newVals is a complex vector of floats of size
-			/// 	for mode = separate, mid&side
-			/// 		newVals is a complex vector of floats of size * 2
-			/// 		newVals[n * 2 + 0] = lreal
-			/// 		newVals[n * 2 + 1] = limag
-			/// 		newVals[n * 2 + size + 0] = rreal
-			/// 		newVals[n * 2 + size + 1] = rimag
-			/// 		for mode = phase
-			/// 			newVals[n * 2 + 0] = mag
-			/// 			newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
+			/// for mode = separate, mid&side
+			/// 	newVals is a complex vector of floats of size * 2
+			/// 	newVals[n * 2 + 0] = lreal
+			/// 	newVals[n * 2 + 1] = limag
+			/// 	newVals[n * 2 + size + 0] = rreal
+			/// 	newVals[n * 2 + size + 1] = rimag
+			/// for mode = phase
+			/// 	newVals[n * 2 + 0] = mag
+			/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
 			/// </summary>
 			template<class V2>
-				void mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip);
+				void mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
 
 			/// <summary>
 			/// Returns the number of T elements available in the audio space buffer
@@ -357,7 +320,7 @@
 			void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
 			/// <summary>
 			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
-			/// Guaranteed to be < getNumAudioElements.
+			/// Guaranteed to be less than getNumAudioElements.
 			/// TODO: hoist into .inl file (other cases in this file as well)
 			/// </summary>
 			template<typename T>
@@ -415,11 +378,6 @@
 			/// </summary>
 			void resetStaticViewAssumptions();
 
-			enum LineGraphs
-			{
-				None = -2, Transform = -1, LineMain = 0, LineSecond, LineEnd
-			};
-
 			// TODO: technically, avoid any data races by making every member a std::atomic (or refactor everything that
 			// changes state into altering flags instead (check out valueChanged()))
 			struct StateOptions
@@ -431,43 +389,43 @@
 				/// <summary>
 				/// Interpolation method for discrete bins to continuous space
 				/// </summary>
-				BinInterpolation binPolation;
+				SpectrumContent::BinInterpolation binPolation;
 
 				/// <summary>
 				/// Is the spectrum a horizontal device (line graph)
 				/// or a vertical coloured spectrum?
 				/// </summary>
-				DisplayMode displayMode;
+				SpectrumContent::DisplayMode displayMode;
 
 				/// <summary>
 				/// The current selected algorithm that will digest the audio data into the display.
 				/// </summary>
-				TransformAlgorithm algo;
+				std::atomic<SpectrumContent::TransformAlgorithm> algo;
 				/// <summary>
 				/// How the incoming data is interpreted, channel-wise.
 				/// </summary>
 				ChannelConfiguration configuration;
 
-				ViewScaling viewScale;
+				SpectrumContent::ViewScaling viewScale;
 
 				float primitiveSize;
 
 				/// <summary>
 				/// Describes the lower and higher limit of the dynamic range of the display.
 				/// </summary>
-				DBRange dynRange;
+				std::atomic<double> dynRange[2];
 
 				/// <summary>
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourGrid, colourBackground, colourOne[LineGraphs::LineEnd], colourTwo[LineGraphs::LineEnd];
+				juce::Colour colourGrid, colourBackground, colourOne[SpectrumContent::LineGraphs::LineEnd], colourTwo[SpectrumContent::LineGraphs::LineEnd];
 
 				/// <summary>
 				/// Colours for spectrum
 				/// </summary>
-				cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> colourSpecs[numSpectrumColours + 1];
-				float normalizedSpecRatios[numSpectrumColours + 1];
+				cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> colourSpecs[SpectrumContent::numSpectrumColours + 1];
+				float normalizedSpecRatios[SpectrumContent::numSpectrumColours + 1];
 
 				/// <summary>
 				/// The window size..
@@ -475,7 +433,8 @@
 				std::size_t windowSize;
 
 				/// <summary>
-				/// The current view of the spectrum (might be zoomed, etc.)
+				/// The current view of the spectrum (might be zoomed, etc.).
+				/// Use only on rendering thread
 				/// </summary>
 				cpl::Utility::Bounds<double> viewRect;
 
@@ -487,28 +446,20 @@
 				/// <summary>
 				/// The window function applied to the input. Precomputed into windowKernel.
 				/// </summary>
-				cpl::dsp::WindowTypes dspWindow;
+				std::atomic<cpl::dsp::WindowTypes> dspWindow;
+
+				std::atomic<std::size_t> newWindowSize;
 
 				/// <summary>
 				/// internal testing flag
 				/// </summary>
 				bool iAuxMode;
 
-				/// <summary>
-				/// How often the audio stream is sampled for updating in the screen. Only for DisplayMode::ColourSpectrum modes.
-				/// Effectively, this sets each horizontal pixel to contain this amount of miliseconds of information.
-				/// </summary>
-				double audioBlobSizeMs;
-
-				/// <summary>
-				/// For displaymode == ColourSpectrum, this value indicates how much devations in amount of frame updates are smoothed such that
-				/// the display doesn't jitter too much.
-				/// </summary>
-				double bufferSmoothing;
-
 				float alphaFloodFill;
 
 				std::size_t axisPoints, numFilters;
+
+				SpectrumContent::LineGraphs frequencyTrackingGraph;
 			} state;
 			
 		
@@ -581,47 +532,6 @@
 			} flags;
 
 			/// <summary>
-			/// GUI elements
-			/// </summary>
-			juce::Component * editor;
-			cpl::CComboBox 
-				kviewScaling, 
-				kalgorithm, 
-				kchannelConfiguration,
-				kdisplayMode, 
-				kbinInterpolation, 
-				kfrequencyTracker;
-
-			cpl::CDSPWindowWidget kdspWin;
-			cpl::CPowerSlopeWidget kslope;
-			cpl::CKnobSlider 
-				klowDbs, 
-				khighDbs, 
-				kwindowSize, 
-				kpctForDivision, 
-				kblobSize, 
-				kframeUpdateSmoothing, 
-				kspectrumStretching, 
-				kprimitiveSize, 
-				kfloodFillAlpha,
-				kreferenceTuning;
-
-			cpl::CColourControl kgridColour, kbackgroundColour;
-
-			struct LineControl
-			{
-				cpl::CKnobSlider decay;
-				cpl::CColourControl colourOne, colourTwo;
-			} klines[LineGraphs::LineEnd];
-
-			cpl::CPresetWidget presetManager;
-			cpl::CButton kdiagnostics, kfreeQ;
-			/// <summary>
-			/// Colour interpolators
-			/// </summary>
-			cpl::CColourControl kspecColours[5];
-			cpl::CKnobSlider kspecRatios[5];
-			/// <summary>
 			/// visual objects
 			/// </summary>
 
@@ -630,9 +540,9 @@
 			cpl::CFrequencyGraph frequencyGraph, complexFrequencyGraph;
 			cpl::CDBMeterGraph dbGraph;
 			cpl::CBoxFilter<double, 60> avgFps;
-			
 
 			// non-state variables
+			SpectrumContent * content;
 			unsigned long long processorSpeed; // clocks / sec
 			double audioThreadUsage;
 			juce::Point<float> lastMousePos;
@@ -643,7 +553,7 @@
 			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
 			double scallopLoss;
 			int lastPeak;
-			struct NewChanges
+			/*struct NewChanges
 			{
 				std::atomic<DisplayMode> displayMode;
 				std::atomic<std::size_t> windowSize;
@@ -654,7 +564,7 @@
 				std::atomic<float> primitiveSize;
 				std::atomic<float> alphaFloodFill;
 				std::atomic<double> referenceTuning;
-			} newc;
+			} newc; */
 
 			struct CurrentMouse
 			{
@@ -706,7 +616,7 @@
 				}
 			};
 			// dsp objects
-			std::array<LineGraphDesc, LineGraphs::LineEnd> lineGraphs;
+			std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
 			/// <summary>
 			/// The complex resonator used for iir spectrums
 			/// </summary>
