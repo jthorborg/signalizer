@@ -1669,7 +1669,7 @@ namespace Signalizer
 
 	float CSpectrum::getSampleRate() const noexcept
 	{
-		return static_cast<float>(audioStream.getInfo().sampleRate);
+		return state.sampleRate.load(std::memory_order_acquire);
 	}
 
 	int CSpectrum::getAxisPoints() const noexcept

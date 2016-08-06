@@ -78,8 +78,8 @@ namespace Signalizer
 		flags.firstChange = true;
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
-#pragma message cwarn("Following variable mustn't be zero. Feels weird to set it here.")
-		// TODO: fix
+		state.sampleRate = 0;
+		state.newWindowSize = 0;
 
 		oldViewRect = state.viewRect;
 		oglImage.setFillColour(juce::Colours::black);
@@ -164,6 +164,7 @@ namespace Signalizer
 	{
 		return{ content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue()};
 	}
+
 	void CSpectrum::initPanelAndControls()
 	{
 		// preliminary initialization - this will update all controls to match audio properties.
@@ -396,8 +397,9 @@ namespace Signalizer
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
 
-		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
-		auto const sampleRate = getSampleRate();
+
+
+
 
 		state.algo.store(content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>(), std::memory_order_release);
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
@@ -438,6 +440,15 @@ namespace Signalizer
 				complexFrequencyGraph.clear();
 			}
 		}
+
+		if (flags.audioStreamChanged.cas())
+		{
+			audioLock.acquire(audioResource);
+			state.sampleRate.store(static_cast<float>(audioStream.getAudioHistorySamplerate()), std::memory_order_release);
+		}
+
+		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
+		float sampleRate = getSampleRate();
 
 		if (flags.displayModeChange.cas())
 		{
@@ -741,6 +752,7 @@ namespace Signalizer
 
 	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
+		flags.audioStreamChanged = true;
 		flags.audioWindowWasResized = true;
 	}
 

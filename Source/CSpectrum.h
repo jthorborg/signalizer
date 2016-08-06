@@ -449,7 +449,7 @@
 				std::atomic<cpl::dsp::WindowTypes> dspWindow;
 
 				std::atomic<std::size_t> newWindowSize;
-
+				std::atomic<float> sampleRate;
 				/// <summary>
 				/// internal testing flag
 				/// </summary>
@@ -480,6 +480,10 @@
 					/// The argument to the resizing is the state.newWindowSize
 					/// </summary>
 					initiateWindowResize,
+					/// <summary>
+					/// Set if anything in the audio stream changed
+					/// </summary>
+					audioStreamChanged,
 					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
 					/// </summary>
