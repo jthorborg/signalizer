@@ -445,6 +445,7 @@ namespace Signalizer
 		{
 			audioLock.acquire(audioResource);
 			state.sampleRate.store(static_cast<float>(audioStream.getAudioHistorySamplerate()), std::memory_order_release);
+			flags.viewChanged = true;
 		}
 
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
