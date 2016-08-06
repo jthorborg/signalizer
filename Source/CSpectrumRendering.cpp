@@ -554,9 +554,9 @@ namespace Signalizer
 		if (xpoint + estimatedSize[0] > getWidth())
 			xpoint = mouseX - (textOffset[0] + estimatedSize[0]);
 
-		auto ypoint = mouseY + textOffset[1];
+		auto ypoint = mouseY + textOffset[1] - textOffset[0];
 		if (ypoint  < 0)
-			ypoint = mouseY + (textOffset[0]);
+			ypoint = mouseY + textOffset[0];
 
 		juce::Rectangle<float> rect { (float)xpoint, (float)ypoint, (float)estimatedSize[0], (float)estimatedSize[1] };
 
