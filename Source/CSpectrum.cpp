@@ -439,6 +439,7 @@ namespace Signalizer
 			{
 				complexFrequencyGraph.clear();
 			}
+			flags.viewChanged = true;
 		}
 
 		if (flags.audioStreamChanged.cas())
