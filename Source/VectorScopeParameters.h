@@ -289,8 +289,11 @@
 				VectorScopeContent & parent;
 			};
 
-			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, ParameterSet::AutomatedProcessor & processor)
-				: parameterSet("Vectorscope", "VS.", processor, static_cast<int>(offset))
+			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
+				: systemView(system)
+				, parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
+				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Miliseconds)
+
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
 				, degreeRange(0, 360)
@@ -308,7 +311,7 @@
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
 				, stereoWindow("StereoWindow", windowRange, msFormatter)
 				, inputGain("InputGain", dbRange, dbFormatter)
-				, windowSize("WindowSize", windowRange, msFormatter)
+				, windowSize("WindowSize", audioHistoryTransformatter, audioHistoryTransformatter)
 				, waveZRotation("WaveZ", degreeRange, degreeFormatter)
 				, antialias("AntiAlias", boolRange, boolFormatter)
 				, fadeOlderPoints("FadeOld", boolRange, boolFormatter)
@@ -349,6 +352,8 @@
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
 				parameterSet.seal();
+
+				postParameterInitialization();
 			}
 
 			virtual std::unique_ptr<StateEditor> createEditor() override
@@ -405,6 +410,8 @@
 				builder >> meterColour;
 			}
 
+			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
+			SystemView systemView;
 			ParameterSet parameterSet;
 
 			cpl::UnitFormatter<double>
@@ -428,8 +435,9 @@
 
 			cpl::LinearRange<double>
 				ptsRange,
-				degreeRange,
-				windowRange;
+				windowRange,
+				degreeRange;
+
 			cpl::UnityRange<double> unityRange;
 
 
@@ -459,6 +467,13 @@
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
+
+		private:
+
+			void postParameterInitialization()
+			{
+				audioHistoryTransformatter.initialize(windowSize.getParameterView());
+			}
 		};
 	
 	};

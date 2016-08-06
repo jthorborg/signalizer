@@ -77,6 +77,7 @@ namespace Signalizer
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
 		}
 
+
 		mtFlags.firstRun = true;
 		state.secondStereoFilterSpeed = 0.25f;
 		setOpaque(true);
@@ -84,6 +85,7 @@ namespace Signalizer
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
 		listenToSource(audioStream);
+		content->getParameterSet().addRTListener(this, true);
 	}
 
 	void CVectorScope::suspend()
@@ -108,7 +110,8 @@ namespace Signalizer
 
 	CVectorScope::~CVectorScope()
 	{
-		// TODO: detach listener
+		detachFromSource();
+		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
 	}
 
@@ -212,6 +215,14 @@ namespace Signalizer
 		lastMousePos = event.position;
 	}
 
+	void CVectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
+	{
+		if (param == &content->windowSize.parameter)
+		{
+			mtFlags.initiateWindowResize = true;
+		}
+	}
+
 	void CVectorScope::handleFlagUpdates()
 	{
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
@@ -224,7 +235,7 @@ namespace Signalizer
 		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
 		state.fillPath = content->interconnectSamples.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
-		state.rotation = content->waveZRotation.getTransformedValue() > 0.5;
+		state.rotation = content->waveZRotation.getTransformedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
@@ -241,6 +252,17 @@ namespace Signalizer
 			firstRun = true;
 		}
 
+		if (firstRun || mtFlags.initiateWindowResize)
+		{
+
+			// we will get notified asynchronously in onAsyncChangedProperties.
+			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			{
+				// only reset this flag if there's valid data, otherwise keep checking.
+				mtFlags.initiateWindowResize.cas();
+				audioStream.setAudioHistorySize(content->windowSize.getTransformedValue());
+			}
+		}
 	}
 
 

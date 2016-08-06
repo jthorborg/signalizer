@@ -91,9 +91,9 @@
 		enum class EnvelopeModes : int;
 		
 		class CVectorScope 
-		: 
-			public cpl::COpenGLView, 
-			protected AudioStream::Listener
+			: public cpl::COpenGLView
+			, private AudioStream::Listener
+			, private ParameterSet::RTListener
 		{
 
 		public:
@@ -138,7 +138,7 @@
 			virtual void handleFlagUpdates();
 
 		private:
-
+			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
@@ -189,6 +189,11 @@
 			{
 				cpl::ABoolFlag
 					firstRun,
+					/// <summary>
+					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
+					/// The argument to the resizing is the state.newWindowSize
+					/// </summary>
+					initiateWindowResize,
 					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
 					/// </summary>

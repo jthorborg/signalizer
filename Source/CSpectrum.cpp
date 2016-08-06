@@ -468,21 +468,27 @@ namespace Signalizer
 
 		if (flags.firstChange.cas())
 		{
-			//framesPerUpdate = getOptimalFramesPerUpdate();
+			flags.initiateWindowResize = true;
 			flags.audioWindowWasResized = true;
 			firstRun = true;
 		}
 
-		if (flags.initiateWindowResize.cas())
+		if (flags.initiateWindowResize)
 		{
 			// we will get notified asynchronously in onAsyncChangedProperties.
-			audioStream.setAudioHistorySize(state.newWindowSize.load(std::memory_order_acquire));
+			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			{
+				// only reset this flag if there's valid data, otherwise keep checking.
+				flags.initiateWindowResize.cas();
+				audioStream.setAudioHistorySize(state.newWindowSize.load(std::memory_order_acquire));
+			}
+
 
 		}
 		if (flags.audioWindowWasResized.cas())
 		{
 			audioLock.acquire(audioResource);
-			// TODO: rework this shit.
+			// TODO: possible difference between parameter and audiostream?
 
 			auto current = audioStream.getAudioHistorySize();
 			auto capacity = audioStream.getAudioHistoryCapacity();

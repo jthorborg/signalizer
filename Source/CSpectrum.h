@@ -476,7 +476,8 @@
 
 				cpl::ABoolFlag
 					/// <summary>
-					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed
+					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
+					/// The argument to the resizing is the state.newWindowSize
 					/// </summary>
 					initiateWindowResize,
 					/// <summary>

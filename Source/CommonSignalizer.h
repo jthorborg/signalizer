@@ -74,13 +74,204 @@
 
 		};
 
-		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, ParameterSet::AutomatedProcessor & processor);
+		class SystemView
+		{
+		public:
+
+			SystemView(AudioStream & audioStream, ParameterSet::AutomatedProcessor & automatedProcessor)
+				: stream(audioStream), processor(automatedProcessor)
+			{
+
+			}
+
+			ParameterSet::AutomatedProcessor & getProcessor() noexcept { return processor; }
+			AudioStream & getAudioStream() noexcept { return stream; }
+
+		private:
+			AudioStream & stream;
+			ParameterSet::AutomatedProcessor & processor;
+		};
+
+		template<typename ParameterView>
+		class AudioHistoryTransformatter
+			: public ParameterView::ParameterType::Transformer
+			, public ParameterView::ParameterType::Formatter
+			, public cpl::CSerializer::Serializable
+			, private AudioStream::Listener
+		{
+		public:
+
+			typedef typename ParameterView::ParameterType::ValueType ValueType;
+
+			enum Mode
+			{
+				Samples,
+				Miliseconds
+			};
+
+			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Miliseconds)
+				: param(nullptr), stream(audioStream), m(mode)
+			{
+
+			}
+
+			void setModeFromUI(Mode newMode)
+			{
+				if (m != newMode)
+				{
+					m = newMode;
+					// updates displays, even though the internal fraction stays the same.
+					param->updateFromUINormalized(param->getValueNormalized());
+				}
+			}
+
+			void initialize(ParameterView & view)
+			{
+				param = &view;
+				listenToSource(stream, true);
+			}
+
+			void serialize(cpl::CSerializer::Archiver & ar, cpl::Version v) override
+			{
+				ar << lastCapacity.load(std::memory_order_relaxed);
+			}
+
+			void deserialize(cpl::CSerializer::Builder & ar, cpl::Version v) override
+			{
+				double val;
+				ar >> val;
+				lastCapacity.store(val, std::memory_order_relaxed);
+			}
+
+			~AudioHistoryTransformatter()
+			{
+				detachFromSource();
+			}
+
+		private:
+
+			virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
+			{
+				// TODO: what if oldCapacity == 0?
+				const auto oldFraction = param->getValueNormalized();
+				auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
+				auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
+				if (oldCapacity == 0)
+					oldCapacity = beforeCapacity;
+
+				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
+
+				if (newCapacity > 0)
+					lastCapacity.store(newCapacity, std::memory_order_relaxed);
+
+				if(oldCapacity == 0 || newCapacity == 0)
+				{
+					param->updateFromProcessorNormalized(oldFraction);
+				}
+				else
+				{
+					const auto sampleSizeBefore = oldCapacity * oldFraction;
+					const auto newFraction = sampleSizeBefore / newCapacity;
+					if (oldFraction != newFraction || beforeCapacity == 0)
+						param->updateFromProcessorNormalized(newFraction);
+				}
+			}
+
+			virtual bool format(const ValueType & val, std::string & buf) override
+			{
+				char buffer[100];
+
+				if (m == Miliseconds)
+				{
+					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
+				}
+				else
+				{
+					sprintf_s(buffer, "%.0f smps", val);
+				}
+
+				buf = buffer;
+				return true;
+			}
+
+			virtual bool interpret(const std::string & buf, ValueType & val) override
+			{
+				ValueType collectedValue;
+
+
+				if (cpl::lexicalConversion(buf, collectedValue))
+				{		
+					bool notSamples = true;
+
+					if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
+					{
+						if (buf.find("ms") != std::string::npos)
+						{
+							collectedValue /= 1000;
+						}
+						collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					}
+					else
+					{
+						// assume value is in miliseconds
+						if (m == Miliseconds && notSamples)
+						{
+							collectedValue /= 1000;
+							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+						}
+					}
+
+					val = collectedValue;
+					return true;
+
+				}
+
+				return false;
+
+			}
+
+			virtual ValueType transform(ValueType val) override
+			{
+				auto samples = std::round(val * stream.getAudioHistoryCapacity());
+				
+				/* if (m == Miliseconds)
+				{
+					samples /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					samples *= 1000;
+				} */
+
+
+				return samples;
+			}
+
+
+			virtual ValueType normalize(ValueType val) override
+			{
+				/* if (m == Miliseconds)
+				{
+					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					val *= 1000;
+				} */
+
+				return val / stream.getAudioHistoryCapacity();
+			}
+
+			ParameterView * param;
+			AudioStream & stream;
+			Mode m;
+			/// <summary>
+			/// Represents the last capacity change we were informated about,
+			/// and thus currently represents the magnitude scale of the fraction.
+			/// </summary>
+			std::atomic<std::uint64_t> lastCapacity;
+		};
+
+		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
 		
 		
 		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
 		extern std::string MainPresetName;
 		extern std::string DefaultPresetName;
-
 
 		enum class ChannelConfiguration
 		{
@@ -277,6 +468,28 @@
 				, cachedObject(UniqueHandle<T>::null())
 			{
 
+			}
+
+			FGenerator replaceGenerator(FGenerator generatorFunc)
+			{
+				auto old = generator;
+				generator = generatorFunc;
+				return old;
+			}
+
+			FSerializer replaceSerializer(FSerializer serializerFunc)
+			{
+				auto old = serializer;
+				serializer = serializerFunc;
+				return old;
+			}
+
+			FDeserializer replaceDeserializer(FDeserializer deserializerFunc)
+			{
+
+				auto old = deserializer;
+				deserializer = deserializerFunc;
+				return old;
 			}
 
 			UniqueHandle<T> getUnique()
