@@ -64,6 +64,7 @@ namespace Signalizer
 		, lastPeak()
 		, scallopLoss()
 		, oldWindowSize(-1)
+		, framesPerUpdate()
 	{
 		setOpaque(true);
 		if (!(content = dynamic_cast<SpectrumContent *>(processorState)))
@@ -424,6 +425,8 @@ namespace Signalizer
 			{
 				state.colourSpecs[i + 1] = content->specColours[i].getAsJuceColour();
 			}
+
+			calculateSpectrumColourRatios();
 		}
 
 
