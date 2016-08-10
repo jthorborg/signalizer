@@ -1,0 +1,93 @@
+diff --git a/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.cpp b/JuceLibraryCode/modules/juce_gui_extr
+
+index b41379d..bdeea1c 100755
+--- a/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.cpp
++++ b/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.cpp
+@@ -336,7 +336,7 @@ ColourSelector::ColourSelector (const int sectionsToShow, const int edge, const
+         addAndMakeVisible (hueSelector = new HueSelectorComp (*this, h,  gapAroundColourSpaceComponent));
+     }
+
+-    update();
++    update(dontSendNotification);
+ }
+
+ ColourSelector::~ColourSelector()
+@@ -351,14 +351,14 @@ Colour ColourSelector::getCurrentColour() const
+     return ((flags & showAlphaChannel) != 0) ? colour : colour.withAlpha ((uint8) 0xff);
+ }
+
+-void ColourSelector::setCurrentColour (Colour c)
++void ColourSelector::setCurrentColour (Colour c, NotificationType notificationType)
+ {
+     if (c != colour)
+     {
+         colour = ((flags & showAlphaChannel) != 0) ? c : c.withAlpha ((uint8) 0xff);
+
+         updateHSV();
+-        update();
++        update(notificationType);
+     }
+ }
+
+@@ -394,14 +394,14 @@ void ColourSelector::updateHSV()
+     colour.getHSB (h, s, v);
+ }
+
+-void ColourSelector::update()
++void ColourSelector::update(NotificationType notificationType)
+ {
+     if (sliders[0] != nullptr)
+     {
+-        sliders[0]->setValue ((int) colour.getRed());
+-        sliders[1]->setValue ((int) colour.getGreen());
+-        sliders[2]->setValue ((int) colour.getBlue());
+-        sliders[3]->setValue ((int) colour.getAlpha());
++        sliders[0]->setValue ((int) colour.getRed(), notificationType);
++        sliders[1]->setValue ((int) colour.getGreen(), notificationType);
++        sliders[2]->setValue ((int) colour.getBlue(), notificationType);
++        sliders[3]->setValue ((int) colour.getAlpha(), notificationType);
+     }
+
+     if (colourSpace != nullptr)
+@@ -413,7 +413,17 @@ void ColourSelector::update()
+     if ((flags & showColourAtTop) != 0)
+         repaint (previewArea);
+
+-    sendChangeMessage();
++       switch (notificationType)
++       {
++       case NotificationType::sendNotification:
++       case NotificationType::sendNotificationAsync:
++               sendChangeMessage();
++               break;
++       case NotificationType::sendNotificationSync:
++               sendSynchronousChangeMessage();
++       default:
++               break;
++       }
+ }
+
+ //==============================================================================
+diff --git a/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.h b/JuceLibraryCode/modules/juce_gui_extra/
+
+index d16700c..899a60a 100755
+--- a/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.h
++++ b/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.h
+@@ -80,7 +80,7 @@ public:
+     Colour getCurrentColour() const;
+
+     /** Changes the colour that is currently being shown. */
+-    void setCurrentColour (Colour newColour);
++    void setCurrentColour (Colour newColour, NotificationType notificationType = sendNotification);
+
+     //==============================================================================
+     /** Tells the selector how many preset colour swatches you want to have on the component.
+@@ -153,7 +153,7 @@ private:
+     void setHue (float newH);
+     void setSV (float newS, float newV);
+     void updateHSV();
+-    void update();
++    void update(NotificationType notificationType = sendNotification);
+     void sliderValueChanged (Slider*);
+     void paint (Graphics&) override;
+     void resized() override;
