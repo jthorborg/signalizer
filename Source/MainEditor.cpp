@@ -64,11 +64,11 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	std::array<const char *, 1> ViewIndexToMap = 
+	std::array<const char *, 2> ViewIndexToMap = 
 	{
 		"Vectorscope",
 		//"Oscilloscope",
-		//"Spectrum",
+		"Spectrum"
 		//"Statistics"
 	};
 
@@ -76,21 +76,20 @@ namespace Signalizer
 	{
 		Vectorscope,
 		//Oscilloscope,
-		//Spectrum,
+		Spectrum,
 		end
 	};
 
 	template<typename T>
-	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, ParameterSet::AutomatedProcessor & processor)
+	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 	{
-		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, processor));
+		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, system));
 	}
 
 	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
 	{
-		{
-			ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent>
-		}
+		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
+		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
 	};
 
 	template<typename... Args>
@@ -99,7 +98,7 @@ namespace Signalizer
 		switch (type)
 		{
 		case ViewTypes::Vectorscope: return std::make_unique<CVectorScope>(args...);
-		//case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
+		case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
 		}
 		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
 	}
@@ -166,6 +165,8 @@ namespace Signalizer
 		, kmaxHistorySize("History size")
 
 	{
+		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
+		views.reserve((std::size_t)ViewTypes::end);
 
 		cpl::foreach_enum<ViewTypes>(
 			[&](ViewTypes index)
@@ -316,6 +317,7 @@ namespace Signalizer
 	
 	void MainEditor::deleteEditor(MainEditor::EditorIterator i)
 	{
+		removeChildComponent(i->get());
 		editorStack.erase(i);
 		
 		if(editorStack.empty() && tabs.isOpen())
@@ -417,8 +419,8 @@ namespace Signalizer
 	{
 		// TODO: refactor all behaviour here out to semantic functions
 		// bail out early if we aren't showing anything.
-		if (!hasCurrentView())
-			return;
+		//if (!hasCurrentView())
+		//	return;
 
 		auto value = c->bGetValue();
 

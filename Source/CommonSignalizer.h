@@ -166,14 +166,14 @@
 
 				if(oldCapacity == 0 || newCapacity == 0)
 				{
-					param->updateFromProcessorNormalized(oldFraction);
+					param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
 				else
 				{
 					const auto sampleSizeBefore = oldCapacity * oldFraction;
 					const auto newFraction = sampleSizeBefore / newCapacity;
 					if (oldFraction != newFraction || beforeCapacity == 0)
-						param->updateFromProcessorNormalized(newFraction);
+						param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
 			}
 

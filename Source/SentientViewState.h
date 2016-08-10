@@ -41,6 +41,18 @@ namespace Signalizer
 	{
 	public:
 
+		SentientViewState(SentientViewState && other)
+			: state(other.state)
+			, name(std::move(other.name))
+			, editor(std::move(other.editor))
+			, view(std::move(other.view))
+		{
+			editor.replaceGenerator([this] { return state.createEditor(); });
+		}
+
+		SentientViewState & operator = (SentientViewState && other) = delete;
+		SentientViewState(const SentientViewState & other) = delete;
+
 		SentientViewState(const std::string & name, ProcessorState & viewProcessorState, DecoupledStateObject<cpl::CSubView>::FGenerator generator)
 			: state(viewProcessorState)
 			, name(name)

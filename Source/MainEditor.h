@@ -100,6 +100,7 @@
 
 			void showAboutBox();
 
+
 		protected:
 
 			static const int elementSize = 25;

@@ -51,8 +51,8 @@ namespace Signalizer
 		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
 		{
 			parameterMap.insert({
-					ParameterCreationList[i].first,
-					ParameterCreationList[i].second(parameterMap.numParams(), false, *this)
+				ParameterCreationList[i].first,
+				ParameterCreationList[i].second(parameterMap.numParams(), false, { stream, *this })
 			});
 		}
 		
