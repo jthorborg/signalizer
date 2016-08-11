@@ -82,7 +82,7 @@
 				// for outside serialization we implementent specific access instead
 				// to only serialize GUI settings.
 				, private cpl::SafeSerializableObject
-				, private ParameterSet::UIListener
+				, private cpl::ValueEntityBase::Listener
 			{
 			public:
 
@@ -138,12 +138,14 @@
 
 				~SpectrumController()
 				{
+					parent.algorithm.param.removeListener(this);
+					parent.displayMode.param.removeListener(this);
 					notifyDestruction();
 				}
 				
-				virtual void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
+				virtual void valueEntityChanged(ValueEntityListener * sender, cpl::ValueEntityBase * value) override
 				{
-					if (parameter == &parent.displayMode.param.getParameterView() || parameter == &parent.algorithm.param.getParameterView())
+					if (value == &parent.displayMode.param || value == &parent.algorithm.param)
 					{
 						setTransformOptions();
 					}
@@ -186,6 +188,8 @@
 
 				void initControls()
 				{
+					parent.algorithm.param.addListener(this);
+					parent.displayMode.param.addListener(this);
 
 					for (int i = 0; i < numSpectrumColours; ++i)
 					{

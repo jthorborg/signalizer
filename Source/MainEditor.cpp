@@ -1029,6 +1029,13 @@ namespace Signalizer
 			data.getContent("Serialized Views").getContent(views[i].getName()) = views[i].getViewDSO().getState();
 			data.getContent("Serialized Editors").getContent(views[i].getName()) = views[i].getEditorDSO().getState();
 		}
+
+		std::int64_t historySize;
+		std::string contents = kmaxHistorySize.getInputValue();
+		if (cpl::lexicalConversion(contents, historySize))
+			data << std::max(0ll, historySize);
+		else
+			data << 1000;
 	}
 
 
@@ -1121,6 +1128,10 @@ namespace Signalizer
 		data >> kvsync;
 		data >> kswapInterval;
 
+		std::int64_t historySize;
+		data >> historySize;
+		if (historySize > 0)
+			kmaxHistorySize.setInputValue(std::to_string(historySize));
 	}
 
 	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val)
@@ -1485,6 +1496,7 @@ namespace Signalizer
 
 
 		// initial values that should be through handlers
+		// TODO: remove if changed to parameter
 		kmaxHistorySize.setInputValue("1000");
 
 		
