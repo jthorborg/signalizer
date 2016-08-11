@@ -1128,10 +1128,13 @@ namespace Signalizer
 		data >> kvsync;
 		data >> kswapInterval;
 
-		std::int64_t historySize;
-		data >> historySize;
-		if (historySize > 0)
-			kmaxHistorySize.setInputValue(std::to_string(historySize));
+		if (!(version < cpl::Version(0, 2, 8)))
+		{
+			std::int64_t historySize;
+			data >> historySize;
+			if (historySize > 0)
+				kmaxHistorySize.setInputValue(std::to_string(historySize));
+		}
 	}
 
 	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val)

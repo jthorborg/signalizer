@@ -850,6 +850,9 @@ namespace Signalizer
 		if (state.alphaFloodFill != 0.0f)
 		{
 			// Flood fill
+			auto dbs = getDBs();
+			const GLfloat endPoint = dbs.high > dbs.low ? 0 : 1;
+
 			for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 			{
 				switch (state.configuration)
@@ -863,7 +866,7 @@ namespace Signalizer
 					for (int i = 0; i < (points + 1); ++i)
 					{
 						lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
-						lineDrawer.addVertex(i, 0, -0.5);
+						lineDrawer.addVertex(i, endPoint, -0.5);
 					}
 				}
 				// (fall-through intentional)
@@ -878,7 +881,7 @@ namespace Signalizer
 					for (int i = 0; i < (points + 1); ++i)
 					{
 						lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
-						lineDrawer.addVertex(i, 0, 0);
+						lineDrawer.addVertex(i, endPoint, 0);
 					}
 				}
 				default:
