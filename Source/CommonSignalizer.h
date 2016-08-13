@@ -110,7 +110,7 @@
 			};
 
 			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Miliseconds)
-				: param(nullptr), stream(audioStream), m(mode)
+				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
 			{
 
 			}

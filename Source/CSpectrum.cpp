@@ -80,7 +80,7 @@ namespace Signalizer
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
 		state.sampleRate = 0;
-		state.newWindowSize = 0;
+		state.newWindowSize.store(cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue()), std::memory_order_release);
 
 		oldViewRect = state.viewRect;
 		oglImage.setFillColour(juce::Colours::black);
@@ -107,6 +107,7 @@ namespace Signalizer
 
 	void CSpectrum::resume()
 	{
+		isSuspended = false;
 		if (oldWindowSize != -1)
 		{
 			//TODO: possibly unsynchronized. fix to have an internal size instead
@@ -399,7 +400,14 @@ namespace Signalizer
 		bool glImageHasBeenResized = false;
 
 
-
+		if (flags.firstChange.cas())
+		{
+			flags.initiateWindowResize = true;
+			flags.audioWindowWasResized = true;
+			flags.displayModeChange = true;
+			flags.audioStreamChanged = true;
+			firstRun = true;
+		}
 
 
 		state.algo.store(content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>(), std::memory_order_release);
@@ -481,13 +489,6 @@ namespace Signalizer
 		auto const divLimitY = 5 + 0.6 * (getHeight() * divLimitParam);
 
 		oglImage.setFillColour(state.colourBackground);
-
-		if (flags.firstChange.cas())
-		{
-			flags.initiateWindowResize = true;
-			flags.audioWindowWasResized = true;
-			firstRun = true;
-		}
 
 		if (flags.initiateWindowResize)
 		{

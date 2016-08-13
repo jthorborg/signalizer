@@ -1076,6 +1076,8 @@ namespace Signalizer
 			data << std::max(0ll, historySize);
 		else
 			data << 1000;
+
+		data << khideTabs;
 	}
 
 
@@ -1175,6 +1177,8 @@ namespace Signalizer
 			data >> historySize;
 			if (historySize > 0)
 				kmaxHistorySize.setInputValue(std::to_string(historySize));
+
+			data >> khideTabs;
 		}
 	}
 

@@ -235,7 +235,7 @@ namespace Signalizer
 		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
 		state.fillPath = content->interconnectSamples.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
-		state.rotation = content->waveZRotation.getTransformedValue();
+		state.rotation = content->waveZRotation.getNormalizedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
@@ -260,7 +260,8 @@ namespace Signalizer
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				mtFlags.initiateWindowResize.cas();
-				audioStream.setAudioHistorySize(content->windowSize.getTransformedValue());
+				auto value = content->windowSize.getTransformedValue();
+				audioStream.setAudioHistorySize(value);
 			}
 		}
 	}
