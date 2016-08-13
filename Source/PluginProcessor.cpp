@@ -104,7 +104,7 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
-		Signalizer::AudioStream::AudioStreamInfo info = stream.getInfo();
+		AudioStream::AudioStreamInfo info = stream.getInfo();
 
 		info.anticipatedChannels = nChannels;
 		info.anticipatedSize = samplesPerBlock;

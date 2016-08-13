@@ -61,6 +61,8 @@
 
 		public:
 
+			static const int tabBarTimeout = 1000;
+
 			MainEditor(AudioProcessor * e, ParameterMap * params);
 			~MainEditor();
 
@@ -82,6 +84,7 @@
 			void resizeStart() override;
 			void focusGained(FocusChangeType cause) override;
 			void focusLost(FocusChangeType cause) override;
+			virtual void mouseMove(const MouseEvent & event) override;
 			virtual void mouseDown(const MouseEvent& event) override;
 			virtual void mouseUp(const MouseEvent& event) override;
 
@@ -145,6 +148,7 @@
 				std::atomic<bool> repaintContinuously;
 			} newc;
 
+			void setTabBarVisibility(bool toggle);
 
 			// the z-ordering system ensures this is basically a FIFO system
 			void pushEditor(StateEditor * editor);
@@ -183,6 +187,9 @@
 			// state variables.
 			int refreshRate;
 			int viewTopCoord;
+			bool tabBarIsVisible;
+			bool mouseHoversTabArea;
+			decltype(cpl::Misc::QuickTime()) tabBarTimer;
 			std::int32_t selTab;
 			cpl::iCtrlPrec_t oldRefreshRate;
 			// TODO: refactor to not use. Do not trust.
@@ -199,7 +206,6 @@
 			std::vector<UniqueHandle<StateEditor>> editorStack;
 			SentientViewState * currentView;
 			ResizableCornerComponent rcc;
-			cpl::CSerializer viewSettings;
 			ParameterMap * params;
 			//cpl::CMessageSystem messageSystem;
 		};

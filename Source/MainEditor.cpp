@@ -163,7 +163,9 @@ namespace Signalizer
 		, viewTopCoord(0)
 		, kpresets(e, MainPresetName, kpresets.WithDefault)
 		, kmaxHistorySize("History size")
-
+		, tabBarTimer()
+		, mouseHoversTabArea(false)
+		, tabBarIsVisible(true)
 	{
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve((std::size_t)ViewTypes::end);
@@ -217,10 +219,15 @@ namespace Signalizer
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
+				section->addControl(&kmaxHistorySize, 0);
+				page->addSection(section, "Globals");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
 				section->addControl(&krefreshState, 0);
 				section->addControl(&kidle, 1);
-				section->addControl(&kmaxHistorySize, 2);
-				page->addSection(section, "Utility");
+				section->addControl(&khideTabs, 2);
+				page->addSection(section, "Globals");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/brush.svg"))
@@ -283,6 +290,27 @@ namespace Signalizer
 	void MainEditor::onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject)
 	{
 		// no-op.
+	}
+
+	void MainEditor::setTabBarVisibility(bool toggle)
+	{
+		if (khideTabs.bGetBoolState())
+		{
+			if (tabBarIsVisible == !!toggle)
+				return;
+
+			tabBarIsVisible = !!toggle;
+			resized();
+		}
+		else
+		{
+			if (!tabBarIsVisible)
+			{
+				tabBarIsVisible = true;
+				resized();
+			}
+		}
+
 	}
 
 	void MainEditor::pushEditor(StateEditor * editor)
@@ -858,7 +886,19 @@ namespace Signalizer
 			AudioProcessorEditor::mouseUp(event);
 		}
 	}
-	void  MainEditor::mouseDown(const MouseEvent& event)
+
+	void MainEditor::mouseMove(const MouseEvent& event)
+	{
+		mouseHoversTabArea = event.y < elementSize + elementBorder;
+
+		if (mouseHoversTabArea)
+		{
+			setTabBarVisibility(true);
+		}
+		tabBarTimer = cpl::Misc::QuickTime();
+	}
+
+	void MainEditor::mouseDown(const MouseEvent& event)
 	{
 		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
 		{
@@ -1070,9 +1110,10 @@ namespace Signalizer
 		kkiosk.bRemoveChangeListener(this);
 		data >> kkiosk;
 		kkiosk.bAddChangeListener(this);
+
 		for (auto & colour : colourControls)
 		{
-			auto & content = viewSettings.getContent("Colours").getContent(colour.bGetTitle());
+			auto & content = data.getContent("Colours").getContent(colour.bGetTitle());
 			if (!content.isEmpty())
 				content >> colour;
 		}
@@ -1254,25 +1295,26 @@ namespace Signalizer
 		if (rcc.isMouseButtonDown())
 			return;
 		// resize panel to width
+		auto const top = tabBarIsVisible ? elementBorder : -elementSize;
 
 		auto const width = getWidth();
 		auto leftBorder = width - elementSize + elementBorder;
-		ksettings.setBounds(1, 1, buttonSizeW, buttonSize);
+		ksettings.setBounds(1, top, buttonSizeW, buttonSize);
 
-		kfreeze.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		kfreeze.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 
-		khelp.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		khelp.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		kkiosk.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		kkiosk.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 
 		tabs.setBounds
 		(
 			ksettings.getBounds().getRight() + elementBorder,
-			elementBorder,
+			top,
 			getWidth() - (ksettings.getWidth() + getWidth() - leftBorder + elementBorder * 3),
 			elementSize - elementBorder * 2
-		 );
+		);
 
 
 		auto editor = getTopEditor();
@@ -1291,7 +1333,10 @@ namespace Signalizer
 		}
 		else
 		{
-			viewTopCoord = tabs.getBottom() + elementBorder;
+			if (tabBarIsVisible)
+				viewTopCoord = tabs.getBottom() + elementBorder;
+			else
+				viewTopCoord = 0;
 		}
 		// full screen components resize themselves.
 		if (hasCurrentView() && !activeView().getIsFullScreen())
@@ -1311,7 +1356,10 @@ namespace Signalizer
 		}
 		if (hasCurrentView())
 		{
-			//const MessageManagerLock mml;
+			auto now = cpl::Misc::QuickTime();
+
+			if (!getTopEditor() && !mouseHoversTabArea && now - tabBarTimer > tabBarTimeout)
+				setTabBarVisibility(false);
 
 			if (idleInBack)
 			{
@@ -1325,6 +1373,7 @@ namespace Signalizer
 				activeView().repaintMainContent();
 		}
 	}
+
 	void MainEditor::hiResTimerCallback()
 	{
 		if (hasCurrentView())
@@ -1409,9 +1458,6 @@ namespace Signalizer
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
-		// titles
-		krefreshRate.bSetTitle("Refresh Rate");
-
 
 		// add listeners
 		krefreshRate.bAddFormatter(this);
@@ -1430,6 +1476,7 @@ namespace Signalizer
 		khelp.bAddChangeListener(this);
 		krefreshState.bAddChangeListener(this);
 		kswapInterval.bAddFormatter(this);
+
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
 		ksettings.setImage("icons/svg/gears.svg");
@@ -1441,6 +1488,10 @@ namespace Signalizer
 		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
+		khideTabs.setToggleable(true);
+
+		khideTabs.bSetTitle("Auto-hide tabs");
+		krefreshRate.bSetTitle("Refresh Rate");
 		krefreshState.bSetTitle("Reset state");
 		kantialias.bSetTitle("Antialiasing");
 		kidle.bSetTitle("Idle in back");
@@ -1496,7 +1547,7 @@ namespace Signalizer
 		kmaxHistorySize.bSetDescription("The maximum audio history capacity, set in the respective views. No limit, so be careful!");
 		kswapInterval.bSetDescription("Determines the swap interval for the graphics context; a value of zero means the graphics will"
 			"update as fast as possible, a value of 1 means it updates synced to the vertical sync, a value of N means it updates every Nth vertical frame sync.");
-
+		khideTabs.bSetDescription("Auto hides the top tabs and buttons when not used.");
 
 		// initial values that should be through handlers
 		// TODO: remove if changed to parameter
