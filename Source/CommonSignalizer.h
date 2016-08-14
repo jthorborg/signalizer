@@ -597,9 +597,10 @@
 			FSerializer serializer;
 			FDeserializer deserializer;
 
-			DestructionDelegate objectDeathHook;
+
 			cpl::CSerializer state;
 			UniqueHandle<T> cachedObject;
+			DestructionDelegate objectDeathHook;
 		};
 
 		struct ParameterMap
