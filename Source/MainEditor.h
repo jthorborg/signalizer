@@ -87,7 +87,8 @@
 			virtual void mouseMove(const MouseEvent & event) override;
 			virtual void mouseDown(const MouseEvent& event) override;
 			virtual void mouseUp(const MouseEvent& event) override;
-
+			virtual void mouseExit(const MouseEvent& event) override;
+		
 			void componentMovedOrResized(Component& component, bool wasMoved, bool wasResized) override;
 			void componentParentHierarchyChanged(Component& component) override;
 

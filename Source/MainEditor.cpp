@@ -898,6 +898,12 @@ namespace Signalizer
 		tabBarTimer = cpl::Misc::QuickTime();
 	}
 
+	void MainEditor::mouseExit(const MouseEvent& event)
+	{
+		mouseHoversTabArea = false;
+		tabBarTimer = cpl::Misc::QuickTime();
+	}
+	
 	void MainEditor::mouseDown(const MouseEvent& event)
 	{
 		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
@@ -1251,8 +1257,8 @@ namespace Signalizer
 	}
 	MainEditor::~MainEditor()
 	{
-		notifyDestruction();
 		suspendView(views[selTab]);
+		notifyDestruction();
 		exitFullscreen();
 		juce::Timer::stopTimer();
 		juce::HighResolutionTimer::stopTimer();
