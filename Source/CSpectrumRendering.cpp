@@ -300,7 +300,7 @@ namespace Signalizer
 					}
 				}
 			}
-			auto & dbs = getDBs();
+			const auto & dbs = getDBs();
 			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, dbs.high, dbs.low); // y coords are flipped..
 		}
 		else
@@ -389,7 +389,7 @@ namespace Signalizer
 
 			peakFractionY = results[peakOffset].leftMagnitude;
 			peakY = getHeight() - peakFractionY * getHeight();
-			auto & dbs = getDBs();
+			const auto & dbs = getDBs();
 			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, dbs.low, dbs.high);
 
 			adjustedScallopLoss = 20 * std::log10(scallopLoss - precisionError * 0.1);
@@ -469,7 +469,7 @@ namespace Signalizer
 			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
 
 			peakDBs += 20 * std::log10(peakSlope);
-			auto & dbs = getDBs();
+			const auto & dbs = getDBs();
 			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs, dbs.low, dbs.high);
 
 			// notice we only adjust the resulting peak value with the slope if we are inside a non-processed transform
@@ -580,9 +580,6 @@ namespace Signalizer
 
 	void CSpectrum::initOpenGL()
 	{
-		const int imageSize = 128;
-		const float fontToPixelScale = 90 / 64.0f;
-
 		//oglImage.resize(getWidth(), getHeight(), false);
 		flags.openGLInitiation = true;
 		textures.clear();

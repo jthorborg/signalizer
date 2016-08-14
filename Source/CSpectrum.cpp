@@ -40,10 +40,6 @@
 namespace Signalizer
 {
 
-	const double StretchMax = 20;
-	const double kReferenceMax = 880;
-	const double kReferenceMin = 220;
-
 	CSpectrum::CSpectrum(const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
 		: COpenGLView(nameId)
 		, audioStream(stream)
@@ -508,8 +504,7 @@ namespace Signalizer
 			// TODO: possible difference between parameter and audiostream?
 
 			auto current = audioStream.getAudioHistorySize();
-			auto capacity = audioStream.getAudioHistoryCapacity();
-
+			
 			state.windowSize = getValidWindowSize(current);
 			cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;

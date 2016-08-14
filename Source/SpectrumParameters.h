@@ -650,7 +650,7 @@
 					parameterSet.registerSingleParameter(sparam.generateUpdateRegistrator());
 				}
 
-				auto regBundle = [&](auto & bundle, const std::string & n) { parameterSet.registerParameterBundle(&bundle, n); };
+				auto regBundle = [&](cpl::Parameters::BundleUpdate<ParameterSet::ParameterView> & bundle, const std::string & n) { parameterSet.registerParameterBundle(&bundle, n); };
 
 				regBundle(dspWin, "DWin.");
 				regBundle(slope, "Slope.");

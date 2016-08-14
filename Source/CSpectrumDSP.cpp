@@ -582,7 +582,6 @@ namespace Signalizer
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
-		auto const channelConfiguration = state.configuration;
 		switch (state.algo.load(std::memory_order_acquire))
 		{
 			case SpectrumContent::TransformAlgorithm::FFT:
@@ -773,8 +772,7 @@ namespace Signalizer
 			std::size_t numBins = N >> 1;
 			auto const topFrequency = getSampleRate() / 2;
 			auto const freqToBin = double(numBins ) / topFrequency;
-			auto const pointsToBin = double(numBins ) / numPoints;
-
+			
 			typedef fftType ftype;
 
 			std::complex<ftype> leftMax, rightMax;

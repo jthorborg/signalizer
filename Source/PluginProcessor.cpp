@@ -44,8 +44,8 @@ namespace Signalizer
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
-			[](MainEditor & editor, auto & sz, auto v) { editor.serializeObject(sz, v); },
-			[](MainEditor & editor, auto & sz, auto v) { editor.deserializeObject(sz, v); }
+			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
+			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
 	{
 		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
@@ -207,7 +207,7 @@ namespace Signalizer
 			if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
 			{
 				// writing to this value with acquire/release ensures we see any changes concurrently here 
-				std::atomic_int editorSerializationState = 0;
+				std::atomic_int editorSerializationState {0};
 
 				cpl::GUIUtils::MainEvent(
 					*this,
@@ -267,7 +267,7 @@ namespace Signalizer
 		if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
 		{
 			// writing to this value with acquire/release ensures we see any changes concurrently here 
-			std::atomic_int editorSerializationState = 0;
+			std::atomic_int editorSerializationState = {0};
 
 			cpl::GUIUtils::MainEvent(
 				*this,

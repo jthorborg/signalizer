@@ -58,13 +58,13 @@ namespace Signalizer
 			, name(name)
 			, editor(
 				[this] { return state.createEditor(); }, 
-				[](StateEditor & editor, auto & sz, auto v) { editor.serializeEditorSettings(sz, v); }, 
-				[](StateEditor & editor, auto & sz, auto v) { editor.deserializeEditorSettings(sz, v); } 
+				[](StateEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeEditorSettings(sz, v); },
+				[](StateEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeEditorSettings(sz, v); }
 			)
 			, view(
 				generator,
-				[](cpl::CSubView & view, auto & sz, auto v) { view.serializeObject(sz, v); },
-				[](cpl::CSubView & view, auto & sz, auto v) { view.deserializeObject(sz, v); }
+				[](cpl::CSubView & view, cpl::CSerializer & sz, cpl::Version v) { view.serializeObject(sz, v); },
+				[](cpl::CSubView & view, cpl::CSerializer & sz, cpl::Version v) { view.deserializeObject(sz, v); }
 			)
 		{
 
