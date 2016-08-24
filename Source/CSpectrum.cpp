@@ -233,7 +233,13 @@ namespace Signalizer
 			auto delta = dbs.high - dbs.low;
 			//if (std::abs(delta) <= minDBRange)
 			//	return;
+#ifdef CPL_MAC
+			// OS X internally is extremely inconsistent between drivers, mouses trackpads and what not
+			// best solution seems to be just to consider both axi and get some weird results once in a while
+			auto inc = delta * (wheel.deltaY + wheel.deltaX) / 5;
+#else
 			auto inc = delta * wheel.deltaY / 5;
+#endif
 			dbs.low += newDBPos * inc;
 			dbs.high -= (1 - newDBPos) * inc;
 
