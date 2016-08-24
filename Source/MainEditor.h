@@ -56,7 +56,8 @@
 			protected	cpl::CTextTabBar<>::CTabBarListener,
 			private		juce::ComponentBoundsConstrainer,
 			protected	juce::KeyListener,
-			public		juce::ComponentListener
+			public		juce::ComponentListener,
+			private		cpl::GUIUtils::NestedMouseInterceptor::Listener
 		{
 
 		public:
@@ -84,10 +85,8 @@
 			void resizeStart() override;
 			void focusGained(FocusChangeType cause) override;
 			void focusLost(FocusChangeType cause) override;
-			virtual void mouseMove(const MouseEvent & event) override;
 			virtual void mouseDown(const MouseEvent& event) override;
 			virtual void mouseUp(const MouseEvent& event) override;
-			virtual void mouseExit(const MouseEvent& event) override;
 		
 			void componentMovedOrResized(Component& component, bool wasMoved, bool wasResized) override;
 			void componentParentHierarchyChanged(Component& component) override;
@@ -126,6 +125,9 @@
 			bool hasCurrentView() const noexcept { return currentView != nullptr; }
 			cpl::CSubView & activeView() noexcept { return *currentView->getViewDSO().getCached().get(); }
 			typedef std::vector<UniqueHandle<StateEditor>>::iterator EditorIterator;
+
+			virtual void nestedOnMouseMove(const juce::MouseEvent& e) override final;
+			virtual void nestedOnMouseExit(const juce::MouseEvent& e) override final;
 
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
@@ -174,6 +176,7 @@
 			AudioProcessor * engine;
 
 			// Constant UI
+			cpl::GUIUtils::NestedMouseInterceptor nestedMouseHook;
 			cpl::CTextTabBar<> tabs;
 			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk;
 

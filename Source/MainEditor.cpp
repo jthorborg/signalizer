@@ -192,6 +192,8 @@ namespace Signalizer
 		setBounds(0, 0, kdefaultLength, kdefaultHeight);
 		initUI();
 		oglc.setComponentPaintingEnabled(false);
+
+		nestedMouseHook.hook(this, this, true);
 	}
 
 
@@ -886,23 +888,6 @@ namespace Signalizer
 			AudioProcessorEditor::mouseUp(event);
 		}
 	}
-
-	void MainEditor::mouseMove(const MouseEvent& event)
-	{
-		mouseHoversTabArea = event.y < elementSize + elementBorder;
-
-		if (mouseHoversTabArea)
-		{
-			setTabBarVisibility(true);
-		}
-		tabBarTimer = cpl::Misc::QuickTime();
-	}
-
-	void MainEditor::mouseExit(const MouseEvent& event)
-	{
-		mouseHoversTabArea = false;
-		tabBarTimer = cpl::Misc::QuickTime();
-	}
 	
 	void MainEditor::mouseDown(const MouseEvent& event)
 	{
@@ -1086,6 +1071,26 @@ namespace Signalizer
 		data << khideTabs;
 	}
 
+	void MainEditor::nestedOnMouseMove(const juce::MouseEvent & e)
+	{
+		auto point = e.getEventRelativeTo(this);
+		mouseHoversTabArea = point.y < elementSize + elementBorder;
+
+		if (mouseHoversTabArea)
+		{
+			setTabBarVisibility(true);
+		}
+		tabBarTimer = cpl::Misc::QuickTime();
+	}
+
+	void MainEditor::nestedOnMouseExit(const juce::MouseEvent & e)
+	{
+		if (e.eventComponent == this)
+		{
+			mouseHoversTabArea = false;
+			tabBarTimer = cpl::Misc::QuickTime();
+		}
+	}
 
 	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
@@ -1402,8 +1407,6 @@ namespace Signalizer
 		}
 	}
 
-
-	//==============================================================================
 	void MainEditor::paint(Graphics& g)
 	{
 		// make sure to paint everything completely opaque.
@@ -1458,7 +1461,7 @@ namespace Signalizer
 					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
 					std::system((cmdLine).c_str());
 				#else 
-					#error "Implement a text-opener for your platform.
+					#error "Implement a text-opener for your platform."
 				#endif
 				break;
 		}
