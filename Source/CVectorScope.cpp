@@ -228,7 +228,7 @@ namespace Signalizer
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.stereoCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
 		state.envelopeGain = content->inputGain.getTransformedValue();
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
@@ -273,10 +273,6 @@ namespace Signalizer
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
 			if (numChannels != 2)
-				return;
-
-			// if all options are turned off, just return.
-			if ((!state.normalizeGain && state.envelopeMode != EnvelopeModes::RMS))
 				return;
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
@@ -335,10 +331,13 @@ namespace Signalizer
 					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
 
 					// balance average source
-					filters.balance[0][0] = lSquared + stereoPoles[0] * (filters.balance[0][0] - lSquared);
-					filters.balance[0][1] = rSquared + stereoPoles[0] * (filters.balance[0][1] - rSquared);
-					filters.balance[1][0] = lSquared + stereoPoles[1] * (filters.balance[1][0] - lSquared);
-					filters.balance[1][1] = rSquared + stereoPoles[1] * (filters.balance[1][1] - rSquared);
+					
+					using fs = FilterStates;
+					
+					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
+					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
+					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
+					filters.balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Right] - rSquared);
 
 					// phase averaging
 					// see larger comment above.
@@ -349,12 +348,13 @@ namespace Signalizer
 
 
 			}
-
-			double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
-
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
 			{
+				// we end up calculating envelopes even though its not possibly needed, but the overhead
+				// is negligible
+				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+				
 				// only update filters if this mode is on.
 				filters.envelope[0] = filterEnv[0]; 
 				filters.envelope[1] = filterEnv[1];

@@ -179,6 +179,14 @@
 
 			struct FilterStates
 			{
+				enum Entry
+				{
+					Slow = 0,
+					Left = 0,
+					Fast = 1,
+					Right = 1
+				};
+				
 				AudioStream::DataType envelope[2];
 				AudioStream::DataType balance[2][2];
 				AudioStream::DataType phase[2];
