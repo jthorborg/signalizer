@@ -506,7 +506,8 @@
 			{
 				if (hasCached())
 				{
-					deserializeState(*getCached().get());
+					builder.setMasterVersion(v);
+					deserializeState(*getCached().get(), &builder);
 				}
 				else
 				{
@@ -547,9 +548,10 @@
 				serializer(obj, state, cpl::programInfo.version);
 			}
 
-			void deserializeState(T & obj)
+			void deserializeState(T & obj, cpl::CSerializer::Builder * optionalExternalState = nullptr)
 			{
-				deserializer(obj, state, state.getLocalVersion());
+				auto & usableState = optionalExternalState ? *optionalExternalState : state;
+				deserializer(obj, usableState, usableState.getLocalVersion());
 			}
 
 			UniqueHandle<T> create()
