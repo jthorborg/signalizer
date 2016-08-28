@@ -88,7 +88,7 @@
 					krotation.bSetTitle("Wave Z-rotation");
 					kgain.bSetTitle("Input gain");
 					kgraphColour.bSetTitle("Graph colour");
-					kbackgroundColour.bSetTitle("Background colour");
+					kbackgroundColour.bSetTitle("Backg. colour");
 					kdrawingColour.bSetTitle("Drawing colour");
 					kskeletonColour.bSetTitle("Skeleton colour");
 					kprimitiveSize.bSetTitle("Primitive size");
@@ -321,11 +321,11 @@
 
 
 				, colourBehavior()
-				, drawingColour(colourBehavior)
-				, graphColour(colourBehavior)
-				, backgroundColour(colourBehavior)
-				, skeletonColour(colourBehavior)
-				, meterColour(colourBehavior)
+				, drawingColour(colourBehavior, "Draw.")
+				, graphColour(colourBehavior, "Graph.")
+				, backgroundColour(colourBehavior, "BackG.")
+				, skeletonColour(colourBehavior, "Skelt.")
+				, meterColour(colourBehavior, "Meter.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
@@ -344,11 +344,11 @@
 					parameterSet.registerSingleParameter(sparam->generateUpdateRegistrator());
 				}
 
-				parameterSet.registerParameterBundle(&drawingColour, "Draw.");
-				parameterSet.registerParameterBundle(&graphColour, "Graph.");
-				parameterSet.registerParameterBundle(&backgroundColour, "BackG.");
-				parameterSet.registerParameterBundle(&skeletonColour, "Skelt.");
-				parameterSet.registerParameterBundle(&meterColour, "Meter.");
+				parameterSet.registerParameterBundle(&drawingColour, drawingColour.getBundleName());
+				parameterSet.registerParameterBundle(&graphColour, graphColour.getBundleName());
+				parameterSet.registerParameterBundle(&backgroundColour, backgroundColour.getBundleName());
+				parameterSet.registerParameterBundle(&skeletonColour, skeletonColour.getBundleName());
+				parameterSet.registerParameterBundle(&meterColour, meterColour.getBundleName());
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
 				parameterSet.seal();

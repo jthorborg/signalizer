@@ -218,7 +218,7 @@
 					kprimitiveSize.bSetTitle("Primitive size");
 					kfloodFillAlpha.bSetTitle("Flood fill %");
 					kgridColour.bSetTitle("Grid colour");
-					kbackgroundColour.bSetTitle("Background colour");
+					kbackgroundColour.bSetTitle("Backg. colour");
 					kreferenceTuning.bSetTitle("A4 ref. tuning");
 					kpctForDivision.bSetTitle("Grid div. space");
 					kblobSize.bSetTitle("Update speed");
@@ -590,9 +590,9 @@
 				, colourBehavior()
 
 				// TODO: Figure out automatic way to initialize N array in constructor
-				, gridColour(colourBehavior)
-				, backgroundColour(colourBehavior)
-				, specColours { { colourBehavior }, { colourBehavior }, { colourBehavior }, { colourBehavior }, { colourBehavior } }
+				, gridColour(colourBehavior, "Grid.")
+				, backgroundColour(colourBehavior, "Bck.")
+				, specColours { { colourBehavior , "Grdnt1."}, { colourBehavior , "Grdnt2." }, { colourBehavior , "Grdnt3." }, { colourBehavior , "Grdnt4." }, { colourBehavior , "Grdnt5." } }
 
 				, specRatios{
 					{ "GradRatio1", unitRange, basicFormatter }, 
@@ -603,8 +603,8 @@
 				}
 
 				, lines {
-					{ { "Graph1.Decay", unitRange, dbSecFormatter }, { colourBehavior }, { colourBehavior } },
-					{ { "Graph2.Decay", unitRange, dbSecFormatter }, { colourBehavior }, { colourBehavior } }
+					{ { "Grph1.Decay", unitRange, dbSecFormatter }, { colourBehavior , "Grph1.1."}, { colourBehavior , "Grph1.2." } },
+					{ { "Grph2.Decay", unitRange, dbSecFormatter }, { colourBehavior , "Grph2.1." }, { colourBehavior , "Grph2.1." } }
 				}
 
 			{
@@ -654,17 +654,17 @@
 
 				regBundle(dspWin, "DWin.");
 				regBundle(slope, "Slope.");
-				regBundle(gridColour, "Grid.");
+				regBundle(gridColour, gridColour.getBundleName());
 				regBundle(backgroundColour, "Bck.");
 
 				for (std::size_t i = 0; i < std::extent<decltype(specColours)>::value; ++i)
-					regBundle(specColours[i], "Grdnt" + std::to_string(i + 1) + ".");
+					regBundle(specColours[i], specColours[i].getBundleName());
 
 				for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 				{
 					parameterSet.registerSingleParameter(lines[i].decay.generateUpdateRegistrator());
-					regBundle(lines[i].colourOne, "Grph" + std::to_string(i + 1) + ".1.");
-					regBundle(lines[i].colourTwo, "Grph" + std::to_string(i + 1) + ".2.");
+					regBundle(lines[i].colourOne, lines[i].colourOne.getBundleName());
+					regBundle(lines[i].colourTwo, lines[i].colourTwo.getBundleName());
 				}
 
 				parameterSet.seal();
