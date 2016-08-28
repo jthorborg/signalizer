@@ -63,7 +63,7 @@ namespace Signalizer
 	{
 		if (!std::isnormal(frequency))
 			return "nan";
-		auto note = 12 * std::log2(frequency / a4Ref) + 49;
+		auto note = 12 * std::log2(std::abs(frequency / a4Ref)) + 49;
 		auto roundedNote = cpl::Math::round<int>(note);
 		auto semitoneIndex = (roundedNote - 4) % 12;
 		while(semitoneIndex < 0)
@@ -100,7 +100,7 @@ namespace Signalizer
 		char buf[200];
 		bool skipText = state.colourGrid.getAlpha() == 0;
 		
-		if (state.displayMode == DisplayMode::LineGraph)
+		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 			if(!skipText)
 			{
@@ -165,7 +165,7 @@ namespace Signalizer
 
 			double gradientPos = 0.0;
 
-			for (int i = 0; i < numSpectrumColours + 1; i++)
+			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
 			{
 				gradientPos += state.normalizedSpecRatios[i];
 				gradient.addColour(gradientPos, state.colourSpecs[i].toJuceColour());
@@ -182,7 +182,7 @@ namespace Signalizer
 
 		drawFrequencyTracking(g);
 
-		if (kdiagnostics.bGetValue() > 0.5)
+		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
@@ -208,9 +208,9 @@ namespace Signalizer
 
 	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
-		auto graphN = newc.frequencyTrackingGraph.load(std::memory_order_acquire);
+		auto graphN = state.frequencyTrackingGraph;
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
-		if (graphN == LineGraphs::None || state.displayMode == DisplayMode::ColourSpectrum)
+		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
 
 		if(state.colourGrid.getAlpha() == 0)
@@ -243,14 +243,14 @@ namespace Signalizer
 
 		double viewSize = state.viewRect.dist();
 
-		if (state.displayMode == DisplayMode::LineGraph)
+		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 			mouseX = cmouse.x.load(std::memory_order_acquire);
 			mouseY = cmouse.y.load(std::memory_order_acquire);
 
 			// a possible concurrent bug
-			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints());
-			mouseY = cpl::Math::confineTo(mouseY, 0, getHeight());
+			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints() - 1);
+			mouseY = cpl::Math::confineTo(mouseY, 0, getHeight() - 1);
 
 			g.drawLine(static_cast<float>(mouseX), 0, static_cast<float>(mouseX), getHeight(), 1);
 			g.drawLine(0, static_cast<float>(mouseY), getWidth(), static_cast<float>(mouseY), 1);
@@ -259,7 +259,7 @@ namespace Signalizer
 			mouseFractionOrth = mouseY / (getHeight() - 1);
 			mouseSlope = 20 * std::log10(slopeMap[mouseX]);
 
-			if (state.viewScale == ViewScaling::Logarithmic)
+			if (state.viewScale == SpectrumContent::ViewScaling::Logarithmic)
 			{
 				if (state.configuration != ChannelConfiguration::Complex)
 				{
@@ -300,8 +300,8 @@ namespace Signalizer
 					}
 				}
 			}
-
-			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, getDBs().high, getDBs().low); // y coords are flipped..
+			const auto & dbs = getDBs();
+			mouseDBs = cpl::Math::UnityScale::linear(mouseFractionOrth, dbs.high, dbs.low); // y coords are flipped..
 		}
 		else
 		{
@@ -317,11 +317,11 @@ namespace Signalizer
 		auto interpolationError = 0.01;
 
 		// TODO: these special cases can be handled (on a rainy day)
-		if (state.configuration == ChannelConfiguration::Complex || !(state.algo == TransformAlgorithm::FFT && graphN == LineGraphs::Transform))
+		if (state.configuration == ChannelConfiguration::Complex || !(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
 		{
 
-			if (graphN == LineGraphs::Transform)
-				graphN = LineGraphs::LineMain;
+			if (graphN == SpectrumContent::LineGraphs::Transform)
+				graphN = SpectrumContent::LineGraphs::LineMain;
 
 			auto & results = lineGraphs[graphN].results;
 			auto N = results.size();
@@ -375,10 +375,10 @@ namespace Signalizer
 			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
 			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
 
-			if (state.algo == TransformAlgorithm::FFT)
+			if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
-				if (state.binPolation != BinInterpolation::Lanczos)
+				if (state.binPolation != SpectrumContent::BinInterpolation::Lanczos)
 					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
 			}
 
@@ -389,8 +389,8 @@ namespace Signalizer
 
 			peakFractionY = results[peakOffset].leftMagnitude;
 			peakY = getHeight() - peakFractionY * getHeight();
-
-			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, getDBs().low, getDBs().high);
+			const auto & dbs = getDBs();
+			peakDBs = cpl::Math::UnityScale::linear(peakFractionY, dbs.low, dbs.high);
 
 			adjustedScallopLoss = 20 * std::log10(scallopLoss - precisionError * 0.1);
 
@@ -410,7 +410,7 @@ namespace Signalizer
 
 			auto source = getAudioMemory<std::complex<fftType>>();
 
-			auto peak = std::max_element(source + lowerBound, source + higherBound, 
+			auto peak = std::max_element(source + lowerBound, source + higherBound + 1, 
 				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
@@ -447,6 +447,8 @@ namespace Signalizer
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
+			// jos suggests doing the fit in logarithmic domain, it tends to create nans and infs we wouldn't have got otherwise -
+			// explaning the various isnormal() checks
 			auto alpha = 20 * std::log10(std::abs(source[peakOffset == 0 ? 0 : peakOffset - 1] * invSize));
 			auto beta = 20 * std::log10(std::abs(source[peakOffset] * invSize));
 			auto gamma = 20 * std::log10(std::abs(source[peakOffset == static_cast<std::ptrdiff_t>(N) ? peakOffset : peakOffset + 1] * invSize));
@@ -454,19 +456,21 @@ namespace Signalizer
 			auto phi = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
 
 			// global
-			peakFraction = 2 * (peakOffset + phi) / double(N);
+			peakFraction = 2 * (peakOffset + (std::isnormal(phi) ? phi : 0)) / double(N);
 			peakFrequency = 0.5 * peakFraction * sampleRate;
 			// translate to local
 
 			peakDBs = beta - 0.25*(alpha - gamma) * phi;
+			if (!std::isnormal(peakDBs))
+				peakDBs = 20 * std::log10(std::abs(source[peakOffset]) / (N * 0.5));
 
 			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
 
 			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
 
 			peakDBs += 20 * std::log10(peakSlope);
-
-			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs , getDBs().low, getDBs().high);
+			const auto & dbs = getDBs();
+			peakY = cpl::Math::UnityScale::Inv::linear(peakDBs, dbs.low, dbs.high);
 
 			// notice we only adjust the resulting peak value with the slope if we are inside a non-processed transform
 			// (like the raw fft), because it hasn't itself been 'sloped' yet
@@ -515,8 +519,9 @@ namespace Signalizer
 		else if(peakDBs < -1000)
 			peakDBs = -std::numeric_limits<double>::infinity();
 
-		std::string mouseNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), mouseFrequency);
-		std::string freqNote = frequencyToSemitone(newc.referenceTuning.load(std::memory_order_acquire), peakFrequency);
+		auto reference = content->referenceTuning.getTransformedValue();
+		std::string mouseNote = frequencyToSemitone(reference, mouseFrequency);
+		std::string freqNote = frequencyToSemitone(reference, peakFrequency);
 
 
 		// TODO: use a monospace font for this part
@@ -549,9 +554,9 @@ namespace Signalizer
 		if (xpoint + estimatedSize[0] > getWidth())
 			xpoint = mouseX - (textOffset[0] + estimatedSize[0]);
 
-		auto ypoint = mouseY + textOffset[1];
+		auto ypoint = mouseY + textOffset[1] - textOffset[0];
 		if (ypoint  < 0)
-			ypoint = mouseY + (textOffset[0]);
+			ypoint = mouseY + textOffset[0];
 
 		juce::Rectangle<float> rect { (float)xpoint, (float)ypoint, (float)estimatedSize[0], (float)estimatedSize[1] };
 
@@ -575,9 +580,6 @@ namespace Signalizer
 
 	void CSpectrum::initOpenGL()
 	{
-		const int imageSize = 128;
-		const float fontToPixelScale = 90 / 64.0f;
-
 		//oglImage.resize(getWidth(), getHeight(), false);
 		flags.openGLInitiation = true;
 		textures.clear();
@@ -673,7 +675,7 @@ namespace Signalizer
 		juce::OpenGLHelpers::clear(state.colourBackground);
 
 
-		for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+		for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 			lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
 		bool lineTransformReady = false;
@@ -682,7 +684,7 @@ namespace Signalizer
 		{
 			handleFlagUpdates();
 			// line graph data for ffts are rendered now.
-			if (state.displayMode == DisplayMode::LineGraph)
+			if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 			{
 				audioLock.acquire(audioResource);
 				lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
@@ -706,7 +708,7 @@ namespace Signalizer
 
 		switch (state.displayMode)
 		{
-		case DisplayMode::LineGraph:
+		case SpectrumContent::DisplayMode::LineGraph:
 			// no need to lock in this case, as this display mode is exclusively switched,
 			// such that only we have access to it.
 			if (lineTransformReady)
@@ -717,7 +719,7 @@ namespace Signalizer
 				postProcessStdTransform();
 			}
 			renderLineGraph<Types::v8sf>(openGLStack); break;
-		case DisplayMode::ColourSpectrum:
+		case SpectrumContent::DisplayMode::ColourSpectrum:
 			// mapping and processing is already done here.
 			renderColourSpectrum<Types::v8sf>(openGLStack); break;
 
@@ -742,19 +744,17 @@ namespace Signalizer
 
 			if (!state.isFrozen)
 			{
-
 				framePixelPosition %= pW;
-				double bufferSmoothing = state.bufferSmoothing;
 				auto approximateFrames = getApproximateStoredFrames();
 				/*if (approximateFrames == 0)
 					approximateFrames = framesPerUpdate;*/
 				std::size_t processedFrames = 0;
-				framesPerUpdate = approximateFrames + bufferSmoothing * (framesPerUpdate - approximateFrames);
+				framesPerUpdate = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
 				// 
-				bool shouldCap = state.bufferSmoothing != 0.0;
+				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
 				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
 				{
@@ -763,7 +763,12 @@ namespace Signalizer
 
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
-						ColourScale2<numSpectrumColours + 1, 4>(columnUpdate.data() + i, lineGraphs[LineGraphs::LineMain].results[i].magnitude, state.colourSpecs, state.normalizedSpecRatios);
+						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
+							columnUpdate.data() + i, 
+							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
+							state.colourSpecs, 
+							state.normalizedSpecRatios
+						);
 					}
 					//CPL_DEBUGCHECKGL();
 					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
@@ -836,11 +841,16 @@ namespace Signalizer
 		m.translate(-1, -1, 0);
 		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
 
+		// removes most of the weird black lines on flood fills.
+		ogs.disable(GL_MULTISAMPLE);
 
 		if (state.alphaFloodFill != 0.0f)
 		{
 			// Flood fill
-			for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
+			auto dbs = getDBs();
+			const GLfloat endPoint = dbs.high > dbs.low ? 0 : 1;
+
+			for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 			{
 				switch (state.configuration)
 				{
@@ -853,7 +863,7 @@ namespace Signalizer
 					for (int i = 0; i < (points + 1); ++i)
 					{
 						lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
-						lineDrawer.addVertex(i, 0, -0.5);
+						lineDrawer.addVertex(i, endPoint, -0.5);
 					}
 				}
 				// (fall-through intentional)
@@ -868,7 +878,7 @@ namespace Signalizer
 					for (int i = 0; i < (points + 1); ++i)
 					{
 						lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
-						lineDrawer.addVertex(i, 0, 0);
+						lineDrawer.addVertex(i, endPoint, 0);
 					}
 				}
 				default:
@@ -881,9 +891,9 @@ namespace Signalizer
 		
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize * primitiveMaxSize)));
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize)));
 		// draw back to front
-		for (int k = LineGraphs::LineEnd - 1; k >= 0; --k)
+		for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 		{
 			switch (state.configuration)
 			{
@@ -917,22 +927,23 @@ namespace Signalizer
 			}
 		}
 
-		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
 		// render grid
-		if (state.colourGrid.getARGB() != 0)
+		if (state.colourGrid.getAlpha() != 0)
 		{
 			auto normalizedScaleY = 1.0 / getHeight();
 			// TODO: fix using a matrix modification instead (cheaper)
 			auto normY = [=](double in) {  return static_cast<float>(normalizedScaleY * in * 2.0); };
 
 			{
+				const float cscale = state.configuration == ChannelConfiguration::Complex ? 2 : 1;
+				const float width = getWidth();
+
 				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-
 				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
 
 				// draw vertical lines.
 				const auto & lines = frequencyGraph.getLines();
@@ -940,14 +951,14 @@ namespace Signalizer
 
 				for (auto dline : lines)
 				{
-					auto line = static_cast<float>(dline);
+					auto line = cscale * static_cast<float>(dline);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
 
 				for (auto dline : clines)
 				{
-					auto line = static_cast<float>(dline);
+					auto line = static_cast<float>(width - cscale *  dline);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
@@ -959,14 +970,14 @@ namespace Signalizer
 
 				for (auto & sdiv : divs)
 				{
-					auto line = static_cast<float>(sdiv.coord);
+					auto line = cscale * static_cast<float>(sdiv.coord);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}
 
 				for (auto & sdiv : cdivs)
 				{
-					auto line = static_cast<float>(sdiv.coord);
+					auto line = static_cast<float>(width - cscale * sdiv.coord);
 					lineDrawer.addVertex(line, -1.0f, 0.0f);
 					lineDrawer.addVertex(line, 1.0f, 0.0f);
 				}

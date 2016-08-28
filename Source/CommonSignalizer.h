@@ -35,13 +35,244 @@
 	#include <cpl/gui/gui.h>
 	#include <cpl/CAudioStream.h>
 	#include <complex>
+	#include <cpl/infrastructure/parameters/ParameterSystem.h>
+	#include "SignalizerDesign.h"
+
 
 	namespace Signalizer
 	{
+		/// <summary>
+		/// Floating-point type used for parameters etc. in Signalizer
+		/// </summary>
+		typedef double SFloat;
+		/// <summary>
+		/// Floating point type used for audio 
+		/// </summary>
+		typedef float AFloat;
+		/// <summary>
+		/// Floating point type used for parameters of the host system
+		/// </summary>
+		typedef float PFloat;
+
+		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
+		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
+
+
 		// TODO: Figure out why sizes around 256 causes buffer overruns
-		typedef cpl::CAudioStream<float, 64> AudioStream;
+		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
 		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
+
+		class ProcessorState
+			: public cpl::SafeSerializableObject
+		{
+		public:
+
+			virtual std::unique_ptr<StateEditor> createEditor() = 0;
+			virtual ParameterSet & getParameterSet() = 0;
+
+			virtual ~ProcessorState() {}
+
+		};
+
+		class SystemView
+		{
+		public:
+
+			SystemView(AudioStream & audioStream, ParameterSet::AutomatedProcessor & automatedProcessor)
+				: stream(audioStream), processor(automatedProcessor)
+			{
+
+			}
+
+			ParameterSet::AutomatedProcessor & getProcessor() noexcept { return processor; }
+			AudioStream & getAudioStream() noexcept { return stream; }
+
+		private:
+			AudioStream & stream;
+			ParameterSet::AutomatedProcessor & processor;
+		};
+
+		template<typename ParameterView>
+		class AudioHistoryTransformatter
+			: public ParameterView::ParameterType::Transformer
+			, public ParameterView::ParameterType::Formatter
+			, public cpl::CSerializer::Serializable
+			, private AudioStream::Listener
+		{
+		public:
+
+			typedef typename ParameterView::ParameterType::ValueType ValueType;
+
+			enum Mode
+			{
+				Samples,
+				Miliseconds
+			};
+
+			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Miliseconds)
+				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
+			{
+
+			}
+
+			void setModeFromUI(Mode newMode)
+			{
+				if (m != newMode)
+				{
+					m = newMode;
+					// updates displays, even though the internal fraction stays the same.
+					param->updateFromUINormalized(param->getValueNormalized());
+				}
+			}
+
+			void initialize(ParameterView & view)
+			{
+				param = &view;
+				listenToSource(stream, true);
+			}
+
+			void serialize(cpl::CSerializer::Archiver & ar, cpl::Version v) override
+			{
+				ar << lastCapacity.load(std::memory_order_relaxed);
+			}
+
+			void deserialize(cpl::CSerializer::Builder & ar, cpl::Version v) override
+			{
+				double val;
+				ar >> val;
+				lastCapacity.store(val, std::memory_order_relaxed);
+			}
+
+			~AudioHistoryTransformatter()
+			{
+				detachFromSource();
+			}
+
+		private:
+
+			virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
+			{
+				// TODO: what if oldCapacity == 0?
+				const auto oldFraction = param->getValueNormalized();
+				auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
+				auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
+				if (oldCapacity == 0)
+					oldCapacity = beforeCapacity;
+
+				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
+
+				if (newCapacity > 0)
+					lastCapacity.store(newCapacity, std::memory_order_relaxed);
+
+				if(oldCapacity == 0 || newCapacity == 0)
+				{
+					param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+				}
+				else
+				{
+					const auto sampleSizeBefore = oldCapacity * oldFraction;
+					const auto newFraction = sampleSizeBefore / newCapacity;
+					if (oldFraction != newFraction || beforeCapacity == 0)
+						param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+				}
+			}
+
+			virtual bool format(const ValueType & val, std::string & buf) override
+			{
+				char buffer[100];
+
+				if (m == Miliseconds)
+				{
+					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
+				}
+				else
+				{
+					sprintf_s(buffer, "%.0f smps", val);
+				}
+
+				buf = buffer;
+				return true;
+			}
+
+			virtual bool interpret(const std::string & buf, ValueType & val) override
+			{
+				ValueType collectedValue;
+
+
+				if (cpl::lexicalConversion(buf, collectedValue))
+				{		
+					bool notSamples = true;
+
+					if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
+					{
+						if (buf.find("ms") != std::string::npos)
+						{
+							collectedValue /= 1000;
+						}
+						collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					}
+					else
+					{
+						// assume value is in miliseconds
+						if (m == Miliseconds && notSamples)
+						{
+							collectedValue /= 1000;
+							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+						}
+					}
+
+					val = collectedValue;
+					return true;
+
+				}
+
+				return false;
+
+			}
+
+			virtual ValueType transform(ValueType val) override
+			{
+				auto samples = std::round(val * stream.getAudioHistoryCapacity());
+				
+				/* if (m == Miliseconds)
+				{
+					samples /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					samples *= 1000;
+				} */
+
+
+				return samples;
+			}
+
+
+			virtual ValueType normalize(ValueType val) override
+			{
+				/* if (m == Miliseconds)
+				{
+					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+					val *= 1000;
+				} */
+
+				return val / stream.getAudioHistoryCapacity();
+			}
+
+			ParameterView * param;
+			AudioStream & stream;
+			Mode m;
+			/// <summary>
+			/// Represents the last capacity change we were informated about,
+			/// and thus currently represents the magnitude scale of the fraction.
+			/// </summary>
+			std::atomic<std::uint64_t> lastCapacity;
+		};
+
+		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
 		
+		
+		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
+		extern std::string MainPresetName;
+		extern std::string DefaultPresetName;
+
 		enum class ChannelConfiguration
 		{
 			/// <summary>
@@ -138,6 +369,308 @@
 			{
 				return std::complex<Scalar>(real, imag);
 			}
+		};
+
+		template<typename T>
+		struct UniqueHandle
+		{
+		public:
+
+			UniqueHandle(std::unique_ptr<T> && ref)
+			{
+				handle.reset(ref.release());
+				handle.get_deleter().doDelete = true;
+			}
+
+			UniqueHandle<T> & operator = (std::unique_ptr<T> && ref)
+			{
+				handle.reset(ref.release());
+				handle.get_deleter().doDelete = true;
+				ref.get_deleter().doDelete = false;
+				return *this;
+			}
+
+			UniqueHandle<T> weakCopy()
+			{
+				UniqueHandle<T> ret;
+				ret.handle.reset(handle.get());
+				ret.handle.get_deleter().doDelete = false;
+				return std::move(ret);
+			}
+
+			T * operator -> () const noexcept { return *get(); }
+			T * operator -> () noexcept { return *get(); }
+
+			T * get() noexcept { return handle.get(); }
+			T * get() const noexcept { return handle.get(); }
+
+			/// <summary>
+			/// Transforms ownership of the contained object. Throws if it isn't owned.
+			/// </summary>
+			T * acquire()
+			{
+				if (!handle.get_deleter().doDelete)
+					CPL_RUNTIME_EXCEPTION("UniqueHandle asked to release ownership of something it doesn't own");
+				handle.get_deleter().doDelete = false;
+				return handle.release();  
+			}
+
+			/// <summary>
+			/// Deletes the object if owned, and clears afterwards.
+			/// </summary>
+			void forget() noexcept
+			{
+				handle = nullptr;
+			}
+
+			/// <summary>
+			/// May leak memory. Removes reference to any object, but doesn't delete it.
+			/// </summary>
+			void clear() noexcept
+			{
+				handle.release();
+			}
+
+			static UniqueHandle<T> null() { return {}; }
+
+		private:
+
+			UniqueHandle()
+			{
+				handle.get_deleter().doDelete = false;
+			}
+
+			std::unique_ptr<T, cpl::Utility::MaybeDelete<T>> handle;
+		};
+
+
+
+		/// <summary>
+		/// Provides a optionally lazily loaded instance of some object, where you can (de)serialize the state independently of the instance
+		/// Premise: 
+		/// </summary>
+		template<typename T>
+		class DecoupledStateObject
+		{
+			static_assert(std::is_base_of<cpl::DestructionNotifier, T>::value, "State object must be able to notify of destruction");
+
+		public:
+
+			typedef std::function<void(T &, cpl::CSerializer::Archiver &, cpl::Version)> FSerializer;
+			typedef std::function<void(T &, cpl::CSerializer::Builder &, cpl::Version)> FDeserializer;
+			typedef std::function<std::unique_ptr<T>()> FGenerator;
+
+			DecoupledStateObject(FGenerator generatorFunc, FSerializer serializerFunc, FDeserializer deserializerFunc)
+				: generator(generatorFunc)
+				, serializer(serializerFunc)
+				, deserializer(deserializerFunc)
+				, objectDeathHook(*this)
+				, cachedObject(UniqueHandle<T>::null())
+			{
+
+			}
+
+			FGenerator replaceGenerator(FGenerator generatorFunc)
+			{
+				auto old = generator;
+				generator = generatorFunc;
+				return old;
+			}
+
+			FSerializer replaceSerializer(FSerializer serializerFunc)
+			{
+				auto old = serializer;
+				serializer = serializerFunc;
+				return old;
+			}
+
+			FDeserializer replaceDeserializer(FDeserializer deserializerFunc)
+			{
+
+				auto old = deserializer;
+				deserializer = deserializerFunc;
+				return old;
+			}
+
+			UniqueHandle<T> getUnique()
+			{
+				UniqueHandle<T> ret = hasCached() ? std::move(cachedObject) : create();
+				cachedObject = ret.weakCopy();
+				return std::move(ret);
+			}
+
+			UniqueHandle<T> getCached() { if (!hasCached()) cachedObject = create(); return cachedObject.weakCopy(); }
+			bool hasCached() const noexcept { return cachedObject.get() != nullptr; }
+
+			void setState(cpl::CSerializer::Builder & builder, cpl::Version v)
+			{
+				if (hasCached())
+				{
+					builder.setMasterVersion(v);
+					deserializeState(*getCached().get(), &builder);
+				}
+				else
+				{
+					state = builder;
+					state.setMasterVersion(v);
+				}
+			}
+
+			/// <summary>
+			/// If serialized state is refreshed, the version will be updated
+			/// </summary>
+			/// <returns></returns>
+			const cpl::CSerializer::Builder & getState()
+			{
+				if (hasCached())
+				{
+					serializeState(*getCached().get());
+				}
+				return state;
+			}
+
+		private:
+
+			void onObjectDestruction(cpl::DestructionNotifier * obj)
+			{
+				CPL_RUNTIME_ASSERTION(obj);
+				CPL_RUNTIME_ASSERTION(obj == cachedObject.get());
+
+				serializeState(*getCached().get());
+
+				cachedObject.clear();
+			}
+
+			void serializeState(T & obj)
+			{
+				state.clear();
+				state.setMasterVersion(cpl::programInfo.version);
+				serializer(obj, state, cpl::programInfo.version);
+			}
+
+			void deserializeState(T & obj, cpl::CSerializer::Builder * optionalExternalState = nullptr)
+			{
+				auto & usableState = optionalExternalState ? *optionalExternalState : state;
+				deserializer(obj, usableState, usableState.getLocalVersion());
+			}
+
+			UniqueHandle<T> create()
+			{
+				auto uref = generator();
+				if (!state.isEmpty())
+					deserializeState(*uref);
+				objectDeathHook.listenToObject(uref.get());
+				return std::move(uref);
+			}
+
+			class DestructionDelegate
+				: public cpl::DestructionNotifier::EventListener
+			{
+			public:
+				DestructionDelegate(DecoupledStateObject<T> & parentToNotify) : parent(parentToNotify) { }
+
+				void listenToObject(cpl::DestructionNotifier * notifier)
+				{
+					notif = notifier;
+					notifier->addEventListener(this);
+				}
+
+				virtual void onServerDestruction(cpl::DestructionNotifier * v) override
+				{
+					parent.onObjectDestruction(v);
+					hasDied = true;
+				}
+
+				~DestructionDelegate()
+				{
+					if (!hasDied && notif)
+					{
+						notif->removeEventListener(this);
+					}
+				}
+
+			private:
+				bool hasDied = false;
+				DecoupledStateObject<T> & parent;
+				cpl::DestructionNotifier * notif = nullptr;
+			};
+
+			FGenerator generator;
+			FSerializer serializer;
+			FDeserializer deserializer;
+
+
+			cpl::CSerializer state;
+			UniqueHandle<T> cachedObject;
+			DestructionDelegate objectDeathHook;
+		};
+
+		struct ParameterMap
+		{
+			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)
+			{
+				parameterSets.push_back(&entry.second->getParameterSet());
+				map.emplace_back(std::move(entry));
+			}
+
+			ParameterSet::ParameterView * findParameter(cpl::Parameters::Handle index)
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+					if (auto param = parameterSets[i]->findParameter(index))
+						return param;
+
+				CPL_RUNTIME_EXCEPTION("Parameter index from host is out of bounds");
+			}
+
+			ParameterSet * getSet(const std::string & s) noexcept
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+				{
+					if (map[i].first == s)
+						return parameterSets[i];
+				}
+
+				return nullptr;
+			}
+
+			ParameterSet * getSet(std::size_t i) noexcept
+			{
+				return parameterSets[i];
+			}
+
+			ProcessorState * getState(std::size_t i) noexcept
+			{
+				return map[i].second.get();
+			}
+
+
+			ProcessorState * getState(const std::string & s) noexcept
+			{
+				for (std::size_t i = 0; i < map.size(); ++i)
+				{
+					if (map[i].first == s)
+						return map[i].second.get();
+				}
+
+				return nullptr;
+			}
+
+			std::size_t numSetsAndState() const noexcept
+			{
+				return parameterSets.size();
+			}
+
+			std::size_t numParams() const noexcept {
+				std::size_t r(0);
+				for (auto & i : parameterSets)
+					r += i->size();
+				return r;
+			};
+
+		private:
+
+			std::vector<ParameterSet *> parameterSets;
+			std::vector<std::pair<std::string, std::unique_ptr<ProcessorState>>> map;
 		};
 	};
 	namespace std

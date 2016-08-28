@@ -31,238 +31,400 @@
 #include "MainEditor.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/Protected.h>
+#include <cpl/Mathext.h>
+#include <cpl/infrastructure/Values/Values.h>
 
-//==============================================================================
-SignalizerAudioProcessor::SignalizerAudioProcessor()
-: 
-	editor(nullptr), 
-	hasDefaultPresetBeenLoaded(false),
-	stream(16, true),
-	nChannels(2),
-	serializedData("HostState")
+namespace Signalizer
 {
-	serializedData.getArchiver().setMasterVersion(cpl::programInfo.version);
-}
 
-SignalizerAudioProcessor::~SignalizerAudioProcessor() noexcept
-{
-}
 
-void SignalizerAudioProcessor::onServerDestruction(cpl::DestructionNotifier * v)
-{
-	if (v == editor)
+	//==============================================================================
+	AudioProcessor::AudioProcessor()
+		: stream(16, true)
+		, nChannels(2)
+		, dsoEditor(
+			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
+			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
+			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
+		)
 	{
-		serializedData.clear();
-		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
-
-		editor = nullptr;
-	}
-}
-
-//==============================================================================
-void SignalizerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
-{
-	Signalizer::AudioStream::AudioStreamInfo info = stream.getInfo();
-
-	info.anticipatedChannels = nChannels;
-	info.anticipatedSize = samplesPerBlock;
-	info.callAsyncListeners = true;
-	info.callRTListeners = true;
-	info.isFrozen = false;
-	info.isSuspended = false;
-	info.sampleRate = sampleRate;
-	info.storeAudioHistory = true;
-
-	stream.initializeInfo(info);
-}
-
-void SignalizerAudioProcessor::releaseResources()
-{
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
-
-void SignalizerAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
-{
-
-	if (nChannels != buffer.getNumChannels())
-	{
-		// woah, what?
-		CPL_BREAKIFDEBUGGED();
-	}
-
-	// stream will take it from here.
-	stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples());
-
-    // In case we have more outputs than inputs, we'll clear any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
-    {
-        buffer.clear (i, 0, buffer.getNumSamples());
-    }
-}
-
-//==============================================================================
-bool SignalizerAudioProcessor::hasEditor() const
-{
-    return true; // (change this to false if you choose to not supply an editor)
-}
-
-
-AudioProcessorEditor* SignalizerAudioProcessor::createEditor()
-{
-	//cpl::Misc::MsgBox("Attach debugger");
-
-	editor = new Signalizer::MainEditor(this);
-	editor->addEventListener(this);
-	if (!serializedData.isEmpty())
-		editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
-
-	return editor;
-}
-
-//==============================================================================
-void SignalizerAudioProcessor::getStateInformation (MemoryBlock& destData)
-{
-	if (editor)
-	{
-		serializedData.clear();
-		editor->serializeObject(serializedData.getArchiver(), serializedData.getArchiver().getMasterVersion());
-	}
-	if (!serializedData.isEmpty())
-	{
-		auto compiledData = serializedData.compile();
-		destData.append(compiledData.getBlock(), compiledData.getSize());
-	}
-}
-
-void SignalizerAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
-{
-	try
-	{
-		serializedData.clear();
-		serializedData.build(cpl::WeakContentWrapper(data, sizeInBytes));
-		// TODO: can make version check here.
-		if (editor)
+		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
 		{
-			editor->deserializeObject(serializedData.getBuilder(), serializedData.getBuilder().getMasterVersion());
+			parameterMap.insert({
+				ParameterCreationList[i].first,
+				ParameterCreationList[i].second(parameterMap.numParams(), false, { stream, *this })
+			});
+		}
+		
+		juce::File location;
+
+		// load the default preset
+		try
+		{
+			SerializerType serializer(MainPresetName);
+
+			cpl::CPresetManager::instance().loadPreset(
+				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr, 
+				serializer,
+				location
+			);
+
+			if (!serializer.isEmpty())
+			{
+				deserialize(serializer.getBuilder(), serializer.getBuilder().getLocalVersion());
+			}
+		}
+		catch (std::exception & e)
+		{
+			cpl::Misc::MsgBox(std::string("Error reading state information from default preset:\n") + e.what(), cpl::programInfo.name);
+		}
+
+	}
+
+	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
+	{
+		sendParamChangeMessageToListeners(parameter, value);
+	}
+
+	void AudioProcessor::automatedBeginChangeGesture(int parameter)
+	{
+		beginParameterChangeGesture(parameter);
+	}
+
+	void AudioProcessor::automatedEndChangeGesture(int parameter)
+	{
+		endParameterChangeGesture(parameter);
+	}
+
+	AudioProcessor::~AudioProcessor() noexcept
+	{
+		notifyDestruction();
+	}
+
+	//==============================================================================
+	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+	{
+		AudioStream::AudioStreamInfo info = stream.getInfo();
+
+		info.anticipatedChannels = nChannels;
+		info.anticipatedSize = samplesPerBlock;
+		info.callAsyncListeners = true;
+		info.callRTListeners = true;
+		info.isFrozen = false;
+		info.isSuspended = false;
+		info.sampleRate = sampleRate;
+		info.storeAudioHistory = true;
+
+		stream.initializeInfo(info);
+	}
+
+	void AudioProcessor::releaseResources()
+	{
+	}
+
+	void AudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
+	{
+
+		if (nChannels != buffer.getNumChannels())
+		{
+			// woah, what?
+			CPL_BREAKIFDEBUGGED();
+		}
+
+		// stream will take it from here.
+		stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples());
+
+		// In case we have more outputs than inputs, we'll clear any output
+		// channels that didn't contain input data, (because these aren't
+		// guaranteed to be empty - they may contain garbage).
+		for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
+		{
+			buffer.clear(i, 0, buffer.getNumSamples());
 		}
 	}
-	catch (const std::exception & e)
+
+	//==============================================================================
+	bool AudioProcessor::hasEditor() const
 	{
-		cpl::Misc::MsgBox(std::string("Error loading state information:\n") + e.what(), "Signalizer");
+		return true; // (change this to false if you choose to not supply an editor)
 	}
 
-}
+
+	AudioProcessorEditor* AudioProcessor::createEditor()
+	{
+		std::lock_guard<std::mutex> lock(editorCreationMutex);
+		return dsoEditor.getUnique().acquire();
+	}
+
+	//==============================================================================
+	void AudioProcessor::getStateInformation(MemoryBlock& destData)
+	{
+		cpl::CPresetWidget::SerializerType serializer("HostState");
+		serializer.getArchiver().setMasterVersion(cpl::programInfo.version);
+		serialize(serializer.getArchiver(), cpl::programInfo.version);
+
+		if (!serializer.isEmpty())
+		{
+			auto compiledData = serializer.compile(true);
+			destData.append(compiledData.getBlock(), compiledData.getSize());
+		}
+	}
+
+	void AudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+	{
+		SerializerType serializer("HostState");
+
+		try
+		{
+			serializer.build(cpl::WeakContentWrapper(data, sizeInBytes));
+		}
+		catch (const std::exception & e)
+		{
+			cpl::Misc::MsgBox(std::string("Error reading state information:\n") + e.what(), "Signalizer");
+		}
+
+		if (serializer.isEmpty())
+			return;
+
+		try
+		{
+			deserialize(serializer.getBuilder(), serializer.getBuilder().getLocalVersion());
+		}
+		catch (const std::exception & e)
+		{
+			cpl::Misc::MsgBox(std::string("Error serializing state information:\n") + e.what(), "Signalizer");
+		}
+	}
+
+	void AudioProcessor::deserialize(cpl::CSerializer & serializer, cpl::Version version)
+	{
+		auto & editorContent = version < cpl::Version(0, 2, 8) ? serializer : serializer.getContent("Editor");
+
+		if (!editorContent.isEmpty())
+		{
+			std::lock_guard<std::mutex> lock(editorCreationMutex);
+
+			if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
+			{
+				// writing to this value with acquire/release ensures we see any changes concurrently here 
+				std::atomic_int editorSerializationState {0};
+
+				cpl::GUIUtils::MainEvent(
+					*this,
+					[&]
+					{
+						// interesting: host closed our window after calling setStateInformation but still while waiting for it to end..
+						if (!dsoEditor.hasCached())
+						{
+							editorSerializationState.store(2, std::memory_order_release);
+							return;
+						}
+
+						// if the object dies after this, it's a framework implementation issues (deleting windows not on the main thread??)
+						dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+						editorSerializationState.store(1, std::memory_order_release);
+					}
+				);
+
+				int exitState = 0;
+				// maybe use future
+				if (!cpl::Misc::WaitOnCondition(2000, [&] { return !(exitState = editorSerializationState.load(std::memory_order_acquire)); }))
+					return;
+
+				// editor death, dso should have content - no new window can exist due to lock
+				if (exitState == 2)
+				{
+					dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+				}
+				// if not - content should already be stored concurrently
+			}
+			else
+			{
+				// state is protected by either being on the main thread or having the window creation lock
+				dsoEditor.setState(editorContent, editorContent.getLocalVersion());
+			}
+		}
+
+		auto & parameterStates = serializer.getContent("Parameters");
+		if (!parameterStates.isEmpty())
+		{
+			for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
+			{
+				auto & serializedParameterState = parameterStates.getContent(parameterMap.getSet(i)->getName());
+				if (!serializedParameterState.isEmpty())
+					serializedParameterState >> *parameterMap.getState(i);
+			}
+		}
+
+	}
+
+	void AudioProcessor::serialize(cpl::CSerializer & serializer, cpl::Version version)
+	{
+		std::lock_guard<std::mutex> lock(editorCreationMutex);
+
+		auto & editorContent = serializer.getContent("Editor");
+
+		if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
+		{
+			// writing to this value with acquire/release ensures we see any changes concurrently here 
+			std::atomic_int editorSerializationState = {0};
+
+			cpl::GUIUtils::MainEvent(
+				*this,
+				[&]
+				{
+					// interesting: host closed our window after calling getStateInformation but still while waiting for it to end..
+					if (!dsoEditor.hasCached())
+					{
+						editorSerializationState.store(2, std::memory_order_release);
+						return;
+					}
+
+					// if the object dies after this, it's a framework implementation issues (deleting windows not on the main thread??)
+					editorContent = dsoEditor.getState();
+					editorSerializationState.store(1, std::memory_order_release);
+				}
+			);
+
+			int exitState = 0;
+			// maybe use future
+			if (!cpl::Misc::WaitOnCondition(2000, [&] { return !(exitState = editorSerializationState.load(std::memory_order_acquire)); }))
+				return;
+
+			// editor death, dso should have content - no new window can exist due to lock
+			if (exitState == 2)
+			{
+				editorContent = dsoEditor.getState();
+			}
+			// if not - content should already be stored concurrently
+		}
+		else
+		{
+			// state is protected by either being on the main thread or having the window creation lock
+			editorContent = dsoEditor.getState();
+
+		}
+
+		auto & parameterState = serializer.getContent("Parameters");
+		parameterState.clear();
+		parameterState.setMasterVersion(cpl::programInfo.version);
+
+		for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
+		{
+			parameterState.getContent(parameterMap.getSet(i)->getName()) << *parameterMap.getState(i);
+		}
+	}
 
 
-//==============================================================================
-const String SignalizerAudioProcessor::getName() const
-{
-    return cpl::programInfo.name;
-}
+	//==============================================================================
+	const String AudioProcessor::getName() const
+	{
+		return cpl::programInfo.name;
+	}
 
-int SignalizerAudioProcessor::getNumParameters()
-{
-    return 0;
-}
+	int AudioProcessor::getNumParameters()
+	{
+		return static_cast<int>(parameterMap.numParams());
+	}
 
-float SignalizerAudioProcessor::getParameter (int index)
-{
-    return 0.0f;
-}
+	float AudioProcessor::getParameter(int index)
+	{
+		return parameterMap.findParameter(index)->getValueNormalized<float>();
 
-void SignalizerAudioProcessor::setParameter (int index, float newValue)
-{
-}
+	}
 
-const String SignalizerAudioProcessor::getParameterName (int index)
-{
-    return String::empty;
-}
+	void AudioProcessor::setParameter(int index, float newValue)
+	{
+		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
+	}
 
-const String SignalizerAudioProcessor::getParameterText (int index)
-{
-    return String::empty;
-}
+	const String AudioProcessor::getParameterName(int index)
+	{
+		return parameterMap.findParameter(index)->getExportedName();
+	}
 
-const String SignalizerAudioProcessor::getInputChannelName (int channelIndex) const
-{
-    return String (channelIndex + 1);
-}
+	const String AudioProcessor::getParameterText(int index)
+	{
+		return parameterMap.findParameter(index)->getDisplayText();
+	}
 
-const String SignalizerAudioProcessor::getOutputChannelName (int channelIndex) const
-{
-    return String (channelIndex + 1);
-}
+	const String AudioProcessor::getInputChannelName(int channelIndex) const
+	{
+		return String(channelIndex + 1);
+	}
 
-bool SignalizerAudioProcessor::isInputChannelStereoPair (int index) const
-{
-    return true;
-}
+	const String AudioProcessor::getOutputChannelName(int channelIndex) const
+	{
+		return String(channelIndex + 1);
+	}
 
-bool SignalizerAudioProcessor::isOutputChannelStereoPair (int index) const
-{
-    return true;
-}
+	bool AudioProcessor::isInputChannelStereoPair(int index) const
+	{
+		return true;
+	}
 
-bool SignalizerAudioProcessor::acceptsMidi() const
-{
-   #if JucePlugin_WantsMidiInput
-    return true;
-   #else
-    return false;
-   #endif
-}
+	bool AudioProcessor::isOutputChannelStereoPair(int index) const
+	{
+		return true;
+	}
 
-bool SignalizerAudioProcessor::producesMidi() const
-{
-   #if JucePlugin_ProducesMidiOutput
-    return true;
-   #else
-    return false;
-   #endif
-}
+	bool AudioProcessor::acceptsMidi() const
+	{
+#if JucePlugin_WantsMidiInput
+		return true;
+#else
+		return false;
+#endif
+	}
 
-bool SignalizerAudioProcessor::silenceInProducesSilenceOut() const
-{
-    return true;
-}
+	bool AudioProcessor::producesMidi() const
+	{
+#if JucePlugin_ProducesMidiOutput
+		return true;
+#else
+		return false;
+#endif
+	}
 
-double SignalizerAudioProcessor::getTailLengthSeconds() const
-{
-    return 0.0;
-}
+	bool AudioProcessor::silenceInProducesSilenceOut() const
+	{
+		return true;
+	}
 
-int SignalizerAudioProcessor::getNumPrograms()
-{
-    return 1;
-}
+	double AudioProcessor::getTailLengthSeconds() const
+	{
+		return 0.0;
+	}
 
-int SignalizerAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
+	int AudioProcessor::getNumPrograms()
+	{
+		return 1;
+	}
 
-void SignalizerAudioProcessor::setCurrentProgram (int index)
-{
-}
+	int AudioProcessor::getCurrentProgram()
+	{
+		return 0;
+	}
 
-const String SignalizerAudioProcessor::getProgramName (int index)
-{
-    return String::empty;
-}
+	void AudioProcessor::setCurrentProgram(int index)
+	{
+	}
 
-void SignalizerAudioProcessor::changeProgramName (int index, const String& newName)
-{
-}
+	const String AudioProcessor::getProgramName(int index)
+	{
+		return String::empty;
+	}
 
+	void AudioProcessor::changeProgramName(int index, const String& newName)
+	{
+	}
+
+};
 
 
 //==============================================================================
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new SignalizerAudioProcessor();
+    return new Signalizer::AudioProcessor();
 }

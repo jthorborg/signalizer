@@ -35,75 +35,86 @@
 #include <cpl/gui/CViews.h>
 #include "CommonSignalizer.h"
 #include <cpl/gui/widgets/CPresetWidget.h>
-
+#include "MainEditor.h"
 
 namespace Signalizer
 {
 	class MainEditor;
+
+	class AudioProcessor final
+		: public juce::AudioProcessor
+		, public cpl::SafeSerializableObject
+		, cpl::DestructionNotifier
+		, ParameterSet::AutomatedProcessor
+	{
+		friend class MainEditor;
+
+	public:
+
+		typedef cpl::CPresetWidget::SerializerType SerializerType;
+
+		//==============================================================================
+		AudioProcessor();
+		~AudioProcessor() noexcept;
+
+		//==============================================================================
+		void prepareToPlay(double sampleRate, int samplesPerBlock);
+		void releaseResources();
+
+		void processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages);
+
+		//==============================================================================
+		AudioProcessorEditor* createEditor();
+		bool hasEditor() const;
+
+		//==============================================================================
+		const String getName() const;
+
+		int getNumParameters();
+
+		float getParameter(int index);
+		void setParameter(int index, float newValue);
+
+		const String getParameterName(int index);
+		const String getParameterText(int index);
+
+		const String getInputChannelName(int channelIndex) const;
+		const String getOutputChannelName(int channelIndex) const;
+		bool isInputChannelStereoPair(int index) const;
+		bool isOutputChannelStereoPair(int index) const;
+
+		bool acceptsMidi() const;
+		bool producesMidi() const;
+		bool silenceInProducesSilenceOut() const;
+		double getTailLengthSeconds() const;
+
+		//==============================================================================
+		int getNumPrograms();
+		int getCurrentProgram();
+		void setCurrentProgram(int index);
+		const String getProgramName(int index);
+		void changeProgramName(int index, const String& newName);
+
+		//==============================================================================
+		void getStateInformation(MemoryBlock& destData);
+		void setStateInformation(const void* data, int sizeInBytes);
+
+		void deserialize(cpl::CSerializer & se, cpl::Version version) override;
+		void serialize(cpl::CSerializer & se, cpl::Version version) override;
+
+	private:
+
+		virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
+		virtual void automatedBeginChangeGesture(int parameter) override;
+		virtual void automatedEndChangeGesture(int parameter) override;
+
+		//==============================================================================
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
+		Signalizer::AudioStream stream;
+		int nChannels;
+		ParameterMap parameterMap;
+		DecoupledStateObject<MainEditor> dsoEditor;
+		std::mutex editorCreationMutex;
+	};
 };
-
-class SignalizerAudioProcessor  : public juce::AudioProcessor, cpl::CView::EventListener
-{
-	friend class SignalizerAudioProcessorEditor;
-	friend class Signalizer::MainEditor;
-
-public:
-    //==============================================================================
-    SignalizerAudioProcessor();
-    ~SignalizerAudioProcessor() noexcept;
-
-    //==============================================================================
-    void prepareToPlay (double sampleRate, int samplesPerBlock);
-    void releaseResources();
-
-    void processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages);
-
-    //==============================================================================
-    AudioProcessorEditor* createEditor();
-    bool hasEditor() const;
-
-    //==============================================================================
-    const String getName() const;
-
-    int getNumParameters();
-
-    float getParameter (int index);
-    void setParameter (int index, float newValue);
-
-    const String getParameterName (int index);
-    const String getParameterText (int index);
-
-    const String getInputChannelName (int channelIndex) const;
-    const String getOutputChannelName (int channelIndex) const;
-    bool isInputChannelStereoPair (int index) const;
-    bool isOutputChannelStereoPair (int index) const;
-
-    bool acceptsMidi() const;
-    bool producesMidi() const;
-    bool silenceInProducesSilenceOut() const;
-    double getTailLengthSeconds() const;
-
-    //==============================================================================
-    int getNumPrograms();
-    int getCurrentProgram();
-    void setCurrentProgram (int index);
-    const String getProgramName (int index);
-    void changeProgramName (int index, const String& newName);
-
-    //==============================================================================
-    void getStateInformation (MemoryBlock& destData);
-    void setStateInformation (const void* data, int sizeInBytes);
-	
-	void onServerDestruction(cpl::DestructionNotifier * v) override;
-	
-private:
-    //==============================================================================
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SignalizerAudioProcessor)
-	cpl::CPresetWidget::SerializerType serializedData;
-	Signalizer::MainEditor * editor;
-	Signalizer::AudioStream stream;
-	bool hasDefaultPresetBeenLoaded;
-	int nChannels;
-};
-
 #endif 

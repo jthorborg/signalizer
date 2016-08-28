@@ -35,6 +35,7 @@
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"
+#include "PluginProcessor.h"
 
 namespace cpl
 {
@@ -60,30 +61,48 @@ namespace Signalizer
 
 	const static juce::String MainEditorName = "Main Editor Settings";
 
-	const char * ViewIndexToMap[] = 
+	std::string MainPresetName = "main";
+	std::string DefaultPresetName = "default";
+
+	std::array<const char *, 2> ViewIndexToMap = 
 	{
 		"Vectorscope",
-		"Oscilloscope",
-		"Spectrum",
-		"Statistics"
+		//"Oscilloscope",
+		"Spectrum"
+		//"Statistics"
 	};
 
 	enum class ViewTypes
 	{
 		Vectorscope,
-		Oscilloscope,
+		//Oscilloscope,
 		Spectrum,
 		end
 	};
 
-	enum class Editors
+	template<typename T>
+	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 	{
-		GlobalSettings,
-		Vectorscope,
-		Oscilloscope,
-		Spectrum,
-		end
+		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, system));
+	}
+
+	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
+	{
+		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
+		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
 	};
+
+	template<typename... Args>
+	std::unique_ptr<cpl::CSubView> GenerateView(ViewTypes type, Args&&... args)
+	{
+		switch (type)
+		{
+		case ViewTypes::Vectorscope: return std::make_unique<CVectorScope>(args...);
+		case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
+		}
+		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
+	}
+
 	enum class RenderTypes
 	{
 		Software,
@@ -124,43 +143,61 @@ namespace Signalizer
 		"16"
 	};
 
-	MainEditor::MainEditor(SignalizerAudioProcessor * e)
-	:
-		engine(e),
-		AudioProcessorEditor(e),
-		CTopView(this, "Signalizer main editor"),
-		rcc(this, this),
-		krenderEngine("Rendering Engine", RenderingEnginesList),
-		krefreshRate("Refresh Rate"),
-		refreshRate(0),
-		oldRefreshRate(0),
-		unFocused(true), 
-		idleInBack(false),
-		isEditorVisible(false),
-		selTab(0),
-		currentView(nullptr),
-		kstableFps("Stable FPS"),
-		kvsync("Vertical Sync"),
-		kioskCoords(-1, -1),
-		firstKioskMode(false),
-		hasAnyTabBeenSelected(false),
-		viewTopCoord(0),
-		krefreshState("Reset state"),
-		kpresets(this, "main", kpresets.WithDefault),
-		kmaxHistorySize("History size")
-
+	MainEditor::MainEditor(AudioProcessor * e, ParameterMap * parameterMap)
+		: engine(e)
+		, params(parameterMap)
+		, AudioProcessorEditor(e)
+		, CTopView(this, "Signalizer main editor")
+		, rcc(this, this)
+		, krenderEngine("Rendering Engine", RenderingEnginesList)
+		, refreshRate(0)
+		, oldRefreshRate(0)
+		, unFocused(true)
+		, idleInBack(false)
+		, isEditorVisible(false)
+		, selTab(0)
+		, currentView(nullptr)
+		, kioskCoords(-1, -1)
+		, firstKioskMode(false)
+		, hasAnyTabBeenSelected(false)
+		, viewTopCoord(0)
+		, kpresets(e, MainPresetName, kpresets.WithDefault)
+		, kmaxHistorySize("History size")
+		, tabBarTimer()
+		, mouseHoversTabArea(false)
+		, tabBarIsVisible(true)
 	{
+		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
+		views.reserve((std::size_t)ViewTypes::end);
+
+		cpl::foreach_enum<ViewTypes>(
+			[&](ViewTypes index)
+			{
+				int i = cpl::enum_cast<int>(index);
+				auto & name = ViewIndexToMap[i];
+				auto & state = *params->getState(i);
+				views.emplace_back(
+					name,
+					state,
+					[=, &state]
+					{
+						return GenerateView(index, name, engine->stream, &state);
+					}
+				);
+			}
+		);
+
 		setOpaque(true);
 		setMinimumSize(50, 50);
 		setBounds(0, 0, kdefaultLength, kdefaultHeight);
 		initUI();
-
-		kpresets.loadDefaultPreset();
 		oglc.setComponentPaintingEnabled(false);
+
+		nestedMouseHook.hook(this, this, true);
 	}
 
 
-	std::unique_ptr<juce::Component> MainEditor::createEditor()
+	std::unique_ptr<StateEditor> MainEditor::createEditor()
 	{
 		auto content = new Signalizer::CContentPage();
 		content->setName(MainEditorName);
@@ -184,10 +221,15 @@ namespace Signalizer
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
+				section->addControl(&kmaxHistorySize, 0);
+				page->addSection(section, "Globals");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
 				section->addControl(&krefreshState, 0);
 				section->addControl(&kidle, 1);
-				section->addControl(&kmaxHistorySize, 2);
-				page->addSection(section, "Utility");
+				section->addControl(&khideTabs, 2);
+				page->addSection(section, "Globals");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/brush.svg"))
@@ -219,7 +261,7 @@ namespace Signalizer
 			}
 		}
 
-		return std::unique_ptr<juce::Component>(content);
+		return std::unique_ptr<StateEditor>(content);
 	}
 
 	void MainEditor::focusGained(FocusChangeType cause)
@@ -252,12 +294,33 @@ namespace Signalizer
 		// no-op.
 	}
 
-	void MainEditor::pushEditor(juce::Component * editor)
+	void MainEditor::setTabBarVisibility(bool toggle)
 	{
-		pushEditor(std::unique_ptr<juce::Component>(editor));
+		if (khideTabs.bGetBoolState())
+		{
+			if (tabBarIsVisible == !!toggle)
+				return;
+
+			tabBarIsVisible = !!toggle;
+			resized();
+		}
+		else
+		{
+			if (!tabBarIsVisible)
+			{
+				tabBarIsVisible = true;
+				resized();
+			}
+		}
+
+	}
+
+	void MainEditor::pushEditor(StateEditor * editor)
+	{
+		pushEditor(std::unique_ptr<StateEditor>(editor));
 		
 	}
-	void MainEditor::pushEditor(std::unique_ptr<juce::Component> newEditor)
+	void MainEditor::pushEditor(UniqueHandle<StateEditor> newEditor)
 	{
 		if (!newEditor.get())
 			return;
@@ -277,13 +340,14 @@ namespace Signalizer
 			repaint();
 		}
 	}
-	juce::Component * MainEditor::getTopEditor() const
+	StateEditor * MainEditor::getTopEditor() const
 	{
 		return editorStack.empty() ? nullptr : editorStack.back().get();
 	}
 	
 	void MainEditor::deleteEditor(MainEditor::EditorIterator i)
 	{
+		removeChildComponent(i->get());
 		editorStack.erase(i);
 		
 		if(editorStack.empty() && tabs.isOpen())
@@ -311,19 +375,11 @@ namespace Signalizer
 		while (!editorStack.empty())
 			popEditor();
 	}
-	cpl::CView * MainEditor::viewFromIndex(std::size_t index)
-	{
-		auto it = views.end();
-		if ((ViewTypes)index < ViewTypes::end)
-			it = views.find(ViewIndexToMap[index]);
-
-		return (it != views.end()) ? it->second.view.get() : nullptr;
-	}
 
 	void MainEditor::setRefreshRate(int rate)
 	{
 		refreshRate = cpl::Math::confineTo(rate, 10, 1000);
-		if (kstableFps.bGetValue() > 0.5)
+		if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
 		{
 			juce::HighResolutionTimer::startTimer(refreshRate);
 		}
@@ -331,8 +387,8 @@ namespace Signalizer
 		{
 			juce::Timer::startTimer(refreshRate);
 		}
-		if (currentView)
-			currentView->setApproximateRefreshRate(refreshRate);
+		if (hasCurrentView())
+			activeView().setApproximateRefreshRate(refreshRate);
 
 	}
 	void MainEditor::resume()
@@ -350,9 +406,9 @@ namespace Signalizer
 	// another JUCE plugin.
 	void MainEditor::componentMovedOrResized(Component& component, bool wasMoved, bool wasResized)
 	{
-		if (&component == currentView->getWindow())
+		if (&component == activeView().getWindow())
 		{
-			if (currentView->getIsFullScreen() && component.isOnDesktop())
+			if (activeView().getIsFullScreen() && component.isOnDesktop())
 			{
 				if (juce::ComponentPeer * peer = component.getPeer())
 				{
@@ -370,9 +426,9 @@ namespace Signalizer
 	}
 	void MainEditor::componentParentHierarchyChanged(Component& component)
 	{
-		if (&component == currentView->getWindow())
+		if (&component == activeView().getWindow())
 		{
-			if (currentView->getIsFullScreen() && component.isOnDesktop())
+			if (activeView().getIsFullScreen() && component.isOnDesktop())
 			{
 				if (juce::ComponentPeer * peer = component.getPeer())
 				{
@@ -393,22 +449,15 @@ namespace Signalizer
 	{
 		// TODO: refactor all behaviour here out to semantic functions
 		// bail out early if we aren't showing anything.
-		if (!currentView)
-			return;
+		//if (!hasCurrentView())
+		//	return;
 
 		auto value = c->bGetValue();
 
 		// freezing of displays
 		if (c == &kfreeze)
 		{
-			if (value > 0.5)
-			{
-				engine->stream.setSuspendedState(true);
-			}
-			else
-			{
-				engine->stream.setSuspendedState(false);
-			}
+			engine->stream.setSuspendedState(value > 0.5);
 		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)
@@ -438,9 +487,9 @@ namespace Signalizer
 		}
 		else if (c == &kkiosk)
 		{
-			if (currentView)
+			if (hasCurrentView())
 			{
-				if (value > 0.5 && currentView)
+				if (value > 0.5)
 				{
 					// set a window to fullscreen.
 					if (firstKioskMode)
@@ -450,29 +499,29 @@ namespace Signalizer
 					}
 					else
 					{
-						if (juce::Desktop::getInstance().getKioskModeComponent() == currentView->getWindow())
+						if (juce::Desktop::getInstance().getKioskModeComponent() == activeView().getWindow())
 							return;
-						kioskCoords = currentView->getWindow()->getScreenPosition();
+						kioskCoords = activeView().getWindow()->getScreenPosition();
 					}
 
 					preFullScreenSize = getBounds().withZeroOrigin();
 
-					removeChildComponent(currentView->getWindow());
-					currentView->getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
+					removeChildComponent(activeView().getWindow());
+					activeView().getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
-					currentView->getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
+					activeView().getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
 					bool useMenusAndBars = false;
 					#ifdef CPL_MAC
 						useMenusAndBars = true;
 					#endif
-					juce::Desktop::getInstance().setKioskModeComponent(currentView->getWindow(), useMenusAndBars);
-					currentView->setFullScreenMode(true);
-					currentView->getWindow()->setWantsKeyboardFocus(true);
-					currentView->getWindow()->grabKeyboardFocus();
+					juce::Desktop::getInstance().setKioskModeComponent(activeView().getWindow(), useMenusAndBars);
+					activeView().setFullScreenMode(true);
+					activeView().getWindow()->setWantsKeyboardFocus(true);
+					activeView().getWindow()->grabKeyboardFocus();
 					// add listeners.
 
-					currentView->getWindow()->addKeyListener(this);
-					currentView->getWindow()->addComponentListener(this);
+					activeView().getWindow()->addKeyListener(this);
+					activeView().getWindow()->addComponentListener(this);
 					
 					// sets a minimal view when entering full screen
 					setBounds(getBounds().withBottom(getViewTopCoordinate()));
@@ -485,7 +534,7 @@ namespace Signalizer
 		}
 		else if (c == &kstableFps)
 		{
-			if (kstableFps.bGetValue() > 0.5)
+			if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
 			{
 				juce::Timer::stopTimer();
 				juce::HighResolutionTimer::startTimer(refreshRate);
@@ -507,9 +556,9 @@ namespace Signalizer
 		}
 		else if (c == &kvsync)
 		{
-			if (kvsync.bGetValue() > 0.5)
+			if (kvsync.getValueReference().getNormalizedValue() > 0.5)
 			{
-				if (currentView)
+				if (hasCurrentView())
 				{
 					// this is kind of stupid; the sync setting must be set after the context is created..
 					struct RetrySync
@@ -532,7 +581,7 @@ namespace Signalizer
 			}
 			else
 			{
-				if (currentView)
+				if (hasCurrentView())
 				{
 					oglc.setContinuousRepainting(false);
 				}
@@ -553,9 +602,9 @@ namespace Signalizer
 			{
 			case RenderTypes::Software:
 
-				if (currentView && currentView->isOpenGL())
+				if (hasCurrentView() && activeView().isOpenGL())
 				{
-					currentView->detachFromOpenGL(oglc);
+					activeView().detachFromOpenGL(oglc);
 					if (oglc.isAttached())
 						oglc.detach();
 				}
@@ -565,7 +614,7 @@ namespace Signalizer
 			case RenderTypes::openGL:
 				if (oglc.isAttached())
 				{
-					if (currentView && !currentView->isOpenGL())
+					if (hasCurrentView() && !activeView().isOpenGL())
 					{
 						// ?? freaky
 						if (cpl::CView * unknownView = dynamic_cast<cpl::CView *>(oglc.getTargetComponent()))
@@ -573,8 +622,8 @@ namespace Signalizer
 						oglc.detach();
 					}
 				}
-				if (currentView)
-					currentView->attachToOpenGL(oglc);
+				if (hasCurrentView())
+					activeView().attachToOpenGL(oglc);
 				break;
 			}
 		}
@@ -584,8 +633,8 @@ namespace Signalizer
 		}
 		else if (c == &krefreshState)
 		{
-			if (currentView)
-				currentView->resetState();
+			if (hasCurrentView())
+				activeView().resetState();
 		}
 		else if(c == &khelp)
 		{
@@ -671,10 +720,7 @@ namespace Signalizer
 		// -- settings editor spawned the panel view
 		if(!ksettings.bGetBoolState() && !getTopEditor())
 		{
-			if (cpl::CView * view = viewFromIndex(selTab))
-			{
-				pushEditor(view->createEditor());
-			}
+			pushEditor(views[selTab].getEditorDSO().getCached());
 		}
 
 
@@ -725,11 +771,11 @@ namespace Signalizer
 			fmt.multisamplingLevel = sanitizedLevel;
 			// true if a view exists and it is attached
 			bool reattach = false;
-			if(currentView)
+			if(hasCurrentView())
 			{
-				if(currentView->isOpenGL())
+				if(activeView().isOpenGL())
 				{
-					currentView->detachFromOpenGL(oglc);
+					activeView().detachFromOpenGL(oglc);
 					reattach = true;
 				}
 			}
@@ -738,7 +784,7 @@ namespace Signalizer
 			
 			if(reattach)
 			{
-				currentView->attachToOpenGL(oglc);
+				activeView().attachToOpenGL(oglc);
 			}
 			
 		}
@@ -754,10 +800,11 @@ namespace Signalizer
 		return (int)cpl::distribute<RenderTypes>(krenderEngine.bGetValue());
 	}
 
-	void MainEditor::suspendView(cpl::CView * view)
+	void MainEditor::suspendView(SentientViewState & svs)
 	{
-		if (view)
+		if (svs.getViewDSO().hasCached())
 		{
+			auto view = svs.getViewDSO().getCached().get();
 			view->suspend();
 			if (oglc.isAttached())
 			{
@@ -786,74 +833,50 @@ namespace Signalizer
 			{
 				exitFullscreen();
 			}
-			removeChildComponent(currentView->getWindow());
+			removeChildComponent(activeView().getWindow());
 			view->getWindow()->removeMouseListener(this);
 		}
 
 	}
 
-	void MainEditor::initiateView(cpl::CView * view, bool spawnNewEditor)
+	void MainEditor::initiateView(SentientViewState & view, bool spawnNewEditor)
 	{
-		if (view)
+		currentView = &view;
+		addAndMakeVisible(activeView().getWindow());
+
+		if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
 		{
-			if (view != currentView)
+			// init all openGL stuff.
+			if (auto oglView = dynamic_cast<cpl::COpenGLView*>(view.getViewDSO().getCached().get()))
 			{
-				// trying to add the same window twice without suspending it?
-				jassertfalse;
+				oglView->addOpenGLEventListener(this);
+
+				setAntialiasing();
+				oglView->attachToOpenGL(oglc);
 			}
 
-			currentView = view;
-			addAndMakeVisible(view->getWindow());
-
-			if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
-			{
-				// init all openGL stuff.
-				if (auto oglView = dynamic_cast<cpl::COpenGLView*>(view))
-				{
-					oglView->addOpenGLEventListener(this);
-
-					setAntialiasing();
-					oglView->attachToOpenGL(oglc);
-				}
-
-			}
-			
-			if (spawnNewEditor)
-			{
-				auto newEditor = currentView->createEditor();
-				
-				if (newEditor.get())
-				{
-					pushEditor(std::move(newEditor));
-					tabs.openPanel();
-				}
-				else
-				{
-					tabs.closePanel();
-				}
-			}
-			
-			if (kkiosk.bGetValue() > 0.5)
-			{
-				if (firstKioskMode)
-					enterFullscreenIfNeeded(kioskCoords);
-				else
-					enterFullscreenIfNeeded();
-			}
-			resized();
-			view->getWindow()->addMouseListener(this, true);
-			view->resume();
 		}
-		else
+			
+		if (spawnNewEditor)
 		{
-			// adding non-existant window?
-			jassertfalse;
+			pushEditor(view.getEditorDSO().getCached());
 		}
+			
+		if (kkiosk.bGetBoolState())
+		{
+			if (firstKioskMode)
+				enterFullscreenIfNeeded(kioskCoords);
+			else
+				enterFullscreenIfNeeded();
+		}
+		resized();
+		activeView().getWindow()->addMouseListener(this, true);
+		activeView().resume();
 	}
 
 	void MainEditor::mouseUp(const MouseEvent& event)
 	{
-		if (currentView && event.eventComponent == currentView->getWindow())
+		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
 		{
 			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
 			{
@@ -865,9 +888,10 @@ namespace Signalizer
 			AudioProcessorEditor::mouseUp(event);
 		}
 	}
-	void  MainEditor::mouseDown(const MouseEvent& event)
+	
+	void MainEditor::mouseDown(const MouseEvent& event)
 	{
-		if (currentView && event.eventComponent == currentView->getWindow())
+		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
 		{
 			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
 			{
@@ -881,74 +905,19 @@ namespace Signalizer
 	}
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
-
+		index = cpl::Math::confineTo(index, 0, (int)ViewTypes::end - 1);
 		hasAnyTabBeenSelected = true;
 		// these lines disable the global editor if you switch view.
 		//if (ksettings.getToggleState())
 		//	ksettings.setToggleState(false, NotificationType::sendNotification);
 
-		// see if the new view exists.
-		auto const & mappedView = Signalizer::ViewIndexToMap[index];
-		auto it = views.find(mappedView);
-
-		cpl::CSubView * view = nullptr;
-
-		if (it == views.end())
-		{
-
-			// insert the new view into the map
-			switch ((ViewTypes)index)
-			{
-			case ViewTypes::Vectorscope:
-				view = new CVectorScope(engine->stream);
-				break;
-			case ViewTypes::Oscilloscope:
-			//	view = new COscilloscope(engine->audioBuffer);
-				break;
-			case ViewTypes::Spectrum:
-				view = new CSpectrum(engine->stream);
-				break;
-			default:
-				break;
-			}
-			if (view)
-			{
-				auto && entry = views.emplace(mappedView, ViewWithSerializedFlag {std::unique_ptr<cpl::CSubView>(view), false });
-				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
-				if (!key.isEmpty())
-				{
-					key >> view;
-					entry.first->second.hasBeenRestored = true;
-				}
-
-			}
-			else
-			{
-				view = &defaultView;
-			}
-		}
-		else
-		{
-			view = it->second.view.get();
-			// in general, constructing a view != when it should be serialized
-			if (!it->second.hasBeenRestored)
-			{
-				// TODO: Merge with same lines above.
-				auto & key = viewSettings.getContent("Serialized Views").getContent(mappedView);
-				if (!key.isEmpty())
-				{
-					key >> view;
-					it->second.hasBeenRestored = true;
-				}
-			}
-		}
 		// if any editor is open currently, we have to close it and open the new.
 		bool openNewEditor = false;
 		// deattach old view
-		if (currentView)
+		if (hasCurrentView())
 		{
-			if (currentView->getIsFullScreen() && view)
-				setPreferredKioskCoords(currentView->getWindow()->getPosition());
+			if (activeView().getIsFullScreen())
+				setPreferredKioskCoords(activeView().getWindow()->getPosition());
 
 
 			if (getTopEditor())
@@ -956,20 +925,14 @@ namespace Signalizer
 
 			clearEditors();
 
-			suspendView(currentView);
+			suspendView(*currentView);
 			currentView = nullptr;
 		}
 
-		currentView = view;
-		if (currentView)
-		{
-			initiateView(currentView, openNewEditor);
-		}
-		
+		initiateView(views[index], openNewEditor);
+
 		if (openNewEditor && ksettings.bGetBoolState())
 			ksettings.bSetInternal(0.0);
-
-
 
 		selTab = index;
 	}
@@ -997,9 +960,9 @@ namespace Signalizer
 			removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
 			ksettings.bSetInternal(0);
 			// make sure an editor is active
-			if(editorStack.empty() && currentView)
+			if(editorStack.empty() && hasCurrentView())
 			{
-				pushEditor(currentView->createEditor());
+				pushEditor(views[index].getEditorDSO().getCached());
 			}
 			
 		}
@@ -1009,6 +972,61 @@ namespace Signalizer
 	void MainEditor::addTab(const std::string & name)
 	{
 		tabs.addTab(name);
+	}
+
+	void MainEditor::enterFullscreenIfNeeded(juce::Point<int> where)
+	{
+		// full screen set?
+		if (kkiosk.bGetValue() > 0.5)
+		{
+
+			// avoid storing the current window position into kioskCoords
+			// the first time we spawn the view.
+			firstKioskMode = true;
+			activeView().getWindow()->setTopLeftPosition(where.x, where.y);
+			kkiosk.bForceEvent();
+		}
+	}
+
+	void MainEditor::enterFullscreenIfNeeded()
+	{
+		// full screen set?
+		if (hasCurrentView() && !activeView().getIsFullScreen() && kkiosk.bGetValue() > 0.5)
+		{
+			// avoid storing the current window position into kioskCoords
+			// the first time we spawn the view.
+			firstKioskMode = false;
+			kkiosk.bForceEvent();
+		}
+	}
+
+	void MainEditor::exitFullscreen()
+	{
+		juce::Desktop & instance = juce::Desktop::getInstance();
+		if (hasCurrentView() && activeView().getIsFullScreen() && !this->isParentOf(activeView().getWindow()))
+		{
+			activeView().getWindow()->removeKeyListener(this);
+			activeView().getWindow()->removeComponentListener(this);
+			if (activeView().getWindow() == instance.getKioskModeComponent())
+			{
+				juce::Desktop::getInstance().setKioskModeComponent(nullptr);
+			}
+
+			activeView().getWindow()->setTopLeftPosition(0, 0);
+			addChildComponent(activeView().getWindow());
+			activeView().setFullScreenMode(false);
+
+			if (preFullScreenSize.getWidth() > 0 && preFullScreenSize.getHeight() > 0)
+			{
+				// restores from minimal window
+				setBounds(preFullScreenSize);
+			}
+			else
+			{
+				resized();
+			}
+		}
+
 	}
 
 	void MainEditor::serialize(cpl::CSerializer & data, cpl::Version version)
@@ -1037,95 +1055,57 @@ namespace Signalizer
 			data.getContent("Colours").getContent(colour.bGetTitle()) << colour;
 		}
 
-		// save any view data
-
-		// copy old session data
-
-		// walk the list of possible plugins
-		for (auto & viewName : ViewIndexToMap)
-		{		
-			
-			auto viewInstanceIt = views.find(viewName);
-			// see if they're instantiated, in which case
-			if (viewInstanceIt != views.end())
-			{
-				// serialize fresh data - // watch out, or it'll save the std::unique_ptr!
-				data.getContent("Serialized Views").getContent(viewInstanceIt->first) << viewInstanceIt->second.view.get();
-			}
-			else
-			{
-				// otherwise, see if we have some old session data:
-				auto serializedView = viewSettings.getContent("Serialized Views").getContent(viewName);
-				if (!serializedView.isEmpty())
-				{
-					data.getContent("Serialized Views").getContent(viewName) = serializedView;
-				}
-			}
+		for (std::size_t i = 0; i < views.size(); ++i)
+		{
+			data.getContent("Serialized Views").getContent(views[i].getName()) = views[i].getViewDSO().getState();
+			data.getContent("Serialized Editors").getContent(views[i].getName()) = views[i].getEditorDSO().getState();
 		}
 
+		std::int64_t historySize;
+		std::string contents = kmaxHistorySize.getInputValue();
+		if (cpl::lexicalConversion(contents, historySize))
+			data << std::max(0ll, historySize);
+		else
+			data << 1000;
+
+		data << khideTabs;
 	}
 
-	void MainEditor::enterFullscreenIfNeeded(juce::Point<int> where)
+	void MainEditor::nestedOnMouseMove(const juce::MouseEvent & e)
 	{
-		// full screen set?
-		if (kkiosk.bGetValue() > 0.5)
-		{
+		auto point = e.getEventRelativeTo(this);
+		mouseHoversTabArea = point.y < elementSize + elementBorder;
 
-			// avoid storing the current window position into kioskCoords
-			// the first time we spawn the view.
-			firstKioskMode = true;
-			currentView->getWindow()->setTopLeftPosition(where.x, where.y);
-			kkiosk.bForceEvent();
+		if (mouseHoversTabArea)
+		{
+			setTabBarVisibility(true);
 		}
+		tabBarTimer = cpl::Misc::QuickTime();
 	}
 
-	void MainEditor::enterFullscreenIfNeeded()
+	void MainEditor::nestedOnMouseExit(const juce::MouseEvent & e)
 	{
-		// full screen set?
-		if (currentView && !currentView->getIsFullScreen() && kkiosk.bGetValue() > 0.5)
+		if (e.eventComponent == this)
 		{
-			// avoid storing the current window position into kioskCoords
-			// the first time we spawn the view.
-			firstKioskMode = false;
-			kkiosk.bForceEvent();
+			mouseHoversTabArea = false;
+			tabBarTimer = cpl::Misc::QuickTime();
 		}
-	}
-
-	void MainEditor::exitFullscreen()
-	{
-		juce::Desktop & instance = juce::Desktop::getInstance();
-		if (currentView && currentView->getIsFullScreen() && !this->isParentOf(currentView->getWindow()))
-		{
-			currentView->getWindow()->removeKeyListener(this);
-			currentView->getWindow()->removeComponentListener(this);
-			if (currentView->getWindow() == instance.getKioskModeComponent())
-			{
-				juce::Desktop::getInstance().setKioskModeComponent(nullptr);
-			}
-
-			currentView->getWindow()->setTopLeftPosition(0, 0);
-			addChildComponent(currentView->getWindow());
-			currentView->setFullScreenMode(false);
-
-			if (preFullScreenSize.getWidth() > 0 && preFullScreenSize.getHeight() > 0)
-			{
-				// restores from minimal window
-				setBounds(preFullScreenSize);
-			}
-			else
-			{
-				resized();
-			}
-		}
-
 	}
 
 	void MainEditor::deserialize(cpl::CSerializer & data, cpl::Version version)
 	{
-		for (auto & currentViewEntry : views)
-			currentViewEntry.second.hasBeenRestored = false;
-		
-		viewSettings = data;
+		cpl::CSerializer savedEditorData, savedViewData;
+
+		if (version < cpl::Version(0, 2, 8))
+		{
+			// before 0.2.8, any state was stored in the view - so copy it to the editor
+			savedEditorData = data.getContent("Serialized Views");
+		}
+		else
+		{
+			savedEditorData = data.getContent("Serialized Editors");
+			savedViewData = data.getContent("Serialized Views");
+		}
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
 		
@@ -1140,12 +1120,13 @@ namespace Signalizer
 		data >> kioskCoords;
 		data >> hasAnyTabBeenSelected;
 		// kind of a hack, but we don't really want to enter kiosk mode immediately.
-		kkiosk.bRemovePassiveChangeListener(this);
+		kkiosk.bRemoveChangeListener(this);
 		data >> kkiosk;
-		kkiosk.bAddPassiveChangeListener(this);
+		kkiosk.bAddChangeListener(this);
+
 		for (auto & colour : colourControls)
 		{
-			auto & content = viewSettings.getContent("Colours").getContent(colour.bGetTitle());
+			auto & content = data.getContent("Colours").getContent(colour.bGetTitle());
 			if (!content.isEmpty())
 				content >> colour;
 		}
@@ -1155,12 +1136,19 @@ namespace Signalizer
 			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
 		).withZeroOrigin());
 
-		// reinitiaty any current views (will not be done through tab selection further down)
-		for (auto & viewPair : views)
+		// reinitiate any current views (will not be done through tab selection further down)
+		for (auto & viewState : views)
 		{
-			auto & key = viewSettings.getContent("Serialized Views").getContent(viewPair.first);
-			if (!key.isEmpty())
-				key << viewPair.second;
+			{
+				auto & content = savedViewData.getContent(viewState.getName());
+				if (!content.isEmpty())
+					viewState.getViewDSO().setState(content, content.getLocalVersion());
+			}
+			{
+				auto & content = savedEditorData.getContent(viewState.getName());
+				if (!content.isEmpty())
+					viewState.getEditorDSO().setState(content, content.getLocalVersion());
+			}
 		}
 
 		// will take care of opening the correct view
@@ -1171,6 +1159,8 @@ namespace Signalizer
 			if (kkiosk.bGetValue() > 0.5)
 				firstKioskMode = true;
 			
+			selTab = std::min(selTab, cpl::enum_cast<int32_t>(ViewTypes::end) - 1);
+
 			if(tabs.getSelectedTab() == selTab)
 			{
 				// TODO: rewrite the following
@@ -1192,6 +1182,15 @@ namespace Signalizer
 		data >> kvsync;
 		data >> kswapInterval;
 
+		if (!(version < cpl::Version(0, 2, 8)))
+		{
+			std::int64_t historySize;
+			data >> historySize;
+			if (historySize > 0)
+				kmaxHistorySize.setInputValue(std::to_string(historySize));
+
+			data >> khideTabs;
+		}
 	}
 
 	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val)
@@ -1249,7 +1248,7 @@ namespace Signalizer
 
 	bool MainEditor::keyPressed(const KeyPress &key, Component *originatingComponent)
 	{
-		if (currentView && (currentView->getWindow() == originatingComponent))
+		if (hasCurrentView() && (activeView().getWindow() == originatingComponent))
 		{
 			if (key.isKeyCode(key.escapeKey) && kkiosk.bGetValue() > 0.5)
 			{
@@ -1263,8 +1262,8 @@ namespace Signalizer
 	}
 	MainEditor::~MainEditor()
 	{
+		suspendView(views[selTab]);
 		notifyDestruction();
-		suspendView(currentView);
 		exitFullscreen();
 		juce::Timer::stopTimer();
 		juce::HighResolutionTimer::stopTimer();
@@ -1311,25 +1310,26 @@ namespace Signalizer
 		if (rcc.isMouseButtonDown())
 			return;
 		// resize panel to width
+		auto const top = tabBarIsVisible ? elementBorder : -elementSize;
 
 		auto const width = getWidth();
 		auto leftBorder = width - elementSize + elementBorder;
-		ksettings.setBounds(1, 1, buttonSizeW, buttonSize);
+		ksettings.setBounds(1, top, buttonSizeW, buttonSize);
 
-		kfreeze.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		kfreeze.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 
-		khelp.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		khelp.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
-		kkiosk.setBounds(leftBorder, 1, buttonSizeW, buttonSize);
+		kkiosk.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 
 		tabs.setBounds
 		(
 			ksettings.getBounds().getRight() + elementBorder,
-			elementBorder,
+			top,
 			getWidth() - (ksettings.getWidth() + getWidth() - leftBorder + elementBorder * 3),
 			elementSize - elementBorder * 2
-		 );
+		);
 
 
 		auto editor = getTopEditor();
@@ -1348,12 +1348,15 @@ namespace Signalizer
 		}
 		else
 		{
-			viewTopCoord = tabs.getBottom() + elementBorder;
+			if (tabBarIsVisible)
+				viewTopCoord = tabs.getBottom() + elementBorder;
+			else
+				viewTopCoord = 0;
 		}
 		// full screen components resize themselves.
-		if (currentView && !currentView->getIsFullScreen())
+		if (hasCurrentView() && !activeView().getIsFullScreen())
 		{
-			currentView->getWindow()->setBounds(0, viewTopCoord, getWidth(), getHeight() - viewTopCoord);
+			activeView().getWindow()->setBounds(0, viewTopCoord, getWidth(), getHeight() - viewTopCoord);
 		}
 
 		//rightButtonOutlines.addRectangle(juce::Rectangle<float>(0.5f, 0.5f, getWidth() - 1.5f, editor ? editor->getBottom() : elementSize - 1.5f));
@@ -1362,10 +1365,16 @@ namespace Signalizer
 
 	void MainEditor::timerCallback()
 	{
-		
-		if (currentView)
+		for (std::size_t i = 0; i < params->numSetsAndState(); ++i)
 		{
-			//const MessageManagerLock mml;
+			params->getSet(i)->pulseUI();
+		}
+		if (hasCurrentView())
+		{
+			auto now = cpl::Misc::QuickTime();
+
+			if (!getTopEditor() && !mouseHoversTabArea && now - tabBarTimer > tabBarTimeout)
+				setTabBarVisibility(false);
 
 			if (idleInBack)
 			{
@@ -1376,12 +1385,13 @@ namespace Signalizer
 			}
 
 			if(!kvsync.bGetBoolState())
-				currentView->repaintMainContent();
+				activeView().repaintMainContent();
 		}
 	}
+
 	void MainEditor::hiResTimerCallback()
 	{
-		if (currentView)
+		if (hasCurrentView())
 		{
 			if (idleInBack)
 			{
@@ -1393,12 +1403,10 @@ namespace Signalizer
 			}
 
 			if (!kvsync.bGetBoolState())
-				currentView->repaintMainContent();
+				activeView().repaintMainContent();
 		}
 	}
 
-
-	//==============================================================================
 	void MainEditor::paint(Graphics& g)
 	{
 		// make sure to paint everything completely opaque.
@@ -1453,7 +1461,7 @@ namespace Signalizer
 					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
 					std::system((cmdLine).c_str());
 				#else 
-					#error "Implement a text-opener for your platform.
+					#error "Implement a text-opener for your platform."
 				#endif
 				break;
 		}
@@ -1463,23 +1471,25 @@ namespace Signalizer
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
+
 		// add listeners
 		krefreshRate.bAddFormatter(this);
-		kfreeze.bAddPassiveChangeListener(this);
-		kkiosk.bAddPassiveChangeListener(this);
-		kidle.bAddPassiveChangeListener(this);
-		krenderEngine.bAddPassiveChangeListener(this);
-		krefreshRate.bAddPassiveChangeListener(this);
-		ksettings.bAddPassiveChangeListener(this);
-		kstableFps.bAddPassiveChangeListener(this);
-		kvsync.bAddPassiveChangeListener(this);
+		kfreeze.bAddChangeListener(this);
+		kkiosk.bAddChangeListener(this);
+		kidle.bAddChangeListener(this);
+		krenderEngine.bAddChangeListener(this);
+		krefreshRate.bAddChangeListener(this);
+		ksettings.bAddChangeListener(this);
+		kstableFps.bAddChangeListener(this);
+		kvsync.bAddChangeListener(this);
 		tabs.addListener(this);
-		kmaxHistorySize.bAddPassiveChangeListener(this);
-		kswapInterval.bAddPassiveChangeListener(this);
-		kantialias.bAddPassiveChangeListener(this);
-		khelp.bAddPassiveChangeListener(this);
-		krefreshState.bAddPassiveChangeListener(this);
+		kmaxHistorySize.bAddChangeListener(this);
+		kswapInterval.bAddChangeListener(this);
+		kantialias.bAddChangeListener(this);
+		khelp.bAddChangeListener(this);
+		krefreshState.bAddChangeListener(this);
 		kswapInterval.bAddFormatter(this);
+
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
 		ksettings.setImage("icons/svg/gears.svg");
@@ -1491,9 +1501,16 @@ namespace Signalizer
 		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
+		khideTabs.setToggleable(true);
+
+		khideTabs.bSetTitle("Auto-hide tabs");
+		krefreshRate.bSetTitle("Refresh Rate");
+		krefreshState.bSetTitle("Reset state");
 		kantialias.bSetTitle("Antialiasing");
 		kidle.bSetTitle("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
+		kstableFps.bSetTitle("Stable FPS");
+		kvsync.bSetTitle("Vertical Sync");
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);
@@ -1502,10 +1519,10 @@ namespace Signalizer
 		for (unsigned i = 0; i < colourControls.size(); ++i)
 		{
 			auto & schemeColour = lnf.getSchemeColour(i);
-			colourControls[i].setControlColour(schemeColour.colour.getPixelARGB());
+			colourControls[i].setControlColour(schemeColour.colour);
 			colourControls[i].bSetTitle(schemeColour.name);
 			colourControls[i].bSetDescription(schemeColour.description);
-			colourControls[i].bAddPassiveChangeListener(this);
+			colourControls[i].bAddChangeListener(this);
 
 		}
 
@@ -1517,12 +1534,14 @@ namespace Signalizer
 		addAndMakeVisible(tabs);
 
 		tabs.setOrientation(tabs.Horizontal);
-		tabs.addTab("VectorScope").addTab("Oscilloscope").addTab("Spectrum").addTab("Statistics");
+		for(auto & viewName : ViewIndexToMap)
+			tabs.addTab(viewName);
 
 		// additions
 		addAndMakeVisible(rcc);
 		rcc.setAlwaysOnTop(true);
-		currentView = &defaultView; // note: enables callbacks on value set in this function
+		// TODO: reattach?
+		//currentView = &defaultView; // note: enables callbacks on value set in this function
 		addAndMakeVisible(defaultView);
 		krefreshRate.bSetValue(0.12);
 
@@ -1541,9 +1560,10 @@ namespace Signalizer
 		kmaxHistorySize.bSetDescription("The maximum audio history capacity, set in the respective views. No limit, so be careful!");
 		kswapInterval.bSetDescription("Determines the swap interval for the graphics context; a value of zero means the graphics will"
 			"update as fast as possible, a value of 1 means it updates synced to the vertical sync, a value of N means it updates every Nth vertical frame sync.");
-
+		khideTabs.bSetDescription("Auto hides the top tabs and buttons when not used.");
 
 		// initial values that should be through handlers
+		// TODO: remove if changed to parameter
 		kmaxHistorySize.setInputValue("1000");
 
 		

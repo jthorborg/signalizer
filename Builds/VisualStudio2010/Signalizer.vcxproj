@@ -96,12 +96,12 @@
       <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)\</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)\</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4458 /wd4091 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -148,11 +148,11 @@
       <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)\</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)\</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4458 /wd4091 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -197,7 +197,7 @@
       <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)\</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)\</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -208,7 +208,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <OpenMPSupport>true</OpenMPSupport>
       <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4458 /wd4091 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -255,7 +255,7 @@
       <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
       <ObjectFileName>$(IntDir)\</ObjectFileName>
       <ProgramDataBaseFileName>$(IntDir)\</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -267,7 +267,7 @@
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalOptions>/wd4458 /wd4091 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4458 /wd4091 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -379,7 +379,9 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CKnobSliderEditor.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\ControlBase.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\Controls.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueControl.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CToolTip.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CViews.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\DesignBase.h" />
@@ -395,6 +397,14 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CTransformWidget.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\WidgetBase.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\Widgets.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomFormatters.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomTransforms.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\ParameterSystem.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\ColourValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\PowerFunctionValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\TransformValue.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\Values.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\InstructionSet.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\intrintypes.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\LexicalConversion.h" />
@@ -896,7 +906,10 @@
     <ClInclude Include="..\..\..\SDKs\juce\modules\juce_video\juce_video.h" />
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
+    <ClInclude Include="..\..\Source\SentientViewState.h" />
     <ClInclude Include="..\..\Source\SignalizerDesign.h" />
+    <ClInclude Include="..\..\Source\SpectrumParameters.h" />
+    <ClInclude Include="..\..\Source\VectorScopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />
   </ItemGroup>
   <ItemGroup>

@@ -40,15 +40,27 @@
 
 	namespace Signalizer
 	{
+
+
 		#if _DEBUG
 			typedef cpl::CGreenLineTester DummyComponent;
 		#else
 			typedef juce::Component DummyComponent;
 		#endif
 
-		class CContentPage
+		class StateEditor
+			: public DummyComponent
+			, public cpl::DestructionNotifier
+		{
+		public:
+			virtual void serializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) = 0;
+			virtual void deserializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) = 0;
+		};
+
+
+		class CContentPageBase
 		:
-			public DummyComponent,
+			public StateEditor,
 			public cpl::CIconTabBar::CTabBarListener
 		{
 		public:
@@ -275,6 +287,7 @@
 						}
 					}
 				}
+
 			private:
 
 				bool spaceAfterLargest;
@@ -336,7 +349,7 @@
 				//return selectedComponent ? selectedComponent->getSuggestedSize() : std::make_pair(0, 0);
 			}
 
-			CContentPage()
+			CContentPageBase()
 				: selectedComponent(nullptr)
 			{
 				icons.setOrientation(icons.Vertical);
@@ -383,7 +396,7 @@
 
 					contents.setViewedComponent(selectedComponent, false);
 
-					if (currentComponent != nullptr)
+					if (currentComponent != nullptr && selectedComponent != currentComponent)
 					{
 #pragma message cwarn("Remove this code when JUCE viewport actually removes the old component")
 						// TODO: update this when juce actually removes the old component.
@@ -409,12 +422,33 @@
 			};
 
 		private:
-
 			COrderedTabPage * selectedComponent;
 			juce::Viewport contents;
 			std::map<std::string, COrderedTabPage> pages;
 			std::vector<std::string> nameToIndex;
 			cpl::CIconTabBar icons;
+		};
+
+		class CContentPage 
+			: public CContentPageBase
+		{
+		public:
+
+			void serializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) override
+			{
+
+			}
+
+			void deserializeEditorSettings(cpl::CSerializer::Builder & ar, cpl::Version v) override
+			{
+
+			}
+
+
+			~CContentPage()
+			{
+				notifyDestruction();
+			}
 		};
 
 		class CDefaultView

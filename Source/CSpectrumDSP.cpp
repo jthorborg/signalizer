@@ -61,7 +61,7 @@ namespace Signalizer
 
 	std::size_t CSpectrum::getBlobSamples() const noexcept
 	{
-		return static_cast<std::size_t>(state.audioBlobSizeMs * 0.001 * getSampleRate());
+		return static_cast<std::size_t>(content->blobSize.getTransformedValue() * 0.001 * getSampleRate());
 	}
 
 	void CSpectrum::resetState()
@@ -76,7 +76,7 @@ namespace Signalizer
 		std::size_t i = 0;
 
 
-		switch (state.dspWindow)
+		switch (state.dspWindow.load(std::memory_order_acquire))
 		{
 
 			case cpl::dsp::WindowTypes::Hann:
@@ -134,9 +134,9 @@ namespace Signalizer
 			// can't underflow
 			std::size_t offset = views[0].size() - size;
 
-			switch (state.algo)
+			switch (state.algo.load(std::memory_order_acquire))
 			{
-			case TransformAlgorithm::FFT:
+			case SpectrumContent::TransformAlgorithm::FFT:
 			{
 				auto buffer = getAudioMemory<std::complex<fftType>>();
 				std::size_t channel = 1;
@@ -339,9 +339,9 @@ namespace Signalizer
 			// extra discarded samples in case the incoming buffer is larger than our own
 			std::size_t extraDiscardedSamples = views[0].size() - size;
 
-			switch (state.algo)
+			switch (state.algo.load(std::memory_order_acquire))
 			{
-			case TransformAlgorithm::FFT:
+			case SpectrumContent::TransformAlgorithm::FFT:
 			{
 				auto buffer = getAudioMemory<std::complex<fftType>>();
 				std::size_t channel = 1;
@@ -582,10 +582,9 @@ namespace Signalizer
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
-		auto const channelConfiguration = state.configuration;
-		switch (state.algo)
+		switch (state.algo.load(std::memory_order_acquire))
 		{
-			case TransformAlgorithm::FFT:
+			case SpectrumContent::TransformAlgorithm::FFT:
 			{
 				auto const numSamples = getFFTSpace<std::complex<double>>();
 				if(numSamples != 0)
@@ -599,12 +598,11 @@ namespace Signalizer
 
 
 	template<class V2>
-		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, float lowDbs, float highDbs, float clip)
+		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
 		{
-			cpl::CPowerSlopeWidget::PowerFunction slope = kslope.derive();
-
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
+
 			auto deltaYRecip = static_cast<fpoint>(1.0 / log(upperFraction / lowerFraction));
 			auto minFracRecip = static_cast<fpoint>(1.0 / lowerFraction);
 			auto halfRecip = fpoint(0.5);
@@ -690,7 +688,7 @@ namespace Signalizer
 			}
 			case ChannelConfiguration::Phase:
 			{
-				fpoint phaseFilters[LineGraphs::LineEnd];
+				fpoint phaseFilters[SpectrumContent::LineGraphs::LineEnd];
 
 				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 					phaseFilters[k] = std::pow(lineGraphs[k].filter.pole, 0.3);
@@ -737,15 +735,14 @@ namespace Signalizer
 	template<class InVector>
 		void CSpectrum::postProcessTransform(const InVector & transform, std::size_t size)
 		{
-			auto const & dbRange = getDBs();
 			if (size > (std::size_t)getNumFilters())
 				CPL_RUNTIME_EXCEPTION("Incompatible incoming transform size.");
-			mapAndTransformDFTFilters(state.configuration, transform, size, dbRange.low, dbRange.high, kMinDbs);
+			mapAndTransformDFTFilters(state.configuration, transform, size, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
 		}
 
 	void CSpectrum::postProcessStdTransform()
 	{
-		if (state.algo == TransformAlgorithm::FFT)
+		if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 			postProcessTransform(getWorkingMemory<fftType>(), getNumFilters());
 		else
 			postProcessTransform(getWorkingMemory<fpoint>(), getNumFilters());
@@ -760,9 +757,9 @@ namespace Signalizer
 
 		std::size_t numFilters = getNumFilters();
 
-		switch (state.algo)
+		switch (state.algo.load(std::memory_order_acquire))
 		{
-		case TransformAlgorithm::FFT:
+		case SpectrumContent::TransformAlgorithm::FFT:
 		{
 			const auto lanczosFilterSize = 5;
 			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
@@ -774,9 +771,8 @@ namespace Signalizer
 
 			std::size_t numBins = N >> 1;
 			auto const topFrequency = getSampleRate() / 2;
-			auto const freqToBin = double(numBins) / topFrequency;
-			auto const pointsToBin = double(numBins) / numPoints;
-
+			auto const freqToBin = double(numBins ) / topFrequency;
+			
 			typedef fftType ftype;
 
 			std::complex<ftype> leftMax, rightMax;
@@ -809,6 +805,7 @@ namespace Signalizer
 				csf[0] *= 0.5;
 				csf[N >> 1] *= 0.5;
 
+				// TODO: Vectorize
 				for (std::size_t i = 0; i < numBins; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
@@ -819,7 +816,7 @@ namespace Signalizer
 				cpl::Types::fint_t x = 0;
 				switch (state.binPolation)
 				{
-				case BinInterpolation::None:
+				case SpectrumContent::BinInterpolation::None:
 					for (x = 0; x < numPoints - 1; ++x)
 					{
 						// bandwidth of the filter for this 'line', or point
@@ -829,11 +826,11 @@ namespace Signalizer
 						if (bwForLine > fftBandwidth)
 							break;
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 						csp[x] = invSize * csf[index];
 					}
 					break;
-				case BinInterpolation::Linear:
+				case SpectrumContent::BinInterpolation::Linear:
 					for (x = 0; x < numPoints - 1; ++x)
 					{
 						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
@@ -843,7 +840,7 @@ namespace Signalizer
 						csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N, mappedFrequencies[x] * freqToBin);
 					}
 					break;
-				case BinInterpolation::Lanczos:
+				case SpectrumContent::BinInterpolation::Lanczos:
 					for (x = 0; x < numPoints - 1; ++x)
 					{
 
@@ -923,7 +920,7 @@ namespace Signalizer
 				cpl::Types::fint_t x = 0;
 				switch (state.binPolation)
 				{
-				case BinInterpolation::Linear:
+				case SpectrumContent::BinInterpolation::Linear:
 				{
 					// phase pass
 					for (x = 0; x < numPoints - 1; ++x)
@@ -982,7 +979,7 @@ namespace Signalizer
 					}
 					break;
 				}
-				case BinInterpolation::Lanczos:
+				case SpectrumContent::BinInterpolation::Lanczos:
 				{
 					for (x = 0; x < numPoints - 1; ++x)
 					{
@@ -1132,7 +1129,7 @@ namespace Signalizer
 				cpl::Types::fint_t x;
 				switch (state.binPolation)
 				{
-				case BinInterpolation::Linear:
+				case SpectrumContent::BinInterpolation::Linear:
 
 					// phase pass
 					for (x = 0; x < numPoints - 1; ++x)
@@ -1152,7 +1149,7 @@ namespace Signalizer
 					}
 
 					break;
-				case BinInterpolation::Lanczos:
+				case SpectrumContent::BinInterpolation::Lanczos:
 					for (x = 0; x < numPoints - 1; ++x)
 					{
 
@@ -1182,7 +1179,7 @@ namespace Signalizer
 							break;
 
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 
 						csp[x] = invSize * csf[index];
 						csp[numFilters + x] = invSize * csf[N - index];
@@ -1261,7 +1258,7 @@ namespace Signalizer
 
 					switch (state.binPolation)
 					{
-					case BinInterpolation::Linear:
+					case SpectrumContent::BinInterpolation::Linear:
 					{
 						for (; x < numPoints; ++x)
 						{
@@ -1275,7 +1272,7 @@ namespace Signalizer
 						}
 						break;
 					}
-					case BinInterpolation::Lanczos:
+					case SpectrumContent::BinInterpolation::Lanczos:
 					{
 						for (; x < numPoints; ++x)
 						{
@@ -1353,9 +1350,9 @@ namespace Signalizer
 
 			break;
 			}
-		break;
+			break;
 		}
-		case TransformAlgorithm::RSNT:
+		case SpectrumContent::TransformAlgorithm::RSNT:
 		{
 
 			std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
@@ -1472,12 +1469,12 @@ namespace Signalizer
 
 		auto filters = mapToLinearSpace();
 
-		if (state.algo == TransformAlgorithm::RSNT)
+		if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + filters /* channels ? */));
 			sfbuf.frameQueue.pushElement<true>(&frame);
 		}
-		else if (state.algo == TransformAlgorithm::FFT)
+		else if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(filters));
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
@@ -1501,7 +1498,7 @@ namespace Signalizer
 		// casts from std::complex<T> * to T * which is well-defined.
 
 		auto buf = (fpoint*)cpl::data(output);
-		cresonator.getWholeWindowedState<V>(state.dspWindow, buf, numChannels, numResFilters);
+		cresonator.getWholeWindowedState<V>(state.dspWindow.load(std::memory_order_acquire), buf, numChannels, numResFilters);
 
 		return numResFilters << (numChannels - 1);
 	}
@@ -1511,7 +1508,7 @@ namespace Signalizer
 		{
 			cpl::CMutex audioLock;
 
-			if (state.displayMode == DisplayMode::ColourSpectrum)
+			if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
 
 				std::int64_t n = numSamples;
@@ -1523,7 +1520,7 @@ namespace Signalizer
 					const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 					// do some resonation
-					if (state.algo == TransformAlgorithm::RSNT)
+					if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
 					{
 						audioLock.acquire(audioResource);
 						fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
@@ -1536,12 +1533,14 @@ namespace Signalizer
 					{
 						audioLock.acquire(audioResource);
 						bool transformReady = true;
-						if (state.algo == TransformAlgorithm::FFT)
+						if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 						{
 							fpoint * offBuf[2] = { buffer[0], buffer[1]};
 							if (audioStream.getNumDeferredSamples() == 0)
 							{
-								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, offset + availableSamples)))
+								// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
+								// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
+								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
 									doTransform();
 							}
 							else
@@ -1569,7 +1568,7 @@ namespace Signalizer
 
 				sfbuf.sampleCounter += numSamples;
 			}
-			else if(state.algo == TransformAlgorithm::RSNT)
+			else if(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
 			{
 				audioLock.acquire(audioResource);
 				resonatingDispatch<V>(buffer, numChannels, numSamples);
@@ -1668,7 +1667,7 @@ namespace Signalizer
 
 	float CSpectrum::getSampleRate() const noexcept
 	{
-		return static_cast<float>(audioStream.getInfo().sampleRate);
+		return state.sampleRate.load(std::memory_order_acquire);
 	}
 
 	int CSpectrum::getAxisPoints() const noexcept
@@ -1696,15 +1695,17 @@ namespace Signalizer
 		return getAxisPoints();
 	}
 
-	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate) const
+	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate)
 	{
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
-		if (state.displayMode == DisplayMode::LineGraph)
+		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
-			auto type = kdspWin.getParams().wType.load(std::memory_order_acquire);
-			auto alpha = kdspWin.getParams().wAlpha.load(std::memory_order_acquire);
-			auto beta = kdspWin.getParams().wBeta.load(std::memory_order_acquire);
-			auto symmetry = kdspWin.getParams().wSymmetry.load(std::memory_order_acquire);
+#pragma message cwarn("Fix this to use direct values")
+			auto & value = content->dspWin;
+			auto type = value.getWindowType();
+			auto alpha = value.getAlpha();
+			auto beta = value.getBeta();
+			auto symmetry = value.getWindowShape();
 
 			bool canOvershoot = false;
 			auto sampleRate = getSampleRate();
@@ -1712,9 +1713,9 @@ namespace Signalizer
 
 			
 			auto safeIndex = cpl::Math::confineTo<std::size_t>(coordinate, 0, mappedFrequencies.size() - 2);
-			if (state.algo == TransformAlgorithm::RSNT)
+			if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 			{
-				if (state.viewScale == ViewScaling::Linear)
+				if (state.viewScale == SpectrumContent::ViewScaling::Linear)
 				{
 
 					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
@@ -1726,11 +1727,11 @@ namespace Signalizer
 				// resonators have, per definition, at least 3 dB bandwidth, so number is equal to 10^(-3/20)
 				fractionateScallopLoss = std::min(fractionateScallopLoss, 0.70794578438413791080221494218931);
 			}
-			else if (state.algo == TransformAlgorithm::FFT)
+			else if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				normalizedBandwidth = 0.5;
 
-				if (state.binPolation == BinInterpolation::Lanczos && newc.frequencyTrackingGraph.load(std::memory_order_acquire) != LineGraphs::Transform)
+				if (state.binPolation == SpectrumContent::BinInterpolation::Lanczos && state.frequencyTrackingGraph != SpectrumContent::LineGraphs::Transform)
 				{
 					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
 					if (normalizedBandwidth < 0.5)

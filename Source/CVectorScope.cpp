@@ -36,6 +36,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
+#include "VectorScopeParameters.h"
 
 namespace Signalizer
 {
@@ -58,139 +59,48 @@ namespace Signalizer
 	const double CVectorScope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
-	std::unique_ptr<juce::Component> CVectorScope::createEditor()
-	{
-		auto content = new Signalizer::CContentPage();
 
-		if (auto page = content->addPage("Settings", "icons/svg/gear.svg"))
-		{
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&ktransform, 0);
-				page->addSection(section, "Transform");
-			}
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kenvelopeMode, 0);
-				section->addControl(&kenvelopeSmooth, 0);
-				section->addControl(&kgain, 0);
-				
-				section->addControl(&kopMode, 1);
-				section->addControl(&kstereoSmooth, 1);
-
-
-				section->addControl(&krotation, 0);
-				section->addControl(&kwindow, 1);
-
-
-				page->addSection(section, "Utility");
-				//
-			}
-		}
-
-		if (auto page = content->addPage("Rendering", "icons/svg/brush.svg"))
-		{
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kantiAlias, 0);
-				section->addControl(&kfadeOld, 1);
-				section->addControl(&kdrawLines, 2);
-				section->addControl(&kdiagnostics, 3);
-				page->addSection(section, "Options");
-			}
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kdrawingColour, 0);
-				section->addControl(&kgraphColour, 0);
-				section->addControl(&kbackgroundColour, 0);
-				section->addControl(&kskeletonColour, 0);
-				section->addControl(&kmeterColour, 1);
-				section->addControl(&kprimitiveSize, 1);
-				page->addSection(section, "Look");
-			}
-		}
-		if (auto page = content->addPage("Utility", "icons/svg/wrench.svg"))
-		{
-			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{
-				section->addControl(&kpresets, 0);
-				page->addSection(section, "Presets");
-			}
-		}
-		editor = content;
-		editor->addComponentListener(this);
-		state.isEditorOpen = editor ? true : false;
-		return std::unique_ptr<juce::Component>(content);
-
-	}
-
-	CVectorScope::CVectorScope(AudioStream & data)
+	CVectorScope::CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params)
 	:
-		COpenGLView("Vectorscope view"),
+		COpenGLView(nameId),
 		audioStream(data),
-		kwindow("Window size", cpl::CKnobSlider::ControlType::ms),
-		krotation("Wave Z-rotation"),
-		kgain("Input gain"),
-		kgraphColour("Graph colour"),
-		kbackgroundColour("Background colour"),
-		kdrawingColour("Drawing colour"),
-		kskeletonColour("Skeleton colour"),
-		kprimitiveSize("Primitive size"),
-		kmeterColour("Meter colour"),
-		kenvelopeSmooth("Env. window", cpl::CKnobSlider::ControlType::ms),
-		kstereoSmooth("Stereo window", cpl::CKnobSlider::ControlType::ms),
 		processorSpeed(0), 
-		//audioStreamCopy(2),
 		lastFrameTick(0),
 		lastMousePos(),
-		envelopeGain(1),
 		editor(nullptr),
 		state(),
 		filters(),
-		kpresets(this, "vectorscope"),
 		oldWindowSize(-1)
 	{
+		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
+		{
+			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
+		}
+
+
 		mtFlags.firstRun = true;
 		state.secondStereoFilterSpeed = 0.25f;
-		state.doStereoMeasurements = true;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
 		initPanelAndControls();
 		listenToSource(audioStream);
-	}
-
-	void CVectorScope::componentBeingDeleted(Component & component)
-	{
-		if (&component == editor)
-		{
-			editor = nullptr;
-			state.isEditorOpen = false;
-		}
-	}
-
-	void CVectorScope::timerCallback()
-	{
-		if (state.isEditorOpen && state.normalizeGain)
-			setGainAsFraction(envelopeGain);
+		content->getParameterSet().addRTListener(this, true);
 	}
 
 	void CVectorScope::suspend()
 	{
-		oldWindowSize = kwindow.bGetValue();
-		stopTimer();
-
+		//TODO: possibly unsynchronized. fix to have an internal size instead
+		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
 	void CVectorScope::resume()
 	{
 		if(oldWindowSize != -1)
-		{
-			kwindow.bSetValue(oldWindowSize);
-			kwindow.bForceEvent(); // in case they (still) are the same
+		{		
+			//TODO: possibly unsynchronized. fix to have an internal size instead
+			content->windowSize.setTransformedValue(oldWindowSize);
 		}
-
-		startTimer(50);
 	}
 
 	juce::Component * CVectorScope::getWindow()
@@ -200,156 +110,15 @@ namespace Signalizer
 
 	CVectorScope::~CVectorScope()
 	{
-		// TODO: detach listener
+		detachFromSource();
+		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
-		if (editor)
-			editor->removeComponentListener(this);
 	}
 
 	void CVectorScope::initPanelAndControls()
 	{
-		// listeners
-		kwindow.bAddPassiveChangeListener(this);
-		kgain.bAddPassiveChangeListener(this);
-		kenvelopeMode.bAddPassiveChangeListener(this);
-		kopMode.bAddPassiveChangeListener(this);
-		kenvelopeSmooth.bAddPassiveChangeListener(this);
-		krotation.bAddPassiveChangeListener(this);
-		kantiAlias.bAddPassiveChangeListener(this);
-		kfadeOld.bAddPassiveChangeListener(this);
-		kdrawLines.bAddPassiveChangeListener(this);
-		kdrawingColour.bAddPassiveChangeListener(this);
-		kgraphColour.bAddPassiveChangeListener(this);
-		kskeletonColour.bAddPassiveChangeListener(this);
-		kbackgroundColour.bAddPassiveChangeListener(this);
-		kprimitiveSize.bAddPassiveChangeListener(this);
-		kdiagnostics.bAddPassiveChangeListener(this);
-		kopMode.bAddPassiveChangeListener(this);
-		kstereoSmooth.bAddPassiveChangeListener(this);
-		kmeterColour.bAddPassiveChangeListener(this);
-		// formatters
-		kwindow.bAddFormatter(this);
-		kgain.bAddFormatter(this);
-		kprimitiveSize.bAddFormatter(this);
-		krotation.bAddFormatter(this);
-
-
-		// buttons n controls
-		kantiAlias.bSetTitle("Antialias");
-		kantiAlias.setToggleable(true);
-		kfadeOld.bSetTitle("Fade older points");
-		kfadeOld.setToggleable(true);
-		kdrawLines.bSetTitle("Interconnect samples");
-		kdrawLines.setToggleable(true);
-		kdiagnostics.bSetTitle("Diagnostics");
-		kdiagnostics.setToggleable(true);
-		kenvelopeMode.bSetTitle("Auto-gain mode");
-		kenvelopeMode.setValues(EnvelopeModeNames);
-		
-		kenvelopeMode.bSetValue(0);
-		kopMode.bSetValue(0);
-		
-		// design
-		kopMode.setValues(OperationalModeNames);
-		kopMode.bSetTitle("Operational mode");
-		
-		
-		// descriptions.
-		kwindow.bSetDescription("The size of the displayed time window.");
-		kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
-							 " - additional transform that only affects the waveform, and not the graph");
-		krotation.bSetDescription("The amount of degrees to rotate the waveform around the origin (z-rotation)"\
-			" - additional transform that only affects the waveform, and not the graph.");
-		kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
-		kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
-		kdrawLines.bSetDescription("If set, interconnect samples linearly.");
-		kdrawingColour.bSetDescription("The main colour to paint with.");
-		kgraphColour.bSetDescription("The colour of the graph.");
-		kbackgroundColour.bSetDescription("The background colour of the view.");
-		kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
-		kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
-		kmeterColour.bSetDescription("The colour of the stereo meters (balance and phase)");
-		kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
-		kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
-		kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
-		kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
-		kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
-
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-	}
-
-	void CVectorScope::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
-	{
-		archive << kwindow;
-		archive << kgain;
-		archive << krotation;
-		archive << kantiAlias;
-		archive << kfadeOld;
-		archive << kdiagnostics;
-		archive << kdrawLines;
-		archive << kgraphColour;
-		archive << kbackgroundColour;
-		archive << kdrawingColour;
-		archive << ktransform;
-		archive << kskeletonColour;
-		archive << kprimitiveSize;
-		archive << kenvelopeMode;
-		archive << kenvelopeSmooth;
-		archive << kopMode;
-		archive << kstereoSmooth;
-		archive << kmeterColour;
-	}
-
-	void CVectorScope::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
-	{
-		builder >> kwindow;
-		builder >> kgain;
-		builder >> krotation;
-		builder >> kantiAlias;
-		builder >> kfadeOld;
-		builder >> kdiagnostics;
-		builder >> kdrawLines;
-		builder >> kgraphColour;
-		builder >> kbackgroundColour;
-		builder >> kdrawingColour;
-		builder >> ktransform;
-		builder >> kskeletonColour;
-		builder >> kprimitiveSize;
-		builder >> kenvelopeMode;
-		builder >> kenvelopeSmooth;
-		builder >> kopMode;
-		builder >> kstereoSmooth;
-		builder >> kmeterColour;
-	}
-
-	void CVectorScope::handleFlagUpdates()
-	{
-		bool firstRun = false;
-
-		if (mtFlags.firstRun.cas())
-		{
-			firstRun = true;
-		}
-
-		if (mtFlags.audioWindowWasResized.cas())
-		{
-			if (!firstRun && hasMainThreadInitializedAudioStreamDependenant.load(std::memory_order_acquire))
-			{
-				auto capacity = audioStream.getAudioHistoryCapacity();
-				cpl::GUIUtils::MainEvent(*this, 
-					[=] 
-					{
-						if (capacity == 0)
-							kwindow.bSetInternal(0);
-						else
-							kwindow.bSetInternal(double(audioStream.getAudioHistorySize()) / capacity);
-						kwindow.bRedraw();
-					}
-				);
-			}
-		}
-
 	}
 
 	void CVectorScope::freeze()
@@ -369,24 +138,26 @@ namespace Signalizer
 		if (event.mods.isCtrlDown())
 		{
 			// increase gain
-			kgain.bSetValue(kgain.bGetValue() + amount / 20);
+			// TODO: fix to pow()
+			content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
 		}
 		else /* zoom graph */
 		{
-
-			auto & matrix = ktransform.getTransform3D();
+			auto & matrix = content->transform;
 			//matrix.scale.x += amount;
 			//matrix.scale.y += amount;
-			auto actualAmount = (1 + amount / 5) * matrix.scale.z;
-			auto deltaIncrease = (actualAmount - matrix.scale.z) / matrix.scale.z;
-			matrix.scale.z = actualAmount;
+			auto Z = matrix.getValueIndex(matrix.Scale, matrix.Z).getTransformedValue();
+			auto actualAmount = (1 + amount / 5) * Z;
+			auto deltaIncrease = (actualAmount - Z) / Z;
+			matrix.getValueIndex(matrix.Scale, matrix.Z).setTransformedValue(actualAmount);
 
-			matrix.scale.x *= 1 + deltaIncrease;
-			matrix.scale.y *= 1 + deltaIncrease;
-			//matrix.position.x *=  1 + normalizedSign * deltaIncrease;
-			//matrix.position.y *= 1 + normalizedSign * deltaIncrease;
-			ktransform.syncEditor();
+			matrix.getValueIndex(matrix.Scale, matrix.X).setTransformedValue(
+				matrix.getValueIndex(matrix.Scale, matrix.X).getTransformedValue() * (1 + deltaIncrease)
+			);
 
+			matrix.getValueIndex(matrix.Scale, matrix.Y).setTransformedValue(
+				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
+			);
 		}
 		
 	}
@@ -396,257 +167,105 @@ namespace Signalizer
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
-			kgain.bSetValue(0.5f);
-			auto & matrix = ktransform.getTransform3D();
-			matrix.position.y = matrix.position.x = 0;
-			ktransform.syncEditor();
+			// TODO: reset to preset
+			content->inputGain.setTransformedValue(1);
+			auto & matrix = content->transform;
+			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
+			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
 		}
 	}
 	void CVectorScope::mouseDrag(const MouseEvent& event)
 	{
-		auto & matrix = ktransform.getTransform3D();
+		auto & matrix = content->transform;
 		auto factor = float(getWidth()) / getHeight();
 		auto deltaDifference = event.position - lastMousePos;
 		if (event.mods.isCtrlDown())
 		{
-			matrix.rotation.y = std::fmod(deltaDifference.x * 0.3f + matrix.rotation.y, 360.f);
-			matrix.rotation.x = std::fmod(deltaDifference.y * 0.3f + matrix.rotation.x, 360.f);
+			auto yvalue = matrix.getValueIndex(matrix.Rotation, matrix.Y).getTransformedValue();
+			auto newValue = std::fmod(deltaDifference.x * 0.3f + yvalue, 360.f);
+			while (newValue < 0)
+				newValue += 360;
+			matrix.getValueIndex(matrix.Rotation, matrix.Y).setTransformedValue(newValue);
+
+			auto xvalue = matrix.getValueIndex(matrix.Rotation, matrix.X).getTransformedValue();
+			newValue = std::fmod(deltaDifference.y * 0.3f + xvalue, 360.f);
+			while (newValue < 0)
+				newValue += 360;
+			matrix.getValueIndex(matrix.Rotation, matrix.X).setTransformedValue(newValue);
 		}
 		else
 		{
-			matrix.position.x += deltaDifference.x / 500.f;
-			matrix.position.y += factor * -deltaDifference.y / 500.f;
-		}
-		ktransform.syncEditor();
 
+			auto xvalue = matrix.getValueIndex(matrix.Position, matrix.X).getTransformedValue();
+			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
+
+			auto yvalue = matrix.getValueIndex(matrix.Position, matrix.Y).getTransformedValue();
+			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
+		}
 
 		lastMousePos = event.position;
 	}
 	void CVectorScope::mouseUp(const MouseEvent& event)
 	{
-
+		// TODO: implement beginChangeGesture()
 	}
 	void CVectorScope::mouseDown(const MouseEvent& event)
 	{
+		// TODO: implement endChangeGesture()
 		lastMousePos = event.position;
 	}
 
-	bool CVectorScope::valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value)
+	void CVectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{
-		char buf[200];
-		if (ctrl == &kgain)
+		if (param == &content->windowSize.parameter)
 		{
-			auto dbVal = cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
-			sprintf(buf, "%.2f dB", cpl::Math::fractionToDB(dbVal));
-			buffer = buf;
-			return true;
+			mtFlags.initiateWindowResize = true;
 		}
-		else if (ctrl == &kwindow)
+	}
+
+	void CVectorScope::handleFlagUpdates()
+	{
+		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
+		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
+		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		state.envelopeGain = content->inputGain.getTransformedValue();
+		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.getTransformedValue()) == OperationalModes::Polar;
+		state.antialias = content->antialias.getTransformedValue() > 0.5;
+		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
+		state.fillPath = content->interconnectSamples.getTransformedValue() > 0.5;
+		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
+		state.rotation = content->waveZRotation.getNormalizedValue();
+		state.primitiveSize = content->primitiveSize.getTransformedValue();
+
+		state.colourDraw = content->drawingColour.getAsJuceColour();
+		state.colourWire = content->skeletonColour.getAsJuceColour();
+		state.colourBackground = content->backgroundColour.getAsJuceColour();
+		state.colourMeter = content->meterColour.getAsJuceColour();
+		state.colourGraph = content->graphColour.getAsJuceColour();
+
+
+		bool firstRun = false;
+
+		if (mtFlags.firstRun.cas())
 		{
-			auto sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_acquire);
-			auto bufLength = cpl::Math::round<int>(value * (1000 * audioStream.getAudioHistoryCapacity() / sampleRate));
-			if (sampleRate > 0)
-				sprintf(buf, "%d ms", bufLength);
-			else
-				sprintf(buf, "sample rate error");
-			buffer = buf;
-			return true;
+			firstRun = true;
 		}
-		else if (ctrl == &krotation)
+
+		if (firstRun || mtFlags.initiateWindowResize)
 		{
-			sprintf(buf, "%.2f degs", value * 360);
-			buffer = buf;
-			return true;
-		}
-		else if (ctrl == &kprimitiveSize)
-		{
-			sprintf(buf, "%.2f pts", value * 10);
-			buffer = buf;
-			return true;
-		}
-		return false;
-	}
 
-	void CVectorScope::setGainAsFraction(double newFraction)
-	{
-		auto newValue = cpl::Math::UnityScale::Inv::exp(newFraction, lowerAutoGainBounds, higherAutoGainBounds);
-		kgain.bSetValue(cpl::Math::confineTo(newValue, 0, 1));
-	}
-
-	double CVectorScope::getGain()
-	{
-		return envelopeGain;
-	}
-
-	bool CVectorScope::handleMessage(cpl::CMessageSystem::CoalescedMessage & m)
-	{
-		return false;
-	}
-
-	double CVectorScope::mapScaleToFraction(double valueInDBs)
-	{
-		return cpl::Math::UnityScale::Inv::exp(cpl::Math::dbToFraction(valueInDBs), lowerAutoGainBounds, higherAutoGainBounds);
-	}
-
-	bool CVectorScope::stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value)
-	{
-
-		if (ctrl == &kgain)
-		{
-			double newValue;
-			if (cpl::lexicalConversion(buffer, newValue))
+			// we will get notified asynchronously in onAsyncChangedProperties.
+			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
 			{
-				value = mapScaleToFraction(newValue);
-				return true;
+				// only reset this flag if there's valid data, otherwise keep checking.
+				mtFlags.initiateWindowResize.cas();
+				auto value = content->windowSize.getTransformedValue();
+				audioStream.setAudioHistorySize(value);
 			}
 		}
-		else if (ctrl == &kwindow)
-		{
-			double newValue;
-
-			if (buffer.find_first_of("ms") != std::string::npos)
-			{
-				if (cpl::lexicalConversion(buffer, newValue))
-				{
-					value = cpl::Math::confineTo(newValue / (1000 * audioStream.getAudioHistoryCapacity() / audioStream.getInfo().sampleRate), 0.0, 1.0);
-					return true;
-				}
-			}
-			else
-			{
-				if (cpl::lexicalConversion(buffer, newValue))
-				{
-					value = cpl::Math::confineTo(newValue / audioStream.getAudioHistoryCapacity(), 0.0, 1.0);
-					return true;
-				}
-			}
-
-		}
-		else if (ctrl == &krotation)
-		{
-			double newValue;
-			if (cpl::lexicalConversion(buffer, newValue))
-			{
-				value = cpl::Math::confineTo(fmod(newValue, 360) / 360.0, 0.0, 1.0);
-				return true;
-			}
-		}
-		else if (ctrl == &kprimitiveSize)
-		{
-			double newValue;
-			if (cpl::lexicalConversion(buffer, newValue))
-			{
-				value = cpl::Math::confineTo(newValue / 10.0, 0.0, 1.0);
-				return true;
-			}
-		}
-		return false;
-	}
-	
-
-	
-	void CVectorScope::onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject)
-	{
-		// hmmm.....
 	}
 
-	void CVectorScope::valueChanged(const cpl::CBaseControl * ctrl)
-	{
-		if (ctrl == &kwindow)
-		{
-			struct RetryResizer
-			{
-				RetryResizer(CVectorScope * h) : handle(h) {};
-				CVectorScope * handle;
-
-				void operator()()
-				{
-					auto currentCapacity = handle->audioStream.getAudioHistoryCapacity();
-					if (currentCapacity > 0)
-					{
-						auto bufLength = cpl::Math::round<std::size_t>(handle->kwindow.bGetValue() * handle->audioStream.getAudioHistoryCapacity());
-						handle->audioStream.setAudioHistorySize(bufLength);
-						handle->hasMainThreadInitializedAudioStreamDependenant.store(true, std::memory_order_release);
-					}
-					else
-					{
-						cpl::GUIUtils::FutureMainEvent(200, RetryResizer(handle), handle);
-					}
-
-				}
-			};
-			RetryResizer(this)();
-			return;
-		}
-		else if (ctrl == &kenvelopeMode)
-		{
-			state.envelopeMode = kenvelopeMode.getZeroBasedSelIndex<EnvelopeModes>();
-			state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-			// TODO: Consider if needed
-			/*if (!state.normalizeGain)
-				envelopeGain = kgain.bGetValue();*/
-		}
-		else if(ctrl == &kenvelopeSmooth)
-		{
-			state.envelopeCoeff = std::exp(-1.0 / (kenvelopeSmooth.bGetValue() * audioStream.getInfo().sampleRate));
-		}
-		else if (ctrl == &kstereoSmooth)
-		{
-			state.stereoCoeff = std::exp(-1.0 / (kstereoSmooth.bGetValue() * audioStream.getInfo().sampleRate));
-		}
-		else if (ctrl == &kgain)
-		{
-			envelopeGain = cpl::Math::UnityScale::exp(kgain.bGetValue(), lowerAutoGainBounds, higherAutoGainBounds);
-		}
-		else if(ctrl == &kopMode)
-		{
-			state.isPolar = kopMode.getZeroBasedSelIndex<OperationalModes>() == OperationalModes::Polar;
-		}
-		else if(ctrl == &kantiAlias)
-		{
-			state.antialias = ctrl->bGetBoolState();
-		}
-		else if(ctrl == &kfadeOld)
-		{
-			state.fadeHistory = ctrl->bGetBoolState();
-		}
-		else if(ctrl == &kdrawLines)
-		{
-			state.fillPath = ctrl->bGetBoolState();
-		}
-		else if(ctrl == &kdiagnostics)
-		{
-			state.diagnostics = ctrl->bGetBoolState();
-		}
-		else if(ctrl == &krotation)
-		{
-			state.rotation = (float)ctrl->bGetValue();
-		}
-		else if(ctrl == &kprimitiveSize)
-		{
-			state.primitiveSize = (float)ctrl->bGetValue();
-		}
-		else if(ctrl == &kdrawingColour)
-		{
-			state.colourDraw = kdrawingColour.getControlColourAsColour();
-		}
-		else if(ctrl == &kgraphColour)
-		{
-			state.colourGraph = kgraphColour.getControlColourAsColour();
-		}
-		else if(ctrl == &kskeletonColour)
-		{
-			state.colourWire = kskeletonColour.getControlColourAsColour();
-		}
-		else if(ctrl == &kbackgroundColour)
-		{
-			state.colourBackground = kbackgroundColour.getControlColourAsColour();
-		}
-		else if (ctrl == &kmeterColour)
-		{
-			state.colourMeter = kmeterColour.getControlColourAsColour();
-		}
-	}
 
 	template<typename V>
 		void CVectorScope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -654,10 +273,6 @@ namespace Signalizer
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
 			if (numChannels != 2)
-				return;
-
-			// if all options are turned off, just return.
-			if ((!state.normalizeGain && state.envelopeMode != EnvelopeModes::RMS) && !state.doStereoMeasurements)
 				return;
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
@@ -716,10 +331,13 @@ namespace Signalizer
 					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
 
 					// balance average source
-					filters.balance[0][0] = lSquared + stereoPoles[0] * (filters.balance[0][0] - lSquared);
-					filters.balance[0][1] = rSquared + stereoPoles[0] * (filters.balance[0][1] - rSquared);
-					filters.balance[1][0] = lSquared + stereoPoles[1] * (filters.balance[1][0] - lSquared);
-					filters.balance[1][1] = rSquared + stereoPoles[1] * (filters.balance[1][1] - rSquared);
+					
+					using fs = FilterStates;
+					
+					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
+					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
+					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
+					filters.balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Right] - rSquared);
 
 					// phase averaging
 					// see larger comment above.
@@ -730,19 +348,23 @@ namespace Signalizer
 
 
 			}
-
-			double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
-
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
 			{
+				// we end up calculating envelopes even though its not possibly needed, but the overhead
+				// is negligible
+				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+				
 				// only update filters if this mode is on.
 				filters.envelope[0] = filterEnv[0]; 
 				filters.envelope[1] = filterEnv[1];
 
 				if (std::isnormal(currentEnvelope))
 				{
-					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+					content->inputGain.getParameterView().updateFromProcessorTransformed(
+						currentEnvelope, 
+						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
+					);
 				}
 			}
 

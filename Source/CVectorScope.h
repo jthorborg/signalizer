@@ -36,7 +36,7 @@
 	#include <cpl/gui/Widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
-	#include <cpl/lib/CMessageSystem.h>
+	#include "VectorScopeParameters.h"
 
 	namespace cpl
 	{
@@ -91,14 +91,9 @@
 		enum class EnvelopeModes : int;
 		
 		class CVectorScope 
-		: 
-			public cpl::COpenGLView, 
-			protected cpl::CBaseControl::PassiveListener,
-			protected cpl::CBaseControl::ValueFormatter,
-			protected AudioStream::Listener,
-			protected juce::ComponentListener,
-			public cpl::CMessageSystem::MessageHandler,
-			public juce::Timer
+			: public cpl::COpenGLView
+			, private AudioStream::Listener
+			, private ParameterSet::RTListener
 		{
 
 		public:
@@ -106,7 +101,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(AudioStream & data);
+			CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params);
 			virtual ~CVectorScope();
 
 			// Component overrides
@@ -127,32 +122,25 @@
 			void freeze() override;
 			void unfreeze() override;
 
-			std::unique_ptr<juce::Component> createEditor() override;
-
 			// cbasecontrol overrides
-			void valueChanged(const cpl::CBaseControl *) override;
-			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & buffer, cpl::iCtrlPrec_t & value) override;
-			bool valueToString(const cpl::CBaseControl * ctrl, std::string & buffer, cpl::iCtrlPrec_t value) override;
-			void onObjectDestruction(const cpl::CBaseControl::ObjectProxy & destroyedObject) override;
 			bool isEditorOpen() const;
 			double getGain();
-			bool handleMessage(cpl::CMessageSystem::CoalescedMessage & m) override;
 
 		protected:
+
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-			void componentBeingDeleted(Component & 	component) override;
-			virtual void timerCallback() override;
 			virtual void paint2DGraphics(juce::Graphics & g);
 			/// <summary>
 			/// Handles all set flags in mtFlags.
 			/// Make sure the audioStream is locked while doing this.
 			/// </summary>
 			virtual void handleFlagUpdates();
-		private:
 
-			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override;
-			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override;
+		private:
+			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
+			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
+			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
 			template<typename V>
 				void vectorGLRendering();
@@ -179,28 +167,26 @@
 			template<typename V>
 				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
 
-			void setGainAsFraction(double newFraction);
-			double mapScaleToFraction(double dbs);
 			void initPanelAndControls();
 
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
-			cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
-			cpl::CKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
-			cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
-			cpl::CTransformWidget ktransform;
-			cpl::CComboBox kopMode, kenvelopeMode;
-			cpl::CPresetWidget kpresets;
 			juce::MouseCursor displayCursor;
 
 			// vars
 			long long lastFrameTick, renderCycles;
 
-			cpl::iCtrlPrec_t envelopeGain;
-
 			struct FilterStates
 			{
+				enum Entry
+				{
+					Slow = 0,
+					Left = 0,
+					Fast = 1,
+					Right = 1
+				};
+				
 				AudioStream::DataType envelope[2];
 				AudioStream::DataType balance[2][2];
 				AudioStream::DataType phase[2];
@@ -212,14 +198,20 @@
 				cpl::ABoolFlag
 					firstRun,
 					/// <summary>
+					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
+					/// The argument to the resizing is the state.newWindowSize
+					/// </summary>
+					initiateWindowResize,
+					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
 					/// </summary>
 					audioWindowWasResized;
 			} mtFlags;
 
+			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, isEditorOpen, diagnostics, doStereoMeasurements;
+				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
 				float primitiveSize, rotation;
 				float stereoCoeff;
 				float envelopeCoeff;
@@ -228,15 +220,16 @@
 				/// </summary>
 				float secondStereoFilterSpeed;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
+				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 			} state;
 			
+			VectorScopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
 			double oldWindowSize;
-			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

@@ -352,6 +352,24 @@
     <Filter Include="Signalizer\Source\cpl\simd">
       <UniqueIdentifier>{462c6008-6c82-4df6-abea-06a6d5245520}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\Spectrum">
+      <UniqueIdentifier>{d28c03ee-f932-41be-9574-1b9aecfa6b06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Oscilloscope">
+      <UniqueIdentifier>{c58a4579-17e9-480d-994a-9e2138dd2695}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Vectorscope">
+      <UniqueIdentifier>{79aa4f2c-7a69-4dd7-bb34-f55ead80aafa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\cpl\infrastructure">
+      <UniqueIdentifier>{81fe5ef3-1e78-42d1-92be-2f2386f8fab7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\cpl\infrastructure\parameters">
+      <UniqueIdentifier>{b73eb454-4a34-4f9c-91aa-a70e50dd50ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\cpl\infrastructure\values">
+      <UniqueIdentifier>{18b101a8-5f4d-47e1-b2b3-abd498e989a5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -807,21 +825,6 @@
     <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
       <Filter>Signalizer\Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrum.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScope.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\MainEditor.cpp">
       <Filter>Signalizer\Source</Filter>
     </ClCompile>
@@ -833,6 +836,21 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\InstanceLog.cpp">
       <Filter>Signalizer\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrum.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CVectorScope.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2183,12 +2201,6 @@
     <ClInclude Include="..\..\Source\CommonSignalizer.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\CSpectrum.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\CVectorScope.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
       <Filter>Signalizer\Source</Filter>
     </ClInclude>
@@ -2509,6 +2521,51 @@
     </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h">
       <Filter>Signalizer\Source\cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\CSpectrum.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\CVectorScope.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h">
+      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h">
+      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomFormatters.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomTransforms.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\ParameterSystem.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\ColourValue.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\PowerFunctionValue.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\TransformValue.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\Values.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h">
+      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\VectorScopeParameters.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SentientViewState.h">
+      <Filter>Signalizer\Source</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SpectrumParameters.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

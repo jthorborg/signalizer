@@ -76,7 +76,7 @@ namespace Signalizer
 
 		auto cStart = cpl::Misc::ClockCounter();
 
-		if (kdiagnostics.bGetValue() > 0.5)
+		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
 			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
@@ -174,7 +174,9 @@ namespace Signalizer
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
-				openGLStack.applyTransform3D(ktransform.getTransform3D());
+				cpl::GraphicsND::Transform3D<GLfloat> transform(1);
+				content->transform.fillTransform3D(transform);
+				openGLStack.applyTransform3D(transform);
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
 				// the peak filter has to run on the whole buffer each time.
@@ -183,8 +185,8 @@ namespace Signalizer
 					runPeakFilter<V>(lockedView);
 				}
 			   
-				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
-				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize * 10);
+				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
+				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
 				// draw actual stereoscopic plot
 				if (lockedView.getNumChannels() >= 2)
@@ -226,6 +228,7 @@ namespace Signalizer
 		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			openGLStack.enable(GL_TEXTURE_2D);
+			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
 			if(!state.isPolar)
@@ -309,6 +312,7 @@ namespace Signalizer
 		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			using consts = cpl::simd::consts<float>;
+			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
@@ -399,6 +403,7 @@ namespace Signalizer
 			// Draw basic graph
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
 				drawer.addColour(state.colourGraph);
 				// front x, y axii
 				drawer.addVertex(-1.0f, 0.0f, 0.0f);
@@ -416,9 +421,9 @@ namespace Signalizer
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
-			GLfloat gain = getGain();
+			auto gain = (GLfloat)state.envelopeGain;
 			matrixMod.scale(gain, gain, 1);
-			float sampleFade = 1.0f / audio.getNumSamples();
+			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 			
 			if (!state.fadeHistory)
 			{
@@ -473,7 +478,7 @@ namespace Signalizer
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
-			auto const gain = (GLfloat)getGain();
+			auto const gain = (GLfloat)state.envelopeGain;
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
@@ -843,7 +848,10 @@ namespace Signalizer
 
 				if (std::isnormal(currentEnvelope))
 				{
-					envelopeGain = cpl::Math::confineTo(currentEnvelope, lowerAutoGainBounds, higherAutoGainBounds);
+					content->inputGain.getParameterView().updateFromProcessorTransformed(
+						currentEnvelope,
+						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
+					);
 				}
 			}
 		}
