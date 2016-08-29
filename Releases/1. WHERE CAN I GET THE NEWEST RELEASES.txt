@@ -1,0 +1,3 @@
+This page will no longer contain updated binaries. 
+Go here instead: https://bitbucket.org/Mayae/signalizer/downloads
+Or here for infos and mirrors: http://jthorborg.com/index.html?ipage=signalizer
