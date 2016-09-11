@@ -1449,7 +1449,7 @@ namespace Signalizer
 		case 16:
 		case 8:
 			#ifdef CPL_COMPILER_SUPPORTS_AVX
-				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
+				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples); 
 				break;
 			#endif
 		case 4:

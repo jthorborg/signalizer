@@ -747,16 +747,6 @@ namespace Signalizer
 	}
 
 
-	template<typename V>
-		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
-		{
-			using namespace cpl::simd;
-
-			if (numChannels != 2)
-				return;
-
-		}
-
 	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
 		flags.audioStreamChanged = true;

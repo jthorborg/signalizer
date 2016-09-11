@@ -666,7 +666,28 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::onOpenGLRendering()
+    void CSpectrum::onOpenGLRendering()
+    {
+        switch (cpl::simd::max_vector_capacity<float>())
+        {
+            case 32:
+            case 16:
+            case 8:
+                #ifdef CPL_COMPILER_SUPPORTS_AVX
+                    vectorGLRendering<cpl::Types::v8sf>();
+                    break;
+                #endif
+            case 4:
+                vectorGLRendering<cpl::Types::v4sf>();
+                break;
+            default:
+                vectorGLRendering<float>();
+                break;
+        }
+    }
+    
+    template<typename V>
+    void CSpectrum::vectorGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 		cpl::CFastMutex audioLock;
@@ -718,10 +739,10 @@ namespace Signalizer
 				mapToLinearSpace();
 				postProcessStdTransform();
 			}
-			renderLineGraph<Types::v8sf>(openGLStack); break;
+			renderLineGraph<V>(openGLStack); break;
 		case SpectrumContent::DisplayMode::ColourSpectrum:
 			// mapping and processing is already done here.
-			renderColourSpectrum<Types::v8sf>(openGLStack); break;
+			renderColourSpectrum<V>(openGLStack); break;
 
 		}
 		renderCycles = cpl::Misc::ClockCounter() - cStart;

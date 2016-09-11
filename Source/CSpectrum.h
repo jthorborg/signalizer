@@ -142,6 +142,9 @@
 
 		protected:
 
+            template<typename V>
+                void vectorGLRendering();
+            
 			virtual void paint2DGraphics(juce::Graphics & g);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
