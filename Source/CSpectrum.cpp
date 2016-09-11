@@ -70,7 +70,7 @@ namespace Signalizer
 
 		content->getParameterSet().addRTListener(this, true);
 
-		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
+        processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
 		initPanelAndControls();
 		flags.firstChange = true;
 

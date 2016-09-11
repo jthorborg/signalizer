@@ -147,10 +147,10 @@ namespace Signalizer
 		case 32:
 		case 16:
 		case 8:
-		#ifdef CPL_COMPILER_SUPPORTS_AVX
-				vectorGLRendering<cpl::Types::v8sf>();
-				break;
-		#endif
+            #ifdef CPL_COMPILER_SUPPORTS_AVX
+                vectorGLRendering<cpl::Types::v8sf>();
+                break;
+            #endif
 		case 4:
 			vectorGLRendering<cpl::Types::v4sf>();
 			break;
@@ -728,7 +728,7 @@ namespace Signalizer
 			const float stereoY = -0.85f;
 			const float stereoLength = 1.7f;
 			const float sideSize = 0.05f;
-			const float stereoSideSize = sideSize * heightToWidthFactor;
+			//const float stereoSideSize = sideSize * heightToWidthFactor;
 			const float indicatorSize = 0.05f;
 
 			// remember, y / x

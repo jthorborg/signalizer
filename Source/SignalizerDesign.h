@@ -358,7 +358,7 @@
 				addAndMakeVisible(icons);
 			}
 
-			void paint(juce::Graphics & g)
+			void paint(juce::Graphics & g) override
 			{
 				g.fillAll(cpl::GetColour(cpl::ColourEntry::Activated));
 				g.setColour(cpl::GetColour(cpl::ColourEntry::Separator));
@@ -496,7 +496,7 @@
 				juce::OpenGLHelpers::clear(juce::Colours::black);
 			}
 
-			void onGraphicsRendering(juce::Graphics & g)
+			void onGraphicsRendering(juce::Graphics & g) override
 			{
 				if (!isOpenGL())
 				{

@@ -82,7 +82,7 @@ namespace Signalizer
 		state.secondStereoFilterSpeed = 0.25f;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
-		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
+		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
 		initPanelAndControls();
 		listenToSource(audioStream);
 		content->getParameterSet().addRTListener(this, true);
