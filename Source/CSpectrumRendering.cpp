@@ -782,14 +782,27 @@ namespace Signalizer
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
 					// run the next frame through pixel filters and format it etc.
 
+
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
+#define SIGNALIZER_VISUALDEBUGTEST
+#ifdef SIGNALIZER_VISUALDEBUGTEST
+						if (framePixelPosition & 1 && i & 1)
+						{
+							columnUpdate[i] = { 0xff, 0xFF, 0xff, 0xff };
+						}
+						else
+						{
+							columnUpdate[i] = { 0x00, 0x00, 0x00, 0x00 };
+						}
+#else
 						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
 							columnUpdate.data() + i, 
 							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
 							state.colourSpecs, 
 							state.normalizedSpecRatios
-						);
+						); 
+#endif
 					}
 					//CPL_DEBUGCHECKGL();
 					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
@@ -806,7 +819,7 @@ namespace Signalizer
 				cpl::OpenGLRendering::COpenGLImage::OpenGLImageDrawer imageDrawer(oglImage, ogs);
 
 				imageDrawer.drawCircular((float)((double)(framePixelPosition) / (pW - 1)));
-				
+				//imageDrawer.drawCircular((float)content->frameUpdateSmoothing.getNormalizedValue());
 			}
 
 			CPL_DEBUGCHECKGL();
