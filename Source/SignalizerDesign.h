@@ -396,10 +396,11 @@
 
 					contents.setViewedComponent(selectedComponent, false);
 
+#if JUCE_MAJOR_VERSION < 4 && JUCE_MINOR_VERSION < 2
+					// TODO: update this when juce actually removes the old component.
+
 					if (currentComponent != nullptr && selectedComponent != currentComponent)
 					{
-#pragma message cwarn("Remove this code when JUCE viewport actually removes the old component")
-						// TODO: update this when juce actually removes the old component.
 						for (int i = 0; i < contents.getNumChildComponents(); ++i)
 						{
 							if (auto possibleContainer = contents.getChildComponent(i))
@@ -416,6 +417,7 @@
 							}
 						}
 					}
+#endif
 
 					resized();
 				}

@@ -41,6 +41,14 @@
 
 	namespace Signalizer
 	{
+		enum class EnvelopeModes : int
+		{
+			None,
+			RMS,
+			PeakDecay
+		};
+
+
 		/// <summary>
 		/// Floating-point type used for parameters etc. in Signalizer
 		/// </summary>
@@ -230,7 +238,7 @@
 
 			}
 
-			virtual ValueType transform(ValueType val) override
+			virtual ValueType transform(ValueType val) const noexcept override
 			{
 				auto samples = std::round(val * stream.getAudioHistoryCapacity());
 				
@@ -245,7 +253,7 @@
 			}
 
 
-			virtual ValueType normalize(ValueType val) override
+			virtual ValueType normalize(ValueType val) const noexcept override
 			{
 				/* if (m == Miliseconds)
 				{
