@@ -21,14 +21,14 @@
  
 **************************************************************************************
  
-	file:CVectorScope.h
+	file:COscilloscope.h
 
-		Interface for the vectorscope view parameters
+		Interface for the oscilloscope parameters
  
 *************************************************************************************/
 
-#ifndef SIGNALIZER_CVECTORSCOPEPARAMETERS_H
-	#define SIGNALIZER_CVECTORSCOPEPARAMETERS_H
+#ifndef SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
+	#define SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
 
 	#include "CommonSignalizer.h"
 	#include "SignalizerDesign.h"
@@ -36,13 +36,13 @@
 	namespace Signalizer
 	{
 
-		class VectorScopeContent final
+		class OscilloscopeContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
 		{
 		public:
 
-			class VectorScopeController 
+			class OscilloscopeController 
 				: public CContentPage
 				// the preset widget controls the complete serialization logic,
 				// for outside serialization we implementent specific access instead
@@ -51,7 +51,7 @@
 			{
 			public:
 
-				VectorScopeController(VectorScopeContent & parentValue)
+				OscilloscopeController(OscilloscopeContent & parentValue)
 					: parent(parentValue)
 					, kantiAlias(&parentValue.antialias)
 					, kfadeOld(&parentValue.fadeOlderPoints)
@@ -77,7 +77,7 @@
 					initUI();
 				}
 
-				~VectorScopeController()
+				~OscilloscopeController()
 				{
 					notifyDestruction();
 				}
@@ -286,10 +286,10 @@
 				cpl::CValueComboBox kopMode, kenvelopeMode;
 				cpl::CPresetWidget kpresets;
 
-				VectorScopeContent & parent;
+				OscilloscopeContent & parent;
 			};
 
-			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
+			OscilloscopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 				: systemView(system)
 				, parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
 				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Miliseconds)
@@ -358,7 +358,7 @@
 
 			virtual std::unique_ptr<StateEditor> createEditor() override
 			{
-				return std::make_unique<VectorScopeController>(*this);
+				return std::make_unique<OscilloscopeController>(*this);
 			}
 
 			virtual ParameterSet & getParameterSet() override

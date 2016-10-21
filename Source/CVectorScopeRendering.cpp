@@ -53,13 +53,6 @@ namespace Signalizer
 		
 	};
 	
-	enum class EnvelopeModes : int
-	{
-		None,
-		RMS,
-		PeakDecay
-	};
-	
 	enum Textures
 	{
 		LPlus,

@@ -43,13 +43,6 @@ namespace Signalizer
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
 	
-	enum class EnvelopeModes : int
-	{
-		None,
-		RMS,
-		PeakDecay
-	};
-	
 	enum class OperationalModes : int
 	{
 		Lissajous,

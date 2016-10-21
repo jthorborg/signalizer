@@ -785,7 +785,7 @@ namespace Signalizer
 
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
-#define SIGNALIZER_VISUALDEBUGTEST
+//#define SIGNALIZER_VISUALDEBUGTEST
 #ifdef SIGNALIZER_VISUALDEBUGTEST
 						if (framePixelPosition & 1 && i & 1)
 						{

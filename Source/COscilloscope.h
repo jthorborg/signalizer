@@ -1,99 +1,202 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
-	file:COscilloscope.h
-		
-		Interface for the oscilloscope view.
- 
+
+	file:CVectorScope.h
+
+		Interface for the Oscilloscope view
+
 *************************************************************************************/
 
-#ifndef COSCILLOSCOPE_H
-#define COSCILLOSCOPE_H
+#ifndef SIGNALIZER_COSCILLOSCOPE_H
+	#define SIGNALIZER_COSCILLOSCOPE_H
 
-#include <cpl/Common.h>
-#include <cpl/CLowPass.h>
-#include <cpl/CAudioBuffer.h>
-#include <cpl/GraphicComponents.h>
-#include <vector>
+	#include "CommonSignalizer.h"
+	#include <cpl/Utility.h>
+	#include <cpl/gui/controls/Controls.h>
+	#include <cpl/gui/Widgets/Widgets.h>
+	#include <memory>
+	#include <cpl/simd.h>
+	#include "VectorScopeParameters.h"
 
-namespace Signalizer
-{
-	using namespace juce;
-	class Engine;
-
-	class COscilloscope : public cpl::SubView, public cpl::CCtrlListener
+	namespace cpl
 	{
-	public:
-		COscilloscope(AudioBuffer & data);
+		namespace OpenGLRendering
+		{
+			class COpenGLStack;
 
-		virtual ~COscilloscope() noexcept;
-		void resize(int width, int height);
-		void paint(Graphics & g) override;
-		void repaintMainContent() override;
-		bool serialize(juce::MemoryBlock & data) override;
-		bool restore(const void * data, std::size_t size) override;
-		bool setFullScreenMode(bool toggle) override;
-	private:
-		
-		char buf[300];
-
-		unsigned long long processorSpeed; // clocks / sec
-		
-		Image waveForm;
-		Graphics * waveFormGraphics;
-		float lpDelta;
-		// ???
-		::cpl::CLowPass filter;
-		int oldPhaseDir;
-		int windowSize;
-		unsigned sizeFactor, offset;
-		juce::Rectangle<int> displaySize;
-		PathStrokeType pst;
-		float cutoffFrequency;
-		AudioBuffer & audioData;
-		std::vector<unsigned int> graphColors;
-		bool valueChanged(cpl::CBaseControl *) override;
-		void resized() override;
-		void updateVariables();
-		double getGain();
-		int getWindowSize();
-		void paintChannelBitmap(Graphics & g, int channel, uint32_t color = 1);
-		void paintMergedBitmap(Graphics & g);
-		void paintBitmap(Graphics & g);
-		
-		void paintGraph(Graphics & g);
-
-		cpl::CValueKnobEx kchannels, ksync, kpeakMode;
-		cpl::CKnobEx kwindow, kcutoff, kgraphIntensity, kgain;
-		
-		std::vector<cpl::CColorKnob *> kcolors;
-
+		};
 	};
 
+	namespace Signalizer
+	{
 
+		class COscilloscope
+			: public cpl::COpenGLView
+			, private AudioStream::Listener
+			, private ParameterSet::RTListener
+		{
 
+		public:
 
+			static const double higherAutoGainBounds;
+			static const double lowerAutoGainBounds;
 
-};
+			COscilloscope(const std::string & nameId, AudioStream & data, ProcessorState * params);
+			virtual ~COscilloscope();
+
+			// Component overrides
+			void onGraphicsRendering(Graphics & g) override;
+			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
+			void mouseDoubleClick(const MouseEvent& event) override;
+			void mouseDrag(const MouseEvent& event) override;
+			void mouseUp(const MouseEvent& event) override;
+			void mouseDown(const MouseEvent& event) override;
+			// OpenGLRender overrides
+			void onOpenGLRendering() override;
+			void initOpenGL() override;
+			void closeOpenGL() override;
+			// View overrides
+			juce::Component * getWindow() override;
+			void suspend() override;
+			void resume() override;
+			void freeze() override;
+			void unfreeze() override;
+
+			// cbasecontrol overrides
+			bool isEditorOpen() const;
+			double getGain();
+
+		protected:
+
+			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
+			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
+			virtual void paint2DGraphics(juce::Graphics & g);
+			/// <summary>
+			/// Handles all set flags in mtFlags.
+			/// Make sure the audioStream is locked while doing this.
+			/// </summary>
+			virtual void handleFlagUpdates();
+
+		private:
+			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
+			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
+			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
+
+			template<typename V>
+			void vectorGLRendering();
+
+			// vector-accelerated drawing, rendering and processing
+			template<typename V>
+			void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+
+			template<typename V>
+			void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+
+			template<typename V>
+			void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
+
+			template<typename V>
+			void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+
+			template<typename V>
+			void drawStereoMeters(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+
+			template<typename V>
+			void runPeakFilter(const AudioStream::AudioBufferAccess &);
+
+			template<typename V>
+			void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
+
+			void initPanelAndControls();
+
+			// guis and whatnot
+			cpl::CBoxFilter<double, 60> avgFps;
+
+			juce::MouseCursor displayCursor;
+
+			// vars
+			long long lastFrameTick, renderCycles;
+
+			struct FilterStates
+			{
+				enum Entry
+				{
+					Slow = 0,
+					Left = 0,
+					Fast = 1,
+					Right = 1
+				};
+
+				AudioStream::DataType envelope[2];
+				AudioStream::DataType balance[2][2];
+				AudioStream::DataType phase[2];
+
+			} filters;
+
+			struct Flags
+			{
+				cpl::ABoolFlag
+					firstRun,
+					/// <summary>
+					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
+					/// The argument to the resizing is the state.newWindowSize
+					/// </summary>
+					initiateWindowResize,
+					/// <summary>
+					/// Set this if the audio buffer window size was changed from somewhere else.
+					/// </summary>
+					audioWindowWasResized;
+			} mtFlags;
+
+			// contains non-atomic structures
+			struct StateOptions
+			{
+				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
+				float primitiveSize, rotation;
+				float stereoCoeff;
+				float envelopeCoeff;
+				/// <summary>
+				/// A constant factor slower than the stereoCoeff
+				/// </summary>
+				float secondStereoFilterSpeed;
+				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
+				cpl::ValueT envelopeGain;
+				EnvelopeModes envelopeMode;
+			} state;
+
+			VectorScopeContent * content;
+			AudioStream & audioStream;
+			//cpl::AudioBuffer audioStreamCopy;
+			juce::Component * editor;
+			double oldWindowSize;
+			// unused.
+			std::unique_ptr<char> textbuf;
+			unsigned long long processorSpeed; // clocks / sec
+			juce::Point<float> lastMousePos;
+			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
+
+		};
+
+	};
 
 #endif
