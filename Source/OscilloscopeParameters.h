@@ -256,7 +256,7 @@
 			OscilloscopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 				: systemView(system)
 				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Miliseconds)
+				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)

@@ -121,10 +121,10 @@
 			enum Mode
 			{
 				Samples,
-				Miliseconds
+				Milliseconds
 			};
 
-			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Miliseconds)
+			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Milliseconds)
 				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
 			{
 
@@ -196,7 +196,7 @@
 			{
 				char buffer[100];
 
-				if (m == Miliseconds)
+				if (m == Milliseconds)
 				{
 					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
 				}
@@ -229,7 +229,7 @@
 					else
 					{
 						// assume value is in miliseconds
-						if (m == Miliseconds && notSamples)
+						if (m == Milliseconds && notSamples)
 						{
 							collectedValue /= 1000;
 							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
@@ -249,7 +249,7 @@
 			{
 				auto samples = std::round(val * stream.getAudioHistoryCapacity());
 				
-				/* if (m == Miliseconds)
+				/* if (m == Milliseconds)
 				{
 					samples /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 					samples *= 1000;
@@ -262,7 +262,7 @@
 
 			virtual ValueType normalize(ValueType val) const noexcept override
 			{
-				/* if (m == Miliseconds)
+				/* if (m == Milliseconds)
 				{
 					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 					val *= 1000;
