@@ -36,7 +36,7 @@
 	#include <cpl/gui/Widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
-	#include "VectorScopeParameters.h"
+	#include "OscilloscopeParameters.h"
 
 	namespace cpl
 	{
@@ -107,19 +107,13 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
-			void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
-
-			template<typename V>
-			void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+			void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 			void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
 			void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
-
-			template<typename V>
-			void drawStereoMeters(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 			void runPeakFilter(const AudioStream::AudioBufferAccess &);
@@ -148,8 +142,6 @@
 				};
 
 				AudioStream::DataType envelope[2];
-				AudioStream::DataType balance[2][2];
-				AudioStream::DataType phase[2];
 
 			} filters;
 
@@ -171,20 +163,16 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
-				float primitiveSize, rotation;
-				float stereoCoeff;
+				bool normalizeGain, isFrozen, fadeHistory, antialias, diagnostics;
+				float primitiveSize;
 				float envelopeCoeff;
-				/// <summary>
-				/// A constant factor slower than the stereoCoeff
-				/// </summary>
-				float secondStereoFilterSpeed;
-				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
+				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
+				SubSampleInterpolation sampleInterpolation;
 			} state;
 
-			VectorScopeContent * content;
+			OscilloscopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			juce::Component * editor;

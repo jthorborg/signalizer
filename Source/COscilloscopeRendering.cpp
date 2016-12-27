@@ -40,18 +40,10 @@ namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
 	
-	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
-	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
-	
+	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C", "S"};
+
 	static const float quarterPISinCos = 0.707106781186547f;
 	static const float circleScaleFactor = 1.1f;
-	
-	enum class OperationalModes
-	{
-		Lissajous,
-		Polar
-		
-	};
 	
 	enum Textures
 	{
@@ -61,7 +53,8 @@ namespace Signalizer
 		RMinus,
 		Left,
 		Right,
-		Center
+		Center,
+		Side
 	};
 
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
@@ -184,14 +177,7 @@ namespace Signalizer
 				// draw actual stereoscopic plot
 				if (lockedView.getNumChannels() >= 2)
 				{
-					if (state.isPolar)
-					{
-						drawPolarPlot<V>(openGLStack, lockedView);
-					}
-					else // is Lissajous
-					{
-						drawRectPlot<V>(openGLStack, lockedView);
-					}
+					drawWavePlot<V>(openGLStack, lockedView);
 				}
 				CPL_DEBUGCHECKGL();
 
@@ -202,9 +188,6 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 				// draw channel text(ures)
 				drawGraphText<V>(openGLStack, lockedView);
-				CPL_DEBUGCHECKGL();
-				// draw 2d stuff (like stereo meters)
-				drawStereoMeters<V>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
@@ -224,79 +207,47 @@ namespace Signalizer
 			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			using consts = cpl::simd::consts<float>;
 			// draw channel rotations letters.
-			if(!state.isPolar)
+
+			// TODO: Remove rotation
+			auto rotation = 0;
+			const float heightToWidthFactor = float(getHeight()) / getWidth();
+			using namespace cpl::simd;
+				
+			cpl::OpenGLRendering::MatrixModification m;
+			// this undoes the text squashing due to variable aspect ratios.
+			m.scale(heightToWidthFactor, 1.0f, 1.0f);
+				
+			// calculate coordinates using sin/cos simd pairs.
+			suitable_container<v4sf> phases, xcoords, ycoords;
+				
+			// set phases (we rotate L/R etc. text around in a circle)
+			phases[0] = rotation;
+			phases[1] = consts::pi * 0.5f + rotation;
+			phases[2] = consts::pi + rotation;
+			phases[3] = consts::pi * 1.5f + rotation;
+				
+			// some registers
+			v4sf
+				vsines,
+				vcosines,
+				vscale = set1<v4sf>(circleScaleFactor),
+				vadd = set1<v4sf>(1.0f - circleScaleFactor),
+				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
+				
+			// do 8 trig functions in one go!
+			cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
+				
+			// place the circle just outside the graph, and offset it.
+			xcoords = vsines * vscale * vheightToWidthFactor + vadd;
+			ycoords = vcosines * vscale + vadd;
+				
+			auto jcolour = state.colourGraph;
+			// render texture text at coordinates.
+			for (int i = 0; i < 4; ++i)
 			{
-				auto rotation = -state.rotation * 2 * consts::pi;
-				const float heightToWidthFactor = float(getHeight()) / getWidth();
-				using namespace cpl::simd;
-				
-				cpl::OpenGLRendering::MatrixModification m;
-				// this undoes the text squashing due to variable aspect ratios.
-				m.scale(heightToWidthFactor, 1.0f, 1.0f);
-				
-				// calculate coordinates using sin/cos simd pairs.
-				suitable_container<v4sf> phases, xcoords, ycoords;
-				
-				// set phases (we rotate L/R etc. text around in a circle)
-				phases[0] = rotation;
-				phases[1] = consts::pi * 0.5f + rotation;
-				phases[2] = consts::pi + rotation;
-				phases[3] = consts::pi * 1.5f + rotation;
-				
-				// some registers
-				v4sf
-					vsines,
-					vcosines,
-					vscale = set1<v4sf>(circleScaleFactor),
-					vadd = set1<v4sf>(1.0f - circleScaleFactor),
-					vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
-				
-				// do 8 trig functions in one go!
-				cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
-				
-				// place the circle just outside the graph, and offset it.
-				xcoords = vsines * vscale * vheightToWidthFactor + vadd;
-				ycoords = vcosines * vscale + vadd;
-				
-				auto jcolour = state.colourGraph;
-				// render texture text at coordinates.
-				for (int i = 0; i < 4; ++i)
-				{
-					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[i]);
-					text.setColour(jcolour);
-					text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
-				}
-			}
-			else
-			{
-				const float heightToWidthFactor = float(getHeight()) / getWidth();
-				using namespace cpl::simd;
-				
-				cpl::OpenGLRendering::MatrixModification m;
-				// this undoes the text squashing due to variable aspect ratios.
-				m.scale(heightToWidthFactor, 1.0f, 1.0f);
-				
-				auto jcolour = state.colourGraph;
-				float nadd = 1.0f - circleScaleFactor;
-				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
-				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
-				
-				// render texture text at coordinates.
-				{
-					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Left]);
-					text.setColour(jcolour);
-					text.drawAt({ -xcoord + nadd, ycoord, 0.1f, 0.1f });
-				}
-				{
-					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Center]);
-					text.setColour(jcolour);
-					text.drawAt({ 0 + nadd * 0.5f, 1, 0.1f, 0.1f });
-				}
-				{
-					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Right]);
-					text.setColour(jcolour);
-					text.drawAt({ xcoord, ycoord, 0.1f, 0.1f });
-				}
+				cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[i]);
+				text.setColour(jcolour);
+				text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
 			}
 		}
 	
@@ -309,11 +260,9 @@ namespace Signalizer
 	
 	
 	template<typename V>
-		void COscilloscope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
-			// apply the custom rotation to the waveform
-			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
 			auto gain = (GLfloat)state.envelopeGain;
 			matrixMod.scale(gain, gain, 1);
@@ -321,7 +270,7 @@ namespace Signalizer
 			
 			if (!state.fadeHistory)
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 				
 				drawer.addColour(state.colourDraw);
 
@@ -337,7 +286,7 @@ namespace Signalizer
 			}
 			else
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 				
 				auto jcolour = state.colourDraw;
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
@@ -361,328 +310,6 @@ namespace Signalizer
 			
 		}
 	
-
-	template<typename V>
-		void COscilloscope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
-		{
-			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
-
-			using namespace cpl::simd;
-			using cpl::simd::abs;
-			typedef typename scalar_of<V>::type Ty;
-
-			cpl::OpenGLRendering::MatrixModification matrixMod;
-			auto const gain = (GLfloat)state.envelopeGain;
-			auto const numSamples = views[0].size();
-			// TODO: handle all cases of potential signed overflow.
-			typedef std::make_signed<std::size_t>::type ssize_t;
-			ssize_t vectorLength = elements_of<V>::value;
-			matrixMod.scale(gain, gain, 1);
-			suitable_container<V> outX, outY, outFade;
-
-			// simd consts
-			const Ty cosineRotation = consts<Ty>::sqrt_half_two_minus;
-			const Ty sineRotation = consts<Ty>::sqrt_half_two;
-			const V vCosine = consts<V>::sqrt_half_two_minus; // equals e^i*0.75*pi
-			const V vSine = consts<V>::sqrt_half_two;
-			const V vZero = zero<V>();
-			const V vOne = consts<V>::one;
-			const V vSign = consts<V>::sign_bit;
-			auto const fadePerSample = (Ty)1.0 / numSamples;
-			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
-
-			const float
-				red = state.colourDraw.getFloatRed(),
-				green = state.colourDraw.getFloatGreen(),
-				blue = state.colourDraw.getFloatBlue();
-
-			for (int i = 0; i < vectorLength; ++i)
-			{
-				outFade[i] = fadePerSample * i;
-			}
-
-			V vSampleFade = outFade;
-
-			if(!state.fadeHistory)
-			{
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
-				drawer.addColour(red, green, blue);
-				// iterate front of buffer, then back.
-
-				for (ssize_t section = 0; section < AudioStream::bufferIndices; ++section)
-				{
-
-					// using signed ints to safely jump out of loops with elements_of<V> > sectionSamples
-					ssize_t i = 0;
-
-					const Ty * left = views[0].getItIndex(section);
-					const Ty * right = views[1].getItIndex(section);
-
-					ssize_t sectionSamples = views[0].getItRange(section);
-
-					for (; i < (sectionSamples - vectorLength); i += vectorLength)
-					{
-						V vLeft = loadu<V>(left + i);
-						V vRight = loadu<V>(right + i);
-
-						// the length of the hypotenuse of the triangle, we 
-						// convert the unit square to.
-						auto const vLength = max(abs(vLeft), abs(vRight));
-
-						// rotate our view manually (to center on Y-axis)
-						V vY = vLeft * vCosine - vRight * vSine;
-						V vX = vLeft * vSine + vRight * vCosine;
-
-						// check for any zero elements.
-						vLeft = (vLeft == vZero);
-						vRight = (vRight == vZero);
-						auto vMask = vnot(vand(vLeft, vRight));
-
-						// get the phase angle. use atan2 if you want to draw the full circle.
-						// x and y are swapped at this point, btw.
-						auto vAngle = atan(vX / vY);
-						// replace nan elements of angle with zero
-						vAngle = vand(vMask, vAngle);
-						// calcuate x,y coordinates for the right triangle
-						sincos(vAngle, &vX, &vY);
-
-						// construct triangle.
-						outX = vX * vLength;
-						outY = vY * vLength;
-
-						outFade = vSampleFade - vOne;
-
-						// draw vertices.
-						for (cpl::ssize_t n = 0; n < vectorLength; ++n)
-						{
-							drawer.addVertex(outX[n], outY[n], outFade[n]);
-						}
-
-						vSampleFade += vIncrementalFade;
-
-					}
-					//continue;
-					// deal with remainder, scalar route
-					ssize_t remaindingSamples = 0;
-					auto currentSampleFade = outFade[vectorLength - 1];
-
-					for (; i < sectionSamples; i++, remaindingSamples++)
-					{
-						Ty vLeft = left[i];
-						Ty vRight = right[i];
-
-						// the length of the hypotenuse of the triangle, we 
-						// convert the unit square to.
-						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
-
-						// rotate our view manually (to center on Y-axis)
-						Ty vY = vLeft * cosineRotation - vRight * sineRotation;
-						Ty vX = vLeft * sineRotation + vRight * cosineRotation;
-
-						// check for any zero elements.
-
-						// get the phase angle. use atan2 if you want to draw the full circle.
-						// x and y are swapped at this point, btw.
-						auto angle = std::atan(vX / vY);
-						// replace nan elements of angle with zero
-						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
-						// calcuate x,y coordinates for the right triangle
-						sincos(angle, &vX, &vY);
-
-						drawer.addVertex(vX * length, vY * length, (currentSampleFade - remaindingSamples * fadePerSample));
-
-
-
-					}
-					// fractionally increase sample fade levels
-					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
-				}
-			}
-			else // apply fading
-			{
-
-				const V 
-					vRed = set1<V>(red), 
-					vGreen = set1<V>(green),
-					vBlue = set1<V>(blue);
-
-				suitable_container<V> outRed, outGreen, outBlue;
-				// iterate front of buffer, then back.
-
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
-
-				for (ssize_t section = 0; section < 2; ++section)
-				{
-
-					ssize_t i = 0;
-
-					const Ty * left = views[0].getItIndex(section);
-					const Ty * right = views[1].getItIndex(section);
-
-					ssize_t sectionSamples = views[0].getItRange(section);
-
-					for (; i < (sectionSamples - vectorLength); i += vectorLength)
-					{
-						V vLeft = loadu<V>(left + i);
-						V vRight = loadu<V>(right + i);
-
-						// the length of the hypotenuse of the triangle, we 
-						// convert the unit square to.
-						auto const vLength = max(abs(vLeft), abs(vRight));
-
-						// rotate our view manually (to center on Y-axis)
-						V vY = vLeft * vCosine - vRight * vSine;
-						V vX = vLeft * vSine + vRight * vCosine;
-
-						// check for any zero elements.
-						vLeft = (vLeft == vZero);
-						vRight = (vRight == vZero);
-						auto vMask = vnot(vand(vLeft, vRight));
-
-						// get the phase angle. use atan2 if you want to draw the full circle.
-						// x and y are swapped at this point, btw.
-						auto vAngle = atan(vX / vY);
-						// replace nan elements of angle with zero
-						vAngle = vand(vMask, vAngle);
-						// calcuate x,y coordinates for the right triangle
-						sincos(vAngle, &vX, &vY);
-
-						// construct triangle.
-						outX = vX * vLength;
-						outY = vY * vLength;
-
-						outFade = vSampleFade - vOne;
-
-						// set colours
-
-						outRed = vRed * vSampleFade;
-						outBlue = vBlue * vSampleFade;
-						outGreen = vGreen * vSampleFade;
-
-						// draw vertices.
-						for (cpl::ssize_t n = 0; n < vectorLength; ++n)
-						{
-							drawer.addColour(outRed[n], outGreen[n], outBlue[n]);
-							drawer.addVertex(outX[n], outY[n], outFade[n]);
-						}
-
-						vSampleFade += vIncrementalFade;
-
-					}
-					//continue;
-					// deal with remainder, scalar route
-					ssize_t remaindingSamples = 0;
-					auto currentSampleFade = outFade[vectorLength - 1];
-
-					for (; i < sectionSamples; i++, remaindingSamples++)
-					{
-						Ty vLeft = left[i];
-						Ty vRight = right[i];
-
-						// the length of the hypotenuse of the triangle, we 
-						// convert the unit square to.
-						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
-
-						// rotate our view manually (to center on Y-axis)
-						Ty vY = vLeft * cosineRotation - vRight * sineRotation;
-						Ty vX = vLeft * sineRotation + vRight * cosineRotation;
-
-						// check for any zero elements.
-
-						// get the phase angle. use atan2 if you want to draw the full circle.
-						// x and y are swapped at this point, btw.
-						auto angle = std::atan(vX / vY);
-						// replace nan elements of angle with zero
-						angle = (vLeft == Ty(0) && vRight == Ty(0)) ? Ty(0) : angle;
-						// calcuate x,y coordinates for the right triangle
-						sincos(angle, &vX, &vY);
-
-						auto currentFade = (currentSampleFade - remaindingSamples * fadePerSample);
-						drawer.addColour(red * (currentFade + 1), green * (currentFade + 1), blue * (currentFade + 1));
-						drawer.addVertex(vX * length, vY * length, currentFade);
-
-					}
-					// fractionally increase sample fade levels
-					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
-
-				}
-			}
-		}
-
-	template<typename V>
-		void COscilloscope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
-		{
-			using namespace cpl;
-			OpenGLRendering::MatrixModification m;
-			m.loadIdentityMatrix();
-			const float heightToWidthFactor = float(getHeight()) / getWidth();
-
-			const float balanceX = -0.95f;
-			const float balanceLength = 1.9f;
-			const float stereoY = -0.85f;
-			const float stereoLength = 1.7f;
-			const float sideSize = 0.05f;
-			//const float stereoSideSize = sideSize * heightToWidthFactor;
-			const float indicatorSize = 0.05f;
-
-			// remember, y / x
-			float balanceQuick = std::atan(filters.balance[0][1] / filters.balance[0][0]) / (simd::consts<float>::pi * 0.5f);
-			if (!std::isnormal(balanceQuick))
-				balanceQuick = 0.5f;
-			float balanceSlow = std::atan(filters.balance[1][1] / filters.balance[1][0]) / (simd::consts<float>::pi * 0.5f);
-			if (!std::isnormal(balanceSlow))
-				balanceSlow = 0.5f;
-
-			const float stereoQuick = filters.phase[0] * 0.5f + 0.5f;
-			const float stereoSlow = filters.phase[1] * 0.5f + 0.5f;
-			
-			// this undoes the squashing due to variable aspect ratios.
-			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
-			OpenGLRendering::RectangleDrawer2D<> rect(openGLStack);
-
-			// draw slow balance
-			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
-			rect.setBounds(balanceX + (balanceLength - indicatorSize) * balanceSlow, balanceX, indicatorSize, sideSize);
-			rect.fill();
-
-			// draw quick balance
-			rect.setColour(state.colourMeter);
-			rect.setBounds(balanceX + (balanceLength - indicatorSize * 0.25f) * balanceQuick, balanceX, indicatorSize * 0.25f, sideSize);
-			rect.fill();
-
-
-			// draw slow stereo
-			rect.setColour(state.colourMeter.withMultipliedBrightness(0.75f));
-			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize) * stereoSlow, sideSize * heightToWidthFactor, indicatorSize);
-			rect.fill();
-
-			// draw quick stereo
-			rect.setColour(state.colourMeter);
-			rect.setBounds(-balanceX, stereoY + (stereoLength - indicatorSize * 0.25f) * stereoQuick, sideSize * heightToWidthFactor, indicatorSize * 0.25f);
-			rect.fill();
-
-
-			// draw bounding rectangle of balance meter
-			rect.setBounds(balanceX, balanceX, balanceLength, sideSize);
-			rect.setColour(state.colourMeter.withMultipliedBrightness(0.5f));
-			rect.renderOutline();
-
-			// draw bounding rectangle of correlation meter
-			rect.setBounds(-balanceX, stereoY, sideSize * heightToWidthFactor, stereoLength);
-			rect.setColour(state.colourMeter.withMultipliedBrightness(0.5f));
-			rect.renderOutline();
-
-			auto pieceColour = state.colourBackground.contrasting().withMultipliedBrightness(state.colourMeter.getPerceivedBrightness() * 0.5f);
-			rect.setColour(pieceColour);
-			// draw contrasting center piece for balance
-			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 0.125f, balanceX, indicatorSize * 0.125f, sideSize);
-			rect.fill();
-
-			// draw contrasting center piece for stereo
-			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
-			rect.fill();
-		}
-
 
 	template<typename V>
 		void COscilloscope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)

@@ -42,13 +42,7 @@ namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
-	
-	enum class OperationalModes : int
-	{
-		Lissajous,
-		Polar
-	};
-	
+
 	const double COscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double COscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
@@ -65,14 +59,13 @@ namespace Signalizer
 		filters(),
 		oldWindowSize(-1)
 	{
-		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
+		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
+			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
 
 
 		mtFlags.firstRun = true;
-		state.secondStereoFilterSpeed = 0.25f;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
@@ -221,20 +214,16 @@ namespace Signalizer
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.getTransformedValue());
 		state.envelopeGain = content->inputGain.getTransformedValue();
-		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
-		state.fillPath = content->interconnectSamples.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
-		state.rotation = content->waveZRotation.getNormalizedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
 		state.colourWire = content->skeletonColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
-		state.colourMeter = content->meterColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 
 
@@ -269,75 +258,18 @@ namespace Signalizer
 				return;
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
-			T stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
 
-			const T cosineRotation = (T)std::cos(M_PI * 135 / 180);
-			const T sineRotation = (T)std::sin(M_PI * 135 / 180);
-			const V vMatrixReal = set1<V>(cosineRotation);
-			const V vMatrixImag = set1<V>(sineRotation);
-
-			const V vDummyAngle = set1<V>((T)(M_PI * 0.25));
-			const V vZero = zero<V>();
-
-			auto const loopIncrement = elements_of<V>::value;
-
-			// ensure a perfect multiple and no buffer overrun
-			numSamples -= numSamples & (loopIncrement - 1);
-
-			suitable_container<V> outputPhases;
-
-			for (std::size_t n = 0; n < numSamples; n += loopIncrement)
+			for (std::size_t n = 0; n < numSamples; n++)
 			{
-				// some of the heavy math done in vector mode..
-				const V vLeft = loadu<V>(buffer[0] + n);
-				const V vRight = loadu<V>(buffer[1] + n); 
+				using fs = FilterStates;
+				// collect squared inputs (really just a cheap abs)
+				const auto lSquared = buffer[fs::Left][n] * buffer[fs::Left][n];
+				const auto rSquared = buffer[fs::Right][n] * buffer[fs::Right][n];
 
-				// rotate 235 degrees...
-				const V vX = vLeft * vMatrixReal - vRight * vMatrixImag;
-				const V vY = vRight * vMatrixImag + vLeft * vMatrixReal;
+				// average envelope 
+				filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
+				filterEnv[fs::Right] = rSquared + state.envelopeCoeff * (filterEnv[fs::Right] - rSquared);
 
-				// check if both axes are zero
-				const V vZeroAxes = vand((V)(vX == vZero), (V)(vY == vZero));
-
-				// compute the phase angle and replace the zero vector elements with the dummy angle (to avoid nans, +/-infs are defined)
-				const V vRadians = atan(vY / vX);
-				const V vPhaseAngle = vselect(vDummyAngle, vRadians, vZeroAxes);
-
-				outputPhases = vPhaseAngle;
-				// the phase angle is discontinuous around PI, so we take the cosine
-				// to avoid the discontinuity and give a small smoothing
-				// for some arcane fucking reason, the phase response of this function IN THIS CONTEXT is wrong
-				// testing reveals no problems, it just doesn't work right here. Uncomment if you find a fix.
-#pragma message cwarn("Errornous cosine output here.")
-				//outputPhases = cos(outputPhases * set1<V>(2));
-
-				// scalar code segment for recursive IIR filters..
-				for (std::size_t i = 0; i < loopIncrement; ++i)
-				{
-					auto const z = n + i;
-					// collect squared inputs (really just a cheap abs)
-					const auto lSquared = buffer[0][z] * buffer[0][z];
-					const auto rSquared = buffer[1][z] * buffer[1][z];
-					
-					// average envelope 
-					filterEnv[0] = lSquared + state.envelopeCoeff * (filterEnv[0] - lSquared);
-					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
-
-					// balance average source
-					
-					using fs = FilterStates;
-					
-					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
-					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
-					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
-					filters.balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Right] - rSquared);
-
-					// phase averaging
-					// see larger comment above.
-					outputPhases[i] = cos(outputPhases[i] * consts<T>::two);
-					filters.phase[0] = outputPhases[i] + stereoPoles[0] * (filters.phase[0] - outputPhases[i]);
-					filters.phase[1] = outputPhases[i] + stereoPoles[1] * (filters.phase[1] - outputPhases[i]);
-				}
 
 
 			}

@@ -29,7 +29,7 @@
 
 #include "MainEditor.h"
 #include "CVectorScope.h"
-//#include "COscilloscope.h"
+#include "COscilloscope.h"
 #include "CSpectrum.h"
 #include "SignalizerDesign.h"
 #include <cpl/CPresetManager.h>
@@ -64,10 +64,10 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	std::array<const char *, 2> ViewIndexToMap = 
+	std::array<const char *, 3> ViewIndexToMap = 
 	{
 		"Vectorscope",
-		//"Oscilloscope",
+		"Oscilloscope",
 		"Spectrum"
 		//"Statistics"
 	};
@@ -75,7 +75,7 @@ namespace Signalizer
 	enum class ViewTypes
 	{
 		Vectorscope,
-		//Oscilloscope,
+		Oscilloscope,
 		Spectrum,
 		end
 	};
@@ -89,6 +89,7 @@ namespace Signalizer
 	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
 	{
 		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
+		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &CreateState<OscilloscopeContent> },
 		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
 	};
 
@@ -98,6 +99,7 @@ namespace Signalizer
 		switch (type)
 		{
 		case ViewTypes::Vectorscope: return std::make_unique<CVectorScope>(args...);
+		case ViewTypes::Oscilloscope: return std::make_unique<COscilloscope>(args...);
 		case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
 		}
 		CPL_RUNTIME_EXCEPTION("Unknown view generation index");

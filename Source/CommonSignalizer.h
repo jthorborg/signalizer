@@ -48,6 +48,13 @@
 			PeakDecay
 		};
 
+		enum class SubSampleInterpolation : int
+		{
+			None,
+			Rectangular,
+			Linear,
+			Lanczos5
+		};
 
 		/// <summary>
 		/// Floating-point type used for parameters etc. in Signalizer
@@ -455,7 +462,6 @@
 
 		/// <summary>
 		/// Provides a optionally lazily loaded instance of some object, where you can (de)serialize the state independently of the instance
-		/// Premise: 
 		/// </summary>
 		template<typename T>
 		class DecoupledStateObject
