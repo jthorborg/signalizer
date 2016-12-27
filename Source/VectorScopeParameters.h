@@ -97,13 +97,13 @@
 					kstereoSmooth.bSetTitle("Stereo window");
 
 					// buttons n controls
-					kantiAlias.bSetTitle("Antialias");
+					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
-					kfadeOld.bSetTitle("Fade older points");
+					kfadeOld.setSingleText("Fade older points");
 					kfadeOld.setToggleable(true);
-					kdrawLines.bSetTitle("Interconnect samples");
+					kdrawLines.setSingleText("Interconnect samples");
 					kdrawLines.setToggleable(true);
-					kdiagnostics.bSetTitle("Diagnostics");
+					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kenvelopeMode.bSetTitle("Auto-gain mode");
 

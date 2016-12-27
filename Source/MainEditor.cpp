@@ -1505,14 +1505,14 @@ namespace Signalizer
 		kvsync.setToggleable(true);
 		khideTabs.setToggleable(true);
 
-		khideTabs.bSetTitle("Auto-hide tabs");
+		khideTabs.setSingleText("Auto-hide tabs");
 		krefreshRate.bSetTitle("Refresh Rate");
-		krefreshState.bSetTitle("Reset state");
+		krefreshState.setSingleText("Reset state");
 		kantialias.bSetTitle("Antialiasing");
-		kidle.bSetTitle("Idle in back");
+		kidle.setSingleText("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
-		kstableFps.bSetTitle("Stable FPS");
-		kvsync.bSetTitle("Vertical Sync");
+		kstableFps.setSingleText("Stable FPS");
+		kvsync.setSingleText("Vertical Sync");
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);

@@ -54,7 +54,6 @@
 				OscilloscopeController(OscilloscopeContent & parentValue)
 					: parent(parentValue)
 					, kantiAlias(&parentValue.antialias)
-					, kfadeOld(&parentValue.fadeOlderPoints)
 					, kdiagnostics(&parentValue.diagnostics)
 					, kwindow(&parentValue.windowSize)
 					, kgain(&parentValue.inputGain)
@@ -92,11 +91,9 @@
 
 
 					// buttons n controls
-					kantiAlias.bSetTitle("Antialias");
+					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
-					kfadeOld.bSetTitle("Fade older points");
-					kfadeOld.setToggleable(true);
-					kdiagnostics.bSetTitle("Diagnostics");
+					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kenvelopeMode.bSetTitle("Auto-gain mode");
 
@@ -105,7 +102,6 @@
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
 						" - additional transform that only affects the waveform, and not the graph");
 					kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
-					kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
 					kdrawingColour.bSetDescription("The main colour to paint with.");
 					kgraphColour.bSetDescription("The colour of the graph.");
 					kbackgroundColour.bSetDescription("The background colour of the view.");
@@ -145,8 +141,7 @@
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&kantiAlias, 0);
-							section->addControl(&kfadeOld, 1);
-							section->addControl(&kdiagnostics, 3);
+							section->addControl(&kdiagnostics, 1);
 							page->addSection(section, "Options");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -178,7 +173,6 @@
 					archive << kwindow;
 					archive << kgain;
 					archive << kantiAlias;
-					archive << kfadeOld;
 					archive << kdiagnostics;
 					archive << kgraphColour;
 					archive << kbackgroundColour;
@@ -202,7 +196,6 @@
 					builder >> kwindow;
 					builder >> kgain;
 					builder >> kantiAlias;
-					builder >> kfadeOld;
 					builder >> kdiagnostics;
 					builder >> kgraphColour;
 					builder >> kbackgroundColour;
@@ -250,7 +243,7 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kfadeOld, kdiagnostics;
+				cpl::CButton kantiAlias, kdiagnostics;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
@@ -282,7 +275,6 @@
 				, inputGain("InputGain", dbRange, dbFormatter)
 				, windowSize("WindowSize", audioHistoryTransformatter, audioHistoryTransformatter)
 				, antialias("AntiAlias", boolRange, boolFormatter)
-				, fadeOlderPoints("FadeOld", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
 				, subSampleInterpolation("SampleIntp", subSampleTransformer, subSampleFormatter)
@@ -304,7 +296,7 @@
 				auto singleParameters = { 
 					&autoGain, &envelopeWindow,
 					&inputGain, &windowSize, &subSampleInterpolation, &antialias,
-					&fadeOlderPoints, &diagnostics, &primitiveSize,
+					&diagnostics, &primitiveSize,
 				};
 
 				for (auto sparam : singleParameters)
@@ -338,7 +330,6 @@
 				archive << windowSize;
 				archive << inputGain;
 				archive << antialias;
-				archive << fadeOlderPoints;
 				archive << diagnostics;
 				archive << graphColour;
 				archive << backgroundColour;
@@ -356,7 +347,6 @@
 				builder >> windowSize;
 				builder >> inputGain;
 				builder >> antialias;
-				builder >> fadeOlderPoints;
 				builder >> diagnostics;
 				builder >> graphColour;
 				builder >> backgroundColour;
@@ -408,7 +398,6 @@
 				inputGain,
 				windowSize,
 				antialias,
-				fadeOlderPoints,
 				diagnostics,
 				primitiveSize,
 				subSampleInterpolation;

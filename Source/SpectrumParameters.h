@@ -210,8 +210,8 @@
 					klowDbs.bSetTitle("Lower limit");
 					khighDbs.bSetTitle("Upper limit");
 					kwindowSize.bSetTitle("Window size");
-					kfreeQ.bSetTitle("Unbound Q");
-					kdiagnostics.bSetTitle("Diagnostics");
+					kfreeQ.setSingleText("Unbound Q");
+					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kfreeQ.setToggleable(true);
 					kspectrumStretching.bSetTitle("Spectrum stretch");
