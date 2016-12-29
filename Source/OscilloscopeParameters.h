@@ -99,7 +99,7 @@
 					kenvelopeSmooth.bSetTitle("Env. window");
 					ksubSampleInterpolationMode.bSetTitle("Sample interpolation");
 					kpctForDivision.bSetTitle("Grid div. space");
-
+					kchannelConfiguration.bSetTitle("Channel conf.");
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
@@ -122,6 +122,7 @@
 					kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 					ksubSampleInterpolationMode.bSetDescription("Controls how point samples are interpolated to wave forms");
 					kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
+					kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
 
 				}
 
@@ -317,7 +318,7 @@
 			{
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
-				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid+Side", "Complex" });
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
 
 				// order matters
 				auto singleParameters = { 

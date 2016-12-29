@@ -177,9 +177,9 @@
 					if (dispMode == DisplayMode::ColourSpectrum)
 					{
 						// disable all multichannel configurations
-						for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+						for (std::size_t i = 0; i < (size_t)SpectrumChannels::End; i++)
 						{
-							if (i >(size_t)ChannelConfiguration::OffsetForMono)
+							if (i >(size_t)SpectrumChannels::OffsetForMono)
 							{
 								kchannelConfiguration.setEnabledStateFor(i, false);
 							}
@@ -188,7 +188,7 @@
 					else
 					{
 						// enable them.
-						for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+						for (std::size_t i = 0; i < (size_t)SpectrumChannels::End; i++)
 						{
 							kchannelConfiguration.setEnabledStateFor(i, true);
 						}
@@ -211,7 +211,7 @@
 					// ------ titles -----------
 					kviewScaling.bSetTitle("Graph scale");
 					kalgorithm.bSetTitle("Transform algorithm");
-					kchannelConfiguration.bSetTitle("Channel configuration");
+					kchannelConfiguration.bSetTitle("Channel conf.");
 					kdisplayMode.bSetTitle("Display mode");
 					kfrequencyTracker.bSetTitle("Frequency tracking");
 					kframeUpdateSmoothing.bSetTitle("Upd. smoothing");

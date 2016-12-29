@@ -211,13 +211,12 @@ namespace Signalizer
 
 	void COscilloscope::handleFlagUpdates()
 	{
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
+		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.getTransformedValue());
+		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.envelopeGain = content->inputGain.getTransformedValue();
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
-		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 

@@ -443,12 +443,12 @@ namespace Signalizer
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.alphaFloodFill = content->floodFillAlpha.getTransformedValue();
 
-		auto newconf = content->channelConfiguration.param.getAsTEnum<ChannelConfiguration>();
+		auto newconf = content->channelConfiguration.param.getAsTEnum<SpectrumChannels>();
 
 		if (newconf != state.configuration)
 		{
 			state.configuration = newconf;
-			if (newconf != ChannelConfiguration::Complex)
+			if (newconf != SpectrumChannels::Complex)
 			{
 				complexFrequencyGraph.clear();
 			}
@@ -487,7 +487,7 @@ namespace Signalizer
 
 		// TODO: insert messagemanagerlock or rework
 		auto divLimitParam = content->pctForDivision.getTransformedValue();
-		auto const divLimit = 5 + (state.configuration == ChannelConfiguration::Complex ? 0.25 : 1) * (numFilters * 0.02 + 0.5 * (numFilters * divLimitParam));
+		auto const divLimit = 5 + (state.configuration == SpectrumChannels::Complex ? 0.25 : 1) * (numFilters * 0.02 + 0.5 * (numFilters * divLimitParam));
 		auto const divLimitY = 5 + 0.6 * (getHeight() * divLimitParam);
 
 		oglImage.setFillColour(state.colourBackground);
@@ -577,7 +577,7 @@ namespace Signalizer
 		{
 			state.viewScale = cpl::enum_cast<SpectrumContent::ViewScaling>(content->viewScaling.param.getTransformedValue());
 
-			if (state.configuration != ChannelConfiguration::Complex)
+			if (state.configuration != SpectrumChannels::Complex)
 			{
 				frequencyGraph.setBounds({ 0.0, (double)axisPoints });
 				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
@@ -633,7 +633,7 @@ namespace Signalizer
 				case SpectrumContent::ViewScaling::Linear:
 				{
 					double halfSampleRate = sampleRate * 0.5;
-					double complexFactor = state.configuration == ChannelConfiguration::Complex ? 2.0 : 1.0;
+					double complexFactor = state.configuration == SpectrumChannels::Complex ? 2.0 : 1.0;
 					double freqPerPixel = halfSampleRate / (numFilters - 1);
 
 					for (std::size_t i = 0; i < numFilters; ++i)
@@ -650,7 +650,7 @@ namespace Signalizer
 					double minFreq = state.minLogFreq;
 
 					double end = sampleRate / 2;
-					if (state.configuration != ChannelConfiguration::Complex)
+					if (state.configuration != SpectrumChannels::Complex)
 					{
 						for (std::size_t i = 0; i < numFilters; ++i)
 						{
@@ -713,7 +713,7 @@ namespace Signalizer
 		{
 			frequencyGraph.setDivisionLimit(divLimit);
 			frequencyGraph.compileGraph();
-			if (state.configuration == ChannelConfiguration::Complex)
+			if (state.configuration == SpectrumChannels::Complex)
 			{
 				complexFrequencyGraph.setDivisionLimit(divLimit);
 				complexFrequencyGraph.compileGraph();

@@ -218,12 +218,12 @@ namespace Signalizer
 
 	void CVectorScope::handleFlagUpdates()
 	{
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.getTransformedValue());
+		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
 		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
 		state.envelopeGain = content->inputGain.getTransformedValue();
-		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.getTransformedValue()) == OperationalModes::Polar;
+		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
 		state.fillPath = content->interconnectSamples.getTransformedValue() > 0.5;

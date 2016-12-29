@@ -156,7 +156,7 @@
 			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
 			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as 
-			/// formats the data into the filterResults array according to the channel mode (ChannelConfiguration).
+			/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
 			/// 
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace(). 
 			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
@@ -302,7 +302,7 @@
 			/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
 			/// </summary>
 			template<class V2>
-				void mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
+				void mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
 
 			/// <summary>
 			/// Returns the number of T elements available in the audio space buffer
@@ -407,7 +407,7 @@
 				/// <summary>
 				/// How the incoming data is interpreted, channel-wise.
 				/// </summary>
-				ChannelConfiguration configuration;
+				SpectrumChannels configuration;
 
 				SpectrumContent::ViewScaling viewScale;
 
@@ -566,7 +566,7 @@
 				std::atomic<DisplayMode> displayMode;
 				std::atomic<std::size_t> windowSize;
 				std::atomic<cpl::iCtrlPrec_t> divLimit;
-				std::atomic<ChannelConfiguration> configuration;
+				std::atomic<SpectrumChannels> configuration;
 				std::atomic<cpl::iCtrlPrec_t> stretch;
 				std::atomic<signed int> frequencyTrackingGraph;
 				std::atomic<float> primitiveSize;

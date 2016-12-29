@@ -174,24 +174,28 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				// draw actual stereoscopic plot
-				if (lockedView.getNumChannels() >= 2)
-				{
-					drawWavePlot<V>(openGLStack, lockedView);
-				}
+				drawWavePlot<V>(openGLStack, lockedView);
+
 				CPL_DEBUGCHECKGL();
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 			
-				// draw graph and wireframe
-				drawWireFrame<V>(openGLStack);
+
 				CPL_DEBUGCHECKGL();
 				// draw channel text(ures)
 				drawGraphText<V>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
-			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
+			renderGraphics(
+				[&](juce::Graphics & g)
+				{ 
+					// draw graph and wireframe
+					//drawWireFrame<V>(openGLStack);
+					paint2DGraphics(g);
+
+				}
+			);
 
 			auto tickNow = juce::Time::getHighResolutionTicks();
 			avgFps.setNext(tickNow - lastFrameTick);
@@ -253,7 +257,7 @@ namespace Signalizer
 	
 	
 	template<typename V>
-		void COscilloscope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
+		void COscilloscope::drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain)
 		{
 
 		}
@@ -265,47 +269,21 @@ namespace Signalizer
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// and apply the gain:
 			auto gain = (GLfloat)state.envelopeGain;
-			matrixMod.scale(gain, gain, 1);
-			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
-			
-			if (!state.fadeHistory)
-			{
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-				
-				drawer.addColour(state.colourDraw);
+			matrixMod.scale(1, gain, 1);
+			float sampleDisplacement = 2.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
-				// TODO: glDrawArrays
-				audio.iterate<2, true>
-				(
-					[&] (std::size_t sampleFrame, AudioStream::DataType & left, AudioStream::DataType & right)
-					{
-						drawer.addVertex(right, left, sampleFrame * sampleFade - 1);
-					}
-				);
+			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+				
+			drawer.addColour(state.colourDraw);
 
-			}
-			else
-			{
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-				
-				auto jcolour = state.colourDraw;
-				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
-				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
-				
-				float fade = 0;
-				
-				// TODO: glDrawArrays
-				audio.iterate<2, true>
-				(
-					[&] (std::size_t sampleFrame, AudioStream::DataType left, AudioStream::DataType right)
-					{
-						fade = sampleFrame * sampleFade;
-						drawer.addColour(fade * red, fade * green, fade * blue, alpha);
-						drawer.addVertex(right, left, fade - 1);
-					}
-				);
-
-			}
+			// TODO: glDrawArrays
+			audio.iterate<1, true>
+			(
+				[&] (std::size_t sampleFrame, AudioStream::DataType & left)
+				{
+					drawer.addVertex(sampleFrame * sampleDisplacement - 1, left, 0);
+				}
+			);
 			
 			
 		}
@@ -314,6 +292,7 @@ namespace Signalizer
 	template<typename V>
 		void COscilloscope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
+			// TODO: Fix to extract data per-channel
 			if (state.normalizeGain && audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };

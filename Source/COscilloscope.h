@@ -110,7 +110,7 @@
 			void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-			void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
+			void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
 			template<typename V>
 			void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
@@ -163,7 +163,7 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, fadeHistory, antialias, diagnostics;
+				bool normalizeGain, isFrozen, antialias, diagnostics;
 				float primitiveSize;
 				float envelopeCoeff;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;

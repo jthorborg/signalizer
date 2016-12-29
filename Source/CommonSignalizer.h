@@ -301,7 +301,44 @@
 		extern std::string MainPresetName;
 		extern std::string DefaultPresetName;
 
-		enum class ChannelConfiguration
+		enum class OscChannels
+		{
+			/// <summary>
+			/// Only the left channel will be analyzed and displayed.
+			/// </summary>
+			Left,
+			/// <summary>
+			/// Only the right channel will be analyzed and displayed.
+			/// </summary>
+			Right,
+			/// <summary>
+			/// Left and right will be merged (added) together and processed
+			/// in mono mode, equivalent to mid in M/S processing
+			/// </summary>
+			Merge,
+			Mid = Merge,
+			/// <summary>
+			/// The difference between the two channels will be processed.
+			/// Equal to left - right, and is equivalent to side in M/S processing
+			/// </summary>
+			Side,
+			/// <summary>
+			/// If the configuration is over this value,
+			/// the processing requires more than one channel.
+			/// </summary>
+			OffsetForMono = Side,
+			/// <summary>
+			/// Both channels are displayed.
+			/// </summary>
+			Separate,
+			/// <summary>
+			/// First channel is mid, second channel is side.
+			/// </summary>
+			MidSide,
+			End
+		};
+
+		enum class SpectrumChannels
 		{
 			/// <summary>
 			/// Only the left channel will be analyzed and displayed.

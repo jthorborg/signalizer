@@ -65,8 +65,8 @@
 					, kskeletonColour(&parentValue.skeletonColour)
 					, kmeterColour(&parentValue.meterColour)
 					, ktransform(&parentValue.transform)
-					, kopMode(&parentValue.operationalMode)
-					, kenvelopeMode(&parentValue.autoGain)
+					, kopMode(&parentValue.operationalMode.param)
+					, kenvelopeMode(&parentValue.autoGain.param)
 					, kpresets(&valueSerializer, "vectorscope")
 					, editorSerializer(
 						*this,
@@ -314,12 +314,9 @@
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
-				, gainModeFormatter(gainModeTransformer)
-				, opModeFormatter(opModeTransformer)
 
-
-				, autoGain("AutoGain", gainModeTransformer, gainModeFormatter)
-				, operationalMode("OpMode", opModeTransformer, opModeFormatter)
+				, autoGain("AutoGain")
+				, operationalMode("OpMode")
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
 				, stereoWindow("StereoWindow", windowRange, msFormatter)
 				, inputGain("InputGain", dbRange, dbFormatter)
@@ -342,11 +339,11 @@
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 			{
-				opModeFormatter.setValues({ "Lissajous", "Polar" });
-				gainModeFormatter.setValues({ "None", "RMS", "Peak decay" });
+				operationalMode.fmt.setValues({ "Lissajous", "Polar" });
+				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 
 				auto singleParameters = { 
-					&autoGain, &operationalMode, &envelopeWindow, &stereoWindow,
+					&autoGain.param, &operationalMode.param, &envelopeWindow, &stereoWindow,
 					&inputGain, &windowSize, &waveZRotation, &antialias,
 					&fadeOlderPoints, &interconnectSamples, &diagnostics, &primitiveSize,
 				};
@@ -393,9 +390,9 @@
 				archive << transform;
 				archive << skeletonColour;
 				archive << primitiveSize;
-				archive << autoGain;
+				archive << autoGain.param;
 				archive << envelopeWindow;
-				archive << operationalMode;
+				archive << operationalMode.param;
 				archive << stereoWindow;
 				archive << meterColour;
 			}
@@ -415,9 +412,9 @@
 				builder >> transform;
 				builder >> skeletonColour;
 				builder >> primitiveSize;
-				builder >> autoGain;
+				builder >> autoGain.param;
 				builder >> envelopeWindow;
-				builder >> operationalMode;
+				builder >> operationalMode.param;
 				builder >> stereoWindow;
 				builder >> meterColour;
 			}
@@ -433,13 +430,6 @@
 
 			cpl::DBFormatter<double> dbFormatter;
 			cpl::BooleanFormatter<double> boolFormatter;
-			cpl::ChoiceFormatter<double>
-				gainModeFormatter,
-				opModeFormatter;
-
-			cpl::ChoiceTransformer<double>
-				gainModeTransformer,
-				opModeTransformer;
 
 			cpl::BooleanRange<double> boolRange;
 
@@ -454,8 +444,6 @@
 
 
 			cpl::ParameterValue<ParameterSet::ParameterView>
-				autoGain,
-				operationalMode,
 				envelopeWindow,
 				stereoWindow,
 				inputGain,
@@ -466,6 +454,10 @@
 				interconnectSamples,
 				diagnostics,
 				primitiveSize;
+
+			ChoiceParameter
+				autoGain,
+				operationalMode;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
 
