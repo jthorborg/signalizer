@@ -632,6 +632,32 @@
 			DestructionDelegate objectDeathHook;
 		};
 
+		template<typename Parent>
+			class SSOSurrogate : public cpl::SafeSerializableObject
+			{
+			public:
+				typedef std::function<void(Parent &, cpl::CSerializer::Archiver &, cpl::Version)> FSerializer;
+				typedef std::function<void(Parent &, cpl::CSerializer::Builder &, cpl::Version)> FDeserializer;
+
+				SSOSurrogate(Parent & parent, FSerializer serializer, FDeserializer deserializer)
+					: parent(parent), serializer(serializer), deserializer(deserializer) {}
+			private:
+				void serialize(cpl::CSerializer::Archiver & ar, cpl::Version version) override
+				{
+					serializer(parent, ar, version);
+				}
+
+				void deserialize(cpl::CSerializer::Builder & b, cpl::Version version) override
+				{
+					deserializer(parent, b, version);
+				}
+
+				Parent & parent;
+
+				FSerializer serializer;
+				FDeserializer deserializer;
+			};
+
 		struct ParameterMap
 		{
 			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)

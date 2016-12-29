@@ -78,10 +78,6 @@
 
 			class SpectrumController final
 				: public CContentPage
-				// the preset widget controls the complete serialization logic,
-				// for outside serialization we implementent specific access instead
-				// to only serialize GUI settings.
-				, private cpl::SafeSerializableObject
 				, private cpl::ValueEntityBase::Listener
 			{
 			public:
@@ -129,12 +125,25 @@
 						{ { &parentValue.lines[1].decay }, { &parentValue.lines[1].colourOne }, { &parentValue.lines[1].colourTwo } },
 					}
 
-					, presetManager(this, "spectrum")
+					, presetManager(&valueSerializer, "spectrum")
+
+					, editorSerializer(
+						*this,
+						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
+						[](auto & oc, auto & se, auto version) { oc.deserializeEditorSettings(se, version); }
+					)
+					, valueSerializer(
+						*this,
+						[](auto & oc, auto & se, auto version) { oc.serializeAll(se, version); },
+						[](auto & oc, auto & se, auto version) { oc.deserializeAll(se, version); }
+					)
 				{
 					initControls();
 					initUI();
 					setTransformOptions();
 				}
+
+				cpl::SafeSerializableObject & getEditorSO() override { return editorSerializer; }
 
 				~SpectrumController()
 				{
@@ -372,7 +381,9 @@
 					}
 				}
 
-				void serializeEditorSettings(cpl::CSerializer::Archiver & archive, cpl::Version version) override
+			private:
+
+				void serializeEditorSettings(cpl::CSerializer::Archiver & archive, cpl::Version version)
 				{
 					archive << kviewScaling;
 					archive << kalgorithm;
@@ -413,7 +424,7 @@
 					archive << kreferenceTuning;
 				}
 
-				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version) override
+				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
 				{
 					// in general, controls should never restore values. However, older versions
 					// of Signalizer does exactly this, so to keep backwards-compatibility, we 
@@ -472,10 +483,8 @@
 					}
 				}
 
-			private:
-
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
-				void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override
+				void serializeAll(cpl::CSerializer::Archiver & archive, cpl::Version version)
 				{
 					if (version < cpl::Version(0, 2, 8))
 					{
@@ -492,7 +501,7 @@
 				}
 
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
-				void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
+				void deserializeAll(cpl::CSerializer::Builder & builder, cpl::Version version)
 				{
 					if (version < cpl::Version(0, 2, 8))
 					{
@@ -544,6 +553,10 @@
 				cpl::CValueKnobSlider kspecRatios[numSpectrumColours];
 
 				SpectrumContent & parent;
+
+				SSOSurrogate<SpectrumController>
+					editorSerializer,
+					valueSerializer;
 			};
 
 			SpectrumContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)

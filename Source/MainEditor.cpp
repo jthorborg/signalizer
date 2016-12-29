@@ -201,7 +201,14 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> MainEditor::createEditor()
 	{
-		auto content = new Signalizer::CContentPage();
+		class CContentPageDummySerialization
+			: public CContentPage
+			, private cpl::SafeSerializableObject
+		{
+			virtual cpl::SafeSerializableObject & getEditorSO() override { return *this; }
+		};
+
+		auto content = new CContentPageDummySerialization();
 		content->setName(MainEditorName);
 		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
 		{

@@ -53,12 +53,16 @@
 			, public cpl::DestructionNotifier
 		{
 		public:
-			virtual void serializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) = 0;
-			virtual void deserializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) = 0;
+
+			/// <summary>
+			/// Returns an object to be used for serializing the editor state
+			/// </summary>
+			virtual cpl::SafeSerializableObject & getEditorSO() = 0;
+
 		};
 
 
-		class CContentPageBase
+		class CContentPage
 		:
 			public StateEditor,
 			public cpl::CIconTabBar::CTabBarListener
@@ -349,7 +353,7 @@
 				//return selectedComponent ? selectedComponent->getSuggestedSize() : std::make_pair(0, 0);
 			}
 
-			CContentPageBase()
+			CContentPage()
 				: selectedComponent(nullptr)
 			{
 				icons.setOrientation(icons.Vertical);
@@ -429,28 +433,6 @@
 			std::map<std::string, COrderedTabPage> pages;
 			std::vector<std::string> nameToIndex;
 			cpl::CIconTabBar icons;
-		};
-
-		class CContentPage 
-			: public CContentPageBase
-		{
-		public:
-
-			void serializeEditorSettings(cpl::CSerializer::Archiver & ar, cpl::Version v) override
-			{
-
-			}
-
-			void deserializeEditorSettings(cpl::CSerializer::Builder & ar, cpl::Version v) override
-			{
-
-			}
-
-
-			~CContentPage()
-			{
-				notifyDestruction();
-			}
 		};
 
 		class CDefaultView
