@@ -612,7 +612,7 @@
 
 				viewScaling.fmt.setValues({ "Linear", "Logarithmic" });
 				algorithm.fmt.setValues({ "FFT", "Resonator" });
-				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side", "Complex" });
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid+Side", "Complex" });
 				displayMode.fmt.setValues({ "Line graph", "Colour spectrum" });
 				binInterpolation.fmt.setValues({ "None", "Linear", "Lanczos" });
 
@@ -776,18 +776,7 @@
 
 			typedef cpl::ParameterValue<ParameterSet::ParameterView> Parameter;
 
-			struct ChoiceParameter
-			{
-				Parameter param;
-				cpl::ChoiceFormatter<SFloat> fmt;
-				cpl::ChoiceTransformer<SFloat> tsf;
 
-				ChoiceParameter(const std::string & name)
-					: param(name, tsf, fmt)
-					, fmt(tsf)
-				{
-				}
-			};
 
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView> dspWin;
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>::SharedBehaviour windowBehavior;

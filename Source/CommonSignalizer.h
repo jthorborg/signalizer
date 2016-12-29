@@ -107,6 +107,19 @@
 			ParameterSet::AutomatedProcessor & processor;
 		};
 
+		struct ChoiceParameter
+		{
+			cpl::ParameterValue<ParameterSet::ParameterView> param;
+			cpl::ChoiceFormatter<SFloat> fmt;
+			cpl::ChoiceTransformer<SFloat> tsf;
+
+			ChoiceParameter(const std::string & name)
+				: param(name, tsf, fmt)
+				, fmt(tsf)
+			{
+			}
+		};
+
 		template<typename ParameterView>
 		class AudioHistoryTransformatter
 			: public ParameterView::ParameterType::Transformer

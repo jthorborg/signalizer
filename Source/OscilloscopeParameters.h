@@ -64,9 +64,11 @@
 					, kbackgroundColour(&parentValue.backgroundColour)
 					, kskeletonColour(&parentValue.skeletonColour)
 					, ktransform(&parentValue.transform)
-					, kenvelopeMode(&parentValue.autoGain)
+					, kenvelopeMode(&parentValue.autoGain.param)
 					, kpresets(this, "oscilloscope")
-					, ksubSampleInterpolationMode(&parentValue.subSampleInterpolation)
+					, ksubSampleInterpolationMode(&parentValue.subSampleInterpolation.param)
+					, kpctForDivision(&parentValue.pctForDivision)
+					, kchannelConfiguration(&parentValue.channelConfiguration.param)
 				{
 					initControls();
 					initUI();
@@ -88,7 +90,7 @@
 					kprimitiveSize.bSetTitle("Primitive size");
 					kenvelopeSmooth.bSetTitle("Env. window");
 					ksubSampleInterpolationMode.bSetTitle("Sample interpolation");
-
+					kpctForDivision.bSetTitle("Grid div. space");
 
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
@@ -111,6 +113,8 @@
 					kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
 					kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 					ksubSampleInterpolationMode.bSetDescription("Controls how point samples are interpolated to wave forms");
+					kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
+
 				}
 
 				void initUI()
@@ -125,10 +129,14 @@
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&kenvelopeMode, 0);
-							section->addControl(&kenvelopeSmooth, 0);
-							section->addControl(&kgain, 0);
+							section->addControl(&kenvelopeSmooth, 1);
+							
+							section->addControl(&kchannelConfiguration, 0);
 
-							section->addControl(&kwindow, 1);
+							section->addControl(&kgain, 1);
+
+							section->addControl(&kwindow, 0);
+							section->addControl(&kpctForDivision, 1);
 
 
 							page->addSection(section, "Utility");
@@ -183,6 +191,9 @@
 					archive << kenvelopeMode;
 					archive << kenvelopeSmooth;
 					archive << ksubSampleInterpolationMode;
+					archive << kpctForDivision;
+					archive << kchannelConfiguration;
+					archive << kpctForDivision;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version) override
@@ -206,6 +217,9 @@
 					builder >> kenvelopeMode;
 					builder >> kenvelopeSmooth;
 					builder >> ksubSampleInterpolationMode;
+					builder >> kpctForDivision;
+					builder >> kchannelConfiguration;
+					builder >> kpctForDivision;
 				}
 
 			private:
@@ -244,10 +258,10 @@
 				}
 
 				cpl::CButton kantiAlias, kdiagnostics;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
-				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode;
+				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration;
 				cpl::CPresetWidget kpresets;
 
 				OscilloscopeContent & parent;
@@ -266,18 +280,18 @@
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
-				, gainModeFormatter(gainModeTransformer)
-				, opModeFormatter(opModeTransformer)
-				, subSampleFormatter(subSampleTransformer)
 
-				, autoGain("AutoGain", gainModeTransformer, gainModeFormatter)
+				, autoGain("AutoGain")
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
 				, inputGain("InputGain", dbRange, dbFormatter)
 				, windowSize("WindowSize", audioHistoryTransformatter, audioHistoryTransformatter)
 				, antialias("AntiAlias", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
-				, subSampleInterpolation("SampleIntp", subSampleTransformer, subSampleFormatter)
+				, subSampleInterpolation("SampleIntp")
+				, pctForDivision("PctDiv", unityRange, pctFormatter)
+				, channelConfiguration("ChConf")
+
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -288,15 +302,22 @@
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 			{
-				opModeFormatter.setValues({ "Lissajous", "Polar" });
-				gainModeFormatter.setValues({ "None", "RMS", "Peak decay" });
-				subSampleFormatter.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
+				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
+				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid+Side", "Complex" });
 
-
+				// order matters
 				auto singleParameters = { 
-					&autoGain, &envelopeWindow,
-					&inputGain, &windowSize, &subSampleInterpolation, &antialias,
-					&diagnostics, &primitiveSize,
+					&autoGain.param, 
+					&envelopeWindow,
+					&inputGain, 
+					&windowSize, 
+					&antialias,
+					&diagnostics, 
+					&primitiveSize,
+					&subSampleInterpolation.param,
+					&channelConfiguration.param,
+					&pctForDivision,
 				};
 
 				for (auto sparam : singleParameters)
@@ -337,9 +358,11 @@
 				archive << transform;
 				archive << skeletonColour;
 				archive << primitiveSize;
-				archive << autoGain;
+				archive << autoGain.param;
 				archive << envelopeWindow;
-				archive << subSampleInterpolation;
+				archive << subSampleInterpolation.param;
+				archive << channelConfiguration.param;
+				archive << pctForDivision;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -354,9 +377,11 @@
 				builder >> transform;
 				builder >> skeletonColour;
 				builder >> primitiveSize;
-				builder >> autoGain;
+				builder >> autoGain.param;
 				builder >> envelopeWindow;
-				builder >> subSampleInterpolation;
+				builder >> subSampleInterpolation.param;
+				builder >> channelConfiguration.param;
+				builder >> pctForDivision;
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -368,17 +393,11 @@
 				degreeFormatter,
 				ptsFormatter;
 
+			cpl::PercentageFormatter<double>
+				pctFormatter;
+
 			cpl::DBFormatter<double> dbFormatter;
 			cpl::BooleanFormatter<double> boolFormatter;
-			cpl::ChoiceFormatter<double>
-				gainModeFormatter,
-				opModeFormatter,
-				subSampleFormatter;
-
-			cpl::ChoiceTransformer<double>
-				gainModeTransformer,
-				opModeTransformer,
-				subSampleTransformer;
 
 			cpl::BooleanRange<double> boolRange;
 
@@ -393,14 +412,19 @@
 
 
 			cpl::ParameterValue<ParameterSet::ParameterView>
-				autoGain,
 				envelopeWindow,
 				inputGain,
 				windowSize,
 				antialias,
 				diagnostics,
 				primitiveSize,
+				pctForDivision;
+
+			ChoiceParameter
+				autoGain,
+				channelConfiguration,
 				subSampleInterpolation;
+
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
 
