@@ -104,7 +104,7 @@ namespace Signalizer
 		{
 			if(!skipText)
 			{
-				auto complexScale = state.configuration == ChannelConfiguration::Complex ? 2.0f : 1.0f;
+				auto complexScale = state.configuration == SpectrumChannels::Complex ? 2.0f : 1.0f;
 				g.setColour(state.colourGrid);
 
 				const auto & divs = frequencyGraph.getDivisions();
@@ -117,7 +117,7 @@ namespace Signalizer
 
 				}
 				// text for complex frequency divisions
-				if (state.configuration == ChannelConfiguration::Complex)
+				if (state.configuration == SpectrumChannels::Complex)
 				{
 					auto normalizedScaleX = 1.0 / frequencyGraph.getBounds().dist();
 					auto normXC = [=](double in) { return -static_cast<float>(normalizedScaleX * in * 2.0 - 1.0); };
@@ -261,7 +261,7 @@ namespace Signalizer
 
 			if (state.viewScale == SpectrumContent::ViewScaling::Logarithmic)
 			{
-				if (state.configuration != ChannelConfiguration::Complex)
+				if (state.configuration != SpectrumChannels::Complex)
 				{
 					mouseFrequency = state.minLogFreq * std::pow(maxFrequency / state.minLogFreq, state.viewRect.left + viewSize * mouseFraction);
 				}
@@ -282,7 +282,7 @@ namespace Signalizer
 			else
 			{
 				auto arg = state.viewRect.left + viewSize * mouseFraction;
-				if (state.configuration != ChannelConfiguration::Complex)
+				if (state.configuration != SpectrumChannels::Complex)
 				{
 					mouseFrequency = arg * maxFrequency;
 				}
@@ -317,7 +317,7 @@ namespace Signalizer
 		auto interpolationError = 0.01;
 
 		// TODO: these special cases can be handled (on a rainy day)
-		if (state.configuration == ChannelConfiguration::Complex || !(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
+		if (state.configuration == SpectrumChannels::Complex || !(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
 		{
 
 			if (graphN == SpectrumContent::LineGraphs::Transform)
@@ -785,7 +785,7 @@ namespace Signalizer
 
 					for (int i = 0; i < getAxisPoints(); ++i)
 					{
-#define SIGNALIZER_VISUALDEBUGTEST
+//#define SIGNALIZER_VISUALDEBUGTEST
 #ifdef SIGNALIZER_VISUALDEBUGTEST
 						if (framePixelPosition & 1 && i & 1)
 						{
@@ -888,9 +888,9 @@ namespace Signalizer
 			{
 				switch (state.configuration)
 				{
-				case ChannelConfiguration::MidSide:
-				case ChannelConfiguration::Phase:
-				case ChannelConfiguration::Separate:
+				case SpectrumChannels::MidSide:
+				case SpectrumChannels::Phase:
+				case SpectrumChannels::Separate:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
 					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
@@ -901,11 +901,11 @@ namespace Signalizer
 					}
 				}
 				// (fall-through intentional)
-				case ChannelConfiguration::Left:
-				case ChannelConfiguration::Right:
-				case ChannelConfiguration::Merge:
-				case ChannelConfiguration::Side:
-				case ChannelConfiguration::Complex:
+				case SpectrumChannels::Left:
+				case SpectrumChannels::Right:
+				case SpectrumChannels::Merge:
+				case SpectrumChannels::Side:
+				case SpectrumChannels::Complex:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
 					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
@@ -931,9 +931,9 @@ namespace Signalizer
 		{
 			switch (state.configuration)
 			{
-			case ChannelConfiguration::MidSide:
-			case ChannelConfiguration::Phase:
-			case ChannelConfiguration::Separate:
+			case SpectrumChannels::MidSide:
+			case SpectrumChannels::Phase:
+			case SpectrumChannels::Separate:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 				lineDrawer.addColour(state.colourTwo[k]);
@@ -943,11 +943,11 @@ namespace Signalizer
 				}
 			}
 			// (fall-through intentional)
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Merge:
-			case ChannelConfiguration::Side:
-			case ChannelConfiguration::Complex:
+			case SpectrumChannels::Left:
+			case SpectrumChannels::Right:
+			case SpectrumChannels::Merge:
+			case SpectrumChannels::Side:
+			case SpectrumChannels::Complex:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
 				lineDrawer.addColour(state.colourOne[k]);
@@ -973,7 +973,7 @@ namespace Signalizer
 			auto normY = [=](double in) {  return static_cast<float>(normalizedScaleY * in * 2.0); };
 
 			{
-				const float cscale = state.configuration == ChannelConfiguration::Complex ? 2 : 1;
+				const float cscale = state.configuration == SpectrumChannels::Complex ? 2 : 1;
 				const float width = getWidth();
 
 				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);

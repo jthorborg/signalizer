@@ -78,10 +78,6 @@
 
 			class SpectrumController final
 				: public CContentPage
-				// the preset widget controls the complete serialization logic,
-				// for outside serialization we implementent specific access instead
-				// to only serialize GUI settings.
-				, private cpl::SafeSerializableObject
 				, private cpl::ValueEntityBase::Listener
 			{
 			public:
@@ -129,12 +125,25 @@
 						{ { &parentValue.lines[1].decay }, { &parentValue.lines[1].colourOne }, { &parentValue.lines[1].colourTwo } },
 					}
 
-					, presetManager(this, "spectrum")
+					, presetManager(&valueSerializer, "spectrum")
+
+					, editorSerializer(
+						*this,
+						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
+						[](auto & oc, auto & se, auto version) { oc.deserializeEditorSettings(se, version); }
+					)
+					, valueSerializer(
+						*this,
+						[](auto & oc, auto & se, auto version) { oc.serializeAll(se, version); },
+						[](auto & oc, auto & se, auto version) { oc.deserializeAll(se, version); }
+					)
 				{
 					initControls();
 					initUI();
 					setTransformOptions();
 				}
+
+				cpl::SafeSerializableObject & getEditorSO() override { return editorSerializer; }
 
 				~SpectrumController()
 				{
@@ -168,9 +177,9 @@
 					if (dispMode == DisplayMode::ColourSpectrum)
 					{
 						// disable all multichannel configurations
-						for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+						for (std::size_t i = 0; i < (size_t)SpectrumChannels::End; i++)
 						{
-							if (i >(size_t)ChannelConfiguration::OffsetForMono)
+							if (i >(size_t)SpectrumChannels::OffsetForMono)
 							{
 								kchannelConfiguration.setEnabledStateFor(i, false);
 							}
@@ -179,7 +188,7 @@
 					else
 					{
 						// enable them.
-						for (std::size_t i = 0; i < (size_t)ChannelConfiguration::End; i++)
+						for (std::size_t i = 0; i < (size_t)SpectrumChannels::End; i++)
 						{
 							kchannelConfiguration.setEnabledStateFor(i, true);
 						}
@@ -202,7 +211,7 @@
 					// ------ titles -----------
 					kviewScaling.bSetTitle("Graph scale");
 					kalgorithm.bSetTitle("Transform algorithm");
-					kchannelConfiguration.bSetTitle("Channel configuration");
+					kchannelConfiguration.bSetTitle("Channel conf.");
 					kdisplayMode.bSetTitle("Display mode");
 					kfrequencyTracker.bSetTitle("Frequency tracking");
 					kframeUpdateSmoothing.bSetTitle("Upd. smoothing");
@@ -210,8 +219,8 @@
 					klowDbs.bSetTitle("Lower limit");
 					khighDbs.bSetTitle("Upper limit");
 					kwindowSize.bSetTitle("Window size");
-					kfreeQ.bSetTitle("Unbound Q");
-					kdiagnostics.bSetTitle("Diagnostics");
+					kfreeQ.setSingleText("Unbound Q");
+					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kfreeQ.setToggleable(true);
 					kspectrumStretching.bSetTitle("Spectrum stretch");
@@ -372,7 +381,9 @@
 					}
 				}
 
-				void serializeEditorSettings(cpl::CSerializer::Archiver & archive, cpl::Version version) override
+			private:
+
+				void serializeEditorSettings(cpl::CSerializer::Archiver & archive, cpl::Version version)
 				{
 					archive << kviewScaling;
 					archive << kalgorithm;
@@ -413,7 +424,7 @@
 					archive << kreferenceTuning;
 				}
 
-				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version) override
+				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
 				{
 					// in general, controls should never restore values. However, older versions
 					// of Signalizer does exactly this, so to keep backwards-compatibility, we 
@@ -472,10 +483,8 @@
 					}
 				}
 
-			private:
-
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
-				void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override
+				void serializeAll(cpl::CSerializer::Archiver & archive, cpl::Version version)
 				{
 					if (version < cpl::Version(0, 2, 8))
 					{
@@ -492,7 +501,7 @@
 				}
 
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
-				void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
+				void deserializeAll(cpl::CSerializer::Builder & builder, cpl::Version version)
 				{
 					if (version < cpl::Version(0, 2, 8))
 					{
@@ -544,6 +553,10 @@
 				cpl::CValueKnobSlider kspecRatios[numSpectrumColours];
 
 				SpectrumContent & parent;
+
+				SSOSurrogate<SpectrumController>
+					editorSerializer,
+					valueSerializer;
 			};
 
 			SpectrumContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
@@ -612,7 +625,7 @@
 
 				viewScaling.fmt.setValues({ "Linear", "Logarithmic" });
 				algorithm.fmt.setValues({ "FFT", "Resonator" });
-				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid/Side", "Complex" });
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Phase", "Separate", "Mid+Side", "Complex" });
 				displayMode.fmt.setValues({ "Line graph", "Colour spectrum" });
 				binInterpolation.fmt.setValues({ "None", "Linear", "Lanczos" });
 
@@ -776,18 +789,7 @@
 
 			typedef cpl::ParameterValue<ParameterSet::ParameterView> Parameter;
 
-			struct ChoiceParameter
-			{
-				Parameter param;
-				cpl::ChoiceFormatter<SFloat> fmt;
-				cpl::ChoiceTransformer<SFloat> tsf;
 
-				ChoiceParameter(const std::string & name)
-					: param(name, tsf, fmt)
-					, fmt(tsf)
-				{
-				}
-			};
 
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView> dspWin;
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>::SharedBehaviour windowBehavior;

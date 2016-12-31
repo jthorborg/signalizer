@@ -88,7 +88,7 @@
 				}
 			};
 
-		enum class EnvelopeModes : int;
+
 		
 		class CVectorScope 
 			: public cpl::COpenGLView

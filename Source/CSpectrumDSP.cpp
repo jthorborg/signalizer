@@ -38,7 +38,7 @@ namespace Signalizer
 
 	std::size_t CSpectrum::getStateConfigurationChannels() const noexcept
 	{
-		return state.configuration > ChannelConfiguration::OffsetForMono ? 2 : 1;
+		return state.configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 	}
 
 	template<typename T>
@@ -144,9 +144,9 @@ namespace Signalizer
 
 				switch (channelConfiguration)
 				{
-				case ChannelConfiguration::Left:
+				case SpectrumChannels::Left:
 					channel = 0;
-				case ChannelConfiguration::Right:
+				case SpectrumChannels::Right:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -174,7 +174,7 @@ namespace Signalizer
 					}
 					break;
 				}
-				case ChannelConfiguration::Merge:
+				case SpectrumChannels::Merge:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -202,7 +202,7 @@ namespace Signalizer
 					}
 					break;
 				}
-				case ChannelConfiguration::Side:
+				case SpectrumChannels::Side:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -231,7 +231,7 @@ namespace Signalizer
 					}
 					break;
 				}
-				case ChannelConfiguration::MidSide:
+				case SpectrumChannels::MidSide:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -266,9 +266,9 @@ namespace Signalizer
 					}
 					break;
 				}
-				case ChannelConfiguration::Phase:
-				case ChannelConfiguration::Separate:
-				case ChannelConfiguration::Complex:
+				case SpectrumChannels::Phase:
+				case SpectrumChannels::Separate:
+				case SpectrumChannels::Complex:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -353,9 +353,9 @@ namespace Signalizer
 
 				switch (channelConfiguration)
 				{
-				case ChannelConfiguration::Left:
+				case SpectrumChannels::Left:
 					channel = 0;
-				case ChannelConfiguration::Right:
+				case SpectrumChannels::Right:
 				{
 					// get start from buffers - first indice is a special case.
 					// notice the buffers are reversed in time, so we pull old data first with an offset,
@@ -398,7 +398,7 @@ namespace Signalizer
 					
 					break;
 				}
-				case ChannelConfiguration::Merge:
+				case SpectrumChannels::Merge:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -434,7 +434,7 @@ namespace Signalizer
 					
 					break;
 				}
-				case ChannelConfiguration::Side:
+				case SpectrumChannels::Side:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -470,7 +470,7 @@ namespace Signalizer
 					
 					break;
 				}
-				case ChannelConfiguration::MidSide:
+				case SpectrumChannels::MidSide:
 				{
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
@@ -516,9 +516,9 @@ namespace Signalizer
 					
 					break;
 				}
-				case ChannelConfiguration::Phase:
-				case ChannelConfiguration::Separate:
-				case ChannelConfiguration::Complex:
+				case SpectrumChannels::Phase:
+				case SpectrumChannels::Separate:
+				case SpectrumChannels::Complex:
 				{
 					
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
@@ -598,7 +598,7 @@ namespace Signalizer
 
 
 	template<class V2>
-		void CSpectrum::mapAndTransformDFTFilters(ChannelConfiguration type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
+		void CSpectrum::mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
 		{
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
@@ -611,11 +611,11 @@ namespace Signalizer
 
 			switch (type)
 			{
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Merge:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Side:
-			case ChannelConfiguration::Complex:
+			case SpectrumChannels::Left:
+			case SpectrumChannels::Merge:
+			case SpectrumChannels::Right:
+			case SpectrumChannels::Side:
+			case SpectrumChannels::Complex:
 			{
 
 				for (cpl::Types::fint_t i = 0; i < size; ++i)
@@ -646,8 +646,8 @@ namespace Signalizer
 				}
 				break;
 			}
-			case ChannelConfiguration::Separate:
-			case ChannelConfiguration::MidSide:
+			case SpectrumChannels::Separate:
+			case SpectrumChannels::MidSide:
 			{
 
 				for (cpl::Types::fint_t i = 0; i < size; ++i)
@@ -686,7 +686,7 @@ namespace Signalizer
 				}
 				break;
 			}
-			case ChannelConfiguration::Phase:
+			case SpectrumChannels::Phase:
 			{
 				fpoint phaseFilters[SpectrumContent::LineGraphs::LineEnd];
 
@@ -793,10 +793,10 @@ namespace Signalizer
 
 			switch (state.configuration)
 			{
-			case ChannelConfiguration::Left:
-			case ChannelConfiguration::Right:
-			case ChannelConfiguration::Merge:
-			case ChannelConfiguration::Side:
+			case SpectrumChannels::Left:
+			case SpectrumChannels::Right:
+			case SpectrumChannels::Merge:
+			case SpectrumChannels::Side:
 			{
 				oldBin = mappedFrequencies[0] * freqToBin;
 
@@ -892,7 +892,7 @@ namespace Signalizer
 
 				break;
 			}
-			case ChannelConfiguration::Phase:
+			case SpectrumChannels::Phase:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
 				dsp::separateTransformsIPL(csf, N);
@@ -1103,8 +1103,8 @@ namespace Signalizer
 
 				break;
 			}
-			case ChannelConfiguration::Separate:
-			case ChannelConfiguration::MidSide:
+			case SpectrumChannels::Separate:
+			case SpectrumChannels::MidSide:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
 				dsp::separateTransformsIPL(csf, N);
@@ -1236,7 +1236,7 @@ namespace Signalizer
 				}
 			}
 			break;
-			case ChannelConfiguration::Complex:
+			case SpectrumChannels::Complex:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
 
@@ -1366,7 +1366,7 @@ namespace Signalizer
 				
 			switch (state.configuration)
 			{
-			case ChannelConfiguration::Phase:
+			case SpectrumChannels::Phase:
 			{
 				for (std::size_t x = 0; x < filtersPerChannel; ++x)
 				{
@@ -1589,17 +1589,17 @@ namespace Signalizer
 
 		switch (state.configuration)
 		{
-			case ChannelConfiguration::Right:
+			case SpectrumChannels::Right:
 			{
 				cresonator.resonateReal<V>(&buffer[1], 1, numSamples);
 				break;
 			}
-			case ChannelConfiguration::Left:
+			case SpectrumChannels::Left:
 			{
 				cresonator.resonateReal<V>(buffer, 1, numSamples);
 				break;
 			}
-			case ChannelConfiguration::Mid:
+			case SpectrumChannels::Mid:
 			{
 				ensureRelayBufferSize(1, numSamples);
 				fpoint * rbuffer[] = { getRelayBufferChannel(0) };
@@ -1612,7 +1612,7 @@ namespace Signalizer
 				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
 				break;
 			}
-			case ChannelConfiguration::Side:
+			case SpectrumChannels::Side:
 			{
 				ensureRelayBufferSize(1, numSamples);
 				fpoint * rbuffer[] = { getRelayBufferChannel(0) };
@@ -1625,7 +1625,7 @@ namespace Signalizer
 				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
 				break;
 			}
-			case ChannelConfiguration::MidSide:
+			case SpectrumChannels::MidSide:
 			{
 				ensureRelayBufferSize(numChannels, numSamples);
 				fpoint * rbuffer[] = { getRelayBufferChannel(0), getRelayBufferChannel(1) };
@@ -1639,13 +1639,13 @@ namespace Signalizer
 				cresonator.resonateReal<V>(rbuffer, 2, numSamples);
 				break;
 			}
-			case ChannelConfiguration::Phase:
-			case ChannelConfiguration::Separate:
+			case SpectrumChannels::Phase:
+			case SpectrumChannels::Separate:
 			{
 				cresonator.resonateReal<V>(buffer, 2, numSamples);
 				break;
 			}
-			case ChannelConfiguration::Complex:
+			case SpectrumChannels::Complex:
 			{
 				cresonator.resonateComplex<V>(buffer, numSamples);
 				break;

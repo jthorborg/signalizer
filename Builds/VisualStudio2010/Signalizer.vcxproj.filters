@@ -852,6 +852,12 @@
     <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
       <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\COscilloscope.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\COscilloscopeRendering.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">
@@ -2566,6 +2572,12 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\SpectrumParameters.h">
       <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\COscilloscope.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\OscilloscopeParameters.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

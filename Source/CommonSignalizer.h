@@ -48,6 +48,13 @@
 			PeakDecay
 		};
 
+		enum class SubSampleInterpolation : int
+		{
+			None,
+			Rectangular,
+			Linear,
+			Lanczos5
+		};
 
 		/// <summary>
 		/// Floating-point type used for parameters etc. in Signalizer
@@ -100,6 +107,19 @@
 			ParameterSet::AutomatedProcessor & processor;
 		};
 
+		struct ChoiceParameter
+		{
+			cpl::ParameterValue<ParameterSet::ParameterView> param;
+			cpl::ChoiceFormatter<SFloat> fmt;
+			cpl::ChoiceTransformer<SFloat> tsf;
+
+			ChoiceParameter(const std::string & name)
+				: param(name, tsf, fmt)
+				, fmt(tsf)
+			{
+			}
+		};
+
 		template<typename ParameterView>
 		class AudioHistoryTransformatter
 			: public ParameterView::ParameterType::Transformer
@@ -114,10 +134,10 @@
 			enum Mode
 			{
 				Samples,
-				Miliseconds
+				Milliseconds
 			};
 
-			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Miliseconds)
+			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Milliseconds)
 				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
 			{
 
@@ -189,7 +209,7 @@
 			{
 				char buffer[100];
 
-				if (m == Miliseconds)
+				if (m == Milliseconds)
 				{
 					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
 				}
@@ -222,7 +242,7 @@
 					else
 					{
 						// assume value is in miliseconds
-						if (m == Miliseconds && notSamples)
+						if (m == Milliseconds && notSamples)
 						{
 							collectedValue /= 1000;
 							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
@@ -242,7 +262,7 @@
 			{
 				auto samples = std::round(val * stream.getAudioHistoryCapacity());
 				
-				/* if (m == Miliseconds)
+				/* if (m == Milliseconds)
 				{
 					samples /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 					samples *= 1000;
@@ -255,7 +275,7 @@
 
 			virtual ValueType normalize(ValueType val) const noexcept override
 			{
-				/* if (m == Miliseconds)
+				/* if (m == Milliseconds)
 				{
 					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 					val *= 1000;
@@ -281,7 +301,44 @@
 		extern std::string MainPresetName;
 		extern std::string DefaultPresetName;
 
-		enum class ChannelConfiguration
+		enum class OscChannels
+		{
+			/// <summary>
+			/// Only the left channel will be analyzed and displayed.
+			/// </summary>
+			Left,
+			/// <summary>
+			/// Only the right channel will be analyzed and displayed.
+			/// </summary>
+			Right,
+			/// <summary>
+			/// Left and right will be merged (added) together and processed
+			/// in mono mode, equivalent to mid in M/S processing
+			/// </summary>
+			Merge,
+			Mid = Merge,
+			/// <summary>
+			/// The difference between the two channels will be processed.
+			/// Equal to left - right, and is equivalent to side in M/S processing
+			/// </summary>
+			Side,
+			/// <summary>
+			/// If the configuration is over this value,
+			/// the processing requires more than one channel.
+			/// </summary>
+			OffsetForMono = Side,
+			/// <summary>
+			/// Both channels are displayed.
+			/// </summary>
+			Separate,
+			/// <summary>
+			/// First channel is mid, second channel is side.
+			/// </summary>
+			MidSide,
+			End
+		};
+
+		enum class SpectrumChannels
 		{
 			/// <summary>
 			/// Only the left channel will be analyzed and displayed.
@@ -455,7 +512,6 @@
 
 		/// <summary>
 		/// Provides a optionally lazily loaded instance of some object, where you can (de)serialize the state independently of the instance
-		/// Premise: 
 		/// </summary>
 		template<typename T>
 		class DecoupledStateObject
@@ -612,6 +668,32 @@
 			UniqueHandle<T> cachedObject;
 			DestructionDelegate objectDeathHook;
 		};
+
+		template<typename Parent>
+			class SSOSurrogate : public cpl::SafeSerializableObject
+			{
+			public:
+				typedef std::function<void(Parent &, cpl::CSerializer::Archiver &, cpl::Version)> FSerializer;
+				typedef std::function<void(Parent &, cpl::CSerializer::Builder &, cpl::Version)> FDeserializer;
+
+				SSOSurrogate(Parent & parent, FSerializer serializer, FDeserializer deserializer)
+					: parent(parent), serializer(serializer), deserializer(deserializer) {}
+			private:
+				void serialize(cpl::CSerializer::Archiver & ar, cpl::Version version) override
+				{
+					serializer(parent, ar, version);
+				}
+
+				void deserialize(cpl::CSerializer::Builder & b, cpl::Version version) override
+				{
+					deserializer(parent, b, version);
+				}
+
+				Parent & parent;
+
+				FSerializer serializer;
+				FDeserializer deserializer;
+			};
 
 		struct ParameterMap
 		{

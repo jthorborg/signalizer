@@ -21,14 +21,14 @@
  
 **************************************************************************************
  
-	file:CVectorScope.h
+	file:COscilloscope.h
 
-		Interface for the vectorscope view parameters
+		Interface for the oscilloscope parameters
  
 *************************************************************************************/
 
-#ifndef SIGNALIZER_CVECTORSCOPEPARAMETERS_H
-	#define SIGNALIZER_CVECTORSCOPEPARAMETERS_H
+#ifndef SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
+	#define SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
 
 	#include "CommonSignalizer.h"
 	#include "SignalizerDesign.h"
@@ -36,40 +36,37 @@
 	namespace Signalizer
 	{
 
-		class VectorScopeContent final
+		class OscilloscopeContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
 		{
 		public:
 
-			class VectorScopeController 
+			class OscilloscopeController 
 				: public CContentPage
 			{
 			public:
 
-				VectorScopeController(VectorScopeContent & parentValue)
+				OscilloscopeController(OscilloscopeContent & parentValue)
 					: parent(parentValue)
 					, kantiAlias(&parentValue.antialias)
-					, kfadeOld(&parentValue.fadeOlderPoints)
-					, kdrawLines(&parentValue.interconnectSamples)
 					, kdiagnostics(&parentValue.diagnostics)
 					, kwindow(&parentValue.windowSize)
-					, krotation(&parentValue.waveZRotation)
 					, kgain(&parentValue.inputGain)
 					, kprimitiveSize(&parentValue.primitiveSize)
 					, kenvelopeSmooth(&parentValue.envelopeWindow)
-					, kstereoSmooth(&parentValue.stereoWindow)
 					, kdrawingColour(&parentValue.drawingColour)
 					, kgraphColour(&parentValue.graphColour)
 					, kbackgroundColour(&parentValue.backgroundColour)
 					, kskeletonColour(&parentValue.skeletonColour)
-					, kmeterColour(&parentValue.meterColour)
 					, ktransform(&parentValue.transform)
-					, kopMode(&parentValue.operationalMode.param)
 					, kenvelopeMode(&parentValue.autoGain.param)
-					, kpresets(&valueSerializer, "vectorscope")
+					, kpresets(&valueSerializer, "oscilloscope")
+					, ksubSampleInterpolationMode(&parentValue.subSampleInterpolation.param)
+					, kpctForDivision(&parentValue.pctForDivision)
+					, kchannelConfiguration(&parentValue.channelConfiguration.param)
 					, editorSerializer(
-						*this,
+						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
 						[](auto & oc, auto & se, auto version) { oc.deserializeEditorSettings(se, version); }
 					)
@@ -85,7 +82,7 @@
 
 				cpl::SafeSerializableObject & getEditorSO() override { return editorSerializer; }
 
-				~VectorScopeController()
+				~OscilloscopeController()
 				{
 					notifyDestruction();
 				}
@@ -93,52 +90,39 @@
 				void initControls()
 				{
 					kwindow.bSetTitle("Window size");
-					krotation.bSetTitle("Wave Z-rotation");
 					kgain.bSetTitle("Input gain");
 					kgraphColour.bSetTitle("Graph colour");
 					kbackgroundColour.bSetTitle("Backg. colour");
 					kdrawingColour.bSetTitle("Drawing colour");
 					kskeletonColour.bSetTitle("Skeleton colour");
 					kprimitiveSize.bSetTitle("Primitive size");
-					kmeterColour.bSetTitle("Meter colour");
 					kenvelopeSmooth.bSetTitle("Env. window");
-					kstereoSmooth.bSetTitle("Stereo window");
-
+					ksubSampleInterpolationMode.bSetTitle("Sample interpolation");
+					kpctForDivision.bSetTitle("Grid div. space");
+					kchannelConfiguration.bSetTitle("Channel conf.");
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
-					kfadeOld.setSingleText("Fade older points");
-					kfadeOld.setToggleable(true);
-					kdrawLines.setSingleText("Interconnect samples");
-					kdrawLines.setToggleable(true);
 					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kenvelopeMode.bSetTitle("Auto-gain mode");
-
-					// design
-					kopMode.bSetTitle("Operational mode");
-
 
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
 						" - additional transform that only affects the waveform, and not the graph");
-					krotation.bSetDescription("The amount of degrees to rotate the waveform around the origin (z-rotation)"\
-						" - additional transform that only affects the waveform, and not the graph.");
 					kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
-					kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
-					kdrawLines.bSetDescription("If set, interconnect samples linearly.");
 					kdrawingColour.bSetDescription("The main colour to paint with.");
 					kgraphColour.bSetDescription("The colour of the graph.");
 					kbackgroundColour.bSetDescription("The background colour of the view.");
 					kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
 					kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
-					kmeterColour.bSetDescription("The colour of the stereo meters (balance and phase)");
 					kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 					kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
 					kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
-					kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
-					kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
+					ksubSampleInterpolationMode.bSetDescription("Controls how point samples are interpolated to wave forms");
+					kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
+					kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
 
 				}
 
@@ -154,15 +138,14 @@
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&kenvelopeMode, 0);
-							section->addControl(&kenvelopeSmooth, 0);
-							section->addControl(&kgain, 0);
+							section->addControl(&kenvelopeSmooth, 1);
+							
+							section->addControl(&kchannelConfiguration, 0);
 
-							section->addControl(&kopMode, 1);
-							section->addControl(&kstereoSmooth, 1);
+							section->addControl(&kgain, 1);
 
-
-							section->addControl(&krotation, 0);
-							section->addControl(&kwindow, 1);
+							section->addControl(&kwindow, 0);
+							section->addControl(&kpctForDivision, 1);
 
 
 							page->addSection(section, "Utility");
@@ -175,19 +158,19 @@
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&kantiAlias, 0);
-							section->addControl(&kfadeOld, 1);
-							section->addControl(&kdrawLines, 2);
-							section->addControl(&kdiagnostics, 3);
+							section->addControl(&kdiagnostics, 1);
 							page->addSection(section, "Options");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
-						{
+						{							
+							section->addControl(&kprimitiveSize, 0);
+							section->addControl(&ksubSampleInterpolationMode, 1);
+
 							section->addControl(&kdrawingColour, 0);
-							section->addControl(&kgraphColour, 0);
+							section->addControl(&kgraphColour, 1);
 							section->addControl(&kbackgroundColour, 0);
-							section->addControl(&kskeletonColour, 0);
-							section->addControl(&kmeterColour, 1);
-							section->addControl(&kprimitiveSize, 1);
+							section->addControl(&kskeletonColour, 1);
+
 							page->addSection(section, "Look");
 						}
 					}
@@ -208,11 +191,8 @@
 				{
 					archive << kwindow;
 					archive << kgain;
-					archive << krotation;
 					archive << kantiAlias;
-					archive << kfadeOld;
 					archive << kdiagnostics;
-					archive << kdrawLines;
 					archive << kgraphColour;
 					archive << kbackgroundColour;
 					archive << kdrawingColour;
@@ -221,9 +201,10 @@
 					archive << kprimitiveSize;
 					archive << kenvelopeMode;
 					archive << kenvelopeSmooth;
-					archive << kopMode;
-					archive << kstereoSmooth;
-					archive << kmeterColour;
+					archive << ksubSampleInterpolationMode;
+					archive << kpctForDivision;
+					archive << kchannelConfiguration;
+					archive << kpctForDivision;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -236,11 +217,8 @@
 
 					builder >> kwindow;
 					builder >> kgain;
-					builder >> krotation;
 					builder >> kantiAlias;
-					builder >> kfadeOld;
 					builder >> kdiagnostics;
-					builder >> kdrawLines;
 					builder >> kgraphColour;
 					builder >> kbackgroundColour;
 					builder >> kdrawingColour;
@@ -249,10 +227,12 @@
 					builder >> kprimitiveSize;
 					builder >> kenvelopeMode;
 					builder >> kenvelopeSmooth;
-					builder >> kopMode;
-					builder >> kstereoSmooth;
-					builder >> kmeterColour;
+					builder >> ksubSampleInterpolationMode;
+					builder >> kpctForDivision;
+					builder >> kchannelConfiguration;
+					builder >> kpctForDivision;
 				}
+
 
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
 				void serializeAll(cpl::CSerializer::Archiver & archive, cpl::Version version)
@@ -287,23 +267,23 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
-				cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
-				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
+				cpl::CButton kantiAlias, kdiagnostics;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision;
+				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
-				cpl::CValueComboBox kopMode, kenvelopeMode;
+				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration;
 				cpl::CPresetWidget kpresets;
 
-				VectorScopeContent & parent;
+				OscilloscopeContent & parent;
 
-				SSOSurrogate<VectorScopeController>
+				SSOSurrogate<OscilloscopeController>
 					editorSerializer,
 					valueSerializer;
 			};
 
-			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
+			OscilloscopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 				: systemView(system)
-				, parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
+				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(offset))
 				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
@@ -316,17 +296,15 @@
 				, ptsFormatter("pts")
 
 				, autoGain("AutoGain")
-				, operationalMode("OpMode")
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
-				, stereoWindow("StereoWindow", windowRange, msFormatter)
 				, inputGain("InputGain", dbRange, dbFormatter)
 				, windowSize("WindowSize", audioHistoryTransformatter, audioHistoryTransformatter)
-				, waveZRotation("WaveZ", degreeRange, degreeFormatter)
 				, antialias("AntiAlias", boolRange, boolFormatter)
-				, fadeOlderPoints("FadeOld", boolRange, boolFormatter)
-				, interconnectSamples("Interconnect", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
+				, subSampleInterpolation("SampleIntp")
+				, pctForDivision("PctDiv", unityRange, pctFormatter)
+				, channelConfiguration("ChConf")
 
 
 				, colourBehavior()
@@ -334,18 +312,26 @@
 				, graphColour(colourBehavior, "Graph.")
 				, backgroundColour(colourBehavior, "BackG.")
 				, skeletonColour(colourBehavior, "Skelt.")
-				, meterColour(colourBehavior, "Meter.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 			{
-				operationalMode.fmt.setValues({ "Lissajous", "Polar" });
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
+				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
 
+				// order matters
 				auto singleParameters = { 
-					&autoGain.param, &operationalMode.param, &envelopeWindow, &stereoWindow,
-					&inputGain, &windowSize, &waveZRotation, &antialias,
-					&fadeOlderPoints, &interconnectSamples, &diagnostics, &primitiveSize,
+					&autoGain.param, 
+					&envelopeWindow,
+					&inputGain, 
+					&windowSize, 
+					&antialias,
+					&diagnostics, 
+					&primitiveSize,
+					&subSampleInterpolation.param,
+					&channelConfiguration.param,
+					&pctForDivision,
 				};
 
 				for (auto sparam : singleParameters)
@@ -357,7 +343,6 @@
 				parameterSet.registerParameterBundle(&graphColour, graphColour.getBundleName());
 				parameterSet.registerParameterBundle(&backgroundColour, backgroundColour.getBundleName());
 				parameterSet.registerParameterBundle(&skeletonColour, skeletonColour.getBundleName());
-				parameterSet.registerParameterBundle(&meterColour, meterColour.getBundleName());
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
 				parameterSet.seal();
@@ -367,7 +352,7 @@
 
 			virtual std::unique_ptr<StateEditor> createEditor() override
 			{
-				return std::make_unique<VectorScopeController>(*this);
+				return std::make_unique<OscilloscopeController>(*this);
 			}
 
 			virtual ParameterSet & getParameterSet() override
@@ -379,11 +364,8 @@
 			{
 				archive << windowSize;
 				archive << inputGain;
-				archive << waveZRotation;
 				archive << antialias;
-				archive << fadeOlderPoints;
 				archive << diagnostics;
-				archive << interconnectSamples;
 				archive << graphColour;
 				archive << backgroundColour;
 				archive << drawingColour;
@@ -392,20 +374,17 @@
 				archive << primitiveSize;
 				archive << autoGain.param;
 				archive << envelopeWindow;
-				archive << operationalMode.param;
-				archive << stereoWindow;
-				archive << meterColour;
+				archive << subSampleInterpolation.param;
+				archive << channelConfiguration.param;
+				archive << pctForDivision;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
 			{
 				builder >> windowSize;
 				builder >> inputGain;
-				builder >> waveZRotation;
 				builder >> antialias;
-				builder >> fadeOlderPoints;
 				builder >> diagnostics;
-				builder >> interconnectSamples;
 				builder >> graphColour;
 				builder >> backgroundColour;
 				builder >> drawingColour;
@@ -414,9 +393,9 @@
 				builder >> primitiveSize;
 				builder >> autoGain.param;
 				builder >> envelopeWindow;
-				builder >> operationalMode.param;
-				builder >> stereoWindow;
-				builder >> meterColour;
+				builder >> subSampleInterpolation.param;
+				builder >> channelConfiguration.param;
+				builder >> pctForDivision;
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -427,6 +406,9 @@
 				msFormatter,
 				degreeFormatter,
 				ptsFormatter;
+
+			cpl::PercentageFormatter<double>
+				pctFormatter;
 
 			cpl::DBFormatter<double> dbFormatter;
 			cpl::BooleanFormatter<double> boolFormatter;
@@ -445,19 +427,18 @@
 
 			cpl::ParameterValue<ParameterSet::ParameterView>
 				envelopeWindow,
-				stereoWindow,
 				inputGain,
 				windowSize,
-				waveZRotation,
 				antialias,
-				fadeOlderPoints,
-				interconnectSamples,
 				diagnostics,
-				primitiveSize;
+				primitiveSize,
+				pctForDivision;
 
 			ChoiceParameter
 				autoGain,
-				operationalMode;
+				channelConfiguration,
+				subSampleInterpolation;
+
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
 
@@ -465,8 +446,7 @@
 				drawingColour,
 				graphColour,
 				backgroundColour,
-				skeletonColour,
-				meterColour;
+				skeletonColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
