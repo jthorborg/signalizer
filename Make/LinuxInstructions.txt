@@ -1,0 +1,12 @@
+Required packages:
+sudo apt-get -y install libfreetype6-dev
+sudo apt-get -y install libx11-dev
+sudo apt-get -y install libxinerama-dev
+sudo apt-get -y install libcurl4-gnutls-dev
+sudo apt-get -y install libasound2-dev
+sudo apt-get -y install libxrandr-dev
+sudo apt-get -y install libxcursor-dev
+sudo apt-get -y install freeglut3-dev
+
+Possible:
+sudo apt-get -y install mesa-common-dev
