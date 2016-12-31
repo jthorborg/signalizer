@@ -70,7 +70,7 @@ namespace Signalizer
 
 		content->getParameterSet().addRTListener(this, true);
 
-		processorSpeed = juce::SystemStats::getCpuSpeedInMegaherz();
+        processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
 		initPanelAndControls();
 		flags.firstChange = true;
 
@@ -746,16 +746,6 @@ namespace Signalizer
 		flags.initiateWindowResize = true;
 	}
 
-
-	template<typename V>
-		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
-		{
-			using namespace cpl::simd;
-
-			if (numChannels != 2)
-				return;
-
-		}
 
 	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
