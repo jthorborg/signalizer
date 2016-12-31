@@ -17,7 +17,7 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-#ifdef _MSC_VER
+#ifndef __APPLE__
 
 #include "../Source/version.h"
 

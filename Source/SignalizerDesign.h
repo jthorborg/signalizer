@@ -30,10 +30,10 @@
 #ifndef SIGNALIZER_SIGNALIZERDESIGN_H
 	#define SIGNALIZER_SIGNALIZERDESIGN_H
 
-	#include <cpl/common.h>
+	#include <cpl/Common.h>
 	#include <string>
 	#include <vector>
-	#include <cpl/gui/gui.h>
+	#include <cpl/gui/GUI.h>
 	#include <cpl/gui/NewStuffAndLook.h>
 	#include <map>
 	#include <ctime>
