@@ -111,7 +111,7 @@
 					, kgridColour(&parentValue.gridColour)
 					, kbackgroundColour(&parentValue.backgroundColour)
 
-					, kspecColours { 
+					/*, kspecColours { 
 						{ &parentValue.specColours[0] },{ &parentValue.specColours[1] },{ &parentValue.specColours[2] },
 						{ &parentValue.specColours[3] },{ &parentValue.specColours[4] }
 					}
@@ -123,7 +123,7 @@
 					, klines{
 						{ { &parentValue.lines[0].decay }, { &parentValue.lines[0].colourOne }, { &parentValue.lines[0].colourTwo } },
 						{ { &parentValue.lines[1].decay }, { &parentValue.lines[1].colourOne }, { &parentValue.lines[1].colourTwo } },
-					}
+					} */
 
 					, presetManager(&valueSerializer, "spectrum")
 
@@ -138,6 +138,18 @@
 						[](auto & oc, auto & se, auto version) { oc.deserializeAll(se, version); }
 					)
 				{
+					for(std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
+					{
+						klines.emplace_back(std::make_unique<LineControl>(&parentValue.lines[i].decay, &parentValue.lines[i].colourOne, &parentValue.lines[i].colourTwo));
+					}
+
+					for(std::size_t i = 0; i < numSpectrumColours; ++i)
+					{
+						kspecColours.emplace_back(std::make_unique<cpl::CColourControl>(&parentValue.specColours[i]));
+						kspecRatios.emplace_back(std::make_unique<cpl::CValueKnobSlider>(&parentValue.specRatios[i]));
+					}
+
+
 					initControls();
 					initUI();
 					setTransformOptions();
@@ -202,10 +214,10 @@
 
 					for (int i = 0; i < numSpectrumColours; ++i)
 					{
-						kspecColours[i].bSetTitle("Spectrum " + std::to_string(i + 1));
-						kspecRatios[i].bSetTitle("Gradient ratio " + std::to_string(i + 1));
-						kspecRatios[i].bSetDescription("How large a part of the gradient this colour occupies (the 4 values are normalized).");
-						kspecColours[i].bSetDescription("The four colours (together with the background colour) represents the linear interpolating colour function for the intensity found in the graph, for the colour spectrum, composing a gradient.");
+						kspecColours[i]->bSetTitle("Spectrum " + std::to_string(i + 1));
+						kspecRatios[i]->bSetTitle("Gradient ratio " + std::to_string(i + 1));
+						kspecRatios[i]->bSetDescription("How large a part of the gradient this colour occupies (the 4 values are normalized).");
+						kspecColours[i]->bSetDescription("The four colours (together with the background colour) represents the linear interpolating colour function for the intensity found in the graph, for the colour spectrum, composing a gradient.");
 					}
 
 					// ------ titles -----------
@@ -255,24 +267,24 @@
 					kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
 					kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
 
-					klines[LineGraphs::LineMain].colourOne.bSetDescription("The colour of the first channel of the main graph.");
-					klines[LineGraphs::LineMain].colourTwo.bSetDescription("The colour of the second channel of the main graph.");
+					klines[LineGraphs::LineMain]->colourOne.bSetDescription("The colour of the first channel of the main graph.");
+					klines[LineGraphs::LineMain]->colourTwo.bSetDescription("The colour of the second channel of the main graph.");
 
-					klines[LineGraphs::LineMain].colourOne.bSetTitle("Graph 1 colour");
-					klines[LineGraphs::LineMain].colourTwo.bSetTitle("Graph 2 colour");
+					klines[LineGraphs::LineMain]->colourOne.bSetTitle("Graph 1 colour");
+					klines[LineGraphs::LineMain]->colourTwo.bSetTitle("Graph 2 colour");
 
-					klines[LineGraphs::LineMain].decay.bSetTitle("Main decay");
-					klines[LineGraphs::LineMain].decay.bSetDescription("Decay rate of the main graph channels; allows the graph to decay more slowly, but still reacting to peaks.");
+					klines[LineGraphs::LineMain]->decay.bSetTitle("Main decay");
+					klines[LineGraphs::LineMain]->decay.bSetDescription("Decay rate of the main graph channels; allows the graph to decay more slowly, but still reacting to peaks.");
 
 					for (std::size_t i = LineGraphs::LineMain + 1; i < LineGraphs::LineEnd; ++i)
 					{
 						auto graphNumber = std::to_string(i);
-						klines[i].colourOne.bSetTitle("Aux 1 colour");
-						klines[i].colourTwo.bSetTitle("Aux 2 colour");
-						klines[i].decay.bSetTitle("Aux " + graphNumber + " decay");
-						klines[i].decay.bSetDescription("Decay rate of auxillary graph " + graphNumber + " channels; allows the graph to decay more slowly, but still reacting to peaks.");
-						klines[i].colourOne.bSetDescription("The colour of the first channel of auxillary graph " + graphNumber + ".");
-						klines[i].colourTwo.bSetDescription("The colour of the second channel of auxillary graph " + graphNumber + ".");
+						klines[i]->colourOne.bSetTitle("Aux 1 colour");
+						klines[i]->colourTwo.bSetTitle("Aux 2 colour");
+						klines[i]->decay.bSetTitle("Aux " + graphNumber + " decay");
+						klines[i]->decay.bSetDescription("Decay rate of auxillary graph " + graphNumber + " channels; allows the graph to decay more slowly, but still reacting to peaks.");
+						klines[i]->colourOne.bSetDescription("The colour of the first channel of auxillary graph " + graphNumber + ".");
+						klines[i]->colourTwo.bSetDescription("The colour of the second channel of auxillary graph " + graphNumber + ".");
 					}
 
 				}
@@ -303,7 +315,7 @@
 						{
 							for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 							{
-								section->addControl(&klines[i].decay, i & 1);
+								section->addControl(&klines[i]->decay, i & 1);
 							}
 							page->addSection(section);
 						}
@@ -343,8 +355,8 @@
 							section->addControl(&kbackgroundColour, 1);
 							for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 							{
-								section->addControl(&klines[i].colourOne, 0);
-								section->addControl(&klines[i].colourTwo, 1);
+								section->addControl(&klines[i]->colourOne, 0);
+								section->addControl(&klines[i]->colourTwo, 1);
 							}
 							page->addSection(section);
 						}
@@ -353,8 +365,8 @@
 						{
 							for (std::size_t i = 0; i < numSpectrumColours; ++i)
 							{
-								section->addControl(&kspecColours[i], 0);
-								section->addControl(&kspecRatios[i], 1);
+								section->addControl(kspecColours[i].get(), 0);
+								section->addControl(kspecRatios[i].get(), 1);
 							}
 							page->addSection(section);
 						}
@@ -396,9 +408,9 @@
 
 					for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 					{
-						archive << klines[i].colourOne;
-						archive << klines[i].colourTwo;
-						archive << klines[i].decay;
+						archive << klines[i]->colourOne;
+						archive << klines[i]->colourTwo;
+						archive << klines[i]->decay;
 					}
 
 					archive << kgridColour;
@@ -444,9 +456,9 @@
 
 					for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 					{
-						builder >> klines[i].colourOne;
-						builder >> klines[i].colourTwo;
-						builder >> klines[i].decay;
+						builder >> klines[i]->colourOne;
+						builder >> klines[i]->colourTwo;
+						builder >> klines[i]->decay;
 					}
 
 					builder >> kgridColour;
@@ -542,15 +554,18 @@
 
 				struct LineControl
 				{
+					LineControl(cpl::ValueEntityBase * decayValue, cpl::ColourValue * one, cpl::ColourValue * two) : decay(decayValue), colourOne(one), colourTwo(two) {}
 					cpl::CValueKnobSlider decay;
 					cpl::CColourControl colourOne, colourTwo;
-				} klines[LineGraphs::LineEnd];
+				};
+					
+				// TODO: turn into array once aggregrate initialization of member arrays doesn't require present copy or move constructors
+				std::vector<std::unique_ptr<LineControl>> klines;
+				std::vector<std::unique_ptr<cpl::CColourControl>> kspecColours;
+				std::vector<std::unique_ptr<cpl::CValueKnobSlider>> kspecRatios;
 
 				cpl::CPresetWidget presetManager;
 				cpl::CButton kdiagnostics, kfreeQ;
-
-				cpl::CColourControl kspecColours[numSpectrumColours];
-				cpl::CValueKnobSlider kspecRatios[numSpectrumColours];
 
 				SpectrumContent & parent;
 
