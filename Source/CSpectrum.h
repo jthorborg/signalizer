@@ -31,7 +31,7 @@
 	#define SIGNALIZER_CSPECTRUM_H
 
 	#include <cpl/Common.h>
-	#include <cpl/gui/gui.h>
+	#include <cpl/gui/GUI.h>
 	#include <cpl/Utility.h>
 	#include <cpl/dsp/CComplexResonator.h>
 	#include <memory>
