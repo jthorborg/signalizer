@@ -32,7 +32,7 @@
 #include <cpl/CPresetManager.h>
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
-#include <cpl/infrastructure/Values/Values.h>
+#include <cpl/infrastructure/values/Values.h>
 
 namespace Signalizer
 {

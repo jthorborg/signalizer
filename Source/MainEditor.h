@@ -33,7 +33,7 @@
 	#define _MAINEDITOR_H
 
 	#include <cpl/Common.h>
-	#include <cpl/gui/gui.h>
+	#include <cpl/gui/GUI.h>
 	#include <map>
 	#include <stack>
 	#include "SignalizerDesign.h"

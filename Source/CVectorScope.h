@@ -33,7 +33,7 @@
 	#include "CommonSignalizer.h"
 	#include <cpl/Utility.h>
 	#include <cpl/gui/controls/Controls.h>
-	#include <cpl/gui/Widgets/Widgets.h>
+	#include <cpl/gui/widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "VectorScopeParameters.h"

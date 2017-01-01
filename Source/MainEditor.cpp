@@ -1073,9 +1073,9 @@ namespace Signalizer
 		std::int64_t historySize;
 		std::string contents = kmaxHistorySize.getInputValue();
 		if (cpl::lexicalConversion(contents, historySize))
-			data << std::max(0ll, historySize);
+			data << std::max(0ll, (long long)historySize);
 		else
-			data << 1000;
+			data << 1000ll;
 
 		data << khideTabs;
 	}
@@ -1470,7 +1470,8 @@ namespace Signalizer
 					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
 					std::system((cmdLine).c_str());
 				#else 
-					#error "Implement a text-opener for your platform."
+					std::string cmdLine = "gedit \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
+					std::system((cmdLine).c_str());
 				#endif
 				break;
 		}
