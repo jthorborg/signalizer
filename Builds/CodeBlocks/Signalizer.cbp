@@ -83,6 +83,8 @@
 		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_Wrapper.cpp" />
 		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/VST/juce_VST_Wrapper.cpp" />
 		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/VST3/juce_VST3_Wrapper.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_PluginUtilities.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_processors/juce_audio_processors.cpp" />
 		<Unit filename="../../JuceLibraryCode/modules/juce_core/juce_core.cpp" />
 		<Unit filename="../../JuceLibraryCode/modules/juce_cryptography/juce_cryptography.cpp" />
 		<Unit filename="../../JuceLibraryCode/modules/juce_data_structures/juce_data_structures.cpp" />
