@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CSpectrumRendering.cpp
 
 		Implementation of rendering code for the spectrum.
- 
+
 *************************************************************************************/
 
 #include "CSpectrum.h"
@@ -57,7 +57,7 @@ namespace Signalizer
 	using namespace cpl;
 
 	/// <summary>
-	/// 
+	///
 	/// </summary>
 	static std::string frequencyToSemitone(double a4Ref, double frequency)
 	{
@@ -99,7 +99,7 @@ namespace Signalizer
 
 		char buf[200];
 		bool skipText = state.colourGrid.getAlpha() == 0;
-		
+
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 			if(!skipText)
@@ -141,15 +141,15 @@ namespace Signalizer
 		{
 			float height = getHeight();
 			float baseWidth = getWidth() * 0.05f;
-			
+
 			float gradientOffset = 10.0f;
 
 			if(!skipText)
 			{
 				g.setColour(state.colourGrid);
 				const auto & divs = frequencyGraph.getDivisions();
-				
-				
+
+
 				for (auto & sdiv : divs)
 				{
 					sprintf_s(buf, "%.2f", sdiv.frequency);
@@ -192,6 +192,7 @@ namespace Signalizer
 			double asu = 100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed);
 			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);
+			//TODO: ensure format specifiers are correct always (%llu mostly)
 			sprintf(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
 				fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
@@ -200,7 +201,7 @@ namespace Signalizer
 				audioStream.getPerfMeasures().droppedAudioFrames.load(std::memory_order_relaxed),
 				asu,
 				aso);
-			
+
 			g.drawSingleLineText(text, 10, 20);
 
 		}
@@ -215,7 +216,7 @@ namespace Signalizer
 
 		if(state.colourGrid.getAlpha() == 0)
 			return;
-		
+
 		double
 			mouseFrequency = 0,
 			mouseDBs = 0,
@@ -410,7 +411,7 @@ namespace Signalizer
 
 			auto source = getAudioMemory<std::complex<fftType>>();
 
-			auto peak = std::max_element(source + lowerBound, source + higherBound + 1, 
+			auto peak = std::max_element(source + lowerBound, source + higherBound + 1,
 				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
@@ -477,7 +478,7 @@ namespace Signalizer
 			peakY = getHeight() - peakY * getHeight();
 
 
-			// deviance firstly considers bin width in frequency, scaled by bin position (precision gets better as 
+			// deviance firstly considers bin width in frequency, scaled by bin position (precision gets better as
 			// frequency increases) and scaled by assumed precision interpolation
 			auto normalizedDeviation = (1.0 - peakFraction) / N;
 			peakDeviance = 2 * interpolationError * normalizedDeviation * sampleRate + precisionError;
@@ -526,7 +527,7 @@ namespace Signalizer
 
 		// TODO: use a monospace font for this part
 		// also: is printf-style really more readable than C++ formatting..
-		sprintf_s(buf, 
+		sprintf_s(buf,
 			u8"+x:  %s%11.5f Hz\n"
 			u8"+x:  %s\n"
 			u8"+y:  %+9.5f dB\n"
@@ -537,15 +538,15 @@ namespace Signalizer
 			u8"\u039By:  %+9.5f dB\n"
 			u8"\u039B/:  %+7.3f dB\n"
 			u8"\u039BSL: +%6.4f dB\u03C3 ",
-			frequencyIsComplex ? "-i*" : "", mouseFrequency, 
+			frequencyIsComplex ? "-i*" : "", mouseFrequency,
 			mouseNote.c_str(),
 			mouseDBs,
-			mouseSlope, 
-			peakIsComplex ? "-i*" : "", peakFrequency, 
+			mouseSlope,
+			peakIsComplex ? "-i*" : "", peakFrequency,
 			freqNote.c_str(),
-			peakDeviance, 
+			peakDeviance,
 			peakDBs,
-			peakSlopeDbs, 
+			peakSlopeDbs,
 			-adjustedScallopLoss
 		);
 
@@ -594,11 +595,11 @@ namespace Signalizer
 
 
 	template<std::size_t N, std::size_t V, cpl::GraphicsND::ComponentOrder order>
-		void ColourScale2(cpl::GraphicsND::UPixel<order> * CPL_RESTRICT outPixel, 
+		void ColourScale2(cpl::GraphicsND::UPixel<order> * CPL_RESTRICT outPixel,
 			float intensity, cpl::GraphicsND::UPixel<order> colours[N + 1], float normalizedScales[N])
 		{
 			intensity = cpl::Math::confineTo(intensity, 0.0f, 1.0f);
-			
+
 			float accumulatedSum = 0.0f;
 
 			for (std::size_t i = 0; i < N; ++i)
@@ -609,8 +610,8 @@ namespace Signalizer
 				{
 					std::uint16_t factor = cpl::Math::round<std::uint8_t>(0xFF * cpl::Math::UnityScale::Inv::linear<float>(intensity, accumulatedSum - normalizedScales[i], accumulatedSum));
 
-					std::size_t 
-						x1 = std::max(signed(i) - 1, 0), 
+					std::size_t
+						x1 = std::max(signed(i) - 1, 0),
 						x2 = std::min(x1 + 1, N - 1);
 
 					for (std::size_t p = 0; p < V; ++p)
@@ -685,7 +686,7 @@ namespace Signalizer
                 break;
         }
     }
-    
+
     template<typename V>
     void CSpectrum::vectorGLRendering()
 	{
@@ -774,7 +775,7 @@ namespace Signalizer
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
-				// 
+				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
 				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
@@ -797,11 +798,11 @@ namespace Signalizer
 						}
 #else
 						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
-							columnUpdate.data() + i, 
+							columnUpdate.data() + i,
 							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
-							state.colourSpecs, 
+							state.colourSpecs,
 							state.normalizedSpecRatios
-						); 
+						);
 #endif
 					}
 					//CPL_DEBUGCHECKGL();
@@ -922,7 +923,7 @@ namespace Signalizer
 		}
 
 		state.antialias ? ogs.enable(GL_MULTISAMPLE) : ogs.disable(GL_MULTISAMPLE);
-		
+
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize)));
