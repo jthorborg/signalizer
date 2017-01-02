@@ -1,28 +1,28 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:MainEditor.cpp
- 
+
 		Implementation of MainEditor.h
 
 *************************************************************************************/
@@ -64,7 +64,7 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	std::array<const char *, 3> ViewIndexToMap = 
+	std::array<const char *, 3> ViewIndexToMap =
 	{
 		"Vectorscope",
 		"Oscilloscope",
@@ -132,7 +132,7 @@ namespace Signalizer
 		8,
 		16
 	};
-	
+
 	/// <summary>
 	/// TODO: Query this at runtime
 	/// </summary>
@@ -213,7 +213,7 @@ namespace Signalizer
 		if (auto page = content->addPage("Settings", "icons/svg/wrench.svg"))
 		{
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
-			{				
+			{
 				section->addControl(&krefreshRate, 0);
 				section->addControl(&kstableFps, 1);
 				section->addControl(&kswapInterval, 0);
@@ -327,7 +327,7 @@ namespace Signalizer
 	void MainEditor::pushEditor(StateEditor * editor)
 	{
 		pushEditor(std::unique_ptr<StateEditor>(editor));
-		
+
 	}
 	void MainEditor::pushEditor(UniqueHandle<StateEditor> newEditor)
 	{
@@ -353,12 +353,12 @@ namespace Signalizer
 	{
 		return editorStack.empty() ? nullptr : editorStack.back().get();
 	}
-	
+
 	void MainEditor::deleteEditor(MainEditor::EditorIterator i)
 	{
 		removeChildComponent(i->get());
 		editorStack.erase(i);
-		
+
 		if(editorStack.empty() && tabs.isOpen())
 			tabs.closePanel();
 		else
@@ -531,7 +531,7 @@ namespace Signalizer
 
 					activeView().getWindow()->addKeyListener(this);
 					activeView().getWindow()->addComponentListener(this);
-					
+
 					// sets a minimal view when entering full screen
 					setBounds(getBounds().withBottom(getViewTopCoordinate()));
 				}
@@ -560,7 +560,7 @@ namespace Signalizer
 				cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames),
 				std::memory_order_release
 			);
-			
+
 			mtFlags.swapIntervalChanged = true;
 		}
 		else if (c == &kvsync)
@@ -745,16 +745,16 @@ namespace Signalizer
 	void MainEditor::panelClosed(cpl::CTextTabBar<> * obj)
 	{
 		clearEditors();
-		ksettings.setToggleState(false, NotificationType::dontSendNotification);
+		ksettings.setToggleState(false, juce::NotificationType::dontSendNotification);
 		resized();
 		isEditorVisible = false;
 	}
-	
+
 	void MainEditor::setAntialiasing(int multisamplingLevel)
 	{
 
 		int sanitizedLevel = 1;
-		
+
 		if(multisamplingLevel == -1)
 		{
 			auto val = cpl::Math::confineTo(kantialias.getZeroBasedSelIndex(), 0, AntialisingLevels.size() - 1);
@@ -776,7 +776,7 @@ namespace Signalizer
 
 		if(sanitizedLevel > 0)
 		{
-			OpenGLPixelFormat fmt;
+			juce::OpenGLPixelFormat fmt;
 			fmt.multisamplingLevel = sanitizedLevel;
 			// true if a view exists and it is attached
 			bool reattach = false;
@@ -790,18 +790,18 @@ namespace Signalizer
 			}
 			oglc.setMultisamplingEnabled(true);
 			oglc.setPixelFormat(fmt);
-			
+
 			if(reattach)
 			{
 				activeView().attachToOpenGL(oglc);
 			}
-			
+
 		}
 		else
 		{
 			oglc.setMultisamplingEnabled(false);
 		}
-		
+
 	}
 
 	int MainEditor::getRenderEngine()
@@ -826,16 +826,16 @@ namespace Signalizer
 				if(view->isOpenGL())
 				{
 					// something else must have killed the context, check if it's the same
-					
+
 					if(view->getAttachedContext() == &oglc)
 					{
 						// okay, so we detach it anyway and eat the exceptions:
 						view->detachFromOpenGL(oglc);
 					}
 				}
-				
+
 			}
-			
+
 			// serializing the main editor to a preset where the kkiosk is false, while the main editor has
 			// a full screen window creates a.. interesting situation (replaced && with || to be sure).
 			if (juce::Desktop::getInstance().getKioskModeComponent() == view->getWindow() || kkiosk.bGetValue() > 0.5)
@@ -865,12 +865,12 @@ namespace Signalizer
 			}
 
 		}
-			
+
 		if (spawnNewEditor)
 		{
 			pushEditor(view.getEditorDSO().getCached());
 		}
-			
+
 		if (kkiosk.bGetBoolState())
 		{
 			if (firstKioskMode)
@@ -883,11 +883,11 @@ namespace Signalizer
 		activeView().resume();
 	}
 
-	void MainEditor::mouseUp(const MouseEvent& event)
+	void MainEditor::mouseUp(const juce::MouseEvent& event)
 	{
 		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
 		{
-			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
+			if (event.mods.testFlags(juce::ModifierKeys::rightButtonModifier))
 			{
 				kfreeze.setToggleState(!kfreeze.getToggleState(), juce::NotificationType::sendNotification);
 			}
@@ -897,12 +897,12 @@ namespace Signalizer
 			AudioProcessorEditor::mouseUp(event);
 		}
 	}
-	
-	void MainEditor::mouseDown(const MouseEvent& event)
+
+	void MainEditor::mouseDown(const juce::MouseEvent& event)
 	{
 		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
 		{
-			if (event.mods.testFlags(ModifierKeys::rightButtonModifier))
+			if (event.mods.testFlags(juce::ModifierKeys::rightButtonModifier))
 			{
 				kfreeze.setToggleState(!kfreeze.getToggleState(), juce::NotificationType::sendNotification);
 			}
@@ -973,7 +973,7 @@ namespace Signalizer
 			{
 				pushEditor(views[index].getEditorDSO().getCached());
 			}
-			
+
 		}
 	}
 
@@ -1117,7 +1117,7 @@ namespace Signalizer
 		}
 		//cpl::iCtrlPrec_t dataVal(0);
 		juce::Rectangle<int> bounds;
-		
+
 		data >> krefreshRate;
 		data >> krenderEngine;
 		data >> khelp;
@@ -1163,11 +1163,11 @@ namespace Signalizer
 		// will take care of opening the correct view
 		if (hasAnyTabBeenSelected)
 		{
-			// settings this will cause setSelectedTab to 
+			// settings this will cause setSelectedTab to
 			// enter fullscreen at kioskCoords
 			if (kkiosk.bGetValue() > 0.5)
 				firstKioskMode = true;
-			
+
 			selTab = std::min(selTab, cpl::enum_cast<int32_t>(ViewTypes::end) - 1);
 
 			if(tabs.getSelectedTab() == selTab)
@@ -1176,7 +1176,7 @@ namespace Signalizer
 				// tabSelected will NOT get called in this case, do it manually.
 				tabSelected(&tabs, selTab);
 			}
-			
+
 			tabs.setSelectedTab(selTab);
 		}
 		else
@@ -1214,8 +1214,8 @@ namespace Signalizer
 				(
 					cpl::Math::UnityScale::Inv::exp
 					(
-						cpl::Math::confineTo(newVal, 10.0, 1000.0), 
-						10.0, 
+						cpl::Math::confineTo(newVal, 10.0, 1000.0),
+						10.0,
 						1000.0
 					),
 					0.0,
@@ -1255,7 +1255,7 @@ namespace Signalizer
 		return false;
 	}
 
-	bool MainEditor::keyPressed(const KeyPress &key, Component *originatingComponent)
+	bool MainEditor::keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent)
 	{
 		if (hasCurrentView() && (activeView().getWindow() == originatingComponent))
 		{
@@ -1404,7 +1404,7 @@ namespace Signalizer
 		{
 			if (idleInBack)
 			{
-				const MessageManagerLock mml;
+				const juce::MessageManagerLock mml;
 				if (!hasKeyboardFocus(true))
 					focusLost(FocusChangeType::focusChangedDirectly);
 				else if (unFocused)
@@ -1416,7 +1416,7 @@ namespace Signalizer
 		}
 	}
 
-	void MainEditor::paint(Graphics& g)
+	void MainEditor::paint(juce::Graphics& g)
 	{
 		// make sure to paint everything completely opaque.
 		g.setColour(cpl::GetColour(cpl::ColourEntry::Separator).withAlpha(1.0f));
@@ -1455,12 +1455,12 @@ namespace Signalizer
 		khelp.bSetInternal(1);
 		using namespace cpl;
 		std::string contents =
-			programInfo.name + " " + programInfo.version.toString() + newl + 
+			programInfo.name + " " + programInfo.version.toString() + newl +
 			"Build info: \n" + programInfo.customBuildInfo + newl +
 			"Written by Janus Lynggaard Thorborg, (C) 2016" + newl +
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
 			"Open the readme file (contains information you must read upon first use)?";
-		
+
 		auto ret = Misc::MsgBox(contents, "About " + programInfo.name, Misc::MsgStyle::sYesNo | Misc::MsgIcon::iInfo);
 		switch (ret) {
 			case Misc::MsgButton::bYes:
@@ -1469,7 +1469,7 @@ namespace Signalizer
 				#elif defined(CPL_MAC)
 					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
 					std::system((cmdLine).c_str());
-				#else 
+				#else
 					std::string cmdLine = "gedit \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
 					std::system((cmdLine).c_str());
 				#endif
@@ -1477,7 +1477,7 @@ namespace Signalizer
 		}
 		khelp.bSetInternal(0);
 	}
-	
+
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1576,7 +1576,7 @@ namespace Signalizer
 		// TODO: remove if changed to parameter
 		kmaxHistorySize.setInputValue("1000");
 
-		
+
 		resized();
 	}
 };

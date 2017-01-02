@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:PluginProcessor.cpp
 
 		Implementation of pluginprocessor.cpp
- 
+
 *************************************************************************************/
 
 #include "PluginProcessor.h"
@@ -55,7 +55,7 @@ namespace Signalizer
 				ParameterCreationList[i].second(parameterMap.numParams(), false, { stream, *this })
 			});
 		}
-		
+
 		juce::File location;
 
 		// load the default preset
@@ -64,7 +64,7 @@ namespace Signalizer
 			SerializerType serializer(MainPresetName);
 
 			cpl::CPresetManager::instance().loadPreset(
-				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr, 
+				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr,
 				serializer,
 				location
 			);
@@ -122,7 +122,7 @@ namespace Signalizer
 	{
 	}
 
-	void AudioProcessor::processBlock(AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
+	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
 
 		if (nChannels != buffer.getNumChannels())
@@ -150,14 +150,14 @@ namespace Signalizer
 	}
 
 
-	AudioProcessorEditor* AudioProcessor::createEditor()
+	juce::AudioProcessorEditor* AudioProcessor::createEditor()
 	{
 		std::lock_guard<std::mutex> lock(editorCreationMutex);
 		return dsoEditor.getUnique().acquire();
 	}
 
 	//==============================================================================
-	void AudioProcessor::getStateInformation(MemoryBlock& destData)
+	void AudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 	{
 		cpl::CPresetWidget::SerializerType serializer("HostState");
 		serializer.getArchiver().setMasterVersion(cpl::programInfo.version);
@@ -206,7 +206,7 @@ namespace Signalizer
 
 			if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
 			{
-				// writing to this value with acquire/release ensures we see any changes concurrently here 
+				// writing to this value with acquire/release ensures we see any changes concurrently here
 				std::atomic_int editorSerializationState {0};
 
 				cpl::GUIUtils::MainEvent(
@@ -266,7 +266,7 @@ namespace Signalizer
 
 		if (dsoEditor.hasCached() && !juce::MessageManager::getInstance()->isThisTheMessageThread())
 		{
-			// writing to this value with acquire/release ensures we see any changes concurrently here 
+			// writing to this value with acquire/release ensures we see any changes concurrently here
 			std::atomic_int editorSerializationState = {0};
 
 			cpl::GUIUtils::MainEvent(
@@ -317,7 +317,7 @@ namespace Signalizer
 
 
 	//==============================================================================
-	const String AudioProcessor::getName() const
+	const juce::String AudioProcessor::getName() const
 	{
 		return cpl::programInfo.name;
 	}
@@ -338,24 +338,24 @@ namespace Signalizer
 		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
 	}
 
-	const String AudioProcessor::getParameterName(int index)
+	const juce::String AudioProcessor::getParameterName(int index)
 	{
 		return parameterMap.findParameter(index)->getExportedName();
 	}
 
-	const String AudioProcessor::getParameterText(int index)
+	const juce::String AudioProcessor::getParameterText(int index)
 	{
 		return parameterMap.findParameter(index)->getDisplayText();
 	}
 
-	const String AudioProcessor::getInputChannelName(int channelIndex) const
+	const juce::String AudioProcessor::getInputChannelName(int channelIndex) const
 	{
-		return String(channelIndex + 1);
+		return juce::String(channelIndex + 1);
 	}
 
-	const String AudioProcessor::getOutputChannelName(int channelIndex) const
+	const juce::String AudioProcessor::getOutputChannelName(int channelIndex) const
 	{
-		return String(channelIndex + 1);
+		return juce::String(channelIndex + 1);
 	}
 
 	bool AudioProcessor::isInputChannelStereoPair(int index) const
@@ -410,12 +410,12 @@ namespace Signalizer
 	{
 	}
 
-	const String AudioProcessor::getProgramName(int index)
+	const juce::String AudioProcessor::getProgramName(int index)
 	{
-		return String::empty;
+		return juce::String::empty;
 	}
 
-	void AudioProcessor::changeProgramName(int index, const String& newName)
+	void AudioProcessor::changeProgramName(int index, const juce::String& newName)
 	{
 	}
 
@@ -424,7 +424,7 @@ namespace Signalizer
 
 //==============================================================================
 // This creates new instances of the plugin..
-AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new Signalizer::AudioProcessor();
 }

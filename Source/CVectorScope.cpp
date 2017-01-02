@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CVectorScope.cpp
 
 		Implementation of UI, logic and dsp for the vector scope.
- 
+
 *************************************************************************************/
 
 
@@ -42,13 +42,13 @@ namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
-	
+
 	enum class OperationalModes : int
 	{
 		Lissajous,
 		Polar
 	};
-	
+
 	const double CVectorScope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
@@ -57,7 +57,7 @@ namespace Signalizer
 	:
 		COpenGLView(nameId),
 		audioStream(data),
-		processorSpeed(0), 
+		processorSpeed(0),
 		lastFrameTick(0),
 		lastMousePos(),
 		editor(nullptr),
@@ -90,7 +90,7 @@ namespace Signalizer
 	void CVectorScope::resume()
 	{
 		if(oldWindowSize != -1)
-		{		
+		{
 			//TODO: possibly unsynchronized. fix to have an internal size instead
 			content->windowSize.setTransformedValue(oldWindowSize);
 		}
@@ -125,7 +125,7 @@ namespace Signalizer
 	}
 
 
-	void CVectorScope::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
+	void CVectorScope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		auto amount = wheel.deltaY;
 		if (event.mods.isCtrlDown())
@@ -152,11 +152,11 @@ namespace Signalizer
 				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
 			);
 		}
-		
+
 	}
-	void CVectorScope::mouseDoubleClick(const MouseEvent& event)
+	void CVectorScope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
-		
+
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
@@ -167,7 +167,7 @@ namespace Signalizer
 			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
 		}
 	}
-	void CVectorScope::mouseDrag(const MouseEvent& event)
+	void CVectorScope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto & matrix = content->transform;
 		auto factor = float(getWidth()) / getHeight();
@@ -198,11 +198,11 @@ namespace Signalizer
 
 		lastMousePos = event.position;
 	}
-	void CVectorScope::mouseUp(const MouseEvent& event)
+	void CVectorScope::mouseUp(const juce::MouseEvent& event)
 	{
 		// TODO: implement beginChangeGesture()
 	}
-	void CVectorScope::mouseDown(const MouseEvent& event)
+	void CVectorScope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()
 		lastMousePos = event.position;
@@ -290,7 +290,7 @@ namespace Signalizer
 			{
 				// some of the heavy math done in vector mode..
 				const V vLeft = loadu<V>(buffer[0] + n);
-				const V vRight = loadu<V>(buffer[1] + n); 
+				const V vRight = loadu<V>(buffer[1] + n);
 
 				// rotate 235 degrees...
 				const V vX = vLeft * vMatrixReal - vRight * vMatrixImag;
@@ -318,15 +318,15 @@ namespace Signalizer
 					// collect squared inputs (really just a cheap abs)
 					const auto lSquared = buffer[0][z] * buffer[0][z];
 					const auto rSquared = buffer[1][z] * buffer[1][z];
-					
-					// average envelope 
+
+					// average envelope
 					filterEnv[0] = lSquared + state.envelopeCoeff * (filterEnv[0] - lSquared);
 					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
 
 					// balance average source
-					
+
 					using fs = FilterStates;
-					
+
 					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
 					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
 					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
@@ -347,15 +347,15 @@ namespace Signalizer
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
 				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
-				
+
 				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0]; 
+				filters.envelope[0] = filterEnv[0];
 				filters.envelope[1] = filterEnv[1];
 
 				if (std::isnormal(currentEnvelope))
 				{
 					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope, 
+						currentEnvelope,
 						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
 					);
 				}

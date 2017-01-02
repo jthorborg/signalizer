@@ -48,7 +48,7 @@
 	<string>
 	"Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/Mathext.h
+1483371965 /home/branch/Desktop/repos/SDKs/cpl/Mathext.h
 	<math.h>
 	"MacroConstants.h"
 	<vector>
@@ -1329,7 +1329,7 @@
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/MacSupport.h
 	<cstdlib>
 
-1483325516 /home/branch/Desktop/repos/SDKs//cpl/Misc.h
+1483365594 /home/branch/Desktop/repos/SDKs//cpl/Misc.h
 	<string>
 	"MacroConstants.h"
 	<sstream>
@@ -1351,7 +1351,7 @@
 	<thread>
 	<atomic>
 
-1483292039 /home/branch/Desktop/repos/SDKs//cpl/Utility.h
+1483326075 /home/branch/Desktop/repos/SDKs//cpl/Utility.h
 	"MacroConstants.h"
 	"Common.h"
 	"Mathext.h"
@@ -1373,7 +1373,7 @@
 	<string>
 	"Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/Mathext.h
+1483371965 /home/branch/Desktop/repos/SDKs//cpl/Mathext.h
 	<math.h>
 	"MacroConstants.h"
 	<vector>
@@ -1567,10 +1567,10 @@
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_traits.h
 	"../Types.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/Resources.cpp
+1483372349 /home/branch/Desktop/repos/SDKs/cpl/Resources.cpp
 	"Resources.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/Resources.h
+1483372344 /home/branch/Desktop/repos/SDKs/cpl/Resources.h
 	"Common.h"
 	<mutex>
 	<memory>
@@ -1583,7 +1583,7 @@
 	<thread>
 	<atomic>
 
-1483292039 /home/branch/Desktop/repos/SDKs/cpl/Utility.h
+1483326075 /home/branch/Desktop/repos/SDKs/cpl/Utility.h
 	"MacroConstants.h"
 	"Common.h"
 	"Mathext.h"
@@ -1592,7 +1592,7 @@
 	"stdext.h"
 	"Misc.h"
 
-1483325516 /home/branch/Desktop/repos/SDKs/cpl/Misc.h
+1483365594 /home/branch/Desktop/repos/SDKs/cpl/Misc.h
 	<string>
 	"MacroConstants.h"
 	<sstream>
@@ -1671,7 +1671,7 @@
 	<future>
 	<thread>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.cpp
+1483364752 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.cpp
 	"CEditSpaceSpawner.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.h
@@ -1893,7 +1893,7 @@
 	"Common.h"
 	<sstream>
 
-1483325711 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_math.h
+1483364772 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_math.h
 	"simd_traits.h"
 	"simd_consts.h"
 	"simd_interface.h"
@@ -1939,7 +1939,7 @@
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSliderEditor.h
 	"../CBaseControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.cpp
+1483365033 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.cpp
 	"CComboBox.h"
 	"../../Mathext.h"
 
@@ -2083,7 +2083,7 @@
 	<exception>
 	<typeinfo>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/NewStuffAndLook.h
+1483364938 /home/branch/Desktop/repos/SDKs/cpl/gui/NewStuffAndLook.h
 	"GraphicComponents.h"
 	"../Resources.h"
 	<vector>
@@ -2131,7 +2131,7 @@
 	"Misc.h"
 	<vector>
 
-1483325624 /home/branch/Desktop/repos/SDKs/cpl/Misc.cpp
+1483364884 /home/branch/Desktop/repos/SDKs/cpl/Misc.cpp
 	"MacroConstants.h"
 	"Misc.h"
 	<ctime>
@@ -2339,7 +2339,7 @@
 	<atomic>
 	"SysStats.h"
 
-1483197224 source:/home/branch/Desktop/repos/signalizer/Source/COscilloscope.cpp
+1483372541 source:/home/branch/Desktop/repos/signalizer/Source/COscilloscope.cpp
 	"COscilloscope.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -2350,7 +2350,7 @@
 	<cpl/LexicalConversion.h>
 	"VectorScopeParameters.h"
 
-1483199565 /home/branch/Desktop/repos/signalizer/Source/COscilloscope.h
+1483372640 /home/branch/Desktop/repos/signalizer/Source/COscilloscope.h
 	"CommonSignalizer.h"
 	<cpl/Utility.h>
 	<cpl/gui/controls/Controls.h>
@@ -2605,7 +2605,7 @@
 	<float.h>
 	"simd_traits.h"
 
-1483325711 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_math.h
+1483364772 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_math.h
 	"simd_traits.h"
 	"simd_consts.h"
 	"simd_interface.h"
@@ -2782,12 +2782,12 @@
 	<map>
 	<ctime>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/NewStuffAndLook.h
+1483364938 /home/branch/Desktop/repos/SDKs//cpl/gui/NewStuffAndLook.h
 	"GraphicComponents.h"
 	"../Resources.h"
 	<vector>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/Resources.h
+1483372344 /home/branch/Desktop/repos/SDKs//cpl/Resources.h
 	"Common.h"
 	<mutex>
 	<memory>
@@ -2807,7 +2807,7 @@
 	"CommonSignalizer.h"
 	"SignalizerDesign.h"
 
-1483197224 source:/home/branch/Desktop/repos/signalizer/Source/COscilloscopeRendering.cpp
+1483372671 source:/home/branch/Desktop/repos/signalizer/Source/COscilloscopeRendering.cpp
 	"COscilloscope.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -2816,7 +2816,7 @@
 	<cpl/rendering/OpenGLRasterizers.h>
 	<cpl/simd.h>
 
-1483197224 source:/home/branch/Desktop/repos/signalizer/Source/CSpectrum.cpp
+1483372765 source:/home/branch/Desktop/repos/signalizer/Source/CSpectrum.cpp
 	"CSpectrum.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -2827,7 +2827,7 @@
 	<cpl/LexicalConversion.h>
 	<array>
 
-1483296379 /home/branch/Desktop/repos/signalizer/Source/CSpectrum.h
+1483372724 /home/branch/Desktop/repos/signalizer/Source/CSpectrum.h
 	<cpl/Common.h>
 	<cpl/gui/GUI.h>
 	<cpl/Utility.h>
@@ -2844,7 +2844,7 @@
 	"CommonSignalizer.h"
 	"SpectrumParameters.h"
 
-1483296400 /home/branch/Desktop/repos/SDKs//cpl/dsp/CComplexResonator.h
+1483365277 /home/branch/Desktop/repos/SDKs//cpl/dsp/CComplexResonator.h
 	"../CMutex.h"
 	"../simd.h"
 	"../LibraryOptions.h"
@@ -2854,7 +2854,7 @@
 	"../Utility.h"
 	"../lib/AlignedAllocator.h"
 
-1483296420 /home/branch/Desktop/repos/SDKs//cpl/rendering/COpenGLImage.h
+1483326075 /home/branch/Desktop/repos/SDKs//cpl/rendering/COpenGLImage.h
 	"../Common.h"
 	"OpenGLRendering.h"
 	"../Mathext.h"
@@ -2884,7 +2884,7 @@
 	<atomic>
 	<stdatomic.h>
 
-1483298822 /home/branch/Desktop/repos/signalizer/Source/SpectrumParameters.h
+1483365277 /home/branch/Desktop/repos/signalizer/Source/SpectrumParameters.h
 	"CommonSignalizer.h"
 	"SignalizerDesign.h"
 
@@ -2902,4 +2902,3058 @@
 	"../Utility.h"
 	<atomic>
 	<stdatomic.h>
+
+1483325325 source:/home/branch/Desktop/repos/signalizer/Source/CSpectrumRendering.cpp
+	"CSpectrum.h"
+	<cstdint>
+	<cpl/CMutex.h>
+	<cpl/Mathext.h>
+	"SignalizerDesign.h"
+	<cpl/rendering/OpenGLRasterizers.h>
+	<cpl/simd.h>
+	<array>
+
+1483372840 source:/home/branch/Desktop/repos/signalizer/Source/CVectorScope.cpp
+	"CVectorScope.h"
+	<cstdint>
+	<cpl/CMutex.h>
+	<cpl/Mathext.h>
+	"SignalizerDesign.h"
+	<cpl/rendering/OpenGLRasterizers.h>
+	<cpl/simd.h>
+	<cpl/LexicalConversion.h>
+	"VectorScopeParameters.h"
+
+1483372818 /home/branch/Desktop/repos/signalizer/Source/CVectorScope.h
+	"CommonSignalizer.h"
+	<cpl/Utility.h>
+	<cpl/gui/controls/Controls.h>
+	<cpl/gui/widgets/Widgets.h>
+	<memory>
+	<cpl/simd.h>
+	"VectorScopeParameters.h"
+
+1483372858 source:/home/branch/Desktop/repos/signalizer/Source/CVectorScopeRendering.cpp
+	"CVectorScope.h"
+	<cstdint>
+	<cpl/CMutex.h>
+	<cpl/Mathext.h>
+	"SignalizerDesign.h"
+	<cpl/rendering/OpenGLRasterizers.h>
+	<cpl/simd.h>
+
+1483373138 source:/home/branch/Desktop/repos/signalizer/Source/MainEditor.cpp
+	"MainEditor.h"
+	"CVectorScope.h"
+	"COscilloscope.h"
+	"CSpectrum.h"
+	"SignalizerDesign.h"
+	<cpl/CPresetManager.h>
+	<cpl/LexicalConversion.h>
+	"version.h"
+	"PluginProcessor.h"
+
+1483373115 /home/branch/Desktop/repos/signalizer/Source/MainEditor.h
+	<cpl/Common.h>
+	<cpl/gui/GUI.h>
+	<map>
+	<stack>
+	"SignalizerDesign.h"
+	<array>
+	"SentientViewState.h"
+
+1483197224 /home/branch/Desktop/repos/signalizer/Source/SentientViewState.h
+	"CommonSignalizer.h"
+	<memory>
+	<cpl/Utility.h>
+
+1483146686 /home/branch/Desktop/repos/SDKs//cpl/CPresetManager.h
+	"Common.h"
+	"CSerializer.h"
+	"CExclusiveFile.h"
+	<vector>
+	<string>
+
+1483324593 /home/branch/Desktop/repos/SDKs//cpl/CExclusiveFile.h
+	"MacroConstants.h"
+	"Utility.h"
+	<cstring>
+	<string>
+	<cstdint>
+	<cstdio>
+	<Windows.h>
+	<unistd.h>
+	<fcntl.h>
+	<sys/file.h>
+	<unistd.h>
+	<fcntl.h>
+
+1483373078 /home/branch/Desktop/repos/signalizer/Source/PluginProcessor.h
+	<cpl/Common.h>
+	<cpl/CAudioStream.h>
+	<cpl/CSerializer.h>
+	<cpl/gui/CViews.h>
+	"CommonSignalizer.h"
+	<cpl/gui/widgets/CPresetWidget.h>
+	"MainEditor.h"
+
+1483299731 source:/home/branch/Desktop/repos/signalizer/Source/PluginProcessor.cpp
+	"PluginProcessor.h"
+	"MainEditor.h"
+	<cpl/CPresetManager.h>
+	<cpl/Protected.h>
+	<cpl/Mathext.h>
+	<cpl/infrastructure/values/Values.h>
+
+1483147818 source:/home/branch/Desktop/repos/signalizer/Source/SignalizerDesign.cpp
+	"SignalizerDesign.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/juce_audio_basics.cpp
+	"AppConfig.h"
+	"juce_audio_basics.h"
+	<emmintrin.h>
+	<Accelerate/Accelerate.h>
+	<arm_neon.h>
+	"buffers/juce_AudioDataConverters.cpp"
+	"buffers/juce_AudioSampleBuffer.cpp"
+	"buffers/juce_FloatVectorOperations.cpp"
+	"effects/juce_IIRFilter.cpp"
+	"effects/juce_LagrangeInterpolator.cpp"
+	"effects/juce_FFT.cpp"
+	"midi/juce_MidiBuffer.cpp"
+	"midi/juce_MidiFile.cpp"
+	"midi/juce_MidiKeyboardState.cpp"
+	"midi/juce_MidiMessage.cpp"
+	"midi/juce_MidiMessageSequence.cpp"
+	"sources/juce_BufferingAudioSource.cpp"
+	"sources/juce_ChannelRemappingAudioSource.cpp"
+	"sources/juce_IIRFilterAudioSource.cpp"
+	"sources/juce_MixerAudioSource.cpp"
+	"sources/juce_ResamplingAudioSource.cpp"
+	"sources/juce_ReverbAudioSource.cpp"
+	"sources/juce_ToneGeneratorAudioSource.cpp"
+	"synthesisers/juce_Synthesiser.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/buffers/juce_AudioDataConverters.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/buffers/juce_AudioSampleBuffer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/buffers/juce_FloatVectorOperations.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/effects/juce_IIRFilter.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/effects/juce_LagrangeInterpolator.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/effects/juce_FFT.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/midi/juce_MidiBuffer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/midi/juce_MidiFile.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/midi/juce_MidiKeyboardState.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/midi/juce_MidiMessage.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/midi/juce_MidiMessageSequence.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_BufferingAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_ChannelRemappingAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_IIRFilterAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_MixerAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_ResamplingAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_ReverbAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/sources/juce_ToneGeneratorAudioSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/synthesisers/juce_Synthesiser.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/juce_audio_devices.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_audio_devices.h"
+	<MMReg.h>
+	<iasiodrv.h>
+	<imapi.h>
+	<imapierror.h>
+	<alsa/asoundlib.h>
+	<jack/jack.h>
+	<SLES/OpenSLES.h>
+	<SLES/OpenSLES_Android.h>
+	<SLES/OpenSLES_AndroidConfiguration.h>
+	"audio_io/juce_AudioDeviceManager.cpp"
+	"audio_io/juce_AudioIODevice.cpp"
+	"audio_io/juce_AudioIODeviceType.cpp"
+	"midi_io/juce_MidiMessageCollector.cpp"
+	"midi_io/juce_MidiOutput.cpp"
+	"audio_cd/juce_AudioCDReader.cpp"
+	"sources/juce_AudioSourcePlayer.cpp"
+	"sources/juce_AudioTransportSource.cpp"
+	"native/juce_MidiDataConcatenator.h"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"native/juce_mac_CoreAudio.cpp"
+	"native/juce_mac_CoreMidi.cpp"
+	"native/juce_mac_AudioCDReader.mm"
+	"native/juce_mac_AudioCDBurner.mm"
+	"native/juce_ios_Audio.cpp"
+	"native/juce_mac_CoreMidi.cpp"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"../juce_events/native/juce_win32_HiddenMessageWindow.h"
+	"native/juce_win32_WASAPI.cpp"
+	"native/juce_win32_DirectSound.cpp"
+	"native/juce_win32_Midi.cpp"
+	"native/juce_win32_ASIO.cpp"
+	"native/juce_win32_AudioCDReader.cpp"
+	"native/juce_win32_AudioCDBurner.cpp"
+	"native/juce_linux_ALSA.cpp"
+	"native/juce_linux_Midi.cpp"
+	"native/juce_linux_JackAudio.cpp"
+	"native/juce_linux_AudioCDReader.cpp"
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"native/juce_android_Audio.cpp"
+	"native/juce_android_Midi.cpp"
+	"native/juce_android_OpenSL.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_BasicNativeHeaders.h
+	"../system/juce_TargetPlatform.h"
+	<sys/fcntl.h>
+	<sys/dir.h>
+	<sys/socket.h>
+	<sys/sysctl.h>
+	<sys/stat.h>
+	<sys/param.h>
+	<sys/mount.h>
+	<sys/utsname.h>
+	<sys/mman.h>
+	<fnmatch.h>
+	<utime.h>
+	<dlfcn.h>
+	<ifaddrs.h>
+	<net/if_dl.h>
+	<mach/mach_time.h>
+	<mach-o/dyld.h>
+	<objc/runtime.h>
+	<objc/objc.h>
+	<objc/message.h>
+	<windows.h>
+	<shellapi.h>
+	<tchar.h>
+	<stddef.h>
+	<ctime>
+	<wininet.h>
+	<nb30.h>
+	<iphlpapi.h>
+	<mapi.h>
+	<float.h>
+	<process.h>
+	<shlobj.h>
+	<shlwapi.h>
+	<mmsystem.h>
+	<basetyps.h>
+	<crtdbg.h>
+	<comutil.h>
+	<sched.h>
+	<pthread.h>
+	<sys/time.h>
+	<errno.h>
+	<sys/stat.h>
+	<sys/dir.h>
+	<sys/ptrace.h>
+	<sys/vfs.h>
+	<sys/wait.h>
+	<sys/mman.h>
+	<fnmatch.h>
+	<utime.h>
+	<pwd.h>
+	<fcntl.h>
+	<dlfcn.h>
+	<netdb.h>
+	<arpa/inet.h>
+	<netinet/in.h>
+	<sys/types.h>
+	<sys/ioctl.h>
+	<sys/socket.h>
+	<net/if.h>
+	<sys/sysinfo.h>
+	<sys/file.h>
+	<sys/prctl.h>
+	<signal.h>
+	<stddef.h>
+	<jni.h>
+	<pthread.h>
+	<sched.h>
+	<sys/time.h>
+	<utime.h>
+	<errno.h>
+	<fcntl.h>
+	<dlfcn.h>
+	<sys/stat.h>
+	<sys/statfs.h>
+	<sys/ptrace.h>
+	<sys/sysinfo.h>
+	<sys/mman.h>
+	<pwd.h>
+	<dirent.h>
+	<fnmatch.h>
+	<sys/wait.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/audio_io/juce_AudioDeviceManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/audio_io/juce_AudioIODevice.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/audio_io/juce_AudioIODeviceType.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/midi_io/juce_MidiMessageCollector.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/midi_io/juce_MidiOutput.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/sources/juce_AudioSourcePlayer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/sources/juce_AudioTransportSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_MidiDataConcatenator.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_osx_ObjCHelpers.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_mac_CoreAudio.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_mac_CoreMidi.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_mac_AudioCDReader.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_mac_AudioCDBurner.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_ios_Audio.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_ComSmartPtr.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_win32_HiddenMessageWindow.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_WASAPI.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_DirectSound.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_Midi.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_ASIO.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_AudioCDReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_AudioCDBurner.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_linux_ALSA.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_linux_Midi.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_linux_JackAudio.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_linux_AudioCDReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_JNIHelpers.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_android_Audio.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_android_Midi.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_android_OpenSL.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/juce_audio_formats.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_audio_formats.h"
+	<AudioToolbox/AudioToolbox.h>
+	<Movies.h>
+	<QTML.h>
+	<QuickTimeComponents.h>
+	<MediaHandlers.h>
+	<ImageCodec.h>
+	<wmsdk.h>
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"format/juce_AudioFormat.cpp"
+	"format/juce_AudioFormatManager.cpp"
+	"format/juce_AudioFormatReader.cpp"
+	"format/juce_AudioFormatReaderSource.cpp"
+	"format/juce_AudioFormatWriter.cpp"
+	"format/juce_AudioSubsectionReader.cpp"
+	"format/juce_BufferingAudioFormatReader.cpp"
+	"sampler/juce_Sampler.cpp"
+	"codecs/juce_AiffAudioFormat.cpp"
+	"codecs/juce_CoreAudioFormat.cpp"
+	"codecs/juce_FlacAudioFormat.cpp"
+	"codecs/juce_MP3AudioFormat.cpp"
+	"codecs/juce_OggVorbisAudioFormat.cpp"
+	"codecs/juce_QuickTimeAudioFormat.cpp"
+	"codecs/juce_WavAudioFormat.cpp"
+	"codecs/juce_LAMEEncoderAudioFormat.cpp"
+	"codecs/juce_WindowsMediaAudioFormat.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioFormatManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioFormatReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioFormatReaderSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioFormatWriter.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_AudioSubsectionReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/format/juce_BufferingAudioFormatReader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/sampler/juce_Sampler.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_AiffAudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_CoreAudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_FlacAudioFormat.cpp
+	"flac/all.h"
+	"flac/libFLAC/bitmath.c"
+	"flac/libFLAC/bitreader.c"
+	"flac/libFLAC/bitwriter.c"
+	"flac/libFLAC/cpu.c"
+	"flac/libFLAC/crc.c"
+	"flac/libFLAC/fixed.c"
+	"flac/libFLAC/float.c"
+	"flac/libFLAC/format.c"
+	"flac/libFLAC/lpc_flac.c"
+	"flac/libFLAC/md5.c"
+	"flac/libFLAC/memory.c"
+	"flac/libFLAC/stream_decoder.c"
+	"flac/libFLAC/stream_encoder.c"
+	"flac/libFLAC/stream_encoder_framing.c"
+	"flac/libFLAC/window_flac.c"
+	<FLAC/all.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/all.h
+	"export.h"
+	"assert.h"
+	"callback.h"
+	"format.h"
+	"metadata.h"
+	"ordinals.h"
+	"stream_decoder.h"
+	"stream_encoder.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/export.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/assert.h
+	<assert.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/callback.h
+	"ordinals.h"
+	<stdlib.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/ordinals.h
+	<stdint.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/format.h
+	"export.h"
+	"ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/metadata.h
+	<sys/types.h>
+	"export.h"
+	"callback.h"
+	"format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/stream_decoder.h
+	<stdio.h>
+	"export.h"
+	"format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/stream_encoder.h
+	<stdio.h>
+	"export.h"
+	"format.h"
+	"stream_decoder.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/bitmath.c
+	<config.h>
+	"include/private/bitmath.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/bitmath.h
+	"../../../ordinals.h"
+	"../../../assert.h"
+	<limits.h>
+	"../../../compat.h"
+	<intrin.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/compat.h
+	<io.h>
+	<unistd.h>
+	<sys/types.h>
+	<inttypes.h>
+	<io.h>
+	<fcntl.h>
+	<unistd.h>
+	<utime.h>
+	<sys/utime.h>
+	<sys/types.h>
+	<utime.h>
+	<stdint.h>
+	<limits.h>
+	"win_utf8_io.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/win_utf8_io.h
+	<stdio.h>
+	<sys/stat.h>
+	<stdarg.h>
+	<windows.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/bitreader.c
+	<config.h>
+	<stdlib.h>
+	<string.h>
+	"include/private/bitmath.h"
+	"include/private/bitreader.h"
+	"include/private/crc.h"
+	"../assert.h"
+	"../compat.h"
+	"../endswap.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/bitreader.h
+	<stdio.h>
+	"../../../ordinals.h"
+	"cpu.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/cpu.h
+	"../../../ordinals.h"
+	<config.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/crc.h
+	"../../../ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/endswap.h
+	<byteswap.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/bitwriter.c
+	<config.h>
+	<stdlib.h>
+	<string.h>
+	"include/private/bitwriter.h"
+	"include/private/crc.h"
+	"../assert.h"
+	"../alloc.h"
+	"../compat.h"
+	"../endswap.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/bitwriter.h
+	<stdio.h>
+	"../../../ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/alloc.h
+	<config.h>
+	<limits.h>
+	<stdint.h>
+	<stdlib.h>
+	"compat.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/cpu.c
+	<config.h>
+	"include/private/cpu.h"
+	<stdlib.h>
+	<memory.h>
+	<stdio.h>
+	<signal.h>
+	<sys/param.h>
+	<sys/sysctl.h>
+	<machine/cpu.h>
+	<sys/types.h>
+	<sys/sysctl.h>
+	<sys/ucontext.h>
+	<windows.h>
+	<intrin.h>
+	<cpuid.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/crc.c
+	<config.h>
+	"include/private/crc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/fixed.c
+	<config.h>
+	<math.h>
+	<string.h>
+	"../compat.h"
+	"include/private/bitmath.h"
+	"include/private/fixed.h"
+	"../assert.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/fixed.h
+	<config.h>
+	"cpu.h"
+	"float.h"
+	"../../../format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/float.h
+	<config.h>
+	"../../../ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/float.c
+	<config.h>
+	"../assert.h"
+	"../compat.h"
+	"include/private/float.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/format.c
+	<config.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"../assert.h"
+	"../format.h"
+	"../compat.h"
+	"include/private/format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/format.h
+	"../../../format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/lpc_flac.c
+	<config.h>
+	<math.h>
+	"../assert.h"
+	"../format.h"
+	"../compat.h"
+	"include/private/bitmath.h"
+	"include/private/lpc.h"
+	<stdio.h>
+	<float.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/lpc.h
+	<config.h>
+	"cpu.h"
+	"float.h"
+	"../../../format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/md5.c
+	<config.h>
+	<stdlib.h>
+	<string.h>
+	"include/private/md5.h"
+	"../alloc.h"
+	"../endswap.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/md5.h
+	"../../../ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/memory.c
+	<config.h>
+	<stdint.h>
+	"include/private/memory.h"
+	"../assert.h"
+	"../alloc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/memory.h
+	<config.h>
+	<stdlib.h>
+	"float.h"
+	"../../../ordinals.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/stream_decoder.c
+	<config.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<sys/stat.h>
+	<sys/types.h>
+	"../compat.h"
+	"../assert.h"
+	"../alloc.h"
+	"include/protected/stream_decoder.h"
+	"include/private/bitreader.h"
+	"include/private/bitmath.h"
+	"include/private/cpu.h"
+	"include/private/crc.h"
+	"include/private/fixed.h"
+	"include/private/format.h"
+	"include/private/lpc.h"
+	"include/private/md5.h"
+	"include/private/memory.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/protected/stream_decoder.h
+	"../../../stream_decoder.h"
+	"../private/ogg_decoder_aspect.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/stream_encoder.c
+	<config.h>
+	<limits.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<sys/types.h>
+	"../assert.h"
+	"../stream_decoder.h"
+	"include/protected/stream_encoder.h"
+	"include/private/bitwriter.h"
+	"include/private/bitmath.h"
+	"include/private/crc.h"
+	"include/private/cpu.h"
+	"include/private/fixed.h"
+	"include/private/format.h"
+	"include/private/lpc.h"
+	"include/private/md5.h"
+	"include/private/memory.h"
+	"include/private/ogg_helper.h"
+	"include/private/ogg_mapping.h"
+	"include/private/stream_encoder.h"
+	"include/private/stream_encoder_framing.h"
+	"include/private/window.h"
+	"../alloc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/protected/stream_encoder.h
+	"../../../stream_encoder.h"
+	"../private/ogg_encoder_aspect.h"
+	"../private/float.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/stream_encoder.h
+	<config.h>
+	"cpu.h"
+	"../../../format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/stream_encoder_framing.h
+	"../../../format.h"
+	"bitwriter.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/window.h
+	<config.h>
+	"float.h"
+	"../../../format.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/stream_encoder_framing.c
+	<config.h>
+	<stdio.h>
+	<string.h>
+	"include/private/stream_encoder_framing.h"
+	"include/private/crc.h"
+	"../assert.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/window_flac.c
+	<config.h>
+	<math.h>
+	"../assert.h"
+	"../format.h"
+	"include/private/window.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_MP3AudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_OggVorbisAudioFormat.cpp
+	"oggvorbis/vorbisenc.h"
+	"oggvorbis/codec.h"
+	"oggvorbis/vorbisfile.h"
+	"oggvorbis/bitwise.c"
+	"oggvorbis/framing.c"
+	"oggvorbis/libvorbis-1.3.2/lib/analysis.c"
+	"oggvorbis/libvorbis-1.3.2/lib/bitrate.c"
+	"oggvorbis/libvorbis-1.3.2/lib/block.c"
+	"oggvorbis/libvorbis-1.3.2/lib/codebook.c"
+	"oggvorbis/libvorbis-1.3.2/lib/envelope.c"
+	"oggvorbis/libvorbis-1.3.2/lib/floor0.c"
+	"oggvorbis/libvorbis-1.3.2/lib/floor1.c"
+	"oggvorbis/libvorbis-1.3.2/lib/info.c"
+	"oggvorbis/libvorbis-1.3.2/lib/lpc.c"
+	"oggvorbis/libvorbis-1.3.2/lib/lsp.c"
+	"oggvorbis/libvorbis-1.3.2/lib/mapping0.c"
+	"oggvorbis/libvorbis-1.3.2/lib/mdct.c"
+	"oggvorbis/libvorbis-1.3.2/lib/psy.c"
+	"oggvorbis/libvorbis-1.3.2/lib/registry.c"
+	"oggvorbis/libvorbis-1.3.2/lib/res0.c"
+	"oggvorbis/libvorbis-1.3.2/lib/sharedbook.c"
+	"oggvorbis/libvorbis-1.3.2/lib/smallft.c"
+	"oggvorbis/libvorbis-1.3.2/lib/synthesis.c"
+	"oggvorbis/libvorbis-1.3.2/lib/vorbisenc.c"
+	"oggvorbis/libvorbis-1.3.2/lib/vorbisfile.c"
+	"oggvorbis/libvorbis-1.3.2/lib/window.c"
+	<vorbis/vorbisenc.h>
+	<vorbis/codec.h>
+	<vorbis/vorbisfile.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/vorbisenc.h
+	"codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/codec.h
+	"ogg.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/ogg.h
+	"os_types.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/os_types.h
+	<_G_config.h>
+	<sys/types.h>
+	<sys/types.h>
+	<inttypes.h>
+	<sys/types.h>
+	"config_types.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/config_types.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/vorbisfile.h
+	<stdio.h>
+	"codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/bitwise.c
+	<string.h>
+	<stdlib.h>
+	"ogg.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/framing.c
+	<stdlib.h>
+	<string.h>
+	"ogg.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/analysis.c
+	<stdio.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"scales.h"
+	"os.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/codec_internal.h
+	"envelope.h"
+	"codebook.h"
+	"psy.h"
+	"bitrate.h"
+	"highlevel.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/envelope.h
+	"mdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/mdct.h
+	"../../codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/codebook.h
+	"../../ogg.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/psy.h
+	"smallft.h"
+	"backends.h"
+	"envelope.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/smallft.h
+	"../../codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/backends.h
+	"codec_internal.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/bitrate.h
+	"../../codec.h"
+	"codec_internal.h"
+	"os.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/os.h
+	"config.h"
+	<math.h>
+	"../../os_types.h"
+	"misc.h"
+	<malloc.h>
+	<alloca.h>
+	<memory.h>
+	<emmintrin.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/misc.h
+	"../../codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/highlevel.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/registry.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/scales.h
+	<math.h>
+	"os.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/bitrate.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"os.h"
+	"misc.h"
+	"bitrate.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/block.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"window.h"
+	"mdct.h"
+	"lpc.h"
+	"registry.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/window.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lpc.h
+	"../../codec.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/codebook.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codebook.h"
+	"scales.h"
+	"misc.h"
+	"os.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/envelope.c
+	<stdlib.h>
+	<string.h>
+	<stdio.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"os.h"
+	"scales.h"
+	"envelope.h"
+	"mdct.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/floor0.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"lpc.h"
+	"lsp.h"
+	"codebook.h"
+	"scales.h"
+	"misc.h"
+	"os.h"
+	"misc.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lsp.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/floor1.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"codebook.h"
+	"misc.h"
+	"scales.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/info.c
+	<stdlib.h>
+	<string.h>
+	<ctype.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"codebook.h"
+	"registry.h"
+	"window.h"
+	"psy.h"
+	"misc.h"
+	"os.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lpc.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"os.h"
+	"smallft.h"
+	"lpc.h"
+	"scales.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lsp.c
+	<math.h>
+	<string.h>
+	<stdlib.h>
+	"lsp.h"
+	"os.h"
+	"misc.h"
+	"lookup.h"
+	"scales.h"
+	"lookup.c"
+	"lookup.c"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lookup.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lookup.c
+	<math.h>
+	"lookup.h"
+	"lookup_data.h"
+	"os.h"
+	"misc.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/lookup_data.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/mapping0.c
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"codebook.h"
+	"window.h"
+	"registry.h"
+	"psy.h"
+	"misc.h"
+	"os.h"
+	"lpc.h"
+	"lsp.h"
+	"envelope.h"
+	"mdct.h"
+	"psy.h"
+	"scales.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/mdct.c
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../codec.h"
+	"mdct.h"
+	"os.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/psy.c
+	<stdlib.h>
+	<math.h>
+	<string.h>
+	"../../codec.h"
+	"codec_internal.h"
+	"masking.h"
+	"psy.h"
+	"os.h"
+	"lpc.h"
+	"smallft.h"
+	"scales.h"
+	"misc.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/masking.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/registry.c
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/res0.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"codebook.h"
+	"misc.h"
+	"os.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/sharedbook.c
+	<stdlib.h>
+	<math.h>
+	<string.h>
+	"../../ogg.h"
+	"os.h"
+	"misc.h"
+	"../../codec.h"
+	"codebook.h"
+	"scales.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/smallft.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"smallft.h"
+	"os.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/synthesis.c
+	<stdio.h>
+	"../../ogg.h"
+	"../../codec.h"
+	"codec_internal.h"
+	"registry.h"
+	"misc.h"
+	"os.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/vorbisenc.c
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	"../../codec.h"
+	"../../vorbisenc.h"
+	"codec_internal.h"
+	"os.h"
+	"misc.h"
+	"modes/setup_44.h"
+	"modes/setup_44u.h"
+	"modes/setup_44p51.h"
+	"modes/setup_32.h"
+	"modes/setup_8.h"
+	"modes/setup_11.h"
+	"modes/setup_16.h"
+	"modes/setup_22.h"
+	"modes/setup_X.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_44.h
+	"floor_all.h"
+	"residue_44.h"
+	"psych_44.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/floor_all.h
+	"../../../codec.h"
+	"../backends.h"
+	"../books/floor/floor_books.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/books/floor/floor_books.h
+	"../../codebook.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/residue_44.h
+	"../../../codec.h"
+	"../backends.h"
+	"../books/coupled/res_books_stereo.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/books/coupled/res_books_stereo.h
+	"../../codebook.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/psych_44.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_44u.h
+	"residue_44u.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/residue_44u.h
+	"../../../codec.h"
+	"../backends.h"
+	"../books/uncoupled/res_books_uncoupled.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/books/uncoupled/res_books_uncoupled.h
+	"../../codebook.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_44p51.h
+	"residue_44p51.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/residue_44p51.h
+	"../../../codec.h"
+	"../backends.h"
+	"../books/coupled/res_books_51.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/books/coupled/res_books_51.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_32.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_8.h
+	"psych_8.h"
+	"residue_8.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/psych_8.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/residue_8.h
+	"../../../codec.h"
+	"../backends.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_11.h
+	"psych_11.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/psych_11.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_16.h
+	"psych_16.h"
+	"residue_16.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/psych_16.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/residue_16.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_22.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/modes/setup_X.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/vorbisfile.c
+	<stdlib.h>
+	<stdio.h>
+	<errno.h>
+	<string.h>
+	<math.h>
+	"../../codec.h"
+	"../../vorbisfile.h"
+	"os.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/oggvorbis/libvorbis-1.3.2/lib/window.c
+	<stdlib.h>
+	<math.h>
+	"os.h"
+	"misc.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_QuickTimeAudioFormat.cpp
+	<QuickTime/Movies.h>
+	<QuickTime/QTML.h>
+	<QuickTime/QuickTimeComponents.h>
+	<QuickTime/MediaHandlers.h>
+	<QuickTime/ImageCodec.h>
+	<Movies.h>
+	<QTML.h>
+	<QuickTimeComponents.h>
+	<MediaHandlers.h>
+	<ImageCodec.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_WavAudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_LAMEEncoderAudioFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/juce_WindowsMediaAudioFormat.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/AAX/juce_AAX_Wrapper.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	<windows.h>
+	<Cocoa/Cocoa.h>
+	"../utility/juce_IncludeModuleHeaders.h"
+	"AAX_Exports.cpp"
+	"AAX_ICollection.h"
+	"AAX_IComponentDescriptor.h"
+	"AAX_IEffectDescriptor.h"
+	"AAX_IPropertyMap.h"
+	"AAX_CEffectParameters.h"
+	"AAX_Errors.h"
+	"AAX_CBinaryTaperDelegate.h"
+	"AAX_CBinaryDisplayDelegate.h"
+	"AAX_CLinearTaperDelegate.h"
+	"AAX_CNumberDisplayDelegate.h"
+	"AAX_CEffectGUI.h"
+	"AAX_IViewContainer.h"
+	"AAX_ITransport.h"
+	"AAX_IMIDINode.h"
+	"AAX_UtilsNative.h"
+	"AAX_Enums.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_IncludeModuleHeaders.h
+	"../juce_audio_plugin_client.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode1.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	"juce_RTAS_DigiCode_Header.h"
+	<CEffectGroup.cpp>
+	<CEffectGroupMIDI.cpp>
+	<CEffectMIDIUtils.cpp>
+	<CEffectProcess.cpp>
+	<CEffectProcessAS.cpp>
+	<CEffectType.cpp>
+	<CEffectTypeRTAS.cpp>
+	<ChunkDataParser.cpp>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode_Header.h
+	<ForcedInclude.h>
+	<MacAlwaysInclude.h>
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode2.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	"juce_RTAS_DigiCode_Header.h"
+	<CEffectProcessMIDI.cpp>
+	<PlugInUtils.cpp>
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode3.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	"juce_RTAS_DigiCode_Header.h"
+	<DLLMain.cpp>
+	<DefaultSwap.cpp>
+	<PlugInInitialize.cpp>
+	<Dispatcher.cpp>
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_WinUtilities.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	<intrin.h>
+	<windows.h>
+	"../utility/juce_IncludeModuleHeaders.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_Wrapper.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	<intrin.h>
+	"juce_RTAS_DigiCode_Header.h"
+	<Mac2Win.H>
+	<CEffectGroupMIDI.h>
+	<CEffectProcessMIDI.h>
+	<CEffectProcessRTAS.h>
+	<CCustomView.h>
+	<CEffectTypeRTAS.h>
+	<CPluginControl.h>
+	<CPluginControl_OnOff.h>
+	<FicProcessTokens.h>
+	<ExternalVersionDefines.h>
+	"../utility/juce_IncludeModuleHeaders.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/VST/juce_VST_Wrapper.cpp
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	<windows.h>
+	<X11/Xlib.h>
+	<X11/Xutil.h>
+	<X11/Xatom.h>
+	<Carbon/Carbon.h>
+	<public.sdk/source/vst2.x/audioeffectx.h>
+	<public.sdk/source/vst2.x/aeffeditor.h>
+	<public.sdk/source/vst2.x/audioeffectx.cpp>
+	<public.sdk/source/vst2.x/audioeffect.cpp>
+	<pluginterfaces/base/funknown.h>
+	"../utility/juce_IncludeModuleHeaders.h"
+	"../utility/juce_FakeMouseMoveGenerator.h"
+	"../utility/juce_WindowsHooks.h"
+
+1356532940 /home/branch/Desktop/repos/SDKs/vstsdk2.4//public.sdk/source/vst2.x/audioeffectx.h
+	"audioeffect.h"
+	"pluginterfaces/vst2.x/aeffectx.h"
+
+1356532939 /home/branch/Desktop/repos/SDKs/vstsdk2.4//public.sdk/source/vst2.x/audioeffect.h
+	"pluginterfaces/vst2.x/aeffect.h"
+
+1356865771 /home/branch/Desktop/repos/SDKs/vstsdk2.4//pluginterfaces/vst2.x/aeffect.h
+	<string.h>
+	<stdint.h>
+
+1356532937 /home/branch/Desktop/repos/SDKs/vstsdk2.4//pluginterfaces/vst2.x/aeffectx.h
+	"aeffect.h"
+
+1356532939 /home/branch/Desktop/repos/SDKs/vstsdk2.4//public.sdk/source/vst2.x/aeffeditor.h
+	"audioeffectx.h"
+
+1385666660 /home/branch/Desktop/repos/SDKs/vstsdk2.4//public.sdk/source/vst2.x/audioeffectx.cpp
+	"audioeffectx.h"
+	"aeffeditor.h"
+
+1385666659 /home/branch/Desktop/repos/SDKs/vstsdk2.4//public.sdk/source/vst2.x/audioeffect.cpp
+	"audioeffect.h"
+	"aeffeditor.h"
+	<stddef.h>
+	<stdio.h>
+	<math.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_FakeMouseMoveGenerator.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_WindowsHooks.h
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/VST3/juce_VST3_Wrapper.cpp
+	"AppConfig.h"
+	"../../juce_audio_processors/format_types/juce_VST3Headers.h"
+	"../utility/juce_CheckSettingMacros.h"
+	"../utility/juce_IncludeModuleHeaders.h"
+	"../utility/juce_WindowsHooks.h"
+	"../../juce_audio_processors/format_types/juce_VST3Common.h"
+	<pluginterfaces/vst2.x/vstfxstore.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_VST3Headers.h
+	<base/source/fstring.h>
+	<pluginterfaces/base/conststringtable.h>
+	<pluginterfaces/base/funknown.h>
+	<pluginterfaces/base/ipluginbase.h>
+	<pluginterfaces/base/ustring.h>
+	<pluginterfaces/gui/iplugview.h>
+	<pluginterfaces/vst/ivstattributes.h>
+	<pluginterfaces/vst/ivstaudioprocessor.h>
+	<pluginterfaces/vst/ivstcomponent.h>
+	<pluginterfaces/vst/ivstcontextmenu.h>
+	<pluginterfaces/vst/ivsteditcontroller.h>
+	<pluginterfaces/vst/ivstevents.h>
+	<pluginterfaces/vst/ivsthostapplication.h>
+	<pluginterfaces/vst/ivstmessage.h>
+	<pluginterfaces/vst/ivstmidicontrollers.h>
+	<pluginterfaces/vst/ivstparameterchanges.h>
+	<pluginterfaces/vst/ivstplugview.h>
+	<pluginterfaces/vst/ivstprocesscontext.h>
+	<pluginterfaces/vst/vsttypes.h>
+	<pluginterfaces/vst/ivstunits.h>
+	<public.sdk/source/common/memorystream.h>
+	<base/source/baseiids.cpp>
+	<base/source/fatomic.cpp>
+	<base/source/fbuffer.cpp>
+	<base/source/fdebug.cpp>
+	<base/source/fobject.cpp>
+	<base/source/frect.cpp>
+	<base/source/fstreamer.cpp>
+	<base/source/fstring.cpp>
+	<base/source/fthread.cpp>
+	<base/source/updatehandler.cpp>
+	<pluginterfaces/base/conststringtable.cpp>
+	<pluginterfaces/base/funknown.cpp>
+	<pluginterfaces/base/ipluginbase.h>
+	<pluginterfaces/base/ustring.cpp>
+	<pluginterfaces/gui/iplugview.h>
+	<public.sdk/source/common/memorystream.cpp>
+	<public.sdk/source/common/pluginview.cpp>
+	<public.sdk/source/vst/vsteditcontroller.cpp>
+	<public.sdk/source/vst/vstbus.cpp>
+	<public.sdk/source/vst/vstinitiids.cpp>
+	<public.sdk/source/vst/vstcomponent.cpp>
+	<public.sdk/source/vst/vstcomponentbase.cpp>
+	<public.sdk/source/vst/vstparameters.cpp>
+	<public.sdk/source/vst/hosting/hostclasses.cpp>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_VST3Common.h
+
+1356532937 /home/branch/Desktop/repos/SDKs/vstsdk2.4//pluginterfaces/vst2.x/vstfxstore.h
+	"aeffect.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/juce_core.cpp
+	"AppConfig.h"
+	"native/juce_BasicNativeHeaders.h"
+	"juce_core.h"
+	<locale>
+	<cctype>
+	<sys/timeb.h>
+	<cwctype>
+	<ctime>
+	<winsock2.h>
+	<ws2tcpip.h>
+	<Dbghelp.h>
+	<ws2spi.h>
+	<sys/types.h>
+	<sys/socket.h>
+	<sys/errno.h>
+	<unistd.h>
+	<netinet/in.h>
+	<langinfo.h>
+	<ifaddrs.h>
+	<pwd.h>
+	<fcntl.h>
+	<netdb.h>
+	<arpa/inet.h>
+	<netinet/tcp.h>
+	<sys/time.h>
+	<net/if.h>
+	<sys/ioctl.h>
+	<execinfo.h>
+	<xlocale.h>
+	<mach/mach.h>
+	<android/log.h>
+	<cpl/Protected.h>
+	"containers/juce_AbstractFifo.cpp"
+	"containers/juce_NamedValueSet.cpp"
+	"containers/juce_PropertySet.cpp"
+	"containers/juce_Variant.cpp"
+	"files/juce_DirectoryIterator.cpp"
+	"files/juce_File.cpp"
+	"files/juce_FileInputStream.cpp"
+	"files/juce_FileOutputStream.cpp"
+	"files/juce_FileSearchPath.cpp"
+	"files/juce_TemporaryFile.cpp"
+	"javascript/juce_JSON.cpp"
+	"javascript/juce_Javascript.cpp"
+	"containers/juce_DynamicObject.cpp"
+	"logging/juce_FileLogger.cpp"
+	"logging/juce_Logger.cpp"
+	"maths/juce_BigInteger.cpp"
+	"maths/juce_Expression.cpp"
+	"maths/juce_Random.cpp"
+	"memory/juce_MemoryBlock.cpp"
+	"misc/juce_Result.cpp"
+	"misc/juce_Uuid.cpp"
+	"network/juce_MACAddress.cpp"
+	"network/juce_NamedPipe.cpp"
+	"network/juce_Socket.cpp"
+	"network/juce_IPAddress.cpp"
+	"streams/juce_BufferedInputStream.cpp"
+	"streams/juce_FileInputSource.cpp"
+	"streams/juce_InputStream.cpp"
+	"streams/juce_MemoryInputStream.cpp"
+	"streams/juce_MemoryOutputStream.cpp"
+	"streams/juce_SubregionStream.cpp"
+	"system/juce_SystemStats.cpp"
+	"text/juce_CharacterFunctions.cpp"
+	"text/juce_Identifier.cpp"
+	"text/juce_LocalisedStrings.cpp"
+	"text/juce_String.cpp"
+	"streams/juce_OutputStream.cpp"
+	"text/juce_StringArray.cpp"
+	"text/juce_StringPairArray.cpp"
+	"text/juce_StringPool.cpp"
+	"text/juce_TextDiff.cpp"
+	"threads/juce_ReadWriteLock.cpp"
+	"threads/juce_Thread.cpp"
+	"threads/juce_ThreadPool.cpp"
+	"threads/juce_TimeSliceThread.cpp"
+	"time/juce_PerformanceCounter.cpp"
+	"time/juce_RelativeTime.cpp"
+	"time/juce_Time.cpp"
+	"unit_tests/juce_UnitTest.cpp"
+	"xml/juce_XmlDocument.cpp"
+	"xml/juce_XmlElement.cpp"
+	"zip/juce_GZIPDecompressorInputStream.cpp"
+	"zip/juce_GZIPCompressorOutputStream.cpp"
+	"zip/juce_ZipFile.cpp"
+	"files/juce_FileFilter.cpp"
+	"files/juce_WildcardFileFilter.cpp"
+	"native/juce_osx_ObjCHelpers.h"
+	"native/juce_android_JNIHelpers.h"
+	"native/juce_posix_SharedCode.h"
+	"native/juce_posix_NamedPipe.cpp"
+	"native/juce_mac_Files.mm"
+	"native/juce_mac_Network.mm"
+	"native/juce_mac_Strings.mm"
+	"native/juce_mac_SystemStats.mm"
+	"native/juce_mac_Threads.mm"
+	"native/juce_win32_ComSmartPtr.h"
+	"native/juce_win32_Files.cpp"
+	"native/juce_win32_Network.cpp"
+	"native/juce_win32_Registry.cpp"
+	"native/juce_win32_SystemStats.cpp"
+	"native/juce_win32_Threads.cpp"
+	"native/juce_linux_CommonFile.cpp"
+	"native/juce_linux_Files.cpp"
+	"native/juce_linux_Network.cpp"
+	"native/juce_linux_SystemStats.cpp"
+	"native/juce_linux_Threads.cpp"
+	"native/juce_linux_CommonFile.cpp"
+	"native/juce_android_Files.cpp"
+	"native/juce_android_Misc.cpp"
+	"native/juce_android_Network.cpp"
+	"native/juce_android_SystemStats.cpp"
+	"native/juce_android_Threads.cpp"
+	"threads/juce_ChildProcess.cpp"
+	"threads/juce_HighResolutionTimer.cpp"
+	"network/juce_URL.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/containers/juce_AbstractFifo.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/containers/juce_NamedValueSet.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/containers/juce_PropertySet.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/containers/juce_Variant.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_DirectoryIterator.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_File.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_FileInputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_FileOutputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_FileSearchPath.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_TemporaryFile.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/javascript/juce_JSON.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/javascript/juce_Javascript.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/containers/juce_DynamicObject.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/logging/juce_FileLogger.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/logging/juce_Logger.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/maths/juce_BigInteger.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/maths/juce_Expression.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/maths/juce_Random.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/memory/juce_MemoryBlock.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/misc/juce_Result.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/misc/juce_Uuid.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/network/juce_MACAddress.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/network/juce_NamedPipe.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/network/juce_Socket.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/network/juce_IPAddress.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_BufferedInputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_FileInputSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_InputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_MemoryInputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_MemoryOutputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_SubregionStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/system/juce_SystemStats.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_CharacterFunctions.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_Identifier.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_LocalisedStrings.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_String.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/streams/juce_OutputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_StringArray.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_StringPairArray.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_StringPool.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/text/juce_TextDiff.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_ReadWriteLock.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_Thread.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_ThreadPool.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_TimeSliceThread.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/time/juce_PerformanceCounter.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/time/juce_RelativeTime.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/time/juce_Time.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/unit_tests/juce_UnitTest.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/xml/juce_XmlDocument.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/xml/juce_XmlElement.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/juce_GZIPDecompressorInputStream.cpp
+	"zlib/zlib.h"
+	"zlib/adler32.c"
+	"zlib/compress.c"
+	"zlib/crc32.c"
+	"zlib/deflate.c"
+	"zlib/inffast.c"
+	"zlib/inflate.c"
+	"zlib/inftrees.c"
+	"zlib/trees.c"
+	"zlib/zutil.c"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/zlib.h
+	"zconf.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/zconf.h
+	<windows.h>
+	<sys/types.h>
+	<unistd.h>
+	<unixio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/adler32.c
+	"zlib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/compress.c
+	"zlib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/crc32.c
+	<stdio.h>
+	"zutil.h"
+	<limits.h>
+	"crc32.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/zutil.h
+	"zlib.h"
+	<stddef.h>
+	<string.h>
+	<stdlib.h>
+	<errno.h>
+	<alloc.h>
+	<malloc.h>
+	<malloc.h>
+	<unix.h>
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/crc32.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/deflate.c
+	"deflate.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/deflate.h
+	"zutil.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inffast.c
+	"zutil.h"
+	"inftrees.h"
+	"inflate.h"
+	"inffast.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inftrees.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inflate.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inffast.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inflate.c
+	"zutil.h"
+	"inftrees.h"
+	"inflate.h"
+	"inffast.h"
+	"inffixed.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inffixed.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/inftrees.c
+	"zutil.h"
+	"inftrees.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/trees.c
+	"deflate.h"
+	<ctype.h>
+	"trees.h"
+	<stdio.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/trees.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/zlib/zutil.c
+	"zutil.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/juce_GZIPCompressorOutputStream.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/zip/juce_ZipFile.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_FileFilter.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/files/juce_WildcardFileFilter.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_posix_SharedCode.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_posix_NamedPipe.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_mac_Files.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_mac_Network.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_mac_Strings.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_mac_SystemStats.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_mac_Threads.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Files.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Network.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Registry.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_SystemStats.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Threads.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_CommonFile.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_Files.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_Network.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_SystemStats.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_Threads.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_Files.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_Misc.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_Network.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_SystemStats.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_android_Threads.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_ChildProcess.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/threads/juce_HighResolutionTimer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/network/juce_URL.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/juce_cryptography.cpp
+	"AppConfig.h"
+	"juce_cryptography.h"
+	"encryption/juce_BlowFish.cpp"
+	"encryption/juce_Primes.cpp"
+	"encryption/juce_RSAKey.cpp"
+	"hashing/juce_MD5.cpp"
+	"hashing/juce_SHA256.cpp"
+	"hashing/juce_Whirlpool.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/encryption/juce_BlowFish.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/encryption/juce_Primes.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/encryption/juce_RSAKey.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/hashing/juce_MD5.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/hashing/juce_SHA256.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_cryptography/hashing/juce_Whirlpool.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/juce_data_structures.cpp
+	"AppConfig.h"
+	"juce_data_structures.h"
+	"values/juce_Value.cpp"
+	"values/juce_ValueTree.cpp"
+	"undomanager/juce_UndoManager.cpp"
+	"app_properties/juce_ApplicationProperties.cpp"
+	"app_properties/juce_PropertiesFile.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/values/juce_Value.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/values/juce_ValueTree.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/undomanager/juce_UndoManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/app_properties/juce_ApplicationProperties.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_data_structures/app_properties/juce_PropertiesFile.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/juce_events.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_events.h"
+	"../juce_gui_basics/juce_gui_basics.h"
+	<X11/Xlib.h>
+	<X11/Xresource.h>
+	<X11/Xutil.h>
+	<unistd.h>
+	<cpl/Protected.h>
+	"messages/juce_ApplicationBase.cpp"
+	"messages/juce_DeletedAtShutdown.cpp"
+	"messages/juce_MessageListener.cpp"
+	"messages/juce_MessageManager.cpp"
+	"broadcasters/juce_ActionBroadcaster.cpp"
+	"broadcasters/juce_AsyncUpdater.cpp"
+	"broadcasters/juce_ChangeBroadcaster.cpp"
+	"timers/juce_MultiTimer.cpp"
+	"timers/juce_Timer.cpp"
+	"interprocess/juce_InterprocessConnection.cpp"
+	"interprocess/juce_InterprocessConnectionServer.cpp"
+	"interprocess/juce_ConnectedChildProcess.cpp"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"native/juce_osx_MessageQueue.h"
+	"native/juce_mac_MessageManager.mm"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"native/juce_osx_MessageQueue.h"
+	"native/juce_ios_MessageManager.mm"
+	"native/juce_win32_HiddenMessageWindow.h"
+	"native/juce_win32_Messaging.cpp"
+	"native/juce_ScopedXLock.h"
+	"native/juce_linux_Messaging.cpp"
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"native/juce_android_Messaging.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/messages/juce_ApplicationBase.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/messages/juce_DeletedAtShutdown.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/messages/juce_MessageListener.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/messages/juce_MessageManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/broadcasters/juce_ActionBroadcaster.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/broadcasters/juce_AsyncUpdater.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/broadcasters/juce_ChangeBroadcaster.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/timers/juce_MultiTimer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/timers/juce_Timer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/interprocess/juce_InterprocessConnection.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/interprocess/juce_InterprocessConnectionServer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/interprocess/juce_ConnectedChildProcess.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_osx_MessageQueue.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_mac_MessageManager.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_ios_MessageManager.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_win32_Messaging.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_linux_Messaging.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_android_Messaging.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/juce_graphics.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_graphics.h"
+	<d2d1.h>
+	<dwrite.h>
+	<malloc.h>
+	<ft2build.h>
+	"native/freetype/FreeTypeAmalgam.h"
+	"colour/juce_Colour.cpp"
+	"colour/juce_ColourGradient.cpp"
+	"colour/juce_Colours.cpp"
+	"colour/juce_FillType.cpp"
+	"geometry/juce_AffineTransform.cpp"
+	"geometry/juce_EdgeTable.cpp"
+	"geometry/juce_Path.cpp"
+	"geometry/juce_PathIterator.cpp"
+	"geometry/juce_PathStrokeType.cpp"
+	"placement/juce_RectanglePlacement.cpp"
+	"contexts/juce_GraphicsContext.cpp"
+	"contexts/juce_LowLevelGraphicsPostScriptRenderer.cpp"
+	"contexts/juce_LowLevelGraphicsSoftwareRenderer.cpp"
+	"images/juce_Image.cpp"
+	"images/juce_ImageCache.cpp"
+	"images/juce_ImageConvolutionKernel.cpp"
+	"images/juce_ImageFileFormat.cpp"
+	"image_formats/juce_GIFLoader.cpp"
+	"image_formats/juce_JPEGLoader.cpp"
+	"image_formats/juce_PNGLoader.cpp"
+	"fonts/juce_AttributedString.cpp"
+	"fonts/juce_Typeface.cpp"
+	"fonts/juce_CustomTypeface.cpp"
+	"fonts/juce_Font.cpp"
+	"fonts/juce_GlyphArrangement.cpp"
+	"fonts/juce_TextLayout.cpp"
+	"effects/juce_DropShadowEffect.cpp"
+	"effects/juce_GlowEffect.cpp"
+	"native/juce_freetype_Fonts.cpp"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"native/juce_mac_CoreGraphicsHelpers.h"
+	"native/juce_mac_Fonts.mm"
+	"native/juce_mac_CoreGraphicsContext.mm"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"native/juce_win32_DirectWriteTypeface.cpp"
+	"native/juce_win32_DirectWriteTypeLayout.cpp"
+	"native/juce_win32_Fonts.cpp"
+	"native/juce_win32_Direct2DGraphicsContext.cpp"
+	"native/juce_linux_Fonts.cpp"
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"native/juce_android_GraphicsContext.cpp"
+	"native/juce_android_Fonts.cpp"
+	"native/freetype/FreeTypeAmalgam.c"
+
+1460750629 /usr/include/freetype2/ft2build.h
+	<freetype/config/ftheader.h>
+
+1460750629 /usr/include/freetype2/freetype/config/ftheader.h
+	<x86_64-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<x86_64-linux-gnux32/freetype2/freetype/config/ftheader.h>
+	<i386-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<aarch64-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<alpha-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<arm-linux-gnueabihf/freetype2/freetype/config/ftheader.h>
+	<arm-linux-gnueabi/freetype2/freetype/config/ftheader.h>
+	<hppa-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<ia64-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<m68k-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<mipsel-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<mips64el-linux-gnuabin32/freetype2/freetype/config/ftheader.h>
+	<mips64el-linux-gnuabi64/freetype2/freetype/config/ftheader.h>
+	<mips-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<mips64-linux-gnuabin32/freetype2/freetype/config/ftheader.h>
+	<mips64-linux-gnuabi64/freetype2/freetype/config/ftheader.h>
+	<or1k-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<powerpc-linux-gnuspe/freetype2/freetype/config/ftheader.h>
+	<powerpc64le-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<powerpc64-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<powerpc-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<s390x-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<s390-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<sh4-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<sparc64-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<sparc-linux-gnu/freetype2/freetype/config/ftheader.h>
+	<x86_64-kfreebsd-gnu/freetype2/freetype/config/ftheader.h>
+	<i386-kfreebsd-gnu/freetype2/freetype/config/ftheader.h>
+	<i386-gnu/freetype2/freetype/config/ftheader.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/colour/juce_Colour.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/colour/juce_ColourGradient.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/colour/juce_Colours.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/colour/juce_FillType.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/geometry/juce_AffineTransform.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/geometry/juce_EdgeTable.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/geometry/juce_Path.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/geometry/juce_PathIterator.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/geometry/juce_PathStrokeType.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/placement/juce_RectanglePlacement.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/contexts/juce_GraphicsContext.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/contexts/juce_LowLevelGraphicsPostScriptRenderer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/contexts/juce_LowLevelGraphicsSoftwareRenderer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/images/juce_Image.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/images/juce_ImageCache.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/images/juce_ImageConvolutionKernel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/images/juce_ImageFileFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/juce_GIFLoader.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/juce_JPEGLoader.cpp
+	"jpglib/jpeglib.h"
+	"jpglib/jcapimin.c"
+	"jpglib/jcapistd.c"
+	"jpglib/jccoefct.c"
+	"jpglib/jccolor.c"
+	"jpglib/jcdctmgr.c"
+	"jpglib/jchuff.c"
+	"jpglib/jcinit.c"
+	"jpglib/jcmainct.c"
+	"jpglib/jcmarker.c"
+	"jpglib/jcmaster.c"
+	"jpglib/jcomapi.c"
+	"jpglib/jcparam.c"
+	"jpglib/jcphuff.c"
+	"jpglib/jcprepct.c"
+	"jpglib/jcsample.c"
+	"jpglib/jctrans.c"
+	"jpglib/jdapistd.c"
+	"jpglib/jdapimin.c"
+	"jpglib/jdatasrc.c"
+	"jpglib/jdcoefct.c"
+	"jpglib/jdcolor.c"
+	"jpglib/jddctmgr.c"
+	"jpglib/jdhuff.c"
+	"jpglib/jdinput.c"
+	"jpglib/jdmainct.c"
+	"jpglib/jdmarker.c"
+	"jpglib/jdmaster.c"
+	"jpglib/jdmerge.c"
+	"jpglib/jdphuff.c"
+	"jpglib/jdpostct.c"
+	"jpglib/jdsample.c"
+	"jpglib/jdtrans.c"
+	"jpglib/jfdctflt.c"
+	"jpglib/jfdctint.c"
+	"jpglib/jfdctfst.c"
+	"jpglib/jidctflt.c"
+	"jpglib/jidctfst.c"
+	"jpglib/jidctint.c"
+	"jpglib/jidctred.c"
+	"jpglib/jmemmgr.c"
+	"jpglib/jmemnobs.c"
+	"jpglib/jquant1.c"
+	"jpglib/jquant2.c"
+	"jpglib/jutils.c"
+	"jpglib/transupp.c"
+	<jpeglib.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jpeglib.h
+	"jconfig.h"
+	"jmorecfg.h"
+	"jpegint.h"
+	"jerror.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jconfig.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jmorecfg.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jpegint.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jerror.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcapimin.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jinclude.h
+	"jconfig.h"
+	<stddef.h>
+	<stdlib.h>
+	<sys/types.h>
+	<stdio.h>
+	<strings.h>
+	<string.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcapistd.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jccoefct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jccolor.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcdctmgr.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdct.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jchuff.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jchuff.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jchuff.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcinit.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcmainct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcmarker.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcmaster.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcomapi.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcparam.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcphuff.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jchuff.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcprepct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jcsample.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jctrans.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdapistd.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdapimin.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdatasrc.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jerror.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdcoefct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdcolor.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jddctmgr.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdhuff.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdhuff.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdhuff.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdinput.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdmainct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdmarker.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdmaster.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdmerge.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdphuff.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdhuff.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdpostct.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdsample.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jdtrans.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jfdctflt.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jfdctint.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jfdctfst.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jidctflt.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jidctfst.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jidctint.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jidctred.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jdct.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jmemmgr.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jmemsys.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jmemsys.h
+	<Files.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jmemnobs.c
+	"jinclude.h"
+	"jpeglib.h"
+	"jmemsys.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jquant1.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jquant2.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/jutils.c
+	"jinclude.h"
+	"jpeglib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/transupp.c
+	"jinclude.h"
+	"jpeglib.h"
+	"transupp.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/jpglib/transupp.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/juce_PNGLoader.cpp
+	"../../juce_core/zip/zlib/zlib.h"
+	"pnglib/png.h"
+	"pnglib/pngconf.h"
+	"pnglib/png.c"
+	"pnglib/pngerror.c"
+	"pnglib/pngget.c"
+	"pnglib/pngmem.c"
+	"pnglib/pngread.c"
+	"pnglib/pngpread.c"
+	"pnglib/pngrio.c"
+	"pnglib/pngrtran.c"
+	"pnglib/pngrutil.c"
+	"pnglib/pngset.c"
+	"pnglib/pngtrans.c"
+	"pnglib/pngwio.c"
+	"pnglib/pngwrite.c"
+	"pnglib/pngwtran.c"
+	"pnglib/pngwutil.c"
+	<png.h>
+	<pngconf.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/png.h
+	"pnglibconf.h"
+	"pngconf.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngconf.h
+	<limits.h>
+	<stddef.h>
+	<stdio.h>
+	<setjmp.h>
+	<time.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/png.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngpriv.h
+	<stdlib.h>
+	<string.h>
+	<config.h>
+	"pnglibconf.h"
+	"pngprefix.h"
+	"pngusr.h"
+	"png.h"
+	<float.h>
+	<fp.h>
+	<math.h>
+	<m68881.h>
+	<mem.h>
+	<alloc.h>
+	<windows.h>
+	"pngstruct.h"
+	"pnginfo.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngstruct.h
+	"../../../juce_core/zip/zlib/zlib.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pnginfo.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngerror.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngget.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngmem.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngread.c
+	"pngpriv.h"
+	<errno.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngpread.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngrio.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngrtran.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngrutil.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngset.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngtrans.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngwio.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngwrite.c
+	"pngpriv.h"
+	<errno.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngwtran.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/image_formats/pnglib/pngwutil.c
+	"pngpriv.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_AttributedString.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_Typeface.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_CustomTypeface.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_Font.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_GlyphArrangement.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/fonts/juce_TextLayout.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/effects/juce_DropShadowEffect.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/effects/juce_GlowEffect.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_freetype_Fonts.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_mac_CoreGraphicsHelpers.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_mac_Fonts.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_mac_CoreGraphicsContext.mm
+	"juce_mac_CoreGraphicsContext.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_mac_CoreGraphicsContext.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_win32_DirectWriteTypeface.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_win32_DirectWriteTypeLayout.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_win32_Fonts.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_win32_Direct2DGraphicsContext.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_linux_Fonts.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_android_GraphicsContext.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_graphics/native/juce_android_Fonts.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/juce_gui_basics.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_gui_basics.h"
+	"../juce_opengl/juce_opengl.h"
+	<cpl/Protected.h>
+	<windowsx.h>
+	<vfw.h>
+	<commdlg.h>
+	<exdisp.h>
+	<exdispid.h>
+	<imm.h>
+	<X11/Xlib.h>
+	<X11/Xatom.h>
+	<X11/Xresource.h>
+	<X11/Xutil.h>
+	<X11/Xmd.h>
+	<X11/keysym.h>
+	<X11/XKBlib.h>
+	<X11/cursorfont.h>
+	<unistd.h>
+	<X11/extensions/Xinerama.h>
+	<X11/extensions/XShm.h>
+	<sys/shm.h>
+	<sys/ipc.h>
+	<X11/extensions/Xrender.h>
+	<X11/extensions/Xcomposite.h>
+	<X11/Xcursor/Xcursor.h>
+	"components/juce_Component.cpp"
+	"components/juce_ComponentListener.cpp"
+	"mouse/juce_MouseInputSource.cpp"
+	"components/juce_Desktop.cpp"
+	"components/juce_ModalComponentManager.cpp"
+	"mouse/juce_ComponentDragger.cpp"
+	"mouse/juce_DragAndDropContainer.cpp"
+	"mouse/juce_MouseCursor.cpp"
+	"mouse/juce_MouseEvent.cpp"
+	"mouse/juce_MouseInactivityDetector.cpp"
+	"mouse/juce_MouseListener.cpp"
+	"keyboard/juce_CaretComponent.cpp"
+	"keyboard/juce_KeyboardFocusTraverser.cpp"
+	"keyboard/juce_KeyListener.cpp"
+	"keyboard/juce_KeyPress.cpp"
+	"keyboard/juce_ModifierKeys.cpp"
+	"buttons/juce_ArrowButton.cpp"
+	"buttons/juce_Button.cpp"
+	"buttons/juce_DrawableButton.cpp"
+	"buttons/juce_HyperlinkButton.cpp"
+	"buttons/juce_ImageButton.cpp"
+	"buttons/juce_ShapeButton.cpp"
+	"buttons/juce_TextButton.cpp"
+	"buttons/juce_ToggleButton.cpp"
+	"buttons/juce_ToolbarButton.cpp"
+	"drawables/juce_Drawable.cpp"
+	"drawables/juce_DrawableComposite.cpp"
+	"drawables/juce_DrawableImage.cpp"
+	"drawables/juce_DrawablePath.cpp"
+	"drawables/juce_DrawableRectangle.cpp"
+	"drawables/juce_DrawableShape.cpp"
+	"drawables/juce_DrawableText.cpp"
+	"drawables/juce_SVGParser.cpp"
+	"filebrowser/juce_DirectoryContentsDisplayComponent.cpp"
+	"filebrowser/juce_DirectoryContentsList.cpp"
+	"filebrowser/juce_FileBrowserComponent.cpp"
+	"filebrowser/juce_FileChooser.cpp"
+	"filebrowser/juce_FileChooserDialogBox.cpp"
+	"filebrowser/juce_FileListComponent.cpp"
+	"filebrowser/juce_FilenameComponent.cpp"
+	"filebrowser/juce_FileSearchPathListComponent.cpp"
+	"filebrowser/juce_FileTreeComponent.cpp"
+	"filebrowser/juce_ImagePreviewComponent.cpp"
+	"layout/juce_ComponentAnimator.cpp"
+	"layout/juce_ComponentBoundsConstrainer.cpp"
+	"layout/juce_ComponentBuilder.cpp"
+	"layout/juce_ComponentMovementWatcher.cpp"
+	"layout/juce_ConcertinaPanel.cpp"
+	"layout/juce_GroupComponent.cpp"
+	"layout/juce_MultiDocumentPanel.cpp"
+	"layout/juce_ResizableBorderComponent.cpp"
+	"layout/juce_ResizableCornerComponent.cpp"
+	"layout/juce_ResizableEdgeComponent.cpp"
+	"layout/juce_ScrollBar.cpp"
+	"layout/juce_StretchableLayoutManager.cpp"
+	"layout/juce_StretchableLayoutResizerBar.cpp"
+	"layout/juce_StretchableObjectResizer.cpp"
+	"layout/juce_TabbedButtonBar.cpp"
+	"layout/juce_TabbedComponent.cpp"
+	"layout/juce_Viewport.cpp"
+	"lookandfeel/juce_LookAndFeel.cpp"
+	"lookandfeel/juce_LookAndFeel_V2.cpp"
+	"lookandfeel/juce_LookAndFeel_V1.cpp"
+	"lookandfeel/juce_LookAndFeel_V3.cpp"
+	"menus/juce_MenuBarComponent.cpp"
+	"menus/juce_MenuBarModel.cpp"
+	"menus/juce_PopupMenu.cpp"
+	"positioning/juce_MarkerList.cpp"
+	"positioning/juce_RelativeCoordinate.cpp"
+	"positioning/juce_RelativeCoordinatePositioner.cpp"
+	"positioning/juce_RelativeParallelogram.cpp"
+	"positioning/juce_RelativePoint.cpp"
+	"positioning/juce_RelativePointPath.cpp"
+	"positioning/juce_RelativeRectangle.cpp"
+	"properties/juce_BooleanPropertyComponent.cpp"
+	"properties/juce_ButtonPropertyComponent.cpp"
+	"properties/juce_ChoicePropertyComponent.cpp"
+	"properties/juce_PropertyComponent.cpp"
+	"properties/juce_PropertyPanel.cpp"
+	"properties/juce_SliderPropertyComponent.cpp"
+	"properties/juce_TextPropertyComponent.cpp"
+	"widgets/juce_ComboBox.cpp"
+	"widgets/juce_ImageComponent.cpp"
+	"widgets/juce_Label.cpp"
+	"widgets/juce_ListBox.cpp"
+	"widgets/juce_ProgressBar.cpp"
+	"widgets/juce_Slider.cpp"
+	"widgets/juce_TableHeaderComponent.cpp"
+	"widgets/juce_TableListBox.cpp"
+	"widgets/juce_TextEditor.cpp"
+	"widgets/juce_ToolbarItemComponent.cpp"
+	"widgets/juce_Toolbar.cpp"
+	"widgets/juce_ToolbarItemPalette.cpp"
+	"widgets/juce_TreeView.cpp"
+	"windows/juce_AlertWindow.cpp"
+	"windows/juce_CallOutBox.cpp"
+	"windows/juce_ComponentPeer.cpp"
+	"windows/juce_DialogWindow.cpp"
+	"windows/juce_DocumentWindow.cpp"
+	"windows/juce_ResizableWindow.cpp"
+	"windows/juce_ThreadWithProgressWindow.cpp"
+	"windows/juce_TooltipWindow.cpp"
+	"windows/juce_TopLevelWindow.cpp"
+	"commands/juce_ApplicationCommandInfo.cpp"
+	"commands/juce_ApplicationCommandManager.cpp"
+	"commands/juce_ApplicationCommandTarget.cpp"
+	"commands/juce_KeyPressMappingSet.cpp"
+	"application/juce_Application.cpp"
+	"misc/juce_BubbleComponent.cpp"
+	"misc/juce_DropShadower.cpp"
+	"native/juce_MultiTouchMapper.h"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"../juce_graphics/native/juce_mac_CoreGraphicsHelpers.h"
+	"../juce_graphics/native/juce_mac_CoreGraphicsContext.h"
+	"native/juce_ios_UIViewComponentPeer.mm"
+	"native/juce_ios_Windowing.mm"
+	"native/juce_mac_NSViewComponentPeer.mm"
+	"native/juce_mac_Windowing.mm"
+	"native/juce_mac_MainMenu.mm"
+	"native/juce_mac_MouseCursor.mm"
+	"native/juce_mac_FileChooser.mm"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"../juce_events/native/juce_win32_HiddenMessageWindow.h"
+	"native/juce_win32_Windowing.cpp"
+	"native/juce_win32_DragAndDrop.cpp"
+	"native/juce_win32_FileChooser.cpp"
+	"native/juce_linux_Clipboard.cpp"
+	"native/juce_linux_Windowing.cpp"
+	"native/juce_linux_FileChooser.cpp"
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"native/juce_android_Windowing.cpp"
+	"native/juce_android_FileChooser.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/components/juce_Component.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/components/juce_ComponentListener.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_MouseInputSource.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/components/juce_Desktop.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/components/juce_ModalComponentManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_ComponentDragger.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_DragAndDropContainer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_MouseCursor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_MouseEvent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_MouseInactivityDetector.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/mouse/juce_MouseListener.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/keyboard/juce_CaretComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/keyboard/juce_KeyboardFocusTraverser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/keyboard/juce_KeyListener.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/keyboard/juce_KeyPress.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/keyboard/juce_ModifierKeys.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ArrowButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_Button.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_DrawableButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_HyperlinkButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ImageButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ShapeButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_TextButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ToggleButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ToolbarButton.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_Drawable.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawableComposite.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawableImage.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawablePath.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawableRectangle.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawableShape.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_DrawableText.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/drawables/juce_SVGParser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_DirectoryContentsDisplayComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_DirectoryContentsList.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileBrowserComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileChooser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileChooserDialogBox.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileListComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FilenameComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileSearchPathListComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_FileTreeComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/filebrowser/juce_ImagePreviewComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ComponentAnimator.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ComponentBoundsConstrainer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ComponentBuilder.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ComponentMovementWatcher.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ConcertinaPanel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_GroupComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_MultiDocumentPanel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ResizableBorderComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ResizableCornerComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ResizableEdgeComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_ScrollBar.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_StretchableLayoutManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_StretchableLayoutResizerBar.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_StretchableObjectResizer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_TabbedButtonBar.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_TabbedComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/layout/juce_Viewport.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/lookandfeel/juce_LookAndFeel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/lookandfeel/juce_LookAndFeel_V2.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/lookandfeel/juce_LookAndFeel_V1.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/lookandfeel/juce_LookAndFeel_V3.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/menus/juce_MenuBarComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/menus/juce_MenuBarModel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/menus/juce_PopupMenu.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_MarkerList.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativeCoordinate.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativeCoordinatePositioner.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativeParallelogram.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativePoint.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativePointPath.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/positioning/juce_RelativeRectangle.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_BooleanPropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_ButtonPropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_ChoicePropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_PropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_PropertyPanel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_SliderPropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/properties/juce_TextPropertyComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ComboBox.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ImageComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_Label.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ListBox.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ProgressBar.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_Slider.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_TableHeaderComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_TableListBox.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_TextEditor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ToolbarItemComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_Toolbar.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_ToolbarItemPalette.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/widgets/juce_TreeView.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_AlertWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_CallOutBox.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_ComponentPeer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_DialogWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_DocumentWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_ResizableWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_ThreadWithProgressWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_TooltipWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/windows/juce_TopLevelWindow.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandInfo.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandTarget.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/commands/juce_KeyPressMappingSet.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/application/juce_Application.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/misc/juce_BubbleComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/misc/juce_DropShadower.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_MultiTouchMapper.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_ios_UIViewComponentPeer.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_ios_Windowing.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_NSViewComponentPeer.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_Windowing.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_MainMenu.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_MouseCursor.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_FileChooser.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_Windowing.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_DragAndDrop.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_FileChooser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_linux_Clipboard.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_linux_Windowing.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_linux_FileChooser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_android_Windowing.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_android_FileChooser.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/juce_gui_extra.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_gui_extra.h"
+	<windowsx.h>
+	<vfw.h>
+	<commdlg.h>
+	<exdisp.h>
+	<exdispid.h>
+	<X11/Xlib.h>
+	<X11/Xatom.h>
+	<X11/Xutil.h>
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"documents/juce_FileBasedDocument.cpp"
+	"code_editor/juce_CodeDocument.cpp"
+	"code_editor/juce_CodeEditorComponent.cpp"
+	"code_editor/juce_CPlusPlusCodeTokeniser.cpp"
+	"code_editor/juce_XMLCodeTokeniser.cpp"
+	"code_editor/juce_LuaCodeTokeniser.cpp"
+	"misc/juce_BubbleMessageComponent.cpp"
+	"misc/juce_ColourSelector.cpp"
+	"misc/juce_KeyMappingEditorComponent.cpp"
+	"misc/juce_PreferencesPanel.cpp"
+	"misc/juce_RecentlyOpenedFilesList.cpp"
+	"misc/juce_SplashScreen.cpp"
+	"misc/juce_SystemTrayIconComponent.cpp"
+	"misc/juce_LiveConstantEditor.cpp"
+	"misc/juce_AnimatedAppComponent.cpp"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"../juce_graphics/native/juce_mac_CoreGraphicsHelpers.h"
+	"native/juce_mac_NSViewComponent.mm"
+	"native/juce_mac_AppleRemote.mm"
+	"native/juce_mac_SystemTrayIcon.cpp"
+	"native/juce_ios_UIViewComponent.mm"
+	"native/juce_mac_WebBrowserComponent.mm"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"../juce_events/native/juce_win32_HiddenMessageWindow.h"
+	"native/juce_win32_ActiveXComponent.cpp"
+	"native/juce_win32_WebBrowserComponent.cpp"
+	"native/juce_win32_SystemTrayIcon.cpp"
+	"native/juce_linux_WebBrowserComponent.cpp"
+	"native/juce_linux_SystemTrayIcon.cpp"
+	"native/juce_android_WebBrowserComponent.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/documents/juce_FileBasedDocument.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_CodeDocument.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_CodeEditorComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_CPlusPlusCodeTokeniser.cpp
+	"juce_CPlusPlusCodeTokeniserFunctions.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_XMLCodeTokeniser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_LuaCodeTokeniser.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_BubbleMessageComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_ColourSelector.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_KeyMappingEditorComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_PreferencesPanel.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_RecentlyOpenedFilesList.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_SplashScreen.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_SystemTrayIconComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_LiveConstantEditor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/misc/juce_AnimatedAppComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_mac_NSViewComponent.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_mac_AppleRemote.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_mac_SystemTrayIcon.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_ios_UIViewComponent.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_mac_WebBrowserComponent.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_win32_ActiveXComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_win32_WebBrowserComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_win32_SystemTrayIcon.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_linux_WebBrowserComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_linux_SystemTrayIcon.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_android_WebBrowserComponent.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/juce_opengl.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_opengl.h"
+	<windowsx.h>
+	<GL/glx.h>
+	<OpenGL/CGLCurrent.h>
+	<OpenGL/OpenGL.h>
+	<GLES2/gl2.h>
+	"native/juce_OpenGLExtensions.h"
+	"opengl/juce_OpenGLFrameBuffer.cpp"
+	"opengl/juce_OpenGLGraphicsContext.cpp"
+	"opengl/juce_OpenGLHelpers.cpp"
+	"opengl/juce_OpenGLImage.cpp"
+	"opengl/juce_OpenGLPixelFormat.cpp"
+	"opengl/juce_OpenGLShaderProgram.cpp"
+	"opengl/juce_OpenGLTexture.cpp"
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"../juce_graphics/native/juce_mac_CoreGraphicsHelpers.h"
+	"native/juce_OpenGL_osx.h"
+	"native/juce_OpenGL_ios.h"
+	"native/juce_OpenGL_win32.h"
+	"native/juce_OpenGL_linux.h"
+	"../juce_core/native/juce_android_JNIHelpers.h"
+	"native/juce_OpenGL_android.h"
+	"opengl/juce_OpenGLContext.cpp"
+	"utils/juce_OpenGLAppComponent.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLFrameBuffer.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLGraphicsContext.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLHelpers.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLImage.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLPixelFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLShaderProgram.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLTexture.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/native/juce_OpenGL_osx.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/native/juce_OpenGL_ios.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/native/juce_OpenGL_win32.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/native/juce_OpenGL_linux.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/native/juce_OpenGL_android.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/opengl/juce_OpenGLContext.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_opengl/utils/juce_OpenGLAppComponent.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/juce_video.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"../juce_gui_extra/juce_gui_extra.h"
+	"juce_video.h"
+	<Movies.h>
+	<QTML.h>
+	<QuickTimeComponents.h>
+	<MediaHandlers.h>
+	<ImageCodec.h>
+	<dshow.h>
+	<dshowasf.h>
+	<evr.h>
+	"../juce_core/native/juce_osx_ObjCHelpers.h"
+	"native/juce_mac_CameraDevice.mm"
+	"native/juce_mac_QuickTimeMovieComponent.mm"
+	"../juce_core/native/juce_win32_ComSmartPtr.h"
+	"native/juce_win32_CameraDevice.cpp"
+	"native/juce_win32_DirectShowComponent.cpp"
+	"native/juce_win32_QuickTimeMovieComponent.cpp"
+	"native/juce_android_CameraDevice.cpp"
+	"capture/juce_CameraDevice.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_mac_CameraDevice.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_mac_QuickTimeMovieComponent.mm
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_win32_CameraDevice.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_win32_DirectShowComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_win32_QuickTimeMovieComponent.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_android_CameraDevice.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/capture/juce_CameraDevice.cpp
 

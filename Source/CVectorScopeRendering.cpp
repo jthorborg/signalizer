@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CVectorScopeRendering.cpp
 
 		Implementation of all rendering code for the vector scope.
- 
+
 *************************************************************************************/
 
 
@@ -39,20 +39,20 @@
 namespace Signalizer
 {
 	// swapping the right channel might give an more intuitive view
-	
+
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
-	
+
 	static const float quarterPISinCos = 0.707106781186547f;
 	static const float circleScaleFactor = 1.1f;
-	
+
 	enum class OperationalModes
 	{
 		Lissajous,
 		Polar
-		
+
 	};
-	
+
 	enum Textures
 	{
 		LPlus,
@@ -96,14 +96,14 @@ namespace Signalizer
 			g.fillAll(state.colourBackground.withAlpha(1.0f));
 			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
 			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
-			
+
 			// post fps anyway
 			auto tickNow = juce::Time::getHighResolutionTicks();
 			avgFps.setNext(tickNow - lastFrameTick);
 			lastFrameTick = tickNow;
-			
+
 		}
-		
+
 
 	}
 
@@ -111,17 +111,17 @@ namespace Signalizer
 	{
 		const int imageSize = 128;
 		const float fontToPixelScale = 90 / 64.0f;
-		
+
 		textures.clear();
 
-		for (int i = 0; i < CPL_ARRAYSIZE(ChannelDescriptions); ++i)
+		for (std::size_t i = 0; i < std::extent<decltype(ChannelDescriptions)>::value; ++i)
 		{
 
 			juce::Image letter(juce::Image::ARGB, imageSize, imageSize, true);
 			{
 				juce::Graphics g(letter);
 				g.fillAll(juce::Colours::transparentBlack);
-				g.setColour(Colours::white);
+				g.setColour(juce::Colours::white);
 				g.setFont(letter.getHeight() * fontToPixelScale * 0.5);
 				g.drawText(ChannelDescriptions[i], letter.getBounds().toFloat(), juce::Justification::centred, false);
 			}
@@ -156,7 +156,7 @@ namespace Signalizer
 	template<typename V>
 		void CVectorScope::vectorGLRendering()
 		{
-			
+
 			CPL_DEBUGCHECKGL();
 			auto && lockedView = audioStream.getAudioBufferViews();
 			handleFlagUpdates();
@@ -177,7 +177,7 @@ namespace Signalizer
 				{
 					runPeakFilter<V>(lockedView);
 				}
-			   
+
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
@@ -196,7 +196,7 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-			
+
 				// draw graph and wireframe
 				drawWireFrame<V>(openGLStack);
 				CPL_DEBUGCHECKGL();
@@ -216,7 +216,7 @@ namespace Signalizer
 
 		}
 
-	
+
 	template<typename V>
 		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
@@ -229,20 +229,20 @@ namespace Signalizer
 				auto rotation = -state.rotation * 2 * consts::pi;
 				const float heightToWidthFactor = float(getHeight()) / getWidth();
 				using namespace cpl::simd;
-				
+
 				cpl::OpenGLRendering::MatrixModification m;
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
-				
+
 				// calculate coordinates using sin/cos simd pairs.
 				suitable_container<v4sf> phases, xcoords, ycoords;
-				
+
 				// set phases (we rotate L/R etc. text around in a circle)
 				phases[0] = rotation;
 				phases[1] = consts::pi * 0.5f + rotation;
 				phases[2] = consts::pi + rotation;
 				phases[3] = consts::pi * 1.5f + rotation;
-				
+
 				// some registers
 				v4sf
 					vsines,
@@ -250,14 +250,14 @@ namespace Signalizer
 					vscale = set1<v4sf>(circleScaleFactor),
 					vadd = set1<v4sf>(1.0f - circleScaleFactor),
 					vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
-				
+
 				// do 8 trig functions in one go!
 				cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
-				
+
 				// place the circle just outside the graph, and offset it.
 				xcoords = vsines * vscale * vheightToWidthFactor + vadd;
 				ycoords = vcosines * vscale + vadd;
-				
+
 				auto jcolour = state.colourGraph;
 				// render texture text at coordinates.
 				for (int i = 0; i < 4; ++i)
@@ -271,16 +271,16 @@ namespace Signalizer
 			{
 				const float heightToWidthFactor = float(getHeight()) / getWidth();
 				using namespace cpl::simd;
-				
+
 				cpl::OpenGLRendering::MatrixModification m;
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
-				
+
 				auto jcolour = state.colourGraph;
 				float nadd = 1.0f - circleScaleFactor;
 				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
 				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
-				
+
 				// render texture text at coordinates.
 				{
 					cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[Textures::Left]);
@@ -299,8 +299,8 @@ namespace Signalizer
 				}
 			}
 		}
-	
-	
+
+
 	template<typename V>
 		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
@@ -313,7 +313,7 @@ namespace Signalizer
 				drawer.addColour(state.colourWire);
 				int nlines = 14;
 				auto rel = 1.0f / nlines;
-				
+
 				// front vertival
 				for (int i = 0; i <= nlines; ++i)
 				{
@@ -343,13 +343,13 @@ namespace Signalizer
 			{
 				// draw two half circles
 				auto lut = circleData.get();
-				
+
 				int numInt = lut->tableSize;
 				float advance = 1.0f / (numInt - 1);
 				{
 					cpl::OpenGLRendering::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
 					drawer.addColour(state.colourWire);
-					
+
 					float oldY = 0.0f;
 					for (int i = 1; i < numInt; ++i)
 					{
@@ -362,37 +362,37 @@ namespace Signalizer
 						drawer.addVertex(leftX, yCoordinate, 0);
 						drawer.addVertex(leftX - advance, oldY, -1);
 						drawer.addVertex(leftX, yCoordinate, -1);
-						
+
 						// right part
 						drawer.addVertex(rightX + advance, oldY, 0);
 						drawer.addVertex(rightX, yCoordinate, 0);
 						drawer.addVertex(rightX + advance, oldY, -1);
 						drawer.addVertex(rightX, yCoordinate, -1);
 						//drawer.addVertex(1 - fraction, yCoordinate, 0);
-						
+
 						oldY = yCoordinate;
 					}
-					
+
 					// add front and back horizontal lines.
 					drawer.addVertex(-1.0f, 0.0f, 0.0f);
 					drawer.addVertex(1.0f, 0.0f, 0.0f);
 					drawer.addVertex(-1.0f, 0.0f, -1.0f);
 					drawer.addVertex(1.0f, 0.0f, -1.0f);
-					
+
 					// add critical diagonal phase lines.
 					drawer.addVertex(0.0f, 0.0f, 0.0f);
 					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
 					drawer.addVertex(0.0f, 0.0f, 0.0f);
 					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
-					
+
 					drawer.addVertex(0.0f, 0.0f, -1.0f);
 					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);
 					drawer.addVertex(0.0f, 0.0f, -1.0f);
 					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);;
 				}
 			}
-			
-			
+
+
 			// Draw basic graph
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
@@ -405,8 +405,8 @@ namespace Signalizer
 				drawer.addVertex(0.0f, state.isPolar ? 0.0f : -1.0f, 0.0f);
 			}
 		}
-	
-	
+
+
 	template<typename V>
 		void CVectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
@@ -417,11 +417,11 @@ namespace Signalizer
 			auto gain = (GLfloat)state.envelopeGain;
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
-			
+
 			if (!state.fadeHistory)
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
-				
+
 				drawer.addColour(state.colourDraw);
 
 				// TODO: glDrawArrays
@@ -437,13 +437,13 @@ namespace Signalizer
 			else
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
-				
+
 				auto jcolour = state.colourDraw;
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
 				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
-				
+
 				float fade = 0;
-				
+
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
 				(
@@ -456,10 +456,10 @@ namespace Signalizer
 				);
 
 			}
-			
-			
+
+
 		}
-	
+
 
 	template<typename V>
 		void CVectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
@@ -508,7 +508,7 @@ namespace Signalizer
 				drawer.addColour(red, green, blue);
 				// iterate front of buffer, then back.
 
-				for (ssize_t section = 0; section < AudioStream::bufferIndices; ++section)
+				for (ssize_t section = 0; section < static_cast<ssize_t>(AudioStream::bufferIndices); ++section)
 				{
 
 					// using signed ints to safely jump out of loops with elements_of<V> > sectionSamples
@@ -524,7 +524,7 @@ namespace Signalizer
 						V vLeft = loadu<V>(left + i);
 						V vRight = loadu<V>(right + i);
 
-						// the length of the hypotenuse of the triangle, we 
+						// the length of the hypotenuse of the triangle, we
 						// convert the unit square to.
 						auto const vLength = max(abs(vLeft), abs(vRight));
 
@@ -570,7 +570,7 @@ namespace Signalizer
 						Ty vLeft = left[i];
 						Ty vRight = right[i];
 
-						// the length of the hypotenuse of the triangle, we 
+						// the length of the hypotenuse of the triangle, we
 						// convert the unit square to.
 						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
 
@@ -600,8 +600,8 @@ namespace Signalizer
 			else // apply fading
 			{
 
-				const V 
-					vRed = set1<V>(red), 
+				const V
+					vRed = set1<V>(red),
 					vGreen = set1<V>(green),
 					vBlue = set1<V>(blue);
 
@@ -625,7 +625,7 @@ namespace Signalizer
 						V vLeft = loadu<V>(left + i);
 						V vRight = loadu<V>(right + i);
 
-						// the length of the hypotenuse of the triangle, we 
+						// the length of the hypotenuse of the triangle, we
 						// convert the unit square to.
 						auto const vLength = max(abs(vLeft), abs(vRight));
 
@@ -678,7 +678,7 @@ namespace Signalizer
 						Ty vLeft = left[i];
 						Ty vRight = right[i];
 
-						// the length of the hypotenuse of the triangle, we 
+						// the length of the hypotenuse of the triangle, we
 						// convert the unit square to.
 						auto const length = std::max(std::abs(vLeft), std::abs(vRight));
 
@@ -734,7 +734,7 @@ namespace Signalizer
 
 			const float stereoQuick = filters.phase[0] * 0.5f + 0.5f;
 			const float stereoSlow = filters.phase[1] * 0.5f + 0.5f;
-			
+
 			// this undoes the squashing due to variable aspect ratios.
 			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
 			OpenGLRendering::RectangleDrawer2D<> rect(openGLStack);

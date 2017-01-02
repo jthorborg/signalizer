@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:SpectrumParameters.h
 
 		Interface for the vectorscope view
- 
+
 *************************************************************************************/
 
 #ifndef SIGNALIZER_SPECTRUMPARAMETERS_H
@@ -111,7 +111,7 @@
 					, kgridColour(&parentValue.gridColour)
 					, kbackgroundColour(&parentValue.backgroundColour)
 
-					/*, kspecColours { 
+					/*, kspecColours {
 						{ &parentValue.specColours[0] },{ &parentValue.specColours[1] },{ &parentValue.specColours[2] },
 						{ &parentValue.specColours[3] },{ &parentValue.specColours[4] }
 					}
@@ -163,7 +163,7 @@
 					parent.displayMode.param.removeListener(this);
 					notifyDestruction();
 				}
-				
+
 				virtual void valueEntityChanged(ValueEntityListener * sender, cpl::ValueEntityBase * value) override
 				{
 					if (value == &parent.displayMode.param || value == &parent.algorithm.param)
@@ -212,7 +212,7 @@
 					parent.algorithm.param.addListener(this);
 					parent.displayMode.param.addListener(this);
 
-					for (int i = 0; i < numSpectrumColours; ++i)
+					for (std::size_t i = 0; i < numSpectrumColours; ++i)
 					{
 						kspecColours[i]->bSetTitle("Spectrum " + std::to_string(i + 1));
 						kspecRatios[i]->bSetTitle("Gradient ratio " + std::to_string(i + 1));
@@ -418,7 +418,7 @@
 					archive << kbackgroundColour;
 					archive << kframeUpdateSmoothing;
 
-					for (int i = 0; i < numSpectrumColours; ++i)
+					for (std::size_t i = 0; i < numSpectrumColours; ++i)
 					{
 						archive << kspecColours[i];
 						archive << kspecRatios[i];
@@ -439,7 +439,7 @@
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
 				{
 					// in general, controls should never restore values. However, older versions
-					// of Signalizer does exactly this, so to keep backwards-compatibility, we 
+					// of Signalizer does exactly this, so to keep backwards-compatibility, we
 					// can obtain the preset values through this.
 					cpl::Serialization::ScopedModifier m(cpl::CSerializer::Modifiers::RestoreValue, version < cpl::Version(0, 2, 8));
 					builder << m;
@@ -466,7 +466,7 @@
 					builder >> kbackgroundColour;
 					builder >> kframeUpdateSmoothing;
 
-					for (int i = 0; i < numSpectrumColours; ++i)
+					for (std::size_t i = 0; i < numSpectrumColours; ++i)
 					{
 						builder >> kspecColours[i];
 						builder >> kspecRatios[i];
@@ -558,7 +558,7 @@
 					cpl::CValueKnobSlider decay;
 					cpl::CColourControl colourOne, colourTwo;
 				};
-					
+
 				// TODO: turn into array once aggregrate initialization of member arrays doesn't require present copy or move constructors
 				std::vector<std::unique_ptr<LineControl>> klines;
 				std::vector<std::unique_ptr<cpl::CColourControl>> kspecColours;
@@ -623,10 +623,10 @@
 				, specColours { { colourBehavior , "Grdnt1."}, { colourBehavior , "Grdnt2." }, { colourBehavior , "Grdnt3." }, { colourBehavior , "Grdnt4." }, { colourBehavior , "Grdnt5." } }
 
 				, specRatios{
-					{ "GradRatio1", unitRange, basicFormatter }, 
-					{ "GradRatio2", unitRange, basicFormatter }, 
+					{ "GradRatio1", unitRange, basicFormatter },
+					{ "GradRatio2", unitRange, basicFormatter },
 					{ "GradRatio3", unitRange, basicFormatter },
-					{ "GradRatio4", unitRange, basicFormatter }, 
+					{ "GradRatio4", unitRange, basicFormatter },
 					{ "GradRatio5", unitRange, basicFormatter }
 				}
 
@@ -658,7 +658,7 @@
 
 				frequencyTracker.fmt.setValues(frequencyTrackingOptions);
 
-				auto singleParameters = { 
+				auto singleParameters = {
 					&lowDbs, &highDbs, &windowSize, &pctForDivision, &blobSize, &frameUpdateSmoothing, &spectrumStretching,
 					&primitiveSize, &floodFillAlpha, &referenceTuning, &viewLeft, &viewRight, &diagnostics, &freeQ
 				};
@@ -734,7 +734,7 @@
 				archive << backgroundColour;
 				archive << frameUpdateSmoothing;
 
-				for (int i = 0; i < numSpectrumColours; ++i)
+				for (std::size_t i = 0; i < numSpectrumColours; ++i)
 				{
 					archive << specColours[i];
 					archive << specRatios[i];
@@ -778,7 +778,7 @@
 				builder >> backgroundColour;
 				builder >> frameUpdateSmoothing;
 
-				for (int i = 0; i < numSpectrumColours; ++i)
+				for (std::size_t i = 0; i < numSpectrumColours; ++i)
 				{
 					builder >> specColours[i];
 					builder >> specRatios[i];
@@ -846,7 +846,7 @@
 				specRatios[numSpectrumColours];
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
-				gridColour, 
+				gridColour,
 				backgroundColour,
 				specColours[numSpectrumColours];
 
@@ -864,8 +864,8 @@
 			cpl::UnitFormatter<SFloat> msFormatter;
 			cpl::PercentageFormatter<SFloat> pctFormatter;
 			cpl::BasicFormatter<SFloat> basicFormatter;
-			
-			cpl::LinearRange<SFloat> 
+
+			cpl::LinearRange<SFloat>
 				dynamicRange,
 				reverseUnitRange,
 				unitRange,
@@ -887,7 +887,7 @@
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
 			}
 		};
-	
+
 	};
 
 #endif

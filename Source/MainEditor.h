@@ -1,32 +1,32 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:MainEditor.h
 
 		Definitions for the main plugin editor, that handles all control logic
 		and delegations to other UI views, as well as settings and communication
 		between processor and UI.
- 
+
 *************************************************************************************/
 
 #ifndef _MAINEDITOR_H
@@ -45,13 +45,13 @@
 		class AudioProcessor;
 
 		class MainEditor
-		: 
-			public		AudioProcessorEditor, 
-			private		juce::Timer, 
+		:
+			public		juce::AudioProcessorEditor,
+			private		juce::Timer,
 			private		juce::HighResolutionTimer,
 			protected	cpl::CBaseControl::Listener,
 			private		cpl::CBaseControl::ValueFormatter,
-			public		cpl::CTopView, 
+			public		cpl::CTopView,
 			private		cpl::COpenGLView::OpenGLEventListener,
 			protected	cpl::CTextTabBar<>::CTabBarListener,
 			private		juce::ComponentBoundsConstrainer,
@@ -78,18 +78,18 @@
 			void resume() override;
 
 			// Components and listeners.
-			virtual bool keyPressed(const KeyPress &key, Component *originatingComponent) override;
-			void paint(Graphics& g) override;
+			virtual bool keyPressed(const juce::KeyPress &key, juce::Component *originatingComponent) override;
+			void paint(juce::Graphics& g) override;
 			void resized() override;
 			void resizeEnd() override;
 			void resizeStart() override;
 			void focusGained(FocusChangeType cause) override;
 			void focusLost(FocusChangeType cause) override;
-			virtual void mouseDown(const MouseEvent& event) override;
-			virtual void mouseUp(const MouseEvent& event) override;
-		
-			void componentMovedOrResized(Component& component, bool wasMoved, bool wasResized) override;
-			void componentParentHierarchyChanged(Component& component) override;
+			virtual void mouseDown(const juce::MouseEvent& event) override;
+			virtual void mouseUp(const juce::MouseEvent& event) override;
+
+			void componentMovedOrResized(juce::Component& component, bool wasMoved, bool wasResized) override;
+			void componentParentHierarchyChanged(juce::Component& component) override;
 
 			// timers
 			void timerCallback() override;
@@ -209,7 +209,7 @@
 
 			std::vector<UniqueHandle<StateEditor>> editorStack;
 			SentientViewState * currentView;
-			ResizableCornerComponent rcc;
+			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
 			//cpl::CMessageSystem messageSystem;
 		};

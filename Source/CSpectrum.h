@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CSpectrum.h
 
 		Interface for the spectrum view.
- 
+
 *************************************************************************************/
 
 #ifndef SIGNALIZER_CSPECTRUM_H
@@ -51,23 +51,23 @@
 		namespace OpenGLRendering
 		{
 			class COpenGLStack;
-			
+
 		};
 	};
 
 
 	namespace Signalizer
 	{
-		
+
 		class CSpectrum
-		: 
-			public cpl::COpenGLView, 
+		:
+			public cpl::COpenGLView,
 			protected AudioStream::Listener,
 			private ParameterSet::RTListener
 		{
 
 		public:
-			
+
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
 			typedef double fftType;
@@ -86,11 +86,11 @@
 				std::size_t sampleBufferSize;
 				std::size_t currentCounter;
 				std::uint64_t sampleCounter;
-			
+
 				cpl::CLockFreeQueue<FrameVector *> frameQueue;
 			};
 
-			
+
 
 			struct DBRange
 			{
@@ -101,18 +101,18 @@
 			virtual ~CSpectrum();
 
 			// Component overrides
-			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
-			void mouseDoubleClick(const MouseEvent& event) override;
-			void mouseDrag(const MouseEvent& event) override;
-			void mouseUp(const MouseEvent& event) override;
-			void mouseDown(const MouseEvent& event) override;
-			void mouseMove(const MouseEvent& event) override;
+			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+			void mouseDoubleClick(const juce::MouseEvent& event) override;
+			void mouseDrag(const juce::MouseEvent& event) override;
+			void mouseUp(const juce::MouseEvent& event) override;
+			void mouseDown(const juce::MouseEvent& event) override;
+			void mouseMove(const juce::MouseEvent& event) override;
 			void resized() override;
 
 
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void onGraphicsRendering(Graphics & g) override;
+			void onGraphicsRendering(juce::Graphics & g) override;
 			void initOpenGL() override;
 			void closeOpenGL() override;
 
@@ -144,7 +144,7 @@
 
             template<typename V>
                 void vectorGLRendering();
-            
+
 			virtual void paint2DGraphics(juce::Graphics & g);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
@@ -155,16 +155,16 @@
 
 			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
-			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as 
+			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
 			/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
-			/// 
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace(). 
+			///
+			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
 			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
 			/// Returns the complex amount of filters processed.
 			/// Needs exclusive access to audioResource.
 			/// </summary>
 			std::size_t mapToLinearSpace();
-			
+
 			/// <summary>
 			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
 			/// The transform will be rendered into filterResults after this.
@@ -187,7 +187,7 @@
 			/// <summary>
 			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
 			/// or windowing, this is done here.
-			/// 
+			///
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 			/// Needs exclusive access to audioResource.
 			/// </summary>
@@ -196,7 +196,7 @@
 			/// <summary>
 			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
 			/// or windowing, this is done here.
-			/// 
+			///
 			/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
 			/// the first argument).
 			/// Needs exclusive access to audioResource.
@@ -205,7 +205,7 @@
 
 			/// <summary>
 			/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
-			/// 
+			///
 			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 			/// Needs exclusive access to audioResource.
 			/// </summary>
@@ -360,7 +360,7 @@
 			/// It is assumed the output vector can hold at least numChannels (of configuration) times
 			/// numFilters.
 			/// Output of channels are stored at numFilters offsets.
-			/// 
+			///
 			/// Returns the total number of complex samples copied into the output
 			/// </summary>
 			template<typename V, class Vector>
@@ -374,7 +374,7 @@
 			/// <param name="coordinate"></param>
 			/// <returns></returns>
 			double getScallopingLossAtCoordinate(std::size_t coordinate);
-			
+
 			/// <summary>
 			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.
 			/// This resets them, requesting a recalculation.
@@ -388,7 +388,7 @@
 				bool isEditorOpen, isFrozen, isSuspended;
 				bool antialias;
 				bool isLinear;
-				
+
 				/// <summary>
 				/// Interpolation method for discrete bins to continuous space
 				/// </summary>
@@ -464,8 +464,8 @@
 
 				SpectrumContent::LineGraphs frequencyTrackingGraph;
 			} state;
-			
-		
+
+
 			/// <summary>
 			/// Set these flags and their status will be handled in the next handleFlagUpdates() call, which
 			/// shall be called before any graphic rendering.
@@ -492,7 +492,7 @@
 					/// </summary>
 					audioWindowWasResized,
 					/// <summary>
-					/// 
+					///
 					/// </summary>
 					audioMemoryResize,
 					workingMemoryResize,
@@ -630,7 +630,7 @@
 			/// </summary>
 			cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 			/// <summary>
-			/// An array, of numFilters size, with each element being the frequency for the filter of 
+			/// An array, of numFilters size, with each element being the frequency for the filter of
 			/// the corresponding logical display pixel unit.
 			/// </summary>
 			std::vector<fpoint> mappedFrequencies;
@@ -663,14 +663,14 @@
 
 			cpl::aligned_vector<fpoint, 32> slopeMap;
 			/// <summary>
-			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock. 
+			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock.
 			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
 			/// </summary>
 			cpl::CMutex::Lockable audioResource;
 
 			SFrameBuffer sfbuf;
 		};
-	
+
 	};
 
 #endif

@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CVectorScope.h
 
 		Interface for the vectorscope view
- 
+
 *************************************************************************************/
 
 #ifndef SIGNALIZER_CVECTORSCOPE_H
@@ -43,33 +43,33 @@
 		namespace OpenGLRendering
 		{
 			class COpenGLStack;
-			
+
 		};
 	};
 
 	namespace Signalizer
 	{
-		
+
 		template<typename T, std::size_t size>
 			class LookupTable
 			{
 			public:
 				typedef T Ty;
 				static const std::size_t tableSize = size;
-				
+
 				inline Ty linearLookup(Ty dx) const noexcept
 				{
 					Ty scaled = dx * tableSize;
 					std::size_t x1 = std::size_t(scaled);
 					std::size_t x2 = x1 + 1;
 					Ty fraction = scaled - x1;
-					
+
 					return table[x1] * (Ty(1) - fraction) + table[x2] * fraction;
 				}
-				
+
 				Ty table[tableSize + 1];
 			};
-		
+
 		template<typename T, std::size_t size>
 			class QuarterCircleLut : public LookupTable<T, size>
 			{
@@ -77,9 +77,9 @@
 				QuarterCircleLut()
 				{
 					double increase = 1.0 / (size - 1);
-					for (int i = 0; i < size; ++i)
+					for (std::size_t i = 0; i < size; ++i)
 					{
-						
+
 						// describe first left upper part of circle
 						// maybe use the parabola like any sane person
 						this->table[i] = (T)std::sin(std::acos(1.0 - increase * i));
@@ -89,8 +89,8 @@
 			};
 
 
-		
-		class CVectorScope 
+
+		class CVectorScope
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 			, private ParameterSet::RTListener
@@ -105,12 +105,12 @@
 			virtual ~CVectorScope();
 
 			// Component overrides
-			void onGraphicsRendering(Graphics & g) override;
-			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
-			void mouseDoubleClick(const MouseEvent& event) override;
-			void mouseDrag(const MouseEvent& event) override;
-			void mouseUp(const MouseEvent& event) override;
-			void mouseDown(const MouseEvent& event) override;
+			void onGraphicsRendering(juce::Graphics & g) override;
+			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+			void mouseDoubleClick(const juce::MouseEvent& event) override;
+			void mouseDrag(const juce::MouseEvent& event) override;
+			void mouseUp(const juce::MouseEvent& event) override;
+			void mouseDown(const juce::MouseEvent& event) override;
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
 			void initOpenGL() override;
@@ -186,11 +186,11 @@
 					Fast = 1,
 					Right = 1
 				};
-				
+
 				AudioStream::DataType envelope[2];
 				AudioStream::DataType balance[2][2];
 				AudioStream::DataType phase[2];
-				
+
 			} filters;
 
 			struct Flags
@@ -223,7 +223,7 @@
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 			} state;
-			
+
 			VectorScopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
@@ -237,7 +237,7 @@
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 
 		};
-	
+
 	};
 
 #endif

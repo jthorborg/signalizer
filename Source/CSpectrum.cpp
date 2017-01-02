@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CSpectrum.cpp
-		
+
 		Implemtation of UI and logic for the spectrum view.
- 
+
 *************************************************************************************/
 
 #include "CSpectrum.h"
@@ -196,7 +196,7 @@ namespace Signalizer
 	}
 
 
-	void CSpectrum::mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel)
+	void CSpectrum::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		double newFreqPos(0), newDBPos(0);
 
@@ -273,7 +273,7 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::mouseMove(const MouseEvent & event)
+	void CSpectrum::mouseMove(const juce::MouseEvent & event)
 	{
 		cmouse.x.store(event.position.x, std::memory_order_release);
 		cmouse.y.store(event.position.y, std::memory_order_release);
@@ -281,12 +281,12 @@ namespace Signalizer
 		flags.mouseMove = true;
 	}
 
-	void CSpectrum::mouseDoubleClick(const MouseEvent& event)
+	void CSpectrum::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		content->viewLeft.setNormalizedValue(0); content->viewRight.setNormalizedValue(0);
 		flags.viewChanged = true;
 	}
-	void CSpectrum::mouseDrag(const MouseEvent& event)
+	void CSpectrum::mouseDrag(const juce::MouseEvent& event)
 	{
 		if (event.mods.isLeftButtonDown())
 		{
@@ -313,17 +313,17 @@ namespace Signalizer
 			flags.dynamicRangeChange = true;
 			flags.viewChanged = true;
 		}
-		
+
 		cmouse.x.store(event.position.x, std::memory_order_release);
 		cmouse.y.store(event.position.y, std::memory_order_release);
-		
+
 		flags.mouseMove = true;
 	}
-	void CSpectrum::mouseUp(const MouseEvent& event)
+	void CSpectrum::mouseUp(const juce::MouseEvent& event)
 	{
 
 	}
-	void CSpectrum::mouseDown(const MouseEvent& event)
+	void CSpectrum::mouseDown(const juce::MouseEvent& event)
 	{
 		lastMousePos = event.position;
 	}
@@ -510,7 +510,7 @@ namespace Signalizer
 			// TODO: possible difference between parameter and audiostream?
 
 			auto current = audioStream.getAudioHistorySize();
-			
+
 			state.windowSize = getValidWindowSize(current);
 			cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;
@@ -521,7 +521,7 @@ namespace Signalizer
 		{
 			audioLock.acquire(audioResource);
 			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
-			// some cases it is nice to have an extra entry (see handling of 
+			// some cases it is nice to have an extra entry (see handling of
 			// separating real and imaginary transforms)
 			audioMemory.resize((bufSize + 1) * sizeof(std::complex<double>));
 			windowKernel.resize(bufSize);
@@ -595,12 +595,12 @@ namespace Signalizer
 
 				complexFrequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - state.viewRect.left) * axisPoints });
-				
+
 				//complexFrequencyGraph.setBounds({ axisPoints * 0.5, axisPoints * 1.0 });
 				//complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - (state.viewRect.right - state.viewRect.left) * 0.5 - 0.5) * axisPoints });
 
-				
-				
+
+
 				complexFrequencyGraph.setMaxFrequency(sampleRate / 2);
 				complexFrequencyGraph.setScaling(state.viewScale == SpectrumContent::ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
 			}
@@ -659,7 +659,7 @@ namespace Signalizer
 
 					}
 					else
-					{						
+					{
 						for (std::size_t i = 0; i < numFilters; ++i)
 						{
 							auto arg = state.viewRect.left + viewSize * i / sampleSize;

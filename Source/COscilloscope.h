@@ -65,12 +65,12 @@
 			virtual ~COscilloscope();
 
 			// Component overrides
-			void onGraphicsRendering(Graphics & g) override;
-			void mouseWheelMove(const MouseEvent& event, const MouseWheelDetails& wheel) override;
-			void mouseDoubleClick(const MouseEvent& event) override;
-			void mouseDrag(const MouseEvent& event) override;
-			void mouseUp(const MouseEvent& event) override;
-			void mouseDown(const MouseEvent& event) override;
+			void onGraphicsRendering(juce::Graphics & g) override;
+			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+			void mouseDoubleClick(const juce::MouseEvent& event) override;
+			void mouseDrag(const juce::MouseEvent& event) override;
+			void mouseUp(const juce::MouseEvent& event) override;
+			void mouseDown(const juce::MouseEvent& event) override;
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
 			void initOpenGL() override;
