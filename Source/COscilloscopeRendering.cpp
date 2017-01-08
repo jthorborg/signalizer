@@ -266,6 +266,10 @@ namespace Signalizer
 	template<typename V>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
+
+			if (audio.getNumChannels() < 1)
+				return;
+
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// and apply the gain:
 			auto gain = (GLfloat)state.envelopeGain;
