@@ -347,7 +347,7 @@
 						}
 
 					}
-					if(false)
+
 					if (auto page = addPage("Rendering", "icons/svg/brush.svg"))
 					{
 						if (auto section = new Signalizer::CContentPage::MatrixSection())

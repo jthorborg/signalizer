@@ -64,20 +64,20 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	std::array<const char *, 3> ViewIndexToMap =
-	{
-		"Vectorscope",
-		"Oscilloscope",
-		"Spectrum"
-		//"Statistics"
-	};
-
 	enum class ViewTypes
 	{
 		Vectorscope,
-		Oscilloscope,
+		//Oscilloscope,
 		Spectrum,
 		end
+	};
+
+	std::array<const char *, static_cast<std::size_t>(ViewTypes::end)> ViewIndexToMap =
+	{
+		"Vectorscope",
+		//"Oscilloscope",
+		"Spectrum"
+		//"Statistics"
 	};
 
 	template<typename T>
@@ -89,7 +89,7 @@ namespace Signalizer
 	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
 	{
 		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
-		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &CreateState<OscilloscopeContent> },
+		//{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &CreateState<OscilloscopeContent> },
 		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
 	};
 
@@ -99,7 +99,7 @@ namespace Signalizer
 		switch (type)
 		{
 		case ViewTypes::Vectorscope: return std::make_unique<CVectorScope>(args...);
-		case ViewTypes::Oscilloscope: return std::make_unique<COscilloscope>(args...);
+		//case ViewTypes::Oscilloscope: return std::make_unique<COscilloscope>(args...);
 		case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
 		}
 		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
