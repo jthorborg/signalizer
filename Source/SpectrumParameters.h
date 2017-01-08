@@ -347,6 +347,7 @@
 						}
 
 					}
+					if(false)
 					if (auto page = addPage("Rendering", "icons/svg/brush.svg"))
 					{
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -420,8 +421,8 @@
 
 					for (std::size_t i = 0; i < numSpectrumColours; ++i)
 					{
-						archive << kspecColours[i];
-						archive << kspecRatios[i];
+						archive << *kspecColours[i];
+						archive << *kspecRatios[i];
 					}
 
 					archive << kbinInterpolation;
@@ -468,8 +469,8 @@
 
 					for (std::size_t i = 0; i < numSpectrumColours; ++i)
 					{
-						builder >> kspecColours[i];
-						builder >> kspecRatios[i];
+						builder >> *kspecColours[i];
+						builder >> *kspecRatios[i];
 					}
 
 					builder >> kbinInterpolation;
