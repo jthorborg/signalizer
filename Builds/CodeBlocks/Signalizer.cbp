@@ -67,6 +67,7 @@
 			<Add option="-Wall" />
 			<Add option="-Wno-strict-aliasing" />
 			<Add option="-Wno-strict-overflow" />
+			<Add option="-mno-sse2avx" />
 			<Add directory="/usr/include/freetype2" />
 		</Compiler>
 		<Unit filename="../../../SDKs/cpl/CPLSource.cpp" />

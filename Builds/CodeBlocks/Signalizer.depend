@@ -29,7 +29,7 @@
 	"FreeType/FreeTypeAmalgam.cpp"
 	"CPLTests.cpp"
 
-1483325708 /home/branch/Desktop/repos/SDKs/cpl/MacroConstants.h
+1483889353 /home/branch/Desktop/repos/SDKs/cpl/MacroConstants.h
 	<cstdint>
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/LibraryOptions.h
@@ -120,7 +120,7 @@
 	"../Source/version.h"
 	"../../Source/version.h"
 
-1483196726 /home/branch/Desktop/repos/signalizer/Source/version.h
+1483887018 /home/branch/Desktop/repos/signalizer/Source/version.h
 
 1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/juce_audio_basics.h
 	"../juce_core/juce_core.h"
@@ -1300,7 +1300,7 @@
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/LibraryOptions.h
 	"MacroConstants.h"
 
-1483325708 /home/branch/Desktop/repos/SDKs//cpl/MacroConstants.h
+1483889353 /home/branch/Desktop/repos/SDKs//cpl/MacroConstants.h
 	<cstdint>
 
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/PlatformSpecific.h
@@ -5956,4 +5956,78 @@
 1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/native/juce_android_CameraDevice.cpp
 
 1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/capture/juce_CameraDevice.cpp
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_PluginUtilities.cpp
+	<windows.h>
+	"AppConfig.h"
+	"../utility/juce_CheckSettingMacros.h"
+	"juce_IncludeModuleHeaders.h"
+
+1483323426 source:/home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/juce_audio_processors.cpp
+	"AppConfig.h"
+	"../juce_core/native/juce_BasicNativeHeaders.h"
+	"juce_audio_processors.h"
+	"../juce_gui_extra/juce_gui_extra.h"
+	<Carbon/Carbon.h>
+	<X11/Xlib.h>
+	<X11/Xutil.h>
+	"format/juce_AudioPluginFormat.cpp"
+	"format/juce_AudioPluginFormatManager.cpp"
+	"processors/juce_AudioProcessor.cpp"
+	"processors/juce_AudioProcessorEditor.cpp"
+	"processors/juce_AudioProcessorGraph.cpp"
+	"processors/juce_GenericAudioProcessorEditor.cpp"
+	"processors/juce_PluginDescription.cpp"
+	"format_types/juce_LADSPAPluginFormat.cpp"
+	"format_types/juce_VSTPluginFormat.cpp"
+	"format_types/juce_VST3PluginFormat.cpp"
+	"format_types/juce_AudioUnitPluginFormat.mm"
+	"scanning/juce_KnownPluginList.cpp"
+	"scanning/juce_PluginDirectoryScanner.cpp"
+	"scanning/juce_PluginListComponent.cpp"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format/juce_AudioPluginFormat.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format/juce_AudioPluginFormatManager.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/processors/juce_AudioProcessor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/processors/juce_AudioProcessorEditor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/processors/juce_AudioProcessorGraph.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/processors/juce_GenericAudioProcessorEditor.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/processors/juce_PluginDescription.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_LADSPAPluginFormat.cpp
+	<ladspa.h>
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_VSTPluginFormat.cpp
+	"../../juce_gui_extra/native/juce_mac_CarbonViewWrapperComponent.h"
+	"pluginterfaces/vst2.x/aeffectx.h"
+	"juce_VSTMidiEventList.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_extra/native/juce_mac_CarbonViewWrapperComponent.h
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_VST3PluginFormat.cpp
+	<map>
+	"juce_VST3Headers.h"
+	"juce_VST3Common.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/format_types/juce_AudioUnitPluginFormat.mm
+	<AudioUnit/AudioUnit.h>
+	<AudioUnit/AUCocoaUIView.h>
+	<CoreAudioKit/AUGenericView.h>
+	<AudioToolbox/AudioUnitUtilities.h>
+	<CoreMIDI/MIDIServices.h>
+	<AudioUnit/AudioUnitCarbonView.h>
+	"../../juce_audio_devices/native/juce_MidiDataConcatenator.h"
+	"../../juce_gui_extra/native/juce_mac_CarbonViewWrapperComponent.h"
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/scanning/juce_KnownPluginList.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/scanning/juce_PluginDirectoryScanner.cpp
+
+1483323426 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/scanning/juce_PluginListComponent.cpp
 
