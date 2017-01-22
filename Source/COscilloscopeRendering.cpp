@@ -35,6 +35,7 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
+#include <cpl/CDBMeterGraph.h>
 
 namespace Signalizer
 {
@@ -57,6 +58,7 @@ namespace Signalizer
 		Side
 	};
 
+	template<typename V>
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
 
@@ -78,6 +80,8 @@ namespace Signalizer
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 
 		}
+
+		drawWireFrame<V>(g, getLocalBounds().toFloat(), state.envelopeGain);
 	}
 
 	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
@@ -122,10 +126,12 @@ namespace Signalizer
 			textures[i]->loadImage(letter);
 		}
 	}
+
 	void COscilloscope::closeOpenGL()
 	{
 		textures.clear();
 	}
+
 	void COscilloscope::onOpenGLRendering()
 	{
 		switch (cpl::simd::max_vector_capacity<float>())
@@ -187,12 +193,13 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
+
 			renderGraphics(
 				[&](juce::Graphics & g)
 				{
 					// draw graph and wireframe
 					//drawWireFrame<V>(openGLStack);
-					paint2DGraphics(g);
+					paint2DGraphics<V>(g);
 
 				}
 			);
@@ -257,9 +264,26 @@ namespace Signalizer
 
 
 	template<typename V>
-		void COscilloscope::drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain)
+		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
+			cpl::CDBMeterGraph graph(-100, cpl::Math::fractionToDB(gain));
+			graph.setBounds({ rect.getWidth(), rect.getHeight() });
+			graph.setDivisionLimit(0.5 * rect.getHeight() * content->pctForDivision.getNormalizedValue());
+			graph.compileDivisions();
 
+			g.setColour(content->skeletonColour.getAsJuceColour());
+
+			const auto middle = rect.getHeight() * 0.5;
+
+			for (auto & d : graph.getDivisions())
+			{
+				auto const y = middle + 0.5 * d.coord;
+				g.drawLine(0, y, rect.getWidth(), y);
+
+				g.drawLine(0, rect.getHeight() - y, rect.getWidth(), rect.getHeight() - y);
+			}
+
+			g.drawLine(0, middle, 0, middle);
 		}
 
 

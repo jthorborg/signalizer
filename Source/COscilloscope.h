@@ -50,7 +50,7 @@
 	namespace Signalizer
 	{
 
-		class COscilloscope
+		class COscilloscope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 			, private ParameterSet::RTListener
@@ -90,7 +90,7 @@
 
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-			virtual void paint2DGraphics(juce::Graphics & g);
+
 			/// <summary>
 			/// Handles all set flags in mtFlags.
 			/// Make sure the audioStream is locked while doing this.
@@ -120,6 +120,9 @@
 
 			template<typename V>
 			void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
+
+			template<typename V>
+				void paint2DGraphics(juce::Graphics & g);
 
 			void initPanelAndControls();
 
