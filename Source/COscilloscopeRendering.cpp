@@ -266,19 +266,29 @@ namespace Signalizer
 	template<typename V>
 		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
-			cpl::CDBMeterGraph graph(-100, cpl::Math::fractionToDB(gain));
-			graph.setBounds({ rect.getWidth(), rect.getHeight() });
-			graph.setDivisionLimit(0.5 * rect.getHeight() * content->pctForDivision.getNormalizedValue());
-			graph.compileDivisions();
+			auto const minSpacing = rect.getHeight() / 30;
+			// quantize to multiples of 3
+			auto const numLines = 2 * (std::size_t)(1 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
 
 			g.setColour(content->skeletonColour.getAsJuceColour());
 
 			const auto middle = rect.getHeight() * 0.5;
+			const auto offset = state.envelopeGain;
+			char textBuf[200];
 
-			for (auto & d : graph.getDivisions())
+			for(std::size_t i = 1; i < numLines; ++i)
 			{
-				auto const y = middle + 0.5 * d.coord;
+				auto const fraction = double(i) / (numLines - 1);
+				auto const coord = fraction * middle;
+
+				auto const y = middle + coord;
+				auto const dBs = 20 * std::log10(fraction / offset);
 				g.drawLine(0, y, rect.getWidth(), y);
+
+				sprintf_s(textBuf, "%.3f dB", dBs);
+
+				g.drawSingleLineText(textBuf, 5, y - 10, juce::Justification::centredLeft);
+				g.drawSingleLineText(textBuf, 5, rect.getHeight() - (y - 15), juce::Justification::centredLeft);
 
 				g.drawLine(0, rect.getHeight() - y, rect.getWidth(), rect.getHeight() - y);
 			}
