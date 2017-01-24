@@ -266,34 +266,149 @@ namespace Signalizer
 	template<typename V>
 		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
-			auto const minSpacing = rect.getHeight() / 30;
-			// quantize to multiples of 3
-			auto const numLines = 2 * (std::size_t)(1 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
+			const auto xoff = rect.getX();
+			const auto yoff = rect.getY();
 
-			g.setColour(content->skeletonColour.getAsJuceColour());
-
-			const auto middle = rect.getHeight() * 0.5;
-			const auto offset = state.envelopeGain;
-			char textBuf[200];
-
-			for(std::size_t i = 1; i < numLines; ++i)
+			const bool nicelyQuantize = true;
+			
+			if(true || nicelyQuantize)
 			{
-				auto const fraction = double(i) / (numLines - 1);
-				auto const coord = fraction * middle;
+				auto const minSpacing = rect.getHeight() / 50;
+				// quantize to multiples of 3
+				auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
 
-				auto const y = middle + coord;
-				auto const dBs = 20 * std::log10(fraction / offset);
-				g.drawLine(0, y, rect.getWidth(), y);
+				g.setColour(content->skeletonColour.getAsJuceColour());
 
-				sprintf_s(textBuf, "%.3f dB", dBs);
+				const auto middle = rect.getHeight() * 0.5;
+				const auto offset = state.envelopeGain;
+				char textBuf[200];
 
-				g.drawSingleLineText(textBuf, 5, y - 10, juce::Justification::centredLeft);
-				g.drawSingleLineText(textBuf, 5, rect.getHeight() - (y - 15), juce::Justification::centredLeft);
 
-				g.drawLine(0, rect.getHeight() - y, rect.getWidth(), rect.getHeight() - y);
+				for (std::size_t i = 1; i < numLines; ++i)
+				{
+					auto const fraction = double(i) / (numLines - 1);
+					auto const coord = fraction * middle;
+
+					auto const y = middle + coord;
+					auto const dBs = 20 * std::log10(fraction / offset);
+					g.drawLine(xoff, yoff + y, xoff + rect.getWidth(), yoff + y);
+
+					sprintf_s(textBuf, "%.3f dB", dBs);
+
+					g.drawSingleLineText(textBuf, xoff + 5, yoff + y - 10, juce::Justification::centredLeft);
+					g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::centredLeft);
+
+					g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y);
+				}
+
+				g.drawLine(xoff, yoff + middle, xoff + rect.getWidth(), yoff + middle);
 			}
 
-			g.drawLine(0, middle, 0, middle);
+			auto const minVerticalSpacing = rect.getWidth() / 75;
+
+			auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
+
+			if(wantedVerticalLines > 0)
+			{
+
+				g.setColour(content->skeletonColour.getAsJuceColour());
+				char textBuf[200];
+
+
+				// quantize to multiples of 3
+
+				if (nicelyQuantize)
+				{
+					double scaleTable[] = { 1, 2, 5, 10 };
+					int size = std::extent<decltype(scaleTable)>::value;
+
+					auto getIncrement = [&](int level)
+					{
+
+						if (level < 0)
+						{
+							return std::pow(2, level);
+						}
+						else if (level >= size)
+						{
+							auto const magnitudeDifference = level / size;
+
+
+							return scaleTable[level % size] * std::pow(scaleTable[size - 1], magnitudeDifference);
+						}
+						else
+						{
+							return scaleTable[level];
+						}
+					};
+
+					auto const currentMS = content->windowSize.getTransformedValue() * 1000 / audioStream.getAudioHistorySamplerate();
+
+					auto index = 0;
+					int count = 0;
+					double inc = 0;
+					int numLines = 0;
+
+					for (;;)
+					{
+						inc = getIncrement(index);
+						double incz1 = getIncrement(index - 1);
+						int numLinesz1 = static_cast<int>(currentMS / incz1);
+						numLines = static_cast<int>(currentMS / inc);
+
+						if (numLines > wantedVerticalLines)
+							index++;
+						else if (numLinesz1 > wantedVerticalLines)
+							break;
+						else
+							index--;
+
+						count++;
+
+						// TODO: converge problem?
+						if (count > 20)
+							break;
+					}
+
+					double currentPos = 0;
+
+					// (first line is useless)
+					currentPos += inc;
+
+					while (currentPos < currentMS)
+					{
+						auto const fraction = currentPos / currentMS;
+						auto const x = xoff + fraction * rect.getWidth();
+
+						g.drawLine(x, 0, x, rect.getHeight());
+
+						sprintf_s(textBuf, "%.2f ms", currentPos);
+
+						g.drawSingleLineText(textBuf, x + 5, rect.getHeight() - 10, juce::Justification::centredLeft);
+
+						currentPos += inc;
+					}
+
+				}
+				else
+				{
+					for (std::size_t i = 1; i < wantedVerticalLines; ++i)
+					{
+						auto const fraction = double(i) / (wantedVerticalLines - 1);
+						auto const x = xoff + fraction * rect.getWidth();
+
+						auto const time = content->windowSize.getTransformedValue() * 1000 * fraction / audioStream.getAudioHistorySamplerate();
+
+						g.drawLine(x, 0, x, rect.getHeight());
+
+						sprintf_s(textBuf, "%.2f ms", time);
+
+						g.drawSingleLineText(textBuf, x + 5, rect.getHeight() - 10, juce::Justification::centredLeft);
+					}
+				}
+
+			}
+
 		}
 
 
