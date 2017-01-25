@@ -65,6 +65,8 @@
 					, ksubSampleInterpolationMode(&parentValue.subSampleInterpolation.param)
 					, kpctForDivision(&parentValue.pctForDivision)
 					, kchannelConfiguration(&parentValue.channelConfiguration.param)
+					, ktriggerPhaseOffset(&parentValue.triggerPhaseOffset)
+					, ktriggerMode(&parentValue.triggerMode.param)
 					, editorSerializer(
 						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -100,6 +102,9 @@
 					ksubSampleInterpolationMode.bSetTitle("Sample interpolation");
 					kpctForDivision.bSetTitle("Grid div. space");
 					kchannelConfiguration.bSetTitle("Channel conf.");
+					ktriggerMode.bSetTitle("Trigger mode");
+					ktriggerPhaseOffset.bSetTitle("Trigger phase");
+
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
@@ -123,7 +128,8 @@
 					ksubSampleInterpolationMode.bSetDescription("Controls how point samples are interpolated to wave forms");
 					kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
 					kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
-
+					ktriggerMode.bSetDescription("Select a mode for triggering waveforms - i.e. syncing them to the grid");
+					ktriggerPhaseOffset.bSetDescription("A custom +/- full-circle offset for the phase on triggering");
 				}
 
 				void initUI()
@@ -149,7 +155,13 @@
 
 
 							page->addSection(section, "Utility");
-							//
+						}
+						if (auto section = new Signalizer::CContentPage::MatrixSection())
+						{
+							section->addControl(&ktriggerMode, 0);
+							section->addControl(&ktriggerPhaseOffset, 1);
+
+							page->addSection(section, "Triggering");
 						}
 					}
 
@@ -205,6 +217,8 @@
 					archive << kpctForDivision;
 					archive << kchannelConfiguration;
 					archive << kpctForDivision;
+					archive << ktriggerPhaseOffset;
+					archive << ktriggerMode;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -231,6 +245,8 @@
 					builder >> kpctForDivision;
 					builder >> kchannelConfiguration;
 					builder >> kpctForDivision;
+					builder >> ktriggerPhaseOffset;
+					builder >> ktriggerMode;
 				}
 
 
@@ -268,10 +284,10 @@
 				}
 
 				cpl::CButton kantiAlias, kdiagnostics;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
-				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration;
+				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode;
 				cpl::CPresetWidget kpresets;
 
 				OscilloscopeContent & parent;
@@ -290,6 +306,7 @@
 				, windowRange(0, 1000)
 				, degreeRange(0, 360)
 				, ptsRange(0.01, 10)
+				, phaseRange(-180, 180)
 
 				, msFormatter("ms")
 				, degreeFormatter("degs")
@@ -305,7 +322,8 @@
 				, subSampleInterpolation("SampleIntp")
 				, pctForDivision("PctDiv", unityRange, pctFormatter)
 				, channelConfiguration("ChConf")
-
+				, triggerPhaseOffset("TrgPhase", phaseRange, degreeFormatter)
+				, triggerMode("TrgMode")
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -319,6 +337,7 @@
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
+				triggerMode.fmt.setValues({ "None", "FFT", "Zero-crossings" });
 
 				// order matters
 				auto singleParameters = { 
@@ -332,6 +351,8 @@
 					&subSampleInterpolation.param,
 					&channelConfiguration.param,
 					&pctForDivision,
+					&triggerPhaseOffset,
+					&triggerMode.param
 				};
 
 				for (auto sparam : singleParameters)
@@ -377,6 +398,8 @@
 				archive << subSampleInterpolation.param;
 				archive << channelConfiguration.param;
 				archive << pctForDivision;
+				archive << triggerPhaseOffset;
+				archive << triggerMode.param;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -396,6 +419,8 @@
 				builder >> subSampleInterpolation.param;
 				builder >> channelConfiguration.param;
 				builder >> pctForDivision;
+				builder >> triggerPhaseOffset;
+				builder >> triggerMode.param;
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -420,7 +445,8 @@
 			cpl::LinearRange<double>
 				ptsRange,
 				windowRange,
-				degreeRange;
+				degreeRange,
+				phaseRange;
 
 			cpl::UnityRange<double> unityRange;
 
@@ -432,12 +458,14 @@
 				antialias,
 				diagnostics,
 				primitiveSize,
-				pctForDivision;
+				pctForDivision,
+				triggerPhaseOffset;
 
 			ChoiceParameter
 				autoGain,
 				channelConfiguration,
-				subSampleInterpolation;
+				subSampleInterpolation,
+				triggerMode;
 
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
