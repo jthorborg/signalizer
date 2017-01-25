@@ -42,6 +42,14 @@
 		{
 		public:
 
+			enum class TriggeringMode
+			{
+				None,
+				Spectral,
+				//ZeroCrossing,
+				end
+			};
+
 			class OscilloscopeController 
 				: public CContentPage
 			{
@@ -337,7 +345,7 @@
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
-				triggerMode.fmt.setValues({ "None", "FFT", "Zero-crossings" });
+				triggerMode.fmt.setValues({ "None", "Spectral" /*, "Zero-crossings" */});
 
 				// order matters
 				auto singleParameters = { 

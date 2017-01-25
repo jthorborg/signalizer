@@ -864,6 +864,9 @@
     <ClCompile Include="..\..\Source\PluginProcessor.cpp">
       <Filter>Signalizer\Source\Processor</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\COscilloscopeDSP.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">

@@ -57,7 +57,9 @@ namespace Signalizer
 		editor(nullptr),
 		state(),
 		filters(),
-		oldWindowSize(-1)
+		oldWindowSize(-1),
+		detectedFreq(),
+		quantizedFreq()
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{

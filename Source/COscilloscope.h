@@ -107,19 +107,18 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
-			void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-			void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
+				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
+
+			double getTriggeringOffset(const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-			void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void runPeakFilter(const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
-			void runPeakFilter(const AudioStream::AudioBufferAccess &);
-
-			template<typename V>
-			void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
+				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename V>
 				void paint2DGraphics(juce::Graphics & g);
@@ -174,6 +173,7 @@
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
 			} state;
+			std::size_t const LookaheadSize = 8192;
 
 			OscilloscopeContent * content;
 			AudioStream & audioStream;
@@ -184,8 +184,10 @@
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
-			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-
+			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
+			cpl::aligned_vector<double, 16> buffer;
+			double triggerOffset;
+			double detectedFreq, quantizedFreq;
 		};
 
 	};

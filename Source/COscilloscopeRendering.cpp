@@ -71,12 +71,14 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f",
 				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed));
+				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
+				quantizedFreq,
+				detectedFreq);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 
 		}
@@ -106,30 +108,12 @@ namespace Signalizer
 
 	void COscilloscope::initOpenGL()
 	{
-		const int imageSize = 128;
-		const float fontToPixelScale = 90 / 64.0f;
 
-		textures.clear();
-
-		for (std::size_t i = 0; i < std::extent<decltype(ChannelDescriptions)>::value; ++i)
-		{
-
-			juce::Image letter(juce::Image::ARGB, imageSize, imageSize, true);
-			{
-				juce::Graphics g(letter);
-				g.fillAll(juce::Colours::transparentBlack);
-				g.setColour(juce::Colours::white);
-				g.setFont(letter.getHeight() * fontToPixelScale * 0.5);
-				g.drawText(ChannelDescriptions[i], letter.getBounds().toFloat(), juce::Justification::centred, false);
-			}
-			textures.push_back(std::unique_ptr<juce::OpenGLTexture>((new juce::OpenGLTexture())));
-			textures[i]->loadImage(letter);
-		}
 	}
 
 	void COscilloscope::closeOpenGL()
 	{
-		textures.clear();
+
 	}
 
 	void COscilloscope::onOpenGLRendering()
@@ -177,6 +161,8 @@ namespace Signalizer
 					runPeakFilter<V>(lockedView);
 				}
 
+				triggerOffset = getTriggeringOffset(lockedView);
+
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
@@ -186,10 +172,6 @@ namespace Signalizer
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 
-
-				CPL_DEBUGCHECKGL();
-				// draw channel text(ures)
-				drawGraphText<V>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
@@ -209,59 +191,6 @@ namespace Signalizer
 			lastFrameTick = tickNow;
 
 		}
-
-
-	template<typename V>
-		void COscilloscope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
-		{
-			openGLStack.enable(GL_TEXTURE_2D);
-			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			using consts = cpl::simd::consts<float>;
-			// draw channel rotations letters.
-
-			// TODO: Remove rotation
-			auto rotation = 0;
-			const float heightToWidthFactor = float(getHeight()) / getWidth();
-			using namespace cpl::simd;
-
-			cpl::OpenGLRendering::MatrixModification m;
-			// this undoes the text squashing due to variable aspect ratios.
-			m.scale(heightToWidthFactor, 1.0f, 1.0f);
-
-			// calculate coordinates using sin/cos simd pairs.
-			suitable_container<v4sf> phases, xcoords, ycoords;
-
-			// set phases (we rotate L/R etc. text around in a circle)
-			phases[0] = rotation;
-			phases[1] = consts::pi * 0.5f + rotation;
-			phases[2] = consts::pi + rotation;
-			phases[3] = consts::pi * 1.5f + rotation;
-
-			// some registers
-			v4sf
-				vsines,
-				vcosines,
-				vscale = set1<v4sf>(circleScaleFactor),
-				vadd = set1<v4sf>(1.0f - circleScaleFactor),
-				vheightToWidthFactor = set1<v4sf>(1.0f / heightToWidthFactor);
-
-			// do 8 trig functions in one go!
-			cpl::simd::sincos(phases.toType(), &vsines, &vcosines);
-
-			// place the circle just outside the graph, and offset it.
-			xcoords = vsines * vscale * vheightToWidthFactor + vadd;
-			ycoords = vcosines * vscale + vadd;
-
-			auto jcolour = state.colourGraph;
-			// render texture text at coordinates.
-			for (int i = 0; i < 4; ++i)
-			{
-				cpl::OpenGLRendering::ImageDrawer text(openGLStack, *textures[i]);
-				text.setColour(jcolour);
-				text.drawAt({ xcoords[i], ycoords[i], 0.1f, 0.1f });
-			}
-		}
-
 
 	template<typename V>
 		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
@@ -331,10 +260,8 @@ namespace Signalizer
 						}
 						else if (level >= size)
 						{
-							auto const magnitudeDifference = level / size;
-
-
-							return scaleTable[level % size] * std::pow(scaleTable[size - 1], magnitudeDifference);
+							// scale by magnitude difference
+							return scaleTable[level % size] * std::pow(scaleTable[size - 1], level / size);
 						}
 						else
 						{
@@ -345,9 +272,9 @@ namespace Signalizer
 					auto const currentMS = content->windowSize.getTransformedValue() * 1000 / audioStream.getAudioHistorySamplerate();
 
 					auto index = 0;
-					int count = 0;
+					std::size_t count = 0;
 					double inc = 0;
-					int numLines = 0;
+					std::size_t numLines = 0;
 
 					for (;;)
 					{
@@ -429,12 +356,14 @@ namespace Signalizer
 
 			drawer.addColour(state.colourDraw);
 
+			auto const offset = -1 + -(2 * triggerOffset / static_cast<int>(audio.getNumSamples() - 1));
+
 			// TODO: glDrawArrays
 			audio.iterate<1, true>
 			(
 				[&] (std::size_t sampleFrame, AudioStream::DataType & left)
 				{
-					drawer.addVertex(sampleFrame * sampleDisplacement - 1, left, 0);
+					drawer.addVertex(sampleFrame * sampleDisplacement + offset, left, 0);
 				}
 			);
 
