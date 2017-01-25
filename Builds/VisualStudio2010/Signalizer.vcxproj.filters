@@ -370,6 +370,15 @@
     <Filter Include="Signalizer\Source\cpl\infrastructure\values">
       <UniqueIdentifier>{18b101a8-5f4d-47e1-b2b3-abd498e989a5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\Common">
+      <UniqueIdentifier>{4ffea8b6-156b-4d1f-b8ed-9c66d005122a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Editor">
+      <UniqueIdentifier>{9ede0d57-94c2-4349-9f68-18da3c125fea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\Processor">
+      <UniqueIdentifier>{a6d0243e-d651-489a-b133-bc3ed22d21e7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -822,21 +831,6 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_video\juce_video.cpp">
       <Filter>Signalizer\juce source files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\MainEditor.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\PluginProcessor.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\SignalizerDesign.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\InstanceLog.cpp">
-      <Filter>Signalizer\Source</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\CSpectrum.cpp">
       <Filter>Signalizer\Source\Spectrum</Filter>
     </ClCompile>
@@ -857,6 +851,18 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\COscilloscopeRendering.cpp">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
+      <Filter>Signalizer\Source\cpl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\SignalizerDesign.cpp">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\MainEditor.cpp">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\PluginProcessor.cpp">
+      <Filter>Signalizer\Source\Processor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2204,24 +2210,6 @@
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h">
       <Filter>Juce Library Code</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\CommonSignalizer.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\PluginProcessor.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\SignalizerDesign.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\MainEditor.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\version.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\InstanceLog.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CComplexResonator.h">
       <Filter>Signalizer\Source\cpl\dsp</Filter>
     </ClInclude>
@@ -2567,9 +2555,6 @@
     <ClInclude Include="..\..\Source\VectorScopeParameters.h">
       <Filter>Signalizer\Source\Vectorscope</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\SentientViewState.h">
-      <Filter>Signalizer\Source</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\SpectrumParameters.h">
       <Filter>Signalizer\Source\Spectrum</Filter>
     </ClInclude>
@@ -2578,6 +2563,24 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\OscilloscopeParameters.h">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\CommonSignalizer.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SentientViewState.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\SignalizerDesign.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\version.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\MainEditor.h">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\PluginProcessor.h">
+      <Filter>Signalizer\Source\Processor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
