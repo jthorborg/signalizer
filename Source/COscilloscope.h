@@ -186,6 +186,18 @@
 			juce::Point<float> lastMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> buffer;
+
+			static const std::size_t MedianFilterSize = 8;
+
+			struct MedianData
+			{
+				double bin;
+				double delta;
+			};
+			
+			std::array<MedianData, MedianFilterSize> medianTriggerFilter;
+
+			int medianPos;
 			double triggerOffset;
 			double detectedFreq, quantizedFreq;
 		};

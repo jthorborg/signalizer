@@ -280,7 +280,7 @@ namespace Signalizer
 					{
 						inc = getIncrement(index);
 						double incz1 = getIncrement(index - 1);
-						int numLinesz1 = static_cast<int>(currentMS / incz1);
+						std::size_t numLinesz1 = static_cast<int>(currentMS / incz1);
 						numLines = static_cast<int>(currentMS / inc);
 
 						if (numLines > wantedVerticalLines)

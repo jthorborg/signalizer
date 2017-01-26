@@ -59,13 +59,13 @@ namespace Signalizer
 		filters(),
 		oldWindowSize(-1),
 		detectedFreq(),
-		quantizedFreq()
+		quantizedFreq(),
+		medianPos()
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
-
 
 		mtFlags.firstRun = true;
 		setOpaque(true);
