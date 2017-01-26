@@ -53,7 +53,6 @@
 		class COscilloscope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
-			, private ParameterSet::RTListener
 		{
 
 		public:
@@ -89,7 +88,7 @@
 		protected:
 
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
+			//void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
 
 			/// <summary>
 			/// Handles all set flags in mtFlags.
@@ -98,7 +97,6 @@
 			virtual void handleFlagUpdates();
 
 		private:
-			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
@@ -168,18 +166,17 @@
 				bool normalizeGain, isFrozen, antialias, diagnostics;
 				float primitiveSize;
 				float envelopeCoeff;
+				double effectiveWindowSize;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
 			} state;
-			std::size_t const LookaheadSize = 8192;
 
 			OscilloscopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			juce::Component * editor;
-			double oldWindowSize;
 			// unused.
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

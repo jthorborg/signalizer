@@ -42,12 +42,120 @@
 		{
 		public:
 
+			static std::size_t const LookaheadSize = 8192;
+
 			enum class TriggeringMode
 			{
 				None,
 				Spectral,
 				//ZeroCrossing,
 				end
+			};
+
+			template<typename ParameterView>
+			class WindowSizeTransformatter : public AudioHistoryTransformatter<ParameterView>
+			{
+			public:
+				WindowSizeTransformatter(AudioStream & audioStream, std::size_t auxLookahead, Mode mode = Milliseconds)
+					: AudioHistoryTransformatter(audioStream, mode), lookahead(auxLookahead)
+				{
+
+				}
+
+			private:
+
+				virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
+				{
+					// TODO: what if oldCapacity == 0?
+					const auto oldFraction = param->getValueNormalized();
+					auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
+					auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
+					if (oldCapacity == 0)
+						oldCapacity = beforeCapacity;
+
+					const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
+
+					if (newCapacity > 0)
+						lastCapacity.store(newCapacity, std::memory_order_relaxed);
+
+					if (oldCapacity == 0 || newCapacity == 0)
+					{
+						param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+					}
+					else
+					{
+						const auto sampleSizeBefore = oldCapacity * oldFraction;
+						const auto newFraction = sampleSizeBefore / newCapacity;
+						if (oldFraction != newFraction || beforeCapacity == 0)
+							param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+					}
+				}
+
+				virtual bool interpret(const std::string & buf, ValueType & val) override
+				{
+					ValueType collectedValue;
+
+
+					if (cpl::lexicalConversion(buf, collectedValue))
+					{
+						bool notSamples = true;
+
+						if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
+						{
+							if (buf.find("ms") != std::string::npos)
+							{
+								collectedValue /= 1000;
+							}
+							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+						}
+						else
+						{
+							// assume value is in miliseconds
+							if (m == Milliseconds && notSamples)
+							{
+								collectedValue /= 1000;
+								collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+							}
+						}
+
+						val = collectedValue;
+						return true;
+
+					}
+
+					return false;
+
+				}
+
+				virtual ValueType transform(ValueType val) const noexcept override
+				{
+
+					const auto minExponential = 100;
+					const auto capacity = stream.getAudioHistoryCapacity();
+	
+					const auto top = capacity;
+					const auto expSamples = cpl::Math::UnityScale::exp<double>(val, minExponential, top);
+					const auto rescaled = cpl::Math::UnityScale::linear<double>(cpl::Math::UnityScale::Inv::linear<double>(expSamples, minExponential, top), 1, top);
+
+
+					return rescaled;
+				}
+
+
+				virtual ValueType normalize(ValueType val) const noexcept override
+				{
+					const auto minExponential = 100;
+					const auto capacity = stream.getAudioHistoryCapacity();
+					const auto top = capacity;
+					const auto linear = cpl::Math::UnityScale::Inv::linear<double>(val, 1, top);
+					const auto expSamples = cpl::Math::UnityScale::linear<double>(linear, minExponential, top);
+
+					const auto normalized = cpl::Math::UnityScale::Inv::exp<double>(expSamples, minExponential, top);
+					return normalized;
+				}
+
+				std::atomic<Scaling> scale;
+				std::size_t lookahead;
 			};
 
 			class OscilloscopeController 
@@ -308,7 +416,7 @@
 			OscilloscopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
 				: systemView(system)
 				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Milliseconds)
+				, audioHistoryTransformatter(system.getAudioStream(), LookaheadSize, audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
@@ -431,7 +539,7 @@
 				builder >> triggerMode.param;
 			}
 
-			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
+			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
 			SystemView systemView;
 			ParameterSet parameterSet;
 

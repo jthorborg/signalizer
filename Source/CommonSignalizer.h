@@ -125,7 +125,7 @@
 			: public ParameterView::ParameterType::Transformer
 			, public ParameterView::ParameterType::Formatter
 			, public cpl::CSerializer::Serializable
-			, private AudioStream::Listener
+			, protected AudioStream::Listener
 		{
 		public:
 
@@ -135,6 +135,12 @@
 			{
 				Samples,
 				Milliseconds
+			};
+
+			enum Scaling
+			{
+				Linear,
+				Exponential
 			};
 
 			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Milliseconds)
@@ -176,7 +182,7 @@
 				detachFromSource();
 			}
 
-		private:
+		protected:
 
 			virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
 			{

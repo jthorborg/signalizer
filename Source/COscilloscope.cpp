@@ -57,7 +57,6 @@ namespace Signalizer
 		editor(nullptr),
 		state(),
 		filters(),
-		oldWindowSize(-1),
 		detectedFreq(),
 		quantizedFreq(),
 		medianPos()
@@ -73,22 +72,14 @@ namespace Signalizer
 		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
 		initPanelAndControls();
 		listenToSource(audioStream);
-		content->getParameterSet().addRTListener(this, true);
 	}
 
 	void COscilloscope::suspend()
 	{
-		//TODO: possibly unsynchronized. fix to have an internal size instead
-		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
 	void COscilloscope::resume()
 	{
-		if(oldWindowSize != -1)
-		{
-			//TODO: possibly unsynchronized. fix to have an internal size instead
-			content->windowSize.setTransformedValue(oldWindowSize);
-		}
 	}
 
 	juce::Component * COscilloscope::getWindow()
@@ -99,7 +90,6 @@ namespace Signalizer
 	COscilloscope::~COscilloscope()
 	{
 		detachFromSource();
-		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
 	}
 
@@ -203,13 +193,6 @@ namespace Signalizer
 		lastMousePos = event.position;
 	}
 
-	void COscilloscope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
-	{
-		if (param == &content->windowSize.parameter)
-		{
-			mtFlags.initiateWindowResize = true;
-		}
-	}
 
 	void COscilloscope::handleFlagUpdates()
 	{
@@ -226,7 +209,7 @@ namespace Signalizer
 		state.colourWire = content->skeletonColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
-
+		state.effectiveWindowSize = content->windowSize.getTransformedValue();
 
 		bool firstRun = false;
 
@@ -235,7 +218,8 @@ namespace Signalizer
 			firstRun = true;
 		}
 
-		if (firstRun || mtFlags.initiateWindowResize)
+
+		/* if (firstRun || mtFlags.initiateWindowResize)
 		{
 
 			// we will get notified asynchronously in onAsyncChangedProperties.
@@ -244,9 +228,9 @@ namespace Signalizer
 				// only reset this flag if there's valid data, otherwise keep checking.
 				mtFlags.initiateWindowResize.cas();
 				auto value = content->windowSize.getTransformedValue();
-				audioStream.setAudioHistorySize(value);
+				//audioStream.setAudioHistorySize(value);
 			}
-		}
+		} */
 	}
 
 
@@ -315,11 +299,6 @@ namespace Signalizer
 			break;
 		}
 		return false;
-	}
-
-	void COscilloscope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
-	{
-		mtFlags.audioWindowWasResized = true;
 	}
 
 };

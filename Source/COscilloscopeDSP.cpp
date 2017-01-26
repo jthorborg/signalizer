@@ -48,11 +48,11 @@ namespace Signalizer
 			{
 				auto && view = buf.getView(0);
 					
-				if (view.size() < LookaheadSize)
+				if (view.size() < OscilloscopeContent::LookaheadSize)
 					return 0;
 
-				transformBuffer.resize(LookaheadSize);
-				buffer.resize(LookaheadSize);
+				transformBuffer.resize(OscilloscopeContent::LookaheadSize);
+				buffer.resize(OscilloscopeContent::LookaheadSize);
 
 				for (std::size_t i = 0; i < transformBuffer.size(); ++i)
 				{
