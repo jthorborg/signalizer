@@ -106,9 +106,6 @@
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
 				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
-			// vector-accelerated drawing, rendering and processing
-			template<typename V>
-				void drawWavePlot2(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
@@ -187,20 +184,48 @@
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 
-			static const std::size_t MedianFilterSize = 8;
+			struct TriggerData
+			{
+				/// <summary>
+				/// The fundamental frequency (in hertz) in the selected window offset in time.
+				/// </summary>
+				double fundamental;
+				/// <summary>
+				/// The fundamental frequency, quantized to the originating DFT bin
+				/// </summary>
+				double quantizedFundamental;
+				/// <summary>
+				/// The offset quantized bin creating the fundamental
+				/// </summary>
+				double binOffset;
+				/// <summary>
+				/// The amount of samples per fundamental period
+				/// </summary>
+				double cycleSamples;
+				/// <summary>
+				/// The phase offset for the detected fundamental at T = 0 - state.effectiveWindowSize
+				/// </summary>
+				double phase;
+				/// <summary>
+				/// The sample offset for the detected fundamental at T = 0 - state.effectiveWindowSize
+				/// </summary>
+				double sampleOffset;
+			} triggerState;
+
 
 			struct MedianData
 			{
-				double bin;
-				double delta;
+				// must be a power of two
+				static const std::size_t FilterSize = 8;
+				double bin = -1;
+				double delta = 0;
 			};
-			
-			std::array<MedianData, MedianFilterSize> medianTriggerFilter;
+			std::size_t medianPos;
+			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
+
 			cpl::CMutex::Lockable bufferLock;
 			cpl::CLIFOStream<float, 16> lifoStream;
-			int medianPos;
-			double triggerOffset;
-			double detectedFreq, quantizedFreq, detectedPhase, cycleLength{}, temp8kOffset{};
+
 		};
 
 	};

@@ -59,15 +59,16 @@ namespace Signalizer
 		editor(nullptr),
 		state(),
 		filters(),
-		detectedFreq(),
-		quantizedFreq(),
-		detectedPhase(),
+		triggerState(),
 		medianPos()
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
+
+		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
+		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
 
 		mtFlags.firstRun = true;
 		setOpaque(true);
@@ -214,7 +215,7 @@ namespace Signalizer
 		state.effectiveWindowSize = content->windowSize.getTransformedValue();
 
 		// buffer size = length of detected freq in samples + display window size + lookahead
-		auto requiredSampleBufferSize = 8192 + static_cast<std::size_t>(0.5 + audioStream.getAudioHistorySamplerate() / detectedFreq + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
+		auto requiredSampleBufferSize = 8192 + static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
 
 		requiredSampleBufferSize = std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize);
 

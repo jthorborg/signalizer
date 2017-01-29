@@ -44,87 +44,77 @@ namespace Signalizer
 		{
 			case OscilloscopeContent::TriggeringMode::Spectral:
 			{
+
 #ifdef PHASE_VOCODER
 				auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
 #else
 				auto const TransformSize = OscilloscopeContent::LookaheadSize;
 #endif
-				transformBuffer.resize(OscilloscopeContent::LookaheadSize);
-				temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
 
 				auto && view = lifoStream.createProxyView();
 
 				cpl::ssize_t
 					cursor = view.cursorPosition(),
-					size = view.size();
-
-				if (size < OscilloscopeContent::LookaheadSize)
+					totalBufferSamples = view.size();
+				{
+				if (totalBufferSamples < OscilloscopeContent::LookaheadSize)
 					return 0;
+
 				// we will try to analyse the points closest to the sync point (latest in time)
 				auto offset = std::max<std::size_t>(std::ceil(state.effectiveWindowSize), OscilloscopeContent::LookaheadSize);
-				auto sampleDifference = std::max<double>(state.effectiveWindowSize, OscilloscopeContent::LookaheadSize) - offset;
 
-
-				//offset = OscilloscopeContent::LookaheadSize;
 				auto pointer = view.begin() + (cursor - offset);
 				while (pointer < view.begin())
-					pointer += size;
+					pointer += totalBufferSamples;
 
 				auto end = view.end();
 
 				for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 				{
-					auto sample = *pointer;
+					transformBuffer[i] = *pointer++;
 
-					temporaryBuffer[i] = sample;
-					transformBuffer[i] = sample;
-					pointer++;
 					if (pointer == end)
-						pointer -= size;
+						pointer -= totalBufferSamples;
 				}
-
 
 
 				signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data()), TransformSize);
 #ifdef PHASE_VOCODER
 				signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data() + TransformSize), TransformSize);
 #endif
-
+				// estimates the true frequency by calculating a bin offset to the current bin w
 				auto quadDelta = [&](auto w) {
 #if PHASE_VOCODER
-					auto delta = std::arg(transformBuffer[w]) - std::arg(transformBuffer[TransformSize + w]);
+					auto deltaBinOffset = std::arg(transformBuffer[w]) - std::arg(transformBuffer[TransformSize + w]);
 
-					delta -= w * 2 * M_PI;
+					deltaBinOffset -= w * 2 * M_PI;
 
-					while (delta < 2 * M_PI)
-						delta += 2 * M_PI;
+					while (deltaBinOffset < 2 * M_PI)
+						deltaBinOffset += 2 * M_PI;
 
-					while (delta > 2 * M_PI)
-						delta -= 2 * M_PI;
+					while (deltaBinOffset > 2 * M_PI)
+						deltaBinOffset -= 2 * M_PI;
 
-
-					return delta / (2 * M_PI);
-
-
+					return deltaBinOffset / (2 * M_PI);
 #else
 					auto x0 = transformBuffer[w], x1 = transformBuffer[w + 1], xm1 = transformBuffer[w == 0 ? 1 : w - 1];
-					return std::real((xm1 - x1) / ((x0 * 2.0) - xm1 - x1));
+return std::real((xm1 - x1) / ((x0 * 2.0) - xm1 - x1));
 #endif
 				};
 
-				std::size_t maxIndex = 1;
-				double maxValue = std::abs(transformBuffer[1]);
-				double delta = quadDelta(1);
+				std::size_t maxBinIndex = 1;
+				double maxBinValue = std::abs(transformBuffer[1]);
+				double deltaBinOffset = quadDelta(1);
 
-				const double halfSemitone = std::pow(2, 0.25 / 12.0) - 1;
+				const double quarterSemitone = std::pow(2, 0.25 / 12.0) - 1;
 
 				for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
 				{
 					auto const newValue = std::abs(transformBuffer[i]);
 					// candidate must be vastly better
-					if (newValue > maxValue * 2)
+					if (newValue > maxBinValue * 2)
 					{
-						auto oldOmega = (maxIndex + delta);
+						auto oldOmega = (maxBinIndex + deltaBinOffset);
 
 						// weird parabolas
 						if (oldOmega > 0)
@@ -135,107 +125,110 @@ namespace Signalizer
 
 							auto factor = newOmega / oldOmega;
 
-							auto sensivity = newValue / maxValue;
+							auto sensivity = newValue / maxBinValue;
 
 							// shortcut if the value is 20 times bigger
 							if (sensivity > 20)
 							{
-								maxValue = newValue;
-								maxIndex = i;
-								delta = newDelta;
+								maxBinValue = newValue;
+								maxBinIndex = i;
+								deltaBinOffset = newDelta;
 								continue;
 							}
 
 							// the same value, just a better estimate, from another bin
 							// TODO: fix this case by polynomially interpolate the value as well
-							if (std::abs(1 - factor) < halfSemitone)
+							if (std::abs(1 - factor) < quarterSemitone)
 							{
-								maxValue = newValue;
-								maxIndex = i;
-								delta = newDelta;
+								maxBinValue = newValue;
+								maxBinIndex = i;
+								deltaBinOffset = newDelta;
 								continue;
 							}
 
 							auto multipleDeviation = std::abs(factor - std::floor(factor + 0.5));
 
 							// check if the harmonic series is more than half a semi-tone away, in which case we take the candidate
-							if (std::abs(multipleDeviation) > halfSemitone)
+							if (std::abs(multipleDeviation) > quarterSemitone)
 							{
-								maxValue = newValue;
-								maxIndex = i;
-								delta = newDelta;
+								maxBinValue = newValue;
+								maxBinIndex = i;
+								deltaBinOffset = newDelta;
 							}
 						}
 						else
 						{
-							maxValue = newValue;
-							maxIndex = i;
-							delta = quadDelta(i);
+							maxBinValue = newValue;
+							maxBinIndex = i;
+							deltaBinOffset = quadDelta(i);
 						}
 
 					}
 				}
 
 				// copy old filter
-				std::array<MedianData, MedianFilterSize> localMedian = medianTriggerFilter;
+				auto localMedian = medianTriggerFilter;
 
 				// store new data
-				medianTriggerFilter[medianPos].bin = maxIndex;
-				medianTriggerFilter[medianPos].delta = delta;
+				medianTriggerFilter[medianPos].bin = maxBinIndex;
+				medianTriggerFilter[medianPos].delta = deltaBinOffset;
 
 				medianPos++;
-				medianPos %= medianTriggerFilter.size();
+				medianPos &= (MedianData::FilterSize - 1);
 
-				auto middle = (MedianFilterSize >> 1);
+				const auto middle = (MedianData::FilterSize >> 1);
 				std::nth_element(localMedian.begin(), localMedian.begin() + middle, localMedian.end(), [](const auto & a, const auto & b) { return a.bin < b.bin; });
 				auto oldMedianBin = localMedian[middle];
 
 				// check to discard (temporarily) much higher frequencies through a median filter
-				if (std::abs(maxIndex + delta - (oldMedianBin.bin + oldMedianBin.delta)) > 0.5)
+				if (oldMedianBin.bin != -1 && std::abs(maxBinIndex + deltaBinOffset - (oldMedianBin.bin + oldMedianBin.delta)) > 0.5)
 				{
-					maxIndex = oldMedianBin.bin;
-					delta = oldMedianBin.delta;
+					maxBinIndex = oldMedianBin.bin;
+					deltaBinOffset = oldMedianBin.delta;
 				}
 
-				quantizedFreq = audioStream.getAudioHistorySamplerate() * double(maxIndex) / TransformSize;
+				triggerState.quantizedFundamental = maxBinIndex;
+				triggerState.binOffset = deltaBinOffset;
 
 				// interpolate peak position quadratically
-				delta = quadDelta(maxIndex);
-				detectedFreq = audioStream.getAudioHistorySamplerate() * (maxIndex + delta) / TransformSize;
 
-				detectedFreq = std::max(1.0, detectedFreq);
-				cycleLength = audioStream.getAudioHistorySamplerate() / detectedFreq;
+				auto fundamental = audioStream.getAudioHistorySamplerate() * (maxBinIndex + deltaBinOffset) / TransformSize;
+
+				triggerState.fundamental = fundamental = std::max(5.0, fundamental);
+				triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
+
+				}
+				{
+
+				const auto radians = cpl::simd::consts<double>::tau * (triggerState.quantizedFundamental + triggerState.binOffset) / TransformSize;
 
 				// we will try to analyse the points closest to the sync point (latest in time)
-				auto offsetReal = std::max<double>(OscilloscopeContent::LookaheadSize, state.effectiveWindowSize + cycleLength);
-				offset = (std::size_t)std::ceil(offsetReal);
+				auto offsetReal = std::max<double>(OscilloscopeContent::LookaheadSize, state.effectiveWindowSize + triggerState.cycleSamples);
+				auto const offset = (std::size_t)std::ceil(offsetReal);
 
-				sampleDifference = offset - (state.effectiveWindowSize + cycleLength);
+				auto sampleDifference = offset - (state.effectiveWindowSize + triggerState.cycleSamples);
 
-				auto z2 = cpl::dsp::goertzel(temporaryBuffer, temporaryBuffer.size(), cpl::simd::consts<double>::tau * (maxIndex + delta) / TransformSize);
 
-				pointer = view.begin() + (cursor - offset);
+				auto pointer = view.begin() + (cursor - offset);
 				while (pointer < view.begin())
-					pointer += size;
+					pointer += totalBufferSamples;
 
-				end = view.end();
+				auto const end = view.end();
 
-				auto count2 = OscilloscopeContent::LookaheadSize;
-				//count2 = OscilloscopeContent::LookaheadSize;
-				for (cpl::ssize_t i = 0; i < count2; ++i)
+				for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 				{
 					auto sample = *pointer;
 
 					temporaryBuffer[i] = sample;
 					pointer++;
 					if (pointer == end)
-						pointer -= size;
+						pointer -= totalBufferSamples;
 				}
 
 				// get the complex sinusoid phase
-				auto z = cpl::dsp::goertzel(temporaryBuffer, count2, cpl::simd::consts<double>::tau * (maxIndex + delta) / TransformSize);
+				auto z = cpl::dsp::goertzel(temporaryBuffer, OscilloscopeContent::LookaheadSize, radians);
 
-				auto argz = -sampleDifference * cpl::simd::consts<double>::tau * (maxIndex + delta) / TransformSize;
+				auto argz = -sampleDifference * radians;
 
 				auto matrix = std::complex<double>(std::cos(argz), -std::sin(argz));
 
@@ -244,7 +237,7 @@ namespace Signalizer
 				// invert unit circle as the display is "backwards" in time
 				auto phase = cpl::simd::consts<double>::tau - std::arg(z);
 				// correct phase by delta
-				phase += delta * cpl::simd::consts<double>::tau;
+				phase += triggerState.binOffset * cpl::simd::consts<double>::tau;
 				// phase correct to sines
 				phase -= cpl::simd::consts<double>::pi_half;
 				// add user-defined phase offset
@@ -256,32 +249,15 @@ namespace Signalizer
 				while (phase > cpl::simd::consts<double>::tau)
 					phase -= cpl::simd::consts<double>::tau;
 
-				detectedPhase = phase;
+				triggerState.phase = phase;
 
 				// normalize phase to cycles
 				auto cycles = (phase / (cpl::simd::consts<double>::tau));
 
-
-				// invert unit circle as the display is "backwards" in time
-				auto phase2 = cpl::simd::consts<double>::tau - std::arg(z2);
-				// correct phase by delta
-				phase2 += delta * cpl::simd::consts<double>::tau;
-				// phase correct to sines
-				phase2 -= cpl::simd::consts<double>::pi_half;
-				// add user-defined phase offset
-				phase2 += cpl::simd::consts<double>::tau * content->triggerPhaseOffset.getParameterView().getValueTransformed() / 360;
-				// since we can't go back in time, travel around the unit circle until the phase is positive.
-				while (phase2 < 0)
-					phase2 += cpl::simd::consts<double>::tau;
-
-				// normalize phase to cycles
-				auto cycles2 = (phase2 / (cpl::simd::consts<double>::tau));
-
-				temp8kOffset = cycles2 * audioStream.getAudioHistorySamplerate() / (detectedFreq);
-
 				// convert to samples
-				return cycles * audioStream.getAudioHistorySamplerate() / (detectedFreq);
+				return cycles * audioStream.getAudioHistorySamplerate() / (triggerState.fundamental);
 
+				}
 			}
 
 

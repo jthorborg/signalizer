@@ -77,9 +77,9 @@ namespace Signalizer
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
-				quantizedFreq,
-				detectedFreq,
-				detectedPhase);
+				triggerState.quantizedFundamental,
+				triggerState.fundamental,
+				triggerState.phase);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 
 		}
@@ -144,7 +144,7 @@ namespace Signalizer
 
 			CPL_DEBUGCHECKGL();
 			auto && lockedView = audioStream.getAudioBufferViews();
-			triggerOffset = getTriggeringOffset();
+			triggerState.sampleOffset = getTriggeringOffset();
 			handleFlagUpdates();
 			auto cStart = cpl::Misc::ClockCounter();
 			juce::OpenGLHelpers::clear(state.colourBackground);
@@ -170,7 +170,6 @@ namespace Signalizer
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
 				drawWavePlot<V>(openGLStack, lockedView);
-				drawWavePlot2<V>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
@@ -341,163 +340,60 @@ namespace Signalizer
 
 		}
 
-
 	template<typename V>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			{
-
-
-			cpl::OpenGLRendering::MatrixModification matrixMod;
-			// and apply the gain:
-			auto gain = (GLfloat)state.envelopeGain;
-			matrixMod.scale(1, gain, 1);
-
-			auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
-
-			double sampleDisplacement = 2.0 / sizeMinusOne;
-
-			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-
-			drawer.addColour(state.colourDraw);
-
-			auto offset = -1 + -(2 * temp8kOffset / sizeMinusOne);
-
-			auto && view = lifoStream.createProxyView();
-
-
-			cpl::ssize_t 
-				cursor = view.cursorPosition(), 
-				size = view.size(), 
-				roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize));
-
-			auto cycleRealSamples = audioStream.getAudioHistorySamplerate() / detectedFreq;
-			auto cycleSamples = static_cast<cpl::ssize_t>(std::ceil(cycleRealSamples));
-
-			cycleSamples = cycleRealSamples = 0;
-
-			auto subSampleOffset = /*cycleRealSamples - cycleSamples +  */roundedWindow - state.effectiveWindowSize;
-
-			subSampleOffset = 0;
-			roundedWindow = OscilloscopeContent::LookaheadSize;
-
-			auto pointer = view.begin() + (cursor - (roundedWindow + cycleSamples));
-			while (pointer < view.begin())
-				pointer += size;
-
-			offset += 2 * ((1 - subSampleOffset) / sizeMinusOne);
-
-			auto end = view.end();
-
-			for (cpl::ssize_t i = 0; i < size; ++i)
-			{
-				
-
-				drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer, 0);
-
-				pointer++;
-				if (pointer == end)
-					pointer -= size;
-			}
-			}
-			
-			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINES);
-
-			drawer.addColour(juce::Colours::white);
-
-			drawer.addVertex(-1, -1, 0);
-			drawer.addVertex(-1, 1, 0);
-			drawer.addVertex(1, -1, 0);
-			drawer.addVertex(1, 1, 0);
-
-
-			/*// TODO: glDrawArrays
-			audio.iterate<1, true>
-			(
-				[&] (std::size_t sampleFrame, AudioStream::DataType & left)
-				{
-					drawer.addVertex(sampleFrame * sampleDisplacement + offset, left, 0);
-				}
-			); */
-
-
-		}
-	template<typename V>
-		void COscilloscope::drawWavePlot2(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
-		{
-			{
-
-
 				cpl::OpenGLRendering::MatrixModification matrixMod;
 				// and apply the gain:
-				auto gain = (GLfloat)state.envelopeGain;
+				const auto gain = (GLfloat)state.envelopeGain;
 				matrixMod.scale(1, gain, 1);
 
-				auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
-
-				double sampleDisplacement = 2.0 / sizeMinusOne;
+				const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
+				const auto sampleDisplacement = 2.0 / sizeMinusOne;
 
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 
 				drawer.addColour(state.colourDraw.contrasting());
 
-
-
-				auto offset = -1 + -(2 * triggerOffset / sizeMinusOne);
+				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
 
 				auto && view = lifoStream.createProxyView();
 
-
 				cpl::ssize_t
 					cursor = view.cursorPosition(),
-					size = view.size(),
+					bufferSamples = view.size(),
 					roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize));
 
-				auto cycleRealSamples = audioStream.getAudioHistorySamplerate() / detectedFreq;
-				auto cycleSamples = static_cast<cpl::ssize_t>(std::ceil(cycleRealSamples));
+				auto quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 
-
-				auto subSampleOffset = (cycleSamples - cycleRealSamples ) + (roundedWindow - state.effectiveWindowSize);
-				auto pointer = view.begin() + (cursor - (roundedWindow + cycleSamples));
+				auto subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
+				auto pointer = view.begin() + (cursor - (roundedWindow + quantizedCycleSamples));
 
 				while (pointer < view.begin())
-					pointer += size;
+					pointer += bufferSamples;
 
 				offset += 2 * ((1 - subSampleOffset) / sizeMinusOne);
 
 				auto end = view.end();
 
-				for (cpl::ssize_t i = 0; i < roundedWindow + cycleSamples; ++i)
+				for (cpl::ssize_t i = 0; i < roundedWindow + quantizedCycleSamples; ++i)
 				{
+					drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer++, 0);
 
-
-					drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer + 1, 0);
-
-					pointer++;
 					if (pointer == end)
-						pointer -= size;
+						pointer -= bufferSamples;
 				}
 			}
 
 			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINES);
 
-			drawer.addColour(juce::Colours::white);
+			drawer.addColour(content->skeletonColour.getAsJuceColour());
 
-			drawer.addVertex(-1, 0, 0);
-			drawer.addVertex(-1, 2, 0);
-			drawer.addVertex(1, 0, 0);
-			drawer.addVertex(1, 2, 0);
-
-
-			/*// TODO: glDrawArrays
-			audio.iterate<1, true>
-			(
-			[&] (std::size_t sampleFrame, AudioStream::DataType & left)
-			{
-			drawer.addVertex(sampleFrame * sampleDisplacement + offset, left, 0);
-			}
-			); */
-
+			drawer.addVertex(-1, -1, 0);
+			drawer.addVertex(-1, 1, 0);
+			drawer.addVertex(1, -1, 0);
+			drawer.addVertex(1, 1, 0);
 
 		}
 
