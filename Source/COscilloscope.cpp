@@ -37,7 +37,9 @@
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
 #include "VectorScopeParameters.h"
-
+#define _CRTDBG_MAP_ALLOC  
+#include <stdlib.h>  
+#include <crtdbg.h>  
 namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
@@ -59,6 +61,7 @@ namespace Signalizer
 		filters(),
 		detectedFreq(),
 		quantizedFreq(),
+		detectedPhase(),
 		medianPos()
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
@@ -68,7 +71,7 @@ namespace Signalizer
 
 		mtFlags.firstRun = true;
 		setOpaque(true);
-		textbuf = std::unique_ptr<char>(new char[300]);
+		textbuf = std::unique_ptr<char>(new char[400]);
 		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
 		initPanelAndControls();
 		listenToSource(audioStream);
@@ -108,7 +111,6 @@ namespace Signalizer
 	{
 		state.isFrozen = false;
 	}
-
 
 	void COscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
@@ -211,6 +213,13 @@ namespace Signalizer
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.effectiveWindowSize = content->windowSize.getTransformedValue();
 
+		// buffer size = length of detected freq in samples + display window size + lookahead
+		auto requiredSampleBufferSize = 8192 + static_cast<std::size_t>(0.5 + audioStream.getAudioHistorySamplerate() / detectedFreq + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
+
+		requiredSampleBufferSize = std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize);
+
+		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
+
 		bool firstRun = false;
 
 		if (mtFlags.firstRun.cas())
@@ -233,72 +242,5 @@ namespace Signalizer
 		} */
 	}
 
-
-	template<typename V>
-		void COscilloscope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
-		{
-			using namespace cpl::simd;
-			typedef typename scalar_of<V>::type T;
-			if (numChannels != 2)
-				return;
-
-			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
-
-			for (std::size_t n = 0; n < numSamples; n++)
-			{
-				using fs = FilterStates;
-				// collect squared inputs (really just a cheap abs)
-				const auto lSquared = buffer[fs::Left][n] * buffer[fs::Left][n];
-				const auto rSquared = buffer[fs::Right][n] * buffer[fs::Right][n];
-
-				// average envelope
-				filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
-				filterEnv[fs::Right] = rSquared + state.envelopeCoeff * (filterEnv[fs::Right] - rSquared);
-
-
-
-			}
-			// store calculated envelope
-			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
-			{
-				// we end up calculating envelopes even though its not possibly needed, but the overhead
-				// is negligible
-				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
-
-				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0];
-				filters.envelope[1] = filterEnv[1];
-
-				if (std::isnormal(currentEnvelope))
-				{
-					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope,
-						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
-					);
-				}
-			}
-
-		}
-
-	bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
-	{
-		switch (cpl::simd::max_vector_capacity<float>())
-		{
-		case 32:
-		case 16:
-		case 8:
-		#ifdef CPL_COMPILER_SUPPORTS_AVX
-				audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
-				break;
-		#endif
-		case 4:
-			audioProcessing<cpl::Types::v4sf>(buffer, numChannels, numSamples);
-			break;
-		default:
-			audioProcessing<float>(buffer, numChannels, numSamples);
-			break;
-		}
-		return false;
-	}
 
 };

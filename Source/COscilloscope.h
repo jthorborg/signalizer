@@ -106,11 +106,14 @@
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
 				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+			// vector-accelerated drawing, rendering and processing
+			template<typename V>
+				void drawWavePlot2(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
 			template<typename V>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
-			double getTriggeringOffset(const AudioStream::AudioBufferAccess &);
+			double getTriggeringOffset();
 
 			template<typename V>
 				void runPeakFilter(const AudioStream::AudioBufferAccess &);
@@ -182,7 +185,7 @@
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
-			cpl::aligned_vector<double, 16> buffer;
+			cpl::aligned_vector<double, 16> temporaryBuffer;
 
 			static const std::size_t MedianFilterSize = 8;
 
@@ -193,10 +196,11 @@
 			};
 			
 			std::array<MedianData, MedianFilterSize> medianTriggerFilter;
-
+			cpl::CMutex::Lockable bufferLock;
+			cpl::CLIFOStream<float, 16> lifoStream;
 			int medianPos;
 			double triggerOffset;
-			double detectedFreq, quantizedFreq;
+			double detectedFreq, quantizedFreq, detectedPhase, cycleLength{}, temp8kOffset{};
 		};
 
 	};
