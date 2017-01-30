@@ -77,7 +77,7 @@ namespace Signalizer
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
-				triggerState.quantizedFundamental,
+				(double)triggerState.record.index,
 				triggerState.fundamental,
 				triggerState.phase);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
@@ -141,12 +141,17 @@ namespace Signalizer
 		void COscilloscope::vectorGLRendering()
 		{
 			cpl::CMutex lock(bufferLock);
-
-			CPL_DEBUGCHECKGL();
-			auto && lockedView = audioStream.getAudioBufferViews();
-			triggerState.sampleOffset = getTriggeringOffset();
-			handleFlagUpdates();
 			auto cStart = cpl::Misc::ClockCounter();
+			CPL_DEBUGCHECKGL();
+
+			handleFlagUpdates();
+
+			calculateFundamentalPeriod();
+			calculateTriggeringOffset();
+
+			resizeAudioStorage();
+
+
 			juce::OpenGLHelpers::clear(state.colourBackground);
 			{
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
@@ -161,15 +166,13 @@ namespace Signalizer
 				// the peak filter has to run on the whole buffer each time.
 				if (state.envelopeMode == EnvelopeModes::PeakDecay)
 				{
-					runPeakFilter<V>(lockedView);
+					runPeakFilter<V>(audioStream.getAudioBufferViews());
 				}
-
-
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				drawWavePlot<V>(openGLStack, lockedView);
+				drawWavePlot<V>(openGLStack);
 				CPL_DEBUGCHECKGL();
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
@@ -341,7 +344,7 @@ namespace Signalizer
 		}
 
 	template<typename V>
-		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			{
 				cpl::OpenGLRendering::MatrixModification matrixMod;
@@ -349,8 +352,29 @@ namespace Signalizer
 				const auto gain = (GLfloat)state.envelopeGain;
 				matrixMod.scale(1, gain, 1);
 
+
+				auto && view = lifoStream.createProxyView();
+
+				cpl::ssize_t
+					cursor = view.cursorPosition(),
+					bufferSamples = view.size(),
+					roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize)),
+					quantizedCycleSamples(0);
+
 				const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
 				const auto sampleDisplacement = 2.0 / sizeMinusOne;
+				auto cycleSamples = triggerState.cycleSamples;
+				auto sampleOffset = triggerState.sampleOffset;
+
+				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
+				{
+					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
+				}
+				else
+				{
+					cycleSamples = sampleOffset = 0;
+				}
+
 
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 
@@ -358,14 +382,6 @@ namespace Signalizer
 
 				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
 
-				auto && view = lifoStream.createProxyView();
-
-				cpl::ssize_t
-					cursor = view.cursorPosition(),
-					bufferSamples = view.size(),
-					roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize));
-
-				auto quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 
 				auto subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
 				auto pointer = view.begin() + (cursor - (roundedWindow + quantizedCycleSamples));
@@ -386,10 +402,10 @@ namespace Signalizer
 				}
 			}
 
+			// draw end marks (temporary? move to 2d graphics anyway.)
 			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINES);
 
 			drawer.addColour(content->skeletonColour.getAsJuceColour());
-
 			drawer.addVertex(-1, -1, 0);
 			drawer.addVertex(-1, 1, 0);
 			drawer.addVertex(1, -1, 0);

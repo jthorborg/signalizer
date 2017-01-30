@@ -105,12 +105,14 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename V>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
-			double getTriggeringOffset();
+			void calculateFundamentalPeriod();
+			void calculateTriggeringOffset();
+			void resizeAudioStorage();
 
 			template<typename V>
 				void runPeakFilter(const AudioStream::AudioBufferAccess &);
@@ -171,6 +173,7 @@
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
+				OscilloscopeContent::TriggeringMode triggerMode;
 			} state;
 
 			OscilloscopeContent * content;
@@ -184,20 +187,33 @@
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 
+			struct BinRecord
+			{
+				/// <summary>
+				/// The fundamental frequency, quantized to the originating DFT bin
+				/// </summary>
+				std::size_t index;
+
+				double 
+					/// <summary>
+					/// Value of this bin
+					/// </summary>
+					value, 
+					/// <summary>
+					/// The offset quantized bin creating the fundamental
+					/// </summary>
+					offset;
+
+				double omega() const noexcept { return index + offset; }
+			};
+
 			struct TriggerData
 			{
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
 				double fundamental;
-				/// <summary>
-				/// The fundamental frequency, quantized to the originating DFT bin
-				/// </summary>
-				double quantizedFundamental;
-				/// <summary>
-				/// The offset quantized bin creating the fundamental
-				/// </summary>
-				double binOffset;
+				BinRecord record{};
 				/// <summary>
 				/// The amount of samples per fundamental period
 				/// </summary>
@@ -217,8 +233,7 @@
 			{
 				// must be a power of two
 				static const std::size_t FilterSize = 8;
-				double bin = -1;
-				double delta = 0;
+				BinRecord record{};
 			};
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;

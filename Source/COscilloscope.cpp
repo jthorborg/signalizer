@@ -196,7 +196,6 @@ namespace Signalizer
 		lastMousePos = event.position;
 	}
 
-
 	void COscilloscope::handleFlagUpdates()
 	{
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
@@ -207,19 +206,14 @@ namespace Signalizer
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
+		state.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
+
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
 		state.colourWire = content->skeletonColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.effectiveWindowSize = content->windowSize.getTransformedValue();
-
-		// buffer size = length of detected freq in samples + display window size + lookahead
-		auto requiredSampleBufferSize = 8192 + static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
-
-		requiredSampleBufferSize = std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize);
-
-		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 
 		bool firstRun = false;
 
