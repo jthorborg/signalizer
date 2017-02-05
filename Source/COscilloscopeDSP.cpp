@@ -287,8 +287,9 @@ namespace Signalizer
 
 	void COscilloscope::resizeAudioStorage()
 	{
+
 		// buffer size = length of detected freq in samples + display window size + lookahead
-		auto requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
+		auto requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.windowTimeOffset) + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
 
 		//requiredSampleBufferSize = std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize);
 

@@ -213,7 +213,23 @@ namespace Signalizer
 		state.colourWire = content->skeletonColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
-		state.effectiveWindowSize = content->windowSize.getTransformedValue();
+		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
+
+		const auto windowValue = content->windowSize.getTransformedValue();
+
+		switch (state.timeMode)
+		{
+		case OscilloscopeContent::TimeMode::Beats:
+		case OscilloscopeContent::TimeMode::Cycles:
+			state.effectiveWindowSize = windowValue * triggerState.cycleSamples + 1;
+			break;
+		case OscilloscopeContent::TimeMode::Time:
+		default:
+			state.effectiveWindowSize = windowValue;
+			break;
+		}
+
+
 
 		bool firstRun = false;
 

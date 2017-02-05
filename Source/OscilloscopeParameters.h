@@ -39,6 +39,7 @@
 		class OscilloscopeContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
+			, public ParameterSet::UIListener
 		{
 		public:
 
@@ -52,14 +53,25 @@
 				end
 			};
 
+			enum class TimeMode
+			{
+				Time, Cycles, Beats
+			};
+
 			template<typename ParameterView>
 			class WindowSizeTransformatter : public AudioHistoryTransformatter<ParameterView>
 			{
 			public:
 				WindowSizeTransformatter(AudioStream & audioStream, std::size_t auxLookahead, Mode mode = Milliseconds)
-					: AudioHistoryTransformatter(audioStream, mode), lookahead(auxLookahead)
+					: AudioHistoryTransformatter(audioStream, mode), lookahead(auxLookahead), timeMode(TimeMode::Time)
 				{
 
+				}
+
+				void setTimeModeFromUI(TimeMode newMode)
+				{
+					timeMode = newMode;
+					param->updateFromUINormalized(param->getValueNormalized());
 				}
 
 			private:
@@ -91,16 +103,54 @@
 					}
 				}
 
+				virtual bool format(const ValueType & val, std::string & buf) override
+				{
+					char buffer[100];
+					switch (timeMode)
+					{
+						case TimeMode::Cycles:
+						{
+							sprintf_s(buffer, u8"%.2f (%.2f\u03C0)", val, cpl::simd::consts<ValueType>::tau * val);
+							buf = buffer;
+							return true;
+						}
+						case TimeMode::Beats:
+						{
+							sprintf_s(buffer, "%.2f/4", val);
+							buf = buffer;
+							return true;
+						}
+						case TimeMode::Time: return AudioHistoryTransformatter<ParameterView>::format(val, buf);
+					}
+				}
+
 				virtual bool interpret(const std::string & buf, ValueType & val) override
 				{
 					ValueType collectedValue;
 
-
 					if (cpl::lexicalConversion(buf, collectedValue))
 					{
 						bool notSamples = true;
-
-						if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
+						if (timeMode != TimeMode::Time)
+						{
+							if (timeMode == TimeMode::Cycles)
+							{
+								if (buf.find("rads") != std::string::npos)
+								{
+									collectedValue /= cpl::simd::consts<ValueType>::tau;
+								}
+							}
+							else if (timeMode == TimeMode::Beats)
+							{
+								if (buf.find("bars") != std::string::npos)
+								{
+									collectedValue /= 4;
+								}
+							}
+							val = collectedValue;
+							return true;
+						}
+						else if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
 						{
 							if (buf.find("ms") != std::string::npos)
 							{
@@ -129,33 +179,54 @@
 
 				virtual ValueType transform(ValueType val) const noexcept override
 				{
+					switch (timeMode)
+					{
+						case TimeMode::Cycles:
+						case TimeMode::Beats:
+						{
+							return cpl::Math::UnityScale::exp<ValueType>(val, 1, 32);
+						}
+						case TimeMode::Time:
+						{
+							const auto minExponential = 100;
+							const auto capacity = stream.getAudioHistoryCapacity();
 
-					const auto minExponential = 100;
-					const auto capacity = stream.getAudioHistoryCapacity();
-	
-					const auto top = capacity;
-					const auto expSamples = cpl::Math::UnityScale::exp<double>(val, minExponential, top);
-					const auto rescaled = cpl::Math::UnityScale::linear<double>(cpl::Math::UnityScale::Inv::linear<double>(expSamples, minExponential, top), 1, top);
+							const auto top = capacity;
+							const auto expSamples = cpl::Math::UnityScale::exp<ValueType>(val, minExponential, top);
+							const auto rescaled = cpl::Math::UnityScale::linear<ValueType>(cpl::Math::UnityScale::Inv::linear<ValueType>(expSamples, minExponential, top), 1, top);
+							return rescaled;
+						}
+					}
 
-
-					return rescaled;
 				}
 
 
 				virtual ValueType normalize(ValueType val) const noexcept override
 				{
-					const auto minExponential = 100;
-					const auto capacity = stream.getAudioHistoryCapacity();
-					const auto top = capacity;
-					const auto linear = cpl::Math::UnityScale::Inv::linear<double>(val, 1, top);
-					const auto expSamples = cpl::Math::UnityScale::linear<double>(linear, minExponential, top);
+					switch (timeMode)
+					{
+						case TimeMode::Cycles:
+						case TimeMode::Beats:
+						{
+							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 32);
+						}
+						case TimeMode::Time:
+						{
+							const auto minExponential = 100;
+							const auto capacity = stream.getAudioHistoryCapacity();
+							const auto top = capacity;
+							const auto linear = cpl::Math::UnityScale::Inv::linear<ValueType>(val, 1, top);
+							const auto expSamples = cpl::Math::UnityScale::linear<ValueType>(linear, minExponential, top);
 
-					const auto normalized = cpl::Math::UnityScale::Inv::exp<double>(expSamples, minExponential, top);
-					return normalized;
+							const auto normalized = cpl::Math::UnityScale::Inv::exp<ValueType>(expSamples, minExponential, top);
+							return normalized;
+						}
+					}
 				}
 
 				std::atomic<Scaling> scale;
 				std::size_t lookahead;
+				TimeMode timeMode;
 			};
 
 			class OscilloscopeController 
@@ -183,6 +254,7 @@
 					, kchannelConfiguration(&parentValue.channelConfiguration.param)
 					, ktriggerPhaseOffset(&parentValue.triggerPhaseOffset)
 					, ktriggerMode(&parentValue.triggerMode.param)
+					, ktimeMode(&parentValue.timeMode.param)
 					, editorSerializer(
 						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -220,6 +292,7 @@
 					kchannelConfiguration.bSetTitle("Channel conf.");
 					ktriggerMode.bSetTitle("Trigger mode");
 					ktriggerPhaseOffset.bSetTitle("Trigger phase");
+					ktimeMode.bSetTitle("Time mode");
 
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
@@ -227,7 +300,7 @@
 					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kenvelopeMode.bSetTitle("Auto-gain mode");
-
+					
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -246,6 +319,7 @@
 					kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
 					ktriggerMode.bSetDescription("Select a mode for triggering waveforms - i.e. syncing them to the grid");
 					ktriggerPhaseOffset.bSetDescription("A custom +/- full-circle offset for the phase on triggering");
+					ktimeMode.bSetDescription("Specifies the working units of the time display");
 				}
 
 				void initUI()
@@ -267,7 +341,8 @@
 							section->addControl(&kgain, 1);
 
 							section->addControl(&kwindow, 0);
-							section->addControl(&kpctForDivision, 1);
+							section->addControl(&ktimeMode, 1);
+							section->addControl(&kpctForDivision, 0);
 
 
 							page->addSection(section, "Utility");
@@ -335,6 +410,7 @@
 					archive << kpctForDivision;
 					archive << ktriggerPhaseOffset;
 					archive << ktriggerMode;
+					archive << ktimeMode;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -363,6 +439,7 @@
 					builder >> kpctForDivision;
 					builder >> ktriggerPhaseOffset;
 					builder >> ktriggerMode;
+					builder >> ktimeMode;
 				}
 
 
@@ -403,7 +480,7 @@
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
-				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode;
+				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode;
 				cpl::CPresetWidget kpresets;
 
 				OscilloscopeContent & parent;
@@ -440,6 +517,7 @@
 				, channelConfiguration("ChConf")
 				, triggerPhaseOffset("TrgPhase", phaseRange, degreeFormatter)
 				, triggerMode("TrgMode")
+				, timeMode("TimeMode")
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -454,7 +532,7 @@
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
 				triggerMode.fmt.setValues({ "None", "Spectral" /*, "Zero-crossings" */});
-
+				timeMode.fmt.setValues({ "Time", "Cycles", "Beats" });
 				// order matters
 				auto singleParameters = { 
 					&autoGain.param, 
@@ -468,7 +546,8 @@
 					&channelConfiguration.param,
 					&pctForDivision,
 					&triggerPhaseOffset,
-					&triggerMode.param
+					&triggerMode.param,
+					&timeMode.param
 				};
 
 				for (auto sparam : singleParameters)
@@ -485,6 +564,21 @@
 				parameterSet.seal();
 
 				postParameterInitialization();
+
+				timeMode.param.getParameterView().addListener(this);
+			}
+
+			~OscilloscopeContent()
+			{
+				timeMode.param.getParameterView().removeListener(this);
+			}
+
+			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter)
+			{
+				if (parameter == &timeMode.param.getParameterView())
+				{
+					audioHistoryTransformatter.setTimeModeFromUI(timeMode.param.getAsTEnum<TimeMode>());
+				}
 			}
 
 			virtual std::unique_ptr<StateEditor> createEditor() override
@@ -516,6 +610,7 @@
 				archive << pctForDivision;
 				archive << triggerPhaseOffset;
 				archive << triggerMode.param;
+				archive << timeMode.param;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -537,6 +632,7 @@
 				builder >> pctForDivision;
 				builder >> triggerPhaseOffset;
 				builder >> triggerMode.param;
+				builder >> timeMode.param;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -581,7 +677,8 @@
 				autoGain,
 				channelConfiguration,
 				subSampleInterpolation,
-				triggerMode;
+				triggerMode,
+				timeMode;
 
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;

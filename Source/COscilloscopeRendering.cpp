@@ -203,145 +203,175 @@ namespace Signalizer
 			const auto xoff = rect.getX();
 			const auto yoff = rect.getY();
 
-			const bool nicelyQuantize = true;
-			
-			if(true || nicelyQuantize)
+			auto const minSpacing = rect.getHeight() / 50;
+			// quantize to multiples of 3
+			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
+
+			g.setColour(content->skeletonColour.getAsJuceColour());
+
+			const auto middle = rect.getHeight() * 0.5;
+			const auto offset = state.envelopeGain;
+			char textBuf[200];
+
+
+			for (std::size_t i = 1; i < numLines; ++i)
 			{
-				auto const minSpacing = rect.getHeight() / 50;
-				// quantize to multiples of 3
-				auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
+				auto const fraction = double(i) / (numLines - 1);
+				auto const coord = fraction * middle;
 
-				g.setColour(content->skeletonColour.getAsJuceColour());
+				auto const y = middle + coord;
+				auto const dBs = 20 * std::log10(fraction / offset);
+				g.drawLine(xoff, yoff + y, xoff + rect.getWidth(), yoff + y);
 
-				const auto middle = rect.getHeight() * 0.5;
-				const auto offset = state.envelopeGain;
-				char textBuf[200];
+				sprintf_s(textBuf, "%.3f dB", dBs);
 
+				g.drawSingleLineText(textBuf, xoff + 5, yoff + y - 10, juce::Justification::left);
+				g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
 
-				for (std::size_t i = 1; i < numLines; ++i)
-				{
-					auto const fraction = double(i) / (numLines - 1);
-					auto const coord = fraction * middle;
-
-					auto const y = middle + coord;
-					auto const dBs = 20 * std::log10(fraction / offset);
-					g.drawLine(xoff, yoff + y, xoff + rect.getWidth(), yoff + y);
-
-					sprintf_s(textBuf, "%.3f dB", dBs);
-
-					g.drawSingleLineText(textBuf, xoff + 5, yoff + y - 10, juce::Justification::left);
-					g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
-
-					g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y);
-				}
-
-				g.drawLine(xoff, yoff + middle, xoff + rect.getWidth(), yoff + middle);
+				g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y);
 			}
 
-			auto const minVerticalSpacing = rect.getWidth() / 75;
+			g.drawLine(xoff, yoff + middle, xoff + rect.getWidth(), yoff + middle);
 
-			auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
+			drawTimeDivisions<V>(g, rect, rect.getHeight() / numLines);
+		}
 
-			if(wantedVerticalLines > 0)
+	template<typename V>
+	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalFractionGranularity)
+	{
+		auto const minVerticalSpacing = rect.getWidth() / 75;
+
+		auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
+
+		const auto xoff = rect.getX();
+		const auto yoff = rect.getY();
+
+		if (wantedVerticalLines > 0)
+		{
+			char textBuf[200];
+			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / audioStream.getAudioHistorySamplerate();
+			double msIncrease = 0;
+			double roundedPower = 0;
+			auto cyclesTotal = state.effectiveWindowSize / (triggerState.cycleSamples);
+
+			if (state.timeMode == OscilloscopeContent::TimeMode::Time)
+			{
+				constexpr double scaleTable[] = { 1, 2, 5, 10 };
+				int size = std::extent<decltype(scaleTable)>::value;
+
+				auto getIncrement = [&](int level)
+				{
+
+					if (level < 0)
+					{
+						return std::pow(2, level);
+					}
+					else if (level >= size)
+					{
+						// scale by magnitude difference
+						return scaleTable[level % size] * std::pow(scaleTable[size - 1], level / size);
+					}
+					else
+					{
+						return scaleTable[level];
+					}
+				};
+
+
+				auto index = 0;
+				std::size_t count = 0;
+
+				std::size_t numLines = 0;
+
+				for (;;)
+				{
+					msIncrease = getIncrement(index);
+					double incz1 = getIncrement(index - 1);
+					std::size_t numLinesz1 = static_cast<int>(windowSize / incz1);
+					numLines = static_cast<int>(windowSize / msIncrease);
+
+					if (numLines > wantedVerticalLines)
+						index++;
+					else if (numLinesz1 > wantedVerticalLines)
+						break;
+					else
+						index--;
+
+					count++;
+
+					// TODO: converge problem?
+					if (count > 20)
+						break;
+				}
+			}
+			else if (state.timeMode == OscilloscopeContent::TimeMode::Cycles)
 			{
 
-				g.setColour(content->skeletonColour.getAsJuceColour());
-				char textBuf[200];
+				auto index = 0;
+				std::size_t count = 0;
 
+				std::size_t numLines = 0;
 
-				// quantize to multiples of 3
+				auto numLinesPerCycles = wantedVerticalLines / cyclesTotal;
+				roundedPower = std::pow(2, std::round(std::log2(numLinesPerCycles)));
 
-				if (nicelyQuantize)
+				msIncrease = 1000 * (triggerState.cycleSamples) / audioStream.getAudioHistorySamplerate();
+				msIncrease /= roundedPower;
+
+			}
+
+	
+			g.setColour(content->skeletonColour.getAsJuceColour());
+			double currentMsPos = 0;
+
+			// (first line is useless)
+			currentMsPos += msIncrease;
+			int i = 0;
+			while (currentMsPos < windowSize)
+			{
+				auto const fraction = currentMsPos / windowSize;
+				auto const x = xoff + fraction * rect.getWidth();
+
+				g.drawLine(x, 0, x, rect.getHeight());
+				switch (state.timeMode)
 				{
-					double scaleTable[] = { 1, 2, 5, 10 };
-					int size = std::extent<decltype(scaleTable)>::value;
-
-					auto getIncrement = [&](int level)
+					case OscilloscopeContent::TimeMode::Beats:
+					case OscilloscopeContent::TimeMode::Time: 
+						sprintf_s(textBuf, "%.3f ms", currentMsPos); 
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 10, juce::Justification::left);
+						break;
+					case OscilloscopeContent::TimeMode::Cycles: 
 					{
+						sprintf_s(textBuf, "%.3f ms", currentMsPos);
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
 
-						if (level < 0)
-						{
-							return std::pow(2, level);
-						}
-						else if (level >= size)
-						{
-							// scale by magnitude difference
-							return scaleTable[level % size] * std::pow(scaleTable[size - 1], level / size);
-						}
-						else
-						{
-							return scaleTable[level];
-						}
-					};
+						double moduloI = std::fmod(i, roundedPower) + 1;
+						sprintf_s(textBuf, u8"%.0f/%.0f (%.2f\u03C0)",
+							roundedPower > 1 ? moduloI : moduloI / roundedPower,
+							std::max(1.0, roundedPower),
+							(1 / roundedPower) * moduloI * cpl::simd::consts<double>::tau
+						);
+						g.drawSingleLineText(juce::CharPointer_UTF8(textBuf), std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
+						break;
 
-					auto const currentMS = content->windowSize.getTransformedValue() * 1000 / audioStream.getAudioHistorySamplerate();
-
-					auto index = 0;
-					std::size_t count = 0;
-					double inc = 0;
-					std::size_t numLines = 0;
-
-					for (;;)
-					{
-						inc = getIncrement(index);
-						double incz1 = getIncrement(index - 1);
-						std::size_t numLinesz1 = static_cast<int>(currentMS / incz1);
-						numLines = static_cast<int>(currentMS / inc);
-
-						if (numLines > wantedVerticalLines)
-							index++;
-						else if (numLinesz1 > wantedVerticalLines)
-							break;
-						else
-							index--;
-
-						count++;
-
-						// TODO: converge problem?
-						if (count > 20)
-							break;
-					}
-
-					double currentPos = 0;
-
-					// (first line is useless)
-					currentPos += inc;
-
-					while (currentPos < currentMS)
-					{
-						auto const fraction = currentPos / currentMS;
-						auto const x = xoff + fraction * rect.getWidth();
-
-						g.drawLine(x, 0, x, rect.getHeight());
-
-						sprintf_s(textBuf, "%.3f ms", currentPos);
-
-						g.drawSingleLineText(textBuf, x + 5, rect.getHeight() - 10, juce::Justification::left);
-
-						currentPos += inc;
-					}
-
-				}
-				else
-				{
-					for (std::size_t i = 1; i < wantedVerticalLines; ++i)
-					{
-						auto const fraction = double(i) / (wantedVerticalLines - 1);
-						auto const x = xoff + fraction * rect.getWidth();
-
-						auto const time = content->windowSize.getTransformedValue() * 1000 * fraction / audioStream.getAudioHistorySamplerate();
-
-						g.drawLine(x, 0, x, rect.getHeight());
-
-						sprintf_s(textBuf, "%.2f ms", time);
-
-						g.drawSingleLineText(textBuf, x + 5, rect.getHeight() - 10, juce::Justification::centredLeft);
 					}
 				}
+				
 
+
+
+				currentMsPos += msIncrease;
+
+				i++;
+
+				if (i > 100)
+					break;
 			}
 
 		}
+
+
+	}
 
 	template<typename V>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
@@ -365,14 +395,20 @@ namespace Signalizer
 				const auto sampleDisplacement = 2.0 / sizeMinusOne;
 				auto cycleSamples = triggerState.cycleSamples;
 				auto sampleOffset = triggerState.sampleOffset;
+				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
+
+				double subSampleOffset = 0;
 
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
+					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
+					offset += 2 * ((1 - subSampleOffset) / sizeMinusOne);
 				}
 				else
 				{
-					cycleSamples = sampleOffset = 0;
+					subSampleOffset = cycleSamples = sampleOffset = 0;
+					offset = -1;
 				}
 
 
@@ -380,16 +416,13 @@ namespace Signalizer
 
 				drawer.addColour(state.colourDraw.contrasting());
 
-				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
 
-
-				auto subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
 				auto pointer = view.begin() + (cursor - (roundedWindow + quantizedCycleSamples));
 
 				while (pointer < view.begin())
 					pointer += bufferSamples;
 
-				offset += 2 * ((1 - subSampleOffset) / sizeMinusOne);
+				roundedWindow = std::max(2, roundedWindow);
 
 				auto end = view.end();
 

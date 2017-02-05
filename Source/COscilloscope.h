@@ -110,6 +110,9 @@
 			template<typename V>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
+			template<typename V>
+				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalGranularity);
+
 			void calculateFundamentalPeriod();
 			void calculateTriggeringOffset();
 			void resizeAudioStorage();
@@ -169,11 +172,13 @@
 				float primitiveSize;
 				float envelopeCoeff;
 				double effectiveWindowSize;
+				double windowTimeOffset;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TriggeringMode triggerMode;
+				OscilloscopeContent::TimeMode timeMode;
 			} state;
 
 			OscilloscopeContent * content;
