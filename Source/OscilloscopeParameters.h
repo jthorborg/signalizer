@@ -110,13 +110,13 @@
 					{
 						case TimeMode::Cycles:
 						{
-							sprintf_s(buffer, u8"%.2f (%.2f\u03C0)", val, cpl::simd::consts<ValueType>::tau * val);
+							sprintf_s(buffer, u8"%.2f (%.2f r)", val, cpl::simd::consts<ValueType>::tau * val);
 							buf = buffer;
 							return true;
 						}
 						case TimeMode::Beats:
 						{
-							sprintf_s(buffer, "%.2f/4", val);
+							sprintf_s(buffer, "1/%f", val);
 							buf = buffer;
 							return true;
 						}
@@ -135,7 +135,7 @@
 						{
 							if (timeMode == TimeMode::Cycles)
 							{
-								if (buf.find("rads") != std::string::npos)
+								if (buf.find("r") != std::string::npos)
 								{
 									collectedValue /= cpl::simd::consts<ValueType>::tau;
 								}
@@ -182,9 +182,12 @@
 					switch (timeMode)
 					{
 						case TimeMode::Cycles:
-						case TimeMode::Beats:
 						{
 							return cpl::Math::UnityScale::exp<ValueType>(val, 1, 32);
+						}
+						case TimeMode::Beats:
+						{
+							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(val, 1, 128)));
 						}
 						case TimeMode::Time:
 						{
@@ -206,6 +209,9 @@
 					switch (timeMode)
 					{
 						case TimeMode::Cycles:
+						{
+							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 128);
+						}
 						case TimeMode::Beats:
 						{
 							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 32);

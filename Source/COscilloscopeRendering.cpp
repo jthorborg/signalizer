@@ -306,7 +306,6 @@ namespace Signalizer
 			}
 			else if (state.timeMode == OscilloscopeContent::TimeMode::Cycles)
 			{
-
 				auto index = 0;
 				std::size_t count = 0;
 
@@ -318,6 +317,11 @@ namespace Signalizer
 				msIncrease = 1000 * (triggerState.cycleSamples) / audioStream.getAudioHistorySamplerate();
 				msIncrease /= roundedPower;
 
+			}
+			else if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
+			{
+				roundedPower = std::pow(2, std::round(std::log2(wantedVerticalLines)));
+				msIncrease = windowSize / roundedPower;
 			}
 
 	
@@ -335,23 +339,36 @@ namespace Signalizer
 				g.drawLine(x, 0, x, rect.getHeight());
 				switch (state.timeMode)
 				{
-					case OscilloscopeContent::TimeMode::Beats:
 					case OscilloscopeContent::TimeMode::Time: 
 						sprintf_s(textBuf, "%.3f ms", currentMsPos); 
 						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 10, juce::Justification::left);
 						break;
 					case OscilloscopeContent::TimeMode::Cycles: 
 					{
+						
 						sprintf_s(textBuf, "%.3f ms", currentMsPos);
 						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
 
 						double moduloI = std::fmod(i, roundedPower) + 1;
-						sprintf_s(textBuf, u8"%.0f/%.0f (%.2f\u03C0)",
+						sprintf_s(textBuf, "%.0f/%.0f (%.2f r)",
 							roundedPower > 1 ? moduloI : moduloI / roundedPower,
 							std::max(1.0, roundedPower),
 							(1 / roundedPower) * moduloI * cpl::simd::consts<double>::tau
 						);
-						g.drawSingleLineText(juce::CharPointer_UTF8(textBuf), std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
+						g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
+						break;
+					}
+					case OscilloscopeContent::TimeMode::Beats:
+					{
+						auto multiplier = std::max(state.beatDivision, roundedPower);
+						sprintf_s(textBuf, "%.3f ms", currentMsPos);
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
+
+						double moduloI = std::fmod(i, roundedPower) + 1;
+						sprintf_s(textBuf, "%.0f/%.0f",
+							moduloI * multiplier / roundedPower, multiplier
+						);
+						g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
 						break;
 
 					}
@@ -396,7 +413,7 @@ namespace Signalizer
 				auto cycleSamples = triggerState.cycleSamples;
 				auto sampleOffset = triggerState.sampleOffset;
 				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
-
+				cpl::ssize_t bufferOffset = 0, bufferCycle = 0;
 				double subSampleOffset = 0;
 
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
@@ -411,13 +428,26 @@ namespace Signalizer
 					offset = -1;
 				}
 
+				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
+				{
+					bufferOffset = roundedWindow + quantizedCycleSamples;
+					bufferCycle = bufferSamples;
+				}
+				else
+				{
+					auto const realOffset = state.effectiveWindowSize + std::fmod(audioStream.getASyncPlayhead().getPositionInSamples(), state.effectiveWindowSize);
+					bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
+					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (realOffset - bufferOffset);
+					bufferCycle = roundedWindow;
+				}
+
 
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 
 				drawer.addColour(state.colourDraw.contrasting());
 
 
-				auto pointer = view.begin() + (cursor - (roundedWindow + quantizedCycleSamples));
+				auto pointer = view.begin() + (cursor - bufferOffset);
 
 				while (pointer < view.begin())
 					pointer += bufferSamples;
@@ -431,7 +461,7 @@ namespace Signalizer
 					drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer++, 0);
 
 					if (pointer == end)
-						pointer -= bufferSamples;
+						pointer -= bufferCycle;
 				}
 			}
 

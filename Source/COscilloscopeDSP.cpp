@@ -287,14 +287,17 @@ namespace Signalizer
 
 	void COscilloscope::resizeAudioStorage()
 	{
-
-		// buffer size = length of detected freq in samples + display window size + lookahead
-		auto requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.windowTimeOffset) + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
-
-		//requiredSampleBufferSize = std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize);
-
+		std::size_t requiredSampleBufferSize = 0;
+		if (state.timeMode != OscilloscopeContent::TimeMode::Beats)
+		{
+			// buffer size = length of detected freq in samples + display window size + lookahead
+			requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
+		}
+		else
+		{
+			requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
+		}
 		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
-
 	}
 
 	bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -365,6 +368,7 @@ namespace Signalizer
 			}
 			// save data
 			lifoStream.createWriter().copyIntoHead(buffer[0], numSamples);
+			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
 		}
 
 };

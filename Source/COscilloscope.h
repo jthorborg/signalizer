@@ -173,6 +173,8 @@
 				float envelopeCoeff;
 				double effectiveWindowSize;
 				double windowTimeOffset;
+				double beatDivision;
+				std::int64_t transportPosition;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;

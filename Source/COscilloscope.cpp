@@ -198,6 +198,9 @@ namespace Signalizer
 
 	void COscilloscope::handleFlagUpdates()
 	{
+		const auto windowValue = content->windowSize.getTransformedValue();
+
+
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
@@ -214,12 +217,14 @@ namespace Signalizer
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
-
-		const auto windowValue = content->windowSize.getTransformedValue();
+		state.beatDivision = windowValue;
 
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:
+			state.effectiveWindowSize = audioStream.getAudioHistorySamplerate() * (60 / (std::max(10.0, audioStream.getASyncPlayhead().getBPM()) * state.beatDivision));
+			state.effectiveWindowSize = std::max(state.effectiveWindowSize, 128.0);
+			break;
 		case OscilloscopeContent::TimeMode::Cycles:
 			state.effectiveWindowSize = windowValue * triggerState.cycleSamples + 1;
 			break;
