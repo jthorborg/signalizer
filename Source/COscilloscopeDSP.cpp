@@ -40,6 +40,9 @@ namespace Signalizer
 
 	void COscilloscope::calculateFundamentalPeriod()
 	{
+		if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
+			return;
+
 		switch (state.triggerMode)
 		{
 			case OscilloscopeContent::TriggeringMode::Spectral:
@@ -205,7 +208,7 @@ namespace Signalizer
 
 	void COscilloscope::calculateTriggeringOffset()
 	{
-		if (state.triggerMode == OscilloscopeContent::TriggeringMode::None)
+		if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.timeMode == OscilloscopeContent::TimeMode::Beats)
 		{
 			triggerState.sampleOffset = 0;
 			triggerState.cycleSamples = 0;
@@ -295,7 +298,8 @@ namespace Signalizer
 		}
 		else
 		{
-			requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
+			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
+			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
 		}
 		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}

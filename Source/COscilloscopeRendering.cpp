@@ -413,7 +413,7 @@ namespace Signalizer
 				auto cycleSamples = triggerState.cycleSamples;
 				auto sampleOffset = triggerState.sampleOffset;
 				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
-				cpl::ssize_t bufferOffset = 0, bufferCycle = 0;
+				cpl::ssize_t bufferOffset = 0;
 				double subSampleOffset = 0;
 
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
@@ -431,20 +431,18 @@ namespace Signalizer
 				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
 				{
 					bufferOffset = roundedWindow + quantizedCycleSamples;
-					bufferCycle = bufferSamples;
 				}
 				else
 				{
-					auto const realOffset = state.effectiveWindowSize + std::fmod(audioStream.getASyncPlayhead().getPositionInSamples(), state.effectiveWindowSize);
+					auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
 					bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (realOffset - bufferOffset);
-					bufferCycle = roundedWindow;
 				}
 
 
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 
-				drawer.addColour(state.colourDraw.contrasting());
+				drawer.addColour(state.colourDraw);
 
 
 				auto pointer = view.begin() + (cursor - bufferOffset);
@@ -461,7 +459,7 @@ namespace Signalizer
 					drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer++, 0);
 
 					if (pointer == end)
-						pointer -= bufferCycle;
+						pointer -= bufferSamples;
 				}
 			}
 

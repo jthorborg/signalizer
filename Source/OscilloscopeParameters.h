@@ -116,7 +116,7 @@
 						}
 						case TimeMode::Beats:
 						{
-							sprintf_s(buffer, "1/%f", val);
+							sprintf_s(buffer, "1/%.0f", val);
 							buf = buffer;
 							return true;
 						}
@@ -187,7 +187,7 @@
 						}
 						case TimeMode::Beats:
 						{
-							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(val, 1, 128)));
+							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(1 - val, 1, 128)));
 						}
 						case TimeMode::Time:
 						{
@@ -214,7 +214,7 @@
 						}
 						case TimeMode::Beats:
 						{
-							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 32);
+							return cpl::Math::UnityScale::Inv::exp<ValueType>(1 - val, 1, 32);
 						}
 						case TimeMode::Time:
 						{
