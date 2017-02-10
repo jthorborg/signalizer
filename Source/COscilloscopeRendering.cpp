@@ -397,8 +397,8 @@ namespace Signalizer
 				cpl::OpenGLRendering::MatrixModification matrixMod;
 				// and apply the gain:
 				const auto gain = (GLfloat)state.envelopeGain;
-				matrixMod.scale(1, gain, 1);
 
+				auto top = content->viewOffsets[OscilloscopeContent::ViewOffsets::Top].getTransformedValue(), bottom = content->viewOffsets[OscilloscopeContent::ViewOffsets::Bottom].getTransformedValue();
 
 				auto && view = lifoStream.createProxyView();
 
@@ -440,12 +440,9 @@ namespace Signalizer
 				}
 
 
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 
-				drawer.addColour(state.colourDraw);
-
-
-				auto pointer = view.begin() + (cursor - bufferOffset);
+				// minus one to account for samples being halfway into the screen
+				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
 
 				while (pointer < view.begin())
 					pointer += bufferSamples;
@@ -454,9 +451,19 @@ namespace Signalizer
 
 				auto end = view.end();
 
-				for (cpl::ssize_t i = 0; i < roundedWindow + quantizedCycleSamples; ++i)
+				// minus sampleDisplacement to account for the minus one above
+				matrixMod.translate(offset - sampleDisplacement, 0, 0);
+				matrixMod.scale(sampleDisplacement, gain / (bottom - top), 1);
+
+
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+				drawer.addColour(state.colourDraw);
+
+
+				const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
+				for (GLfloat i = 0; i < endCondition; i += 1)
 				{
-					drawer.addVertex(static_cast<GLfloat>(i * sampleDisplacement + offset), *pointer++, 0);
+					drawer.addVertex(i, *pointer++, 0);
 
 					if (pointer == end)
 						pointer -= bufferSamples;
