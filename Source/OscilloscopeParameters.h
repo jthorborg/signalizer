@@ -506,6 +506,7 @@
 				, degreeRange(0, 360)
 				, ptsRange(0.01, 10)
 				, phaseRange(-180, 180)
+				, reverseUnitRange(1, 0)
 
 				, msFormatter("ms")
 				, degreeFormatter("degs")
@@ -533,7 +534,13 @@
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
+
 			{
+				viewOffsets.emplace_back("ViewLeft", unityRange, basicFormatter);
+				viewOffsets.emplace_back("ViewTop", unityRange, basicFormatter);
+				viewOffsets.emplace_back("ViewRight", reverseUnitRange, basicFormatter);
+				viewOffsets.emplace_back("ViewBottom", reverseUnitRange, basicFormatter);
+
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
@@ -559,6 +566,11 @@
 				for (auto sparam : singleParameters)
 				{
 					parameterSet.registerSingleParameter(sparam->generateUpdateRegistrator());
+				}
+
+				for (auto & v : viewOffsets)
+				{
+					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
 				parameterSet.registerParameterBundle(&drawingColour, drawingColour.getBundleName());
@@ -617,6 +629,10 @@
 				archive << triggerPhaseOffset;
 				archive << triggerMode.param;
 				archive << timeMode.param;
+				for (auto && v : viewOffsets)
+				{
+					archive << v;
+				}
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -639,6 +655,10 @@
 				builder >> triggerPhaseOffset;
 				builder >> triggerMode.param;
 				builder >> timeMode.param;
+				for (auto & v : viewOffsets)
+				{
+					builder >> v;
+				}
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -656,6 +676,7 @@
 			cpl::DBFormatter<double> dbFormatter;
 			cpl::BooleanFormatter<double> boolFormatter;
 
+			cpl::BasicFormatter<double> basicFormatter;
 			cpl::BooleanRange<double> boolRange;
 
 			cpl::ExponentialRange<double> dbRange;
@@ -664,10 +685,15 @@
 				ptsRange,
 				windowRange,
 				degreeRange,
-				phaseRange;
+				phaseRange,
+				reverseUnitRange;
 
 			cpl::UnityRange<double> unityRange;
-
+			
+			enum ViewOffsets
+			{
+				Left, Top, Right, Bottom
+			};
 
 			cpl::ParameterValue<ParameterSet::ParameterView>
 				envelopeWindow,
@@ -678,6 +704,8 @@
 				primitiveSize,
 				pctForDivision,
 				triggerPhaseOffset;
+
+			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
 			ChoiceParameter
 				autoGain,

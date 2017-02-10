@@ -115,35 +115,69 @@ namespace Signalizer
 
 	void COscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
+		using V = OscilloscopeContent::ViewOffsets;
+
+		auto yp = double(getHeight() - event.position.y) / getHeight();
+		auto xp = double(event.position.x) / getWidth();
+
+		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
+
 		auto amount = wheel.deltaY;
 		if (event.mods.isCtrlDown())
 		{
-			// increase gain
-			// TODO: fix to pow()
-			content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
+			if (event.mods.isShiftDown())
+			{
+				// scale only vertically
+				auto top = get(V::Top);
+				auto bottom = get(V::Bottom);
+
+				auto incY = -(top - bottom) * wheel.deltaY / 5;
+				// TODO: change to pow()
+				content->viewOffsets[V::Top].setTransformedValue(top + yp * incY);
+				content->viewOffsets[V::Bottom].setTransformedValue(bottom - (1 - yp) * incY);
+			}
+			else
+			{
+				// TODO: fix to pow()
+				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
+			}
+
+
 		}
-		else /* zoom graph */
+		else if (event.mods.isShiftDown())
 		{
-			auto & matrix = content->transform;
-			//matrix.scale.x += amount;
-			//matrix.scale.y += amount;
-			auto Z = matrix.getValueIndex(matrix.Scale, matrix.Z).getTransformedValue();
-			auto actualAmount = (1 + amount / 5) * Z;
-			auto deltaIncrease = (actualAmount - Z) / Z;
-			matrix.getValueIndex(matrix.Scale, matrix.Z).setTransformedValue(actualAmount);
+			// scale only horizontally
+			auto left = get(V::Left);
+			auto right = get(V::Right);
 
-			matrix.getValueIndex(matrix.Scale, matrix.X).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.X).getTransformedValue() * (1 + deltaIncrease)
-			);
+			auto incX = -(left - right) * wheel.deltaY / 5;
+			// TODO: change to pow()
+			content->viewOffsets[V::Left].setTransformedValue(left + xp * incX);
+			content->viewOffsets[V::Right].setTransformedValue(right - (1 - xp) * incX);
+		}
+		else 
+		{
+			// zoom both graph axis
 
-			matrix.getValueIndex(matrix.Scale, matrix.Y).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
-			);
+			auto left = get(V::Left);
+			auto right = get(V::Right);
+			auto top = get(V::Top);
+			auto bottom = get(V::Bottom);
+
+			auto incX = -(left - right) * wheel.deltaY / 5;
+			auto incY = -(top - bottom) * wheel.deltaY / 5;
+			// TODO: change to pow()
+			content->viewOffsets[V::Left].setTransformedValue(left + xp * incX);
+			content->viewOffsets[V::Right].setTransformedValue(right - (1 - xp) * incX);
+			content->viewOffsets[V::Top].setTransformedValue(top + yp * incY);
+			content->viewOffsets[V::Bottom].setTransformedValue(bottom - (1 - yp) * incY);
+
 		}
 
 	}
 	void COscilloscope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
+		using V = OscilloscopeContent::ViewOffsets;
 
 		if (event.mods.isLeftButtonDown())
 		{
@@ -153,36 +187,38 @@ namespace Signalizer
 			auto & matrix = content->transform;
 			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
 			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
+
+			content->viewOffsets[V::Left].setNormalizedValue(0);
+			content->viewOffsets[V::Right].setNormalizedValue(0);
+			content->viewOffsets[V::Top].setNormalizedValue(0);
+			content->viewOffsets[V::Bottom].setNormalizedValue(0);
 		}
 	}
 	void COscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto & matrix = content->transform;
-		auto factor = float(getWidth()) / getHeight();
 		auto deltaDifference = event.position - lastMousePos;
-		if (event.mods.isCtrlDown())
-		{
-			auto yvalue = matrix.getValueIndex(matrix.Rotation, matrix.Y).getTransformedValue();
-			auto newValue = std::fmod(deltaDifference.x * 0.3f + yvalue, 360.f);
-			while (newValue < 0)
-				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.Y).setTransformedValue(newValue);
 
-			auto xvalue = matrix.getValueIndex(matrix.Rotation, matrix.X).getTransformedValue();
-			newValue = std::fmod(deltaDifference.y * 0.3f + xvalue, 360.f);
-			while (newValue < 0)
-				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.X).setTransformedValue(newValue);
-		}
-		else
-		{
+		using V = OscilloscopeContent::ViewOffsets;
 
-			auto xvalue = matrix.getValueIndex(matrix.Position, matrix.X).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
+		auto yp = double(deltaDifference.y) / getHeight();
+		auto xp = double(deltaDifference.x) / getWidth();
 
-			auto yvalue = matrix.getValueIndex(matrix.Position, matrix.Y).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
-		}
+		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
+
+		auto left = get(V::Left);
+		auto right = get(V::Right);
+		auto top = get(V::Top);
+		auto bottom = get(V::Bottom);
+
+		auto addClamped = [&](auto i, double val) {
+			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
+		};
+
+		addClamped(V::Left, xp * (left - right));
+		addClamped(V::Right, xp * (left - right));
+		addClamped(V::Top, yp * (top - bottom));
+		addClamped(V::Bottom, yp * (top - bottom));
 
 		lastMousePos = event.position;
 	}

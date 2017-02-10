@@ -23,7 +23,7 @@
 
 	file:CSpectrum.cpp
 
-		Implemtation of UI and logic for the spectrum view.
+		Implementation of UI and logic for the spectrum view.
 
 *************************************************************************************/
 
