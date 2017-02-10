@@ -117,8 +117,8 @@ namespace Signalizer
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
-		auto yp = double(getHeight() - event.position.y) / getHeight();
-		auto xp = double(event.position.x) / getWidth();
+		auto yp = double(event.position.y) / (getHeight() - 1);
+		auto xp = double(event.position.x) / (getWidth() - 1);
 
 		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
 
@@ -201,8 +201,8 @@ namespace Signalizer
 
 		using V = OscilloscopeContent::ViewOffsets;
 
-		auto yp = double(deltaDifference.y) / getHeight();
-		auto xp = double(deltaDifference.x) / getWidth();
+		auto yp = double(deltaDifference.y) / (getHeight() - 1);
+		auto xp = double(deltaDifference.x) / (getWidth() - 1);
 
 		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
 

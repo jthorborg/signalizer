@@ -451,11 +451,13 @@ namespace Signalizer
 
 				auto end = view.end();
 
+				auto verticalDelta = bottom - top;
+				auto center = (top + verticalDelta * 0.5);
 				// minus sampleDisplacement to account for the minus one above
 				matrixMod.translate(offset - sampleDisplacement, 0, 0);
-				matrixMod.scale(sampleDisplacement, gain / (bottom - top), 1);
-
-
+				matrixMod.scale(sampleDisplacement, 1 / verticalDelta, 1);
+				matrixMod.translate(0, top + (bottom - 1), 0);
+				matrixMod.scale(1, gain, 1);
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 				drawer.addColour(state.colourDraw);
 
