@@ -174,6 +174,8 @@
 				double effectiveWindowSize;
 				double windowTimeOffset;
 				double beatDivision;
+
+				double viewOffsets[4];
 				std::int64_t transportPosition;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
@@ -182,6 +184,8 @@
 				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
 			} state;
+
+			using VO = OscilloscopeContent::ViewOffsets;
 
 			OscilloscopeContent * content;
 			AudioStream & audioStream;

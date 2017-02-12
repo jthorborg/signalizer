@@ -203,35 +203,63 @@ namespace Signalizer
 			const auto xoff = rect.getX();
 			const auto yoff = rect.getY();
 
-			auto const minSpacing = rect.getHeight() / 50;
+			const auto verticalDelta = state.viewOffsets[VO::Bottom] - state.viewOffsets[VO::Top];
+
+			auto const minSpacing = (rect.getHeight() / 50) / verticalDelta;
 			// quantize to multiples of 3
 			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
 
 			g.setColour(content->skeletonColour.getAsJuceColour());
 
-			const auto middle = rect.getHeight() * 0.5;
 			const auto offset = state.envelopeGain;
 			char textBuf[200];
 
 
-			for (std::size_t i = 1; i < numLines; ++i)
-			{
-				auto const fraction = double(i) / (numLines - 1);
-				auto const coord = fraction * middle;
+			auto viewTransform = [&](auto pos) {
+				return (pos + (state.viewOffsets[VO::Bottom] - 1)) / verticalDelta;
+			};
 
-				auto const y = middle + coord;
-				auto const dBs = 20 * std::log10(fraction / offset);
-				g.drawLine(xoff, yoff + y, xoff + rect.getWidth(), yoff + y);
+
+			auto drawMarkerAt = [&](auto where) {
+
+				auto const transformedPos = viewTransform(where);
+				auto const coord = transformedPos * rect.getHeight();
+
+				auto const waveSpace = std::abs(2 * where - 1);
+
+				auto const y = coord;
+				auto const dBs = 20 * std::log10(waveSpace / offset);
 
 				sprintf_s(textBuf, "%.3f dB", dBs);
 
-				g.drawSingleLineText(textBuf, xoff + 5, yoff + y - 10, juce::Justification::left);
 				g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
 
 				g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y);
+			};
+
+			// -300 dB
+			auto const zeroDBEpsilon = 0.000000000000001;
+
+			auto
+				inc = 1.0 / (numLines - 1),
+				end = 1 - state.viewOffsets[VO::Top];
+
+			auto bottom = viewTransform(0);
+			auto top = viewTransform(1);
+
+			auto unitSpacePos = cpl::Math::roundToNextMultiplier(1 - state.viewOffsets[VO::Bottom], inc);
+
+
+			while (unitSpacePos < end)
+			{
+				if(std::abs(unitSpacePos - 0.5) > zeroDBEpsilon)
+					drawMarkerAt(unitSpacePos);
+
+
+				unitSpacePos += inc;
 			}
 
-			g.drawLine(xoff, yoff + middle, xoff + rect.getWidth(), yoff + middle);
+			drawMarkerAt(0.5);
 
 			drawTimeDivisions<V>(g, rect, rect.getHeight() / numLines);
 		}
@@ -239,7 +267,9 @@ namespace Signalizer
 	template<typename V>
 	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalFractionGranularity)
 	{
-		auto const minVerticalSpacing = rect.getWidth() / 75;
+		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
+
+		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
 
 		auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
 
@@ -250,6 +280,9 @@ namespace Signalizer
 		{
 			char textBuf[200];
 			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / audioStream.getAudioHistorySamplerate();
+			if (windowSize == 0)
+				return;
+
 			double msIncrease = 0;
 			double roundedPower = 0;
 			auto cyclesTotal = state.effectiveWindowSize / (triggerState.cycleSamples);
@@ -299,10 +332,13 @@ namespace Signalizer
 
 					count++;
 
-					// TODO: converge problem?
+					// TODO: converge problem? - also, provide inital estimate
 					if (count > 20)
 						break;
 				}
+
+				int k = 0;
+
 			}
 			else if (state.timeMode == OscilloscopeContent::TimeMode::Cycles)
 			{
@@ -331,22 +367,41 @@ namespace Signalizer
 			// (first line is useless)
 			currentMsPos += msIncrease;
 			int i = 0;
-			while (currentMsPos < windowSize)
+
+			auto transformView = [&](auto x) {
+				return (x - state.viewOffsets[VO::Left]) / horizontalDelta ;
+			};
+
+			auto end = state.viewOffsets[VO::Right] * windowSize;
+
+			auto start = state.viewOffsets[VO::Left] * windowSize;
+			auto multiplier = start / msIncrease;
+
+			i += static_cast<int>(std::floor(multiplier)) - 1;
+
+			currentMsPos = cpl::Math::roundToNextMultiplier(start, msIncrease);
+
+			while (currentMsPos < end)
 			{
 				auto const fraction = currentMsPos / windowSize;
-				auto const x = xoff + fraction * rect.getWidth();
-
+				auto const x = xoff + transformView(fraction) * rect.getWidth();
+				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
 				g.drawLine(x, 0, x, rect.getHeight());
 				switch (state.timeMode)
 				{
 					case OscilloscopeContent::TimeMode::Time: 
-						sprintf_s(textBuf, "%.3f ms", currentMsPos); 
+						sprintf_s(textBuf, "%.4f ms", currentMsPos); 
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
+						sprintf_s(textBuf, "%.2f smps", samples);
 						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 10, juce::Justification::left);
 						break;
 					case OscilloscopeContent::TimeMode::Cycles: 
 					{
 						
-						sprintf_s(textBuf, "%.3f ms", currentMsPos);
+						sprintf_s(textBuf, "%.4f ms", currentMsPos);
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 40, juce::Justification::left);
+
+						sprintf_s(textBuf, "%.2f smps", samples);
 						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
 
 						double moduloI = std::fmod(i, roundedPower) + 1;
@@ -361,7 +416,10 @@ namespace Signalizer
 					case OscilloscopeContent::TimeMode::Beats:
 					{
 						auto multiplier = std::max(state.beatDivision, roundedPower);
-						sprintf_s(textBuf, "%.3f ms", currentMsPos);
+						sprintf_s(textBuf, "%.4f ms", currentMsPos);
+						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 40, juce::Justification::left);
+
+						sprintf_s(textBuf, "%.2f smps", samples);
 						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
 
 						double moduloI = std::fmod(i, roundedPower) + 1;
@@ -381,8 +439,6 @@ namespace Signalizer
 
 				i++;
 
-				if (i > 100)
-					break;
 			}
 
 		}
@@ -398,7 +454,11 @@ namespace Signalizer
 				// and apply the gain:
 				const auto gain = (GLfloat)state.envelopeGain;
 
-				auto top = content->viewOffsets[OscilloscopeContent::ViewOffsets::Top].getTransformedValue(), bottom = content->viewOffsets[OscilloscopeContent::ViewOffsets::Bottom].getTransformedValue();
+				auto 
+					left = content->viewOffsets[OscilloscopeContent::ViewOffsets::Left].getTransformedValue(), 
+					right = content->viewOffsets[OscilloscopeContent::ViewOffsets::Right].getTransformedValue(),				
+					top = content->viewOffsets[OscilloscopeContent::ViewOffsets::Top].getTransformedValue(),
+					bottom = content->viewOffsets[OscilloscopeContent::ViewOffsets::Bottom].getTransformedValue();
 
 				auto && view = lifoStream.createProxyView();
 
@@ -439,7 +499,7 @@ namespace Signalizer
 					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (realOffset - bufferOffset);
 				}
 
-
+				// handle viewOffset scaling and translation on samples 
 
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
@@ -453,23 +513,54 @@ namespace Signalizer
 
 				auto verticalDelta = bottom - top;
 				auto center = (top + verticalDelta * 0.5);
-				// minus sampleDisplacement to account for the minus one above
-				matrixMod.translate(offset - sampleDisplacement, 0, 0);
-				matrixMod.scale(sampleDisplacement, 1 / verticalDelta, 1);
+
+				// modify the horizontal axis into [0, 1] instead of [-1, 1]
+				matrixMod.translate(-1, 0, 0);
+				matrixMod.scale(2, 1, 1);
+
+				// apply horizontal transformation
+
+				matrixMod.scale(1 / (right - left), 1, 1);
+				matrixMod.translate(-left, 0, 0);
+
+				// apply vertical transformation
+				matrixMod.scale(1, 1.0 / verticalDelta, 0);
 				matrixMod.translate(0, top + (bottom - 1), 0);
-				matrixMod.scale(1, gain, 1);
+				matrixMod.scale(1, gain, 0);
+
+				// minus sampleDisplacement to account for the minus one above
+				//matrixMod.translate(-2 * (right - 1), 0, 0);
+				//matrixMod.scale(1 / (right - left), gain, 1);
+				//matrixMod.translate(offset, 0, 0);
+
+
+
+				//matrixMod.translate(-sampleDisplacement, 0, 0);
+				//matrixMod.scale(sampleDisplacement, 1 / verticalDelta, 1);
+
+
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 				drawer.addColour(state.colourDraw);
 
-
-				const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
-				for (GLfloat i = 0; i < endCondition; i += 1)
+				if (true)
 				{
-					drawer.addVertex(i, *pointer++, 0);
-
-					if (pointer == end)
-						pointer -= bufferSamples;
+					for (float i = 0; i < getWidth(); i += 1)
+					{
+						drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
+					}
 				}
+				else
+				{
+					const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
+					for (GLfloat i = 0; i < endCondition; i += 1)
+					{
+						drawer.addVertex(i, *pointer++, 0);
+
+						if (pointer == end)
+							pointer -= bufferSamples;
+					}
+				}
+
 			}
 
 			// draw end marks (temporary? move to 2d graphics anyway.)

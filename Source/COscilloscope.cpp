@@ -255,6 +255,10 @@ namespace Signalizer
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 
+		cpl::foreach_enum<VO>([this](auto i) {
+			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
+		});
+
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:

@@ -196,7 +196,7 @@
 
 							const auto top = capacity;
 							const auto expSamples = cpl::Math::UnityScale::exp<ValueType>(val, minExponential, top);
-							const auto rescaled = cpl::Math::UnityScale::linear<ValueType>(cpl::Math::UnityScale::Inv::linear<ValueType>(expSamples, minExponential, top), 1, top);
+							const auto rescaled = cpl::Math::UnityScale::linear<ValueType>(cpl::Math::UnityScale::Inv::linear<ValueType>(expSamples, minExponential, top), 2, top);
 							return rescaled;
 						}
 					}
@@ -692,7 +692,7 @@
 			
 			enum ViewOffsets
 			{
-				Left, Top, Right, Bottom
+				Left, Top, Right, Bottom, end
 			};
 
 			cpl::ParameterValue<ParameterSet::ParameterView>
