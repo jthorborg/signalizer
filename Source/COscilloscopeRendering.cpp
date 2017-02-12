@@ -219,7 +219,6 @@ namespace Signalizer
 				return (pos + (state.viewOffsets[VO::Bottom] - 1)) / verticalDelta;
 			};
 
-
 			auto drawMarkerAt = [&](auto where) {
 
 				auto const transformedPos = viewTransform(where);
@@ -268,9 +267,7 @@ namespace Signalizer
 	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalFractionGranularity)
 	{
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
-
 		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
-
 		auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
 
 		const auto xoff = rect.getX();
@@ -310,8 +307,7 @@ namespace Signalizer
 					}
 				};
 
-
-				auto index = 0;
+				int index = 0;
 				std::size_t count = 0;
 
 				std::size_t numLines = 0;
@@ -336,20 +332,11 @@ namespace Signalizer
 					if (count > 20)
 						break;
 				}
-
-				int k = 0;
-
 			}
 			else if (state.timeMode == OscilloscopeContent::TimeMode::Cycles)
 			{
-				auto index = 0;
-				std::size_t count = 0;
-
-				std::size_t numLines = 0;
-
 				auto numLinesPerCycles = wantedVerticalLines / cyclesTotal;
 				roundedPower = std::pow(2, std::round(std::log2(numLinesPerCycles)));
-
 				msIncrease = 1000 * (triggerState.cycleSamples) / audioStream.getAudioHistorySamplerate();
 				msIncrease /= roundedPower;
 
@@ -362,14 +349,9 @@ namespace Signalizer
 
 	
 			g.setColour(content->skeletonColour.getAsJuceColour());
-			double currentMsPos = 0;
-
-			// (first line is useless)
-			currentMsPos += msIncrease;
-			int i = 0;
 
 			auto transformView = [&](auto x) {
-				return (x - state.viewOffsets[VO::Left]) / horizontalDelta ;
+				return (x - state.viewOffsets[VO::Left]) / horizontalDelta;
 			};
 
 			auto end = state.viewOffsets[VO::Right] * windowSize;
@@ -377,9 +359,9 @@ namespace Signalizer
 			auto start = state.viewOffsets[VO::Left] * windowSize;
 			auto multiplier = start / msIncrease;
 
-			i += static_cast<int>(std::floor(multiplier)) - 1;
+			auto i = static_cast<int>(std::floor(multiplier)) - 1;
 
-			currentMsPos = cpl::Math::roundToNextMultiplier(start, msIncrease);
+			auto currentMsPos = cpl::Math::roundToNextMultiplier(start, msIncrease);
 
 			while (currentMsPos < end)
 			{
@@ -387,63 +369,43 @@ namespace Signalizer
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
 				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
 				g.drawLine(x, 0, x, rect.getHeight());
+
+				float offset = 10;
+				double moduloI = std::fmod(i, roundedPower) + 1;
+
+				auto textOut = [&](auto format, auto... args) {
+					sprintf_s(textBuf, format, args...);
+					g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - offset, juce::Justification::left);
+					offset += 15;
+				};
+
 				switch (state.timeMode)
 				{
-					case OscilloscopeContent::TimeMode::Time: 
-						sprintf_s(textBuf, "%.4f ms", currentMsPos); 
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
-						sprintf_s(textBuf, "%.2f smps", samples);
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 10, juce::Justification::left);
-						break;
 					case OscilloscopeContent::TimeMode::Cycles: 
 					{
-						
-						sprintf_s(textBuf, "%.4f ms", currentMsPos);
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 40, juce::Justification::left);
-
-						sprintf_s(textBuf, "%.2f smps", samples);
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
-
-						double moduloI = std::fmod(i, roundedPower) + 1;
-						sprintf_s(textBuf, "%.0f/%.0f (%.2f r)",
+						textOut("%.0f/%.0f (%.2f r)",
 							roundedPower > 1 ? moduloI : moduloI / roundedPower,
 							std::max(1.0, roundedPower),
 							(1 / roundedPower) * moduloI * cpl::simd::consts<double>::tau
 						);
-						g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
 						break;
 					}
 					case OscilloscopeContent::TimeMode::Beats:
 					{
-						auto multiplier = std::max(state.beatDivision, roundedPower);
-						sprintf_s(textBuf, "%.4f ms", currentMsPos);
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 40, juce::Justification::left);
-
-						sprintf_s(textBuf, "%.2f smps", samples);
-						g.drawSingleLineText(textBuf, std::round(x + 5), rect.getHeight() - 25, juce::Justification::left);
-
-						double moduloI = std::fmod(i, roundedPower) + 1;
-						sprintf_s(textBuf, "%.0f/%.0f",
+						textOut("%.0f/%.0f",
 							moduloI * multiplier / roundedPower, multiplier
 						);
-						g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - 10, juce::Justification::left);
 						break;
-
 					}
 				}
-				
 
-
+				textOut("%.2f smps", samples);
+				textOut("%.4f ms", currentMsPos);
 
 				currentMsPos += msIncrease;
-
 				i++;
-
 			}
-
 		}
-
-
 	}
 
 	template<typename V>
