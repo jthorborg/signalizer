@@ -254,6 +254,7 @@ namespace Signalizer
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
+		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();

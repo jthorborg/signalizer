@@ -261,6 +261,8 @@
 					, ktriggerPhaseOffset(&parentValue.triggerPhaseOffset)
 					, ktriggerMode(&parentValue.triggerMode.param)
 					, ktimeMode(&parentValue.timeMode.param)
+					, kdotSamples(&parentValue.dotSamples)
+
 					, editorSerializer(
 						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -306,7 +308,9 @@
 					kdiagnostics.setSingleText("Diagnostics");
 					kdiagnostics.setToggleable(true);
 					kenvelopeMode.bSetTitle("Auto-gain mode");
-					
+					kdotSamples.bSetTitle("Dot samples");
+					kdotSamples.setToggleable(true);
+
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -326,6 +330,7 @@
 					ktriggerMode.bSetDescription("Select a mode for triggering waveforms - i.e. syncing them to the grid");
 					ktriggerPhaseOffset.bSetDescription("A custom +/- full-circle offset for the phase on triggering");
 					ktimeMode.bSetDescription("Specifies the working units of the time display");
+					kdotSamples.bSetDescription("Marks sample positions when drawing subsampled interpolated lines");
 				}
 
 				void initUI()
@@ -368,6 +373,7 @@
 						{
 							section->addControl(&kantiAlias, 0);
 							section->addControl(&kdiagnostics, 1);
+							section->addControl(&kdotSamples, 2);
 							page->addSection(section, "Options");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -417,6 +423,7 @@
 					archive << ktriggerPhaseOffset;
 					archive << ktriggerMode;
 					archive << ktimeMode;
+					archive << kdotSamples;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -446,6 +453,7 @@
 					builder >> ktriggerPhaseOffset;
 					builder >> ktriggerMode;
 					builder >> ktimeMode;
+					builder >> kdotSamples;
 				}
 
 
@@ -482,7 +490,7 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kdiagnostics;
+				cpl::CButton kantiAlias, kdiagnostics, kdotSamples;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
@@ -525,6 +533,7 @@
 				, triggerPhaseOffset("TrgPhase", phaseRange, degreeFormatter)
 				, triggerMode("TrgMode")
 				, timeMode("TimeMode")
+				, dotSamples("DotSmps", boolRange, boolFormatter)
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -560,7 +569,8 @@
 					&pctForDivision,
 					&triggerPhaseOffset,
 					&triggerMode.param,
-					&timeMode.param
+					&timeMode.param,
+					&dotSamples
 				};
 
 				for (auto sparam : singleParameters)
@@ -633,6 +643,7 @@
 				{
 					archive << v;
 				}
+				archive << dotSamples;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -659,6 +670,7 @@
 				{
 					builder >> v;
 				}
+				builder >> dotSamples;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -703,7 +715,8 @@
 				diagnostics,
 				primitiveSize,
 				pctForDivision,
-				triggerPhaseOffset;
+				triggerPhaseOffset,
+				dotSamples;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 

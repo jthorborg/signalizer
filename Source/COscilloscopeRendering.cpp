@@ -431,10 +431,10 @@ namespace Signalizer
 					quantizedCycleSamples(0);
 
 				const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
-				const auto sampleDisplacement = 2.0 / sizeMinusOne;
+				const auto sampleDisplacement = 1.0 / sizeMinusOne;
 				auto cycleSamples = triggerState.cycleSamples;
 				auto sampleOffset = triggerState.sampleOffset;
-				auto offset = -1 + -(2 * triggerState.sampleOffset / sizeMinusOne);
+				auto offset = -triggerState.sampleOffset / sizeMinusOne;
 				cpl::ssize_t bufferOffset = 0;
 				double subSampleOffset = 0;
 
@@ -442,12 +442,11 @@ namespace Signalizer
 				{
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
-					offset += 2 * ((1 - subSampleOffset) / sizeMinusOne);
+					offset += ((1 - subSampleOffset) / sizeMinusOne);
 				}
 				else
 				{
-					subSampleOffset = cycleSamples = sampleOffset = 0;
-					offset = -1;
+					offset = subSampleOffset = cycleSamples = sampleOffset = 0;
 				}
 
 				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
@@ -460,8 +459,6 @@ namespace Signalizer
 					bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (realOffset - bufferOffset);
 				}
-
-				// handle viewOffset scaling and translation on samples 
 
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
@@ -481,7 +478,6 @@ namespace Signalizer
 				matrixMod.scale(2, 1, 1);
 
 				// apply horizontal transformation
-
 				matrixMod.scale(1 / (right - left), 1, 1);
 				matrixMod.translate(-left, 0, 0);
 
@@ -490,50 +486,226 @@ namespace Signalizer
 				matrixMod.translate(0, top + (bottom - 1), 0);
 				matrixMod.scale(1, gain, 0);
 
-				// minus sampleDisplacement to account for the minus one above
-				//matrixMod.translate(-2 * (right - 1), 0, 0);
-				//matrixMod.scale(1 / (right - left), gain, 1);
-				//matrixMod.translate(offset, 0, 0);
-
-
-
-				//matrixMod.translate(-sampleDisplacement, 0, 0);
-				//matrixMod.scale(sampleDisplacement, 1 / verticalDelta, 1);
-
-
-				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-				drawer.addColour(state.colourDraw);
-
-				if (true)
+				auto renderSampleSpace = [&](auto render)
 				{
-					for (float i = 0; i < getWidth(); i += 1)
-					{
-						drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
-					}
-				}
-				else
+					cpl::OpenGLRendering::MatrixModification m;
+					// translate triggering offset + 1
+					matrixMod.translate(offset - sampleDisplacement, 0, 0);
+					// scale to sample/pixels space
+					matrixMod.scale(sampleDisplacement, 1, 1);
+
+					render();
+				};
+
+				auto samplesToPixels = [&](auto sample)
 				{
-					const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
-					for (GLfloat i = 0; i < endCondition; i += 1)
-					{
-						drawer.addVertex(i, *pointer++, 0);
+					return (sample / sampleDisplacement) - (offset - sampleDisplacement);
+				};
 
-						if (pointer == end)
-							pointer -= bufferSamples;
+				auto pixelsToSample = [&](auto pixel)
+				{
+					return (pixel * sampleDisplacement) + (offset - sampleDisplacement);
+				};
+
+#ifdef SAMPLE_WAVEFORM
+				for (float i = 0; i < getWidth(); i += 1)
+				{
+					drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
+				}
+#else
+
+				auto const pixelsPerSample = std::abs((getWidth() - 1) / (sizeMinusOne * (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left])));
+				const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
+
+				auto oldPointSize = openGLStack.getPointSize();
+				// draw dots for very zoomed displays and when there's no subsample interpolation
+				if((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
+				{
+
+					if (pixelsPerSample > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
+					{
+						openGLStack.setPointSize(oldPointSize * 3);
 					}
+					renderSampleSpace([&]{
+						cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_POINTS);
+						drawer.addColour(state.colourDraw);
+
+						auto localPointer = pointer;
+
+						for (GLfloat i = 0; i < endCondition; i += 1)
+						{
+							drawer.addVertex(i, *localPointer++, 0);
+
+							if (localPointer == end)
+								localPointer -= bufferSamples;
+						}
+					});
 				}
 
+				openGLStack.setPointSize(oldPointSize);
+
+				// TODO: Add scaled rendering (getAttachedContext()->getRenderingScale())
+				switch (state.sampleInterpolation)
+				{
+					case SubSampleInterpolation::Linear:
+					{
+						renderSampleSpace([&] {
+							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+							drawer.addColour(state.colourDraw);
+							auto localPointer = pointer;
+							for (GLfloat i = 0; i < endCondition; i += 1)
+							{
+								drawer.addVertex(i, *localPointer++, 0);
+
+								if (localPointer == end)
+									localPointer -= bufferSamples;
+							}
+						});
+						break;
+					}
+					case SubSampleInterpolation::Rectangular:
+					{
+						renderSampleSpace([&]{
+							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+							drawer.addColour(state.colourDraw);
+							auto localPointer = pointer;
+							for (GLfloat i = 0; i < endCondition; i += 1)
+							{
+								drawer.addVertex(i, *localPointer, 0);
+								drawer.addVertex(i + 1, *localPointer, 0);
+
+								localPointer++;
+
+								if (localPointer == end)
+									localPointer -= bufferSamples;
+							}
+						});
+						break;
+					}
+					case SubSampleInterpolation::Lanczos5:
+					{
+#if 0 
+						renderSampleSpace([&] {
+							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+							drawer.addColour(state.colourDraw);
+							auto localPointer = pointer;
+							for (GLfloat i = 0; i < endCondition; i += 1)
+							{
+								drawer.addVertex(i, *localPointer++, 0);
+
+								if (localPointer == end)
+									localPointer -= bufferSamples;
+							}
+						});
+						break;
+
+#endif
+
+#if 1
+
+						auto const KernelSize = 5;
+						auto const KernelBufferSize = KernelSize * 2 + 1;
+
+						cpl::OpenGLRendering::MatrixModification m;
+						// translate triggering offset + 1
+						matrixMod.translate(offset, 0, 0);
+
+						cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+						drawer.addColour(state.colourDraw);
+
+						auto localPointer = pointer;
+						AFloat kernel[KernelBufferSize];
+						auto get = [&]() {
+							auto ret = *localPointer++;
+							if (localPointer == end)
+								localPointer -= bufferSamples;
+							return ret;
+						};
+
+						auto move = [&](cpl::ssize_t offset) {
+							localPointer += offset;
+							while (localPointer < view.begin())
+								localPointer += bufferSamples;
+							while (localPointer >= end)
+								localPointer -= bufferSamples;
+						};
+
+						auto current = [&] {
+							return kernel[KernelSize + 1];
+						};
+
+						auto insert = [&] (auto val) {
+							std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
+							kernel[KernelBufferSize - 1] = val;
+						};
+
+
+						move(-KernelSize);
+
+
+						for (auto & f : kernel)
+							f = get();
+
+
+						auto samplePos = offset - sampleDisplacement;
+						cpl::ssize_t floorPos = static_cast<cpl::ssize_t>(samplePos);
+
+						double inc = 1.0 / (getWidth() - 1);
+
+						double unitSpacePos = 0;
+						double currentSample = samplePos;
+						do
+						{
+							currentSample += 1 / pixelsPerSample;
+
+							auto delta = currentSample - samplePos;
+
+							while (delta > 1)
+							{
+								samplePos += 1;
+								delta -= 1;
+								insert(get());
+							}
+
+
+							drawer.addVertex(unitSpacePos, current(), 0);
+
+							unitSpacePos += inc;
+
+						} while (currentSample < endCondition);
+
+
+						/*for (float i = -4; i <= getWidth() * 2; i += 1)
+						{
+							drawer.addVertex(i / (getWidth() - 1), kernel[KernelSize + 1], 0);
+							drawer.addVertex((i +1) / (getWidth() - 1), kernel[KernelSize + 1], 0);
+							samplePos += 1 / pixelsPerSample;
+
+							auto newPos = static_cast<cpl::ssize_t>(samplePos);
+							if (newPos > floorPos)
+							{
+								std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
+								kernel[KernelBufferSize - 1] = get();
+								floorPos++;
+							}
+						} */
+
+
+						/* for (GLfloat i = 0; i < endCondition; i += 1)
+						{
+							std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
+
+							drawer.addVertex(i, get(), 0);
+						} */
+#endif
+						break;
+					}
+
+				}
+
+
+#endif
 			}
-
-			// draw end marks (temporary? move to 2d graphics anyway.)
-			cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINES);
-
-			drawer.addColour(content->skeletonColour.getAsJuceColour());
-			drawer.addVertex(-1, -1, 0);
-			drawer.addVertex(-1, 1, 0);
-			drawer.addVertex(1, -1, 0);
-			drawer.addVertex(1, 1, 0);
-
 		}
 
 	template<typename V>

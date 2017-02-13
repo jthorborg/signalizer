@@ -168,7 +168,7 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, antialias, diagnostics;
+				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples;
 				float primitiveSize;
 				float envelopeCoeff;
 				double effectiveWindowSize;
