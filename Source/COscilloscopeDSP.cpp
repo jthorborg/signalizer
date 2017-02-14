@@ -291,10 +291,12 @@ namespace Signalizer
 	void COscilloscope::resizeAudioStorage()
 	{
 		std::size_t requiredSampleBufferSize = 0;
+		// TODO: Add
+		std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
 		if (state.timeMode != OscilloscopeContent::TimeMode::Beats)
 		{
 			// buffer size = length of detected freq in samples + display window size + lookahead
-			requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)) + OscilloscopeContent::LookaheadSize;
+			requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)), OscilloscopeContent::LookaheadSize);
 		}
 		else
 		{

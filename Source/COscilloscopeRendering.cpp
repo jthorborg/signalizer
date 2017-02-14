@@ -71,7 +71,7 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
+			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f, # %d",
 				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
@@ -79,7 +79,8 @@ namespace Signalizer
 				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
 				(double)triggerState.record.index,
 				triggerState.fundamental,
-				triggerState.phase);
+				triggerState.phase,
+				state.resamples);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 
 		}
@@ -412,6 +413,8 @@ namespace Signalizer
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			{
+				state.resamples = 0;
+
 				cpl::OpenGLRendering::MatrixModification matrixMod;
 				// and apply the gain:
 				const auto gain = (GLfloat)state.envelopeGain;
@@ -471,6 +474,7 @@ namespace Signalizer
 				auto end = view.end();
 
 				auto verticalDelta = bottom - top;
+				auto horizontalDelta = right - left;
 				auto center = (top + verticalDelta * 0.5);
 
 				// modify the horizontal axis into [0, 1] instead of [-1, 1]
@@ -478,7 +482,7 @@ namespace Signalizer
 				matrixMod.scale(2, 1, 1);
 
 				// apply horizontal transformation
-				matrixMod.scale(1 / (right - left), 1, 1);
+				matrixMod.scale(1 / (horizontalDelta), 1, 1);
 				matrixMod.translate(-left, 0, 0);
 
 				// apply vertical transformation
@@ -506,12 +510,18 @@ namespace Signalizer
 				{
 					return (pixel * sampleDisplacement) + (offset - sampleDisplacement);
 				};
-
 #ifdef SAMPLE_WAVEFORM
-				for (float i = 0; i < getWidth(); i += 1)
+
 				{
-					drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
+					cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+					drawer.addColour(juce::Colours::green);
+					for (float i = 0; i < getWidth(); i += 1)
+					{
+						drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
+					}
 				}
+
+
 #else
 
 				auto const pixelsPerSample = std::abs((getWidth() - 1) / (sizeMinusOne * (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left])));
@@ -544,8 +554,14 @@ namespace Signalizer
 
 				openGLStack.setPointSize(oldPointSize);
 
+				auto interpolation = state.sampleInterpolation;
+				if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
+				{
+					interpolation = SubSampleInterpolation::Linear;
+				}
+
 				// TODO: Add scaled rendering (getAttachedContext()->getRenderingScale())
-				switch (state.sampleInterpolation)
+				switch (interpolation)
 				{
 					case SubSampleInterpolation::Linear:
 					{
@@ -582,7 +598,7 @@ namespace Signalizer
 						});
 						break;
 					}
-					case SubSampleInterpolation::Lanczos5:
+					case SubSampleInterpolation::Lanczos:
 					{
 #if 0 
 						renderSampleSpace([&] {
@@ -603,17 +619,30 @@ namespace Signalizer
 
 #if 1
 
-						auto const KernelSize = 5;
-						auto const KernelBufferSize = KernelSize * 2 + 1;
+						auto const KernelSize = OscilloscopeContent::InterpolationKernelSize;
+						auto const KernelBufferSize = KernelSize * 2;
 
-						cpl::OpenGLRendering::MatrixModification m;
+						//cpl::OpenGLRendering::MatrixModification m;
 						// translate triggering offset + 1
-						matrixMod.translate(offset, 0, 0);
+						//matrixMod.translate(offset, 0, 0);
 
 						cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 						drawer.addColour(state.colourDraw);
 
-						auto localPointer = pointer;
+						double samplePos = 0;
+
+						if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
+						{
+							samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize);
+						}
+						else
+						{
+							samplePos = /*OscilloscopeContent::InterpolationKernelSize + */2 + triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
+						}
+
+
+						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+
 						AFloat kernel[KernelBufferSize];
 						auto get = [&]() {
 							auto ret = *localPointer++;
@@ -639,24 +668,23 @@ namespace Signalizer
 							kernel[KernelBufferSize - 1] = val;
 						};
 
-
-						move(-KernelSize);
+						move(0);
+						move(-((int)KernelSize - 2));
 
 
 						for (auto & f : kernel)
 							f = get();
 
 
-						auto samplePos = offset - sampleDisplacement;
 						cpl::ssize_t floorPos = static_cast<cpl::ssize_t>(samplePos);
 
 						double inc = 1.0 / (getWidth() - 1);
 
 						double unitSpacePos = 0;
-						double currentSample = samplePos;
+						double currentSample = std::floor(samplePos);
+						int resamples = 0;
 						do
 						{
-							currentSample += 1 / pixelsPerSample;
 
 							auto delta = currentSample - samplePos;
 
@@ -667,13 +695,17 @@ namespace Signalizer
 								insert(get());
 							}
 
-
-							drawer.addVertex(unitSpacePos, current(), 0);
+							drawer.addVertex(unitSpacePos, cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize - 1) + delta, KernelSize), 0);
+							currentSample += 1 / (pixelsPerSample * horizontalDelta);
 
 							unitSpacePos += inc;
+							resamples++;
 
-						} while (currentSample < endCondition);
+						} while (unitSpacePos < (1 + inc));
 
+			
+
+						state.resamples = resamples;
 
 						/*for (float i = -4; i <= getWidth() * 2; i += 1)
 						{

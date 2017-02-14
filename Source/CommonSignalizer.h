@@ -53,7 +53,7 @@
 			None,
 			Rectangular,
 			Linear,
-			Lanczos5
+			Lanczos
 		};
 
 		/// <summary>
