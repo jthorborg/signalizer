@@ -304,6 +304,7 @@ namespace Signalizer
 			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
 		}
 		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
+		colourStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
 
 	bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -336,8 +337,15 @@ namespace Signalizer
 				return;
 
 			cpl::CMutex scopedLock(bufferLock);
+			float sampleRate = audioStream.getAudioHistorySamplerate();
+
+			smoothFilterPole = cpl::dsp::SmoothedParameterState<float, 1>::design(content->colourSmoothing.getTransformedValue(), audioStream.getAudioHistorySamplerate());
+			crossOver.setup({ 200 / sampleRate, 3000 / sampleRate });
+
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
+
+			auto && cwriter = colourStream.createWriter();
 
 			for (std::size_t n = 0; n < numSamples; n++)
 			{
@@ -350,8 +358,13 @@ namespace Signalizer
 				filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
 				filterEnv[fs::Right] = rSquared + state.envelopeCoeff * (filterEnv[fs::Right] - rSquared);
 
+				auto network = crossOver.process(buffer[fs::Left][n]);
+				for(std::size_t i = 0; i < 3; ++i)
+					smoothFilters[i].process(smoothFilterPole, network[i] * network[i]);
 
 
+				if(cwriter.size() > 0)
+					cwriter.setHeadAndAdvance({ smoothFilters[0].getState(), smoothFilters[1].getState(), smoothFilters[2].getState(), 0.0f});
 			}
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
@@ -372,6 +385,9 @@ namespace Signalizer
 					);
 				}
 			}
+
+
+
 			// save data
 			lifoStream.createWriter().copyIntoHead(buffer[0], numSamples);
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;

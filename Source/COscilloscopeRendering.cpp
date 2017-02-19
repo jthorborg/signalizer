@@ -426,6 +426,7 @@ namespace Signalizer
 					bottom = content->viewOffsets[OscilloscopeContent::ViewOffsets::Bottom].getTransformedValue();
 
 				auto && view = lifoStream.createProxyView();
+				auto && cview = colourStream.createProxyView();
 
 				cpl::ssize_t
 					cursor = view.cursorPosition(),
@@ -465,10 +466,13 @@ namespace Signalizer
 
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
+				auto cpointer = cview.begin() + (cursor - bufferOffset) - 1;
 
 				while (pointer < view.begin())
+				{
+					cpointer += bufferSamples;
 					pointer += bufferSamples;
-
+				}
 				roundedWindow = std::max(2, roundedWindow);
 
 				auto end = view.end();
@@ -567,14 +571,24 @@ namespace Signalizer
 					{
 						renderSampleSpace([&] {
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourDraw);
+							//drawer.addColour(state.colourDraw);
 							auto localPointer = pointer;
 							for (GLfloat i = 0; i < endCondition; i += 1)
 							{
-								drawer.addVertex(i, *localPointer++, 0);
+								auto r = cpointer->r, g = cpointer->g, b = cpointer->b;
 
+								auto max = 1.0 / std::max(r, std::max(g, b));
+
+								drawer.addColour(r * max, g * max, b * max);
+								drawer.addVertex(i, *localPointer++, 0);
+								
+								cpointer++;
 								if (localPointer == end)
+								{
 									localPointer -= bufferSamples;
+									cpointer -= bufferSamples;
+								}
+
 							}
 						});
 						break;

@@ -263,6 +263,7 @@
 					, ktriggerMode(&parentValue.triggerMode.param)
 					, ktimeMode(&parentValue.timeMode.param)
 					, kdotSamples(&parentValue.dotSamples)
+					, kcolourSmoothingTime(&parentValue.colourSmoothing)
 
 					, editorSerializer(
 						*this, 
@@ -355,7 +356,7 @@
 							section->addControl(&kwindow, 0);
 							section->addControl(&ktimeMode, 1);
 							section->addControl(&kpctForDivision, 0);
-
+							section->addControl(&kcolourSmoothingTime, 1);
 
 							page->addSection(section, "Utility");
 						}
@@ -425,6 +426,7 @@
 					archive << ktriggerMode;
 					archive << ktimeMode;
 					archive << kdotSamples;
+					archive << kcolourSmoothingTime;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -455,6 +457,7 @@
 					builder >> ktriggerMode;
 					builder >> ktimeMode;
 					builder >> kdotSamples;
+					builder >> kcolourSmoothingTime;
 				}
 
 
@@ -492,7 +495,7 @@
 				}
 
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode;
@@ -516,6 +519,7 @@
 				, ptsRange(0.01, 10)
 				, phaseRange(-180, 180)
 				, reverseUnitRange(1, 0)
+				, colourSmoothRange(1, 1000)
 
 				, msFormatter("ms")
 				, degreeFormatter("degs")
@@ -535,6 +539,7 @@
 				, triggerMode("TrgMode")
 				, timeMode("TimeMode")
 				, dotSamples("DotSmps", boolRange, boolFormatter)
+				, colourSmoothing("ColSmth", colourSmoothRange, msFormatter)
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -571,7 +576,8 @@
 					&triggerPhaseOffset,
 					&triggerMode.param,
 					&timeMode.param,
-					&dotSamples
+					&dotSamples,
+					&colourSmoothing
 				};
 
 				for (auto sparam : singleParameters)
@@ -645,6 +651,7 @@
 					archive << v;
 				}
 				archive << dotSamples;
+				archive << colourSmoothing;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -672,6 +679,7 @@
 					builder >> v;
 				}
 				builder >> dotSamples;
+				builder >> colourSmoothing;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -692,7 +700,7 @@
 			cpl::BasicFormatter<double> basicFormatter;
 			cpl::BooleanRange<double> boolRange;
 
-			cpl::ExponentialRange<double> dbRange;
+			cpl::ExponentialRange<double> dbRange, colourSmoothRange;
 
 			cpl::LinearRange<double>
 				ptsRange,
@@ -717,7 +725,8 @@
 				primitiveSize,
 				pctForDivision,
 				triggerPhaseOffset,
-				dotSamples;
+				dotSamples,
+				colourSmoothing;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
