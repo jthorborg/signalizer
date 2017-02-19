@@ -379,6 +379,9 @@
     <Filter Include="Signalizer\Source\Processor">
       <UniqueIdentifier>{a6d0243e-d651-489a-b133-bc3ed22d21e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\cpl\dsp\filters">
+      <UniqueIdentifier>{59929248-bdb1-4720-bded-e9abce2f611d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -2584,6 +2587,15 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
       <Filter>Signalizer\Source\Processor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\AC_SVF.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
