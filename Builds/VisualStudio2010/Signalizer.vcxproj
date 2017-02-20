@@ -368,7 +368,9 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\IIRResonator.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\SDFTSystem.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts\dustfft.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\BuildingBlocks.h" />

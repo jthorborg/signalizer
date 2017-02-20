@@ -2597,6 +2597,12 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h">
       <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h">
+      <Filter>Signalizer\Source\cpl\dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h">
+      <Filter>Signalizer\Source\cpl\dsp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
