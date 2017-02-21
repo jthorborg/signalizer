@@ -37,7 +37,7 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "OscilloscopeParameters.h"
-	#include <cpl/dsp/OnePoleNetwork.h>
+	#include <cpl/dsp/LinkwitzRileyNetwork.h>
 	#include <cpl/dsp/SmoothedParameterState.h>
 
 	namespace cpl
@@ -262,7 +262,7 @@
 			cpl::CLIFOStream<FilterColour, 16> colourStream;
 			cpl::dsp::SmoothedParameterState<float, 1> smoothFilters[3];
 			cpl::dsp::SmoothedParameterState<float, 1>::PoleState smoothFilterPole;
-			cpl::dsp::OnePoleNetwork<float, 3> crossOver;
+			cpl::dsp::LinkwitzRileyNetwork<float, 3> crossOver;
 		};
 
 	};

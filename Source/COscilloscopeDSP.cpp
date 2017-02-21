@@ -340,7 +340,7 @@ namespace Signalizer
 			float sampleRate = audioStream.getAudioHistorySamplerate();
 
 			smoothFilterPole = cpl::dsp::SmoothedParameterState<float, 1>::design(content->colourSmoothing.getTransformedValue(), audioStream.getAudioHistorySamplerate());
-			crossOver.setup({ 200 / sampleRate, 3000 / sampleRate });
+			crossOver.setup({ 300 / sampleRate, 3000 / sampleRate });
 
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
@@ -360,11 +360,12 @@ namespace Signalizer
 
 				auto network = crossOver.process(buffer[fs::Left][n]);
 				for(std::size_t i = 0; i < 3; ++i)
-					smoothFilters[i].process(smoothFilterPole, network[i] * network[i]);
+					smoothFilters[i].process(smoothFilterPole, std::abs(network[i]));
 
 
 				if(cwriter.size() > 0)
 					cwriter.setHeadAndAdvance({ smoothFilters[0].getState(), smoothFilters[1].getState(), smoothFilters[2].getState(), 0.0f});
+
 			}
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)

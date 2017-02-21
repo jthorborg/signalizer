@@ -519,7 +519,7 @@
 				, ptsRange(0.01, 10)
 				, phaseRange(-180, 180)
 				, reverseUnitRange(1, 0)
-				, colourSmoothRange(1, 1000)
+				, colourSmoothRange(0.01, 1000)
 
 				, msFormatter("ms")
 				, degreeFormatter("degs")
