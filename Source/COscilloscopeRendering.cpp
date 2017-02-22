@@ -437,12 +437,13 @@ namespace Signalizer
 
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
+					// calculate fractionate offsets used for sample-space rendering
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 					subSampleOffset = (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
 					offset = -triggerState.sampleOffset / sizeMinusOne;
 				}
 
-				offset += ((1 - subSampleOffset) / sizeMinusOne);
+				offset += (1 - subSampleOffset) / sizeMinusOne;
 
 				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
 				{
