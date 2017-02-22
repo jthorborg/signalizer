@@ -432,8 +432,8 @@ namespace Signalizer
 
 				const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
 				const auto sampleDisplacement = 1.0 / sizeMinusOne;
-				cpl::ssize_t bufferOffset = 0, offset = 0;
-				double subSampleOffset = 0;
+				cpl::ssize_t bufferOffset = 0;
+				double subSampleOffset = 0, offset = 0;
 
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
