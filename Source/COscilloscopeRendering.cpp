@@ -509,7 +509,7 @@ namespace Signalizer
 					auto oldPointSize = openGLStack.getPointSize();
 					if (pixelsPerSample > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
 					{
-						openGLStack.setPointSize(oldPointSize * 3);
+						openGLStack.setPointSize(oldPointSize * 4);
 					}
 					renderSampleSpace(
 						[&] {
@@ -603,13 +603,13 @@ namespace Signalizer
 					{
 
 						auto const KernelSize = OscilloscopeContent::InterpolationKernelSize;
-						auto const KernelBufferSize = KernelSize * 2;
+						auto const KernelBufferSize = KernelSize * 2 + 1;
 
 						double samplePos = 0;
 
 						if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
 						{
-							samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize);
+							samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
 						}
 						else
 						{
@@ -653,7 +653,7 @@ namespace Signalizer
 							kernel[KernelBufferSize - 1] = val;
 						};
 
-						adjustCircular(localPointer, -((int)KernelSize));
+						adjustCircular(localPointer, -((int)KernelSize) - 1);
 
 
 						for (auto & f : kernel)
@@ -676,7 +676,9 @@ namespace Signalizer
 									insert(get());
 								}
 
-								drawer.addVertex(unitSpacePos, cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize - 1) + delta, KernelSize), 0);
+								const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
+
+								drawer.addVertex(unitSpacePos, interpolatedValue, 0);
 								currentSample += samplesPerPixel;
 
 								unitSpacePos += inc;
