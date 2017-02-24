@@ -40,8 +40,6 @@ namespace Signalizer
 
 	void COscilloscope::calculateFundamentalPeriod()
 	{
-		if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
-			return;
 
 		switch (state.triggerMode)
 		{
@@ -208,7 +206,7 @@ namespace Signalizer
 
 	void COscilloscope::calculateTriggeringOffset()
 	{
-		if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.timeMode == OscilloscopeContent::TimeMode::Beats)
+		if (state.triggerMode == OscilloscopeContent::TriggeringMode::None)
 		{
 			triggerState.sampleOffset = 0;
 			triggerState.cycleSamples = 0;
@@ -293,7 +291,7 @@ namespace Signalizer
 		std::size_t requiredSampleBufferSize = 0;
 		// TODO: Add
 		std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
-		if (state.timeMode != OscilloscopeContent::TimeMode::Beats)
+		if (state.triggerMode != OscilloscopeContent::TriggeringMode::Window)
 		{
 			// buffer size = length of detected freq in samples + display window size + lookahead
 			requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)), OscilloscopeContent::LookaheadSize);

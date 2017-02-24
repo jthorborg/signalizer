@@ -422,6 +422,9 @@ namespace Signalizer
 					top = state.viewOffsets[VO::Top],
 					bottom = state.viewOffsets[VO::Bottom];
 
+				auto verticalDelta = bottom - top;
+				auto horizontalDelta = right - left;
+
 				auto && view = lifoStream.createProxyView();
 
 				cpl::ssize_t
@@ -434,27 +437,44 @@ namespace Signalizer
 				const auto sampleDisplacement = 1.0 / sizeMinusOne;
 				cpl::ssize_t bufferOffset = 0;
 				double subSampleOffset = 0, offset = 0;
+				auto const pixelsPerSample = std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
 
-				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
+
+				auto interpolation = state.sampleInterpolation;
+				if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
 				{
-					// calculate fractionate offsets used for sample-space rendering
-					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
-					subSampleOffset = 2 * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
-					offset = -triggerState.sampleOffset / sizeMinusOne;
+					interpolation = SubSampleInterpolation::Linear;
 				}
 
-				offset += (1 - subSampleOffset) / sizeMinusOne;
-
-				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
-				{
-					bufferOffset = roundedWindow + 2 * quantizedCycleSamples;
-				}
-				else
+				if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
 				{
 					auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
 					bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 					offset = subSampleOffset = 0;
 				}
+				else
+				{
+					// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
+					auto const cycleBuffers = interpolation == SubSampleInterpolation::Lanczos ? 2 : 1;
+					// calculate fractionate offsets used for sample-space rendering
+					if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+					{
+
+						quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
+						subSampleOffset = cycleBuffers * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
+						offset = -triggerState.sampleOffset / sizeMinusOne;
+					}
+					bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
+					offset += (1 - subSampleOffset) / sizeMinusOne;
+				}
+
+
+
+				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
+				{
+
+				}
+
 
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
@@ -473,10 +493,6 @@ namespace Signalizer
 
 				auto end = view.end();
 
-				auto verticalDelta = bottom - top;
-				auto horizontalDelta = right - left;
-				auto center = (top + verticalDelta * 0.5);
-
 				// modify the horizontal axis into [0, 1] instead of [-1, 1]
 				matrixMod.translate(-1, 0, 0);
 				matrixMod.scale(2, 1, 1);
@@ -491,7 +507,6 @@ namespace Signalizer
 				matrixMod.scale(1, gain, 0);
 
 				const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
-				auto const pixelsPerSample = std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
 
 				auto renderSampleSpace = [&](auto render)
 				{
@@ -548,12 +563,6 @@ namespace Signalizer
 
 #else
 
-				auto interpolation = state.sampleInterpolation;
-				if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
-				{
-					interpolation = SubSampleInterpolation::Linear;
-				}
-
 				// draw dots for very zoomed displays and when there's no subsample interpolation
 				if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
 				{
@@ -607,7 +616,7 @@ namespace Signalizer
 
 						double samplePos = 0;
 
-						if (state.timeMode == OscilloscopeContent::TimeMode::Beats)
+						if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
 						{
 							samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
 						}
@@ -617,7 +626,7 @@ namespace Signalizer
 						}
 
 						// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
-						if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.timeMode == OscilloscopeContent::TimeMode::Beats)
+						if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
 						{
 							samplePos = std::ceil(samplePos);
 							if (state.timeMode == OscilloscopeContent::TimeMode::Time)
