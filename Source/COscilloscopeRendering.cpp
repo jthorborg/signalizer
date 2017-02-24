@@ -437,7 +437,7 @@ namespace Signalizer
 				const auto sampleDisplacement = 1.0 / sizeMinusOne;
 				cpl::ssize_t bufferOffset = 0;
 				double subSampleOffset = 0, offset = 0;
-				auto const pixelsPerSample = std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
+				auto const pixelsPerSample = oglc->getRenderingScale() * std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
 
 
 				auto interpolation = state.sampleInterpolation;
@@ -467,14 +467,6 @@ namespace Signalizer
 					bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
 					offset += (1 - subSampleOffset) / sizeMinusOne;
 				}
-
-
-
-				if(state.timeMode != OscilloscopeContent::TimeMode::Beats)
-				{
-
-				}
-
 
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
@@ -548,21 +540,6 @@ namespace Signalizer
 					openGLStack.setPointSize(oldPointSize);
 				};
 
-
-#ifdef SAMPLE_WAVEFORM
-
-				{
-					cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-					drawer.addColour(juce::Colours::green);
-					for (float i = 0; i < getWidth(); i += 1)
-					{
-						drawer.addVertex(i / (getWidth() - 1.0), std::sin(2 * M_PI * i / (getWidth() - 1)), 0);
-					}
-				}
-
-
-#else
-
 				// draw dots for very zoomed displays and when there's no subsample interpolation
 				if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
 				{
@@ -622,6 +599,7 @@ namespace Signalizer
 						}
 						else
 						{
+							// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
 							samplePos = /*OscilloscopeContent::InterpolationKernelSize + */triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
 						}
 
@@ -633,15 +611,9 @@ namespace Signalizer
 								samplePos += KernelSize;
 						}
 
-
-
-
 						// adjust for left
-
-						double inc = horizontalDelta / ((getWidth() - 1));
-
+						double inc = horizontalDelta / (oglc->getRenderingScale() * (getWidth() - 1));
 						double unitSpacePos = left;
-
 						double samplesPerPixel = 1.0 / (pixelsPerSample);
 
 						samplePos += -unitSpacePos / inc * samplesPerPixel;
@@ -650,6 +622,7 @@ namespace Signalizer
 						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
 
 						AFloat kernel[KernelBufferSize];
+
 						auto get = [&]() {
 							auto ret = *localPointer++;
 							if (localPointer == end)
@@ -663,12 +636,7 @@ namespace Signalizer
 						};
 
 						adjustCircular(localPointer, -((int)KernelSize) - 1);
-
-
-						for (auto & f : kernel)
-							f = get();
-
-						cpl::ssize_t floorPos = static_cast<cpl::ssize_t>(samplePos);
+						std::for_each(std::begin(kernel), std::end(kernel), [&](auto & f) { f = get(); });
 
 						{
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
@@ -700,9 +668,6 @@ namespace Signalizer
 					}
 
 				}
-
-
-#endif
 			}
 		}
 
