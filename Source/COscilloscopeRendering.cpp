@@ -393,7 +393,7 @@ namespace Signalizer
 					case OscilloscopeContent::TimeMode::Beats:
 					{
 						textOut("%.0f/%.0f",
-							moduloI * multiplier / roundedPower, multiplier
+							(moduloI + 1), roundedPower
 						);
 						break;
 					}
