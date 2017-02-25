@@ -168,12 +168,13 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples;
+				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger;
 				float primitiveSize;
 				float envelopeCoeff;
 				double effectiveWindowSize;
 				double windowTimeOffset;
 				double beatDivision;
+				double customTriggerFrequency;
 
 				double viewOffsets[4];
 				std::int64_t transportPosition;

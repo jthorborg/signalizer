@@ -40,167 +40,172 @@ namespace Signalizer
 
 	void COscilloscope::calculateFundamentalPeriod()
 	{
+#ifdef PHASE_VOCODER
+		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
+#else
+		auto const TransformSize = OscilloscopeContent::LookaheadSize;
+#endif
 
-		switch (state.triggerMode)
+		if (state.customTrigger)
 		{
-			case OscilloscopeContent::TriggeringMode::Spectral:
-			{
+			auto const normalizedFrequency = state.customTriggerFrequency / audioStream.getAudioHistorySamplerate();
+			triggerState.record = BinRecord{ 0, 1, normalizedFrequency * TransformSize};
 
-#ifdef PHASE_VOCODER
-				auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
-#else
-				auto const TransformSize = OscilloscopeContent::LookaheadSize;
-#endif
+			auto fundamental = state.customTriggerFrequency;
 
-				const auto && view = lifoStream.createProxyView();
+			triggerState.fundamental = state.customTriggerFrequency;
+			triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
+		}
+		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+		{
 
-				cpl::ssize_t
-					cursor = view.cursorPosition(),
-					totalBufferSamples = view.size();
+			const auto && view = lifoStream.createProxyView();
+
+			cpl::ssize_t
+				cursor = view.cursorPosition(),
+				totalBufferSamples = view.size();
 				
-				if (totalBufferSamples < OscilloscopeContent::LookaheadSize)
-					return;
+			if (totalBufferSamples < OscilloscopeContent::LookaheadSize)
+				return;
 
-				// we will try to analyse the points closest to the sync point (latest in time)
-				auto offset = std::max<std::size_t>(std::ceil(state.effectiveWindowSize), OscilloscopeContent::LookaheadSize);
+			// we will try to analyse the points closest to the sync point (latest in time)
+			auto offset = std::max<std::size_t>(std::ceil(state.effectiveWindowSize), OscilloscopeContent::LookaheadSize);
 
-				auto pointer = view.begin() + (cursor - offset);
-				while (pointer < view.begin())
-					pointer += totalBufferSamples;
+			auto pointer = view.begin() + (cursor - offset);
+			while (pointer < view.begin())
+				pointer += totalBufferSamples;
 
-				auto end = view.end();
+			auto end = view.end();
 
-				for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
-				{
-					transformBuffer[i] = *pointer++;
+			for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
+			{
+				transformBuffer[i] = *pointer++;
 
-					if (pointer == end)
-						pointer -= totalBufferSamples;
-				}
+				if (pointer == end)
+					pointer -= totalBufferSamples;
+			}
 
 
-				signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data()), TransformSize);
+			signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data()), TransformSize);
 #ifdef PHASE_VOCODER
-				signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data() + TransformSize), TransformSize);
+			signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data() + TransformSize), TransformSize);
 #endif
-				// estimates the true frequency by calculating a bin offset to the current bin w
-				auto quadDelta = [&](auto w) {
+			// estimates the true frequency by calculating a bin offset to the current bin w
+			auto quadDelta = [&](auto w) {
 #if PHASE_VOCODER
-					auto deltaBinOffset = std::arg(transformBuffer[w]) - std::arg(transformBuffer[TransformSize + w]);
+				auto deltaBinOffset = std::arg(transformBuffer[w]) - std::arg(transformBuffer[TransformSize + w]);
 
-					deltaBinOffset -= w * 2 * M_PI;
+				deltaBinOffset -= w * 2 * M_PI;
 
-					while (deltaBinOffset < 2 * M_PI)
-						deltaBinOffset += 2 * M_PI;
+				while (deltaBinOffset < 2 * M_PI)
+					deltaBinOffset += 2 * M_PI;
 
-					while (deltaBinOffset > 2 * M_PI)
-						deltaBinOffset -= 2 * M_PI;
+				while (deltaBinOffset > 2 * M_PI)
+					deltaBinOffset -= 2 * M_PI;
 
-					return deltaBinOffset / (2 * M_PI);
+				return deltaBinOffset / (2 * M_PI);
 #else
-					const auto 
-						x0 = transformBuffer[w], 
-						x1 = transformBuffer[w + 1], 
-						xm1 = transformBuffer[w == 0 ? 1 : w - 1];
+				const auto 
+					x0 = transformBuffer[w], 
+					x1 = transformBuffer[w + 1], 
+					xm1 = transformBuffer[w == 0 ? 1 : w - 1];
 
-					const auto denom = x0 * 2.0 - xm1 - x1;
+				const auto denom = x0 * 2.0 - xm1 - x1;
 
-					return (denom.real() + denom.imag()) != 0 ? std::real((xm1 - x1) / denom) : 0;
+				return (denom.real() + denom.imag()) != 0 ? std::real((xm1 - x1) / denom) : 0;
 #endif
-				};
+			};
 
-				const double quarterSemitone = std::pow(2, 0.25 / 12.0) - 1;
+			const double quarterSemitone = std::pow(2, 0.25 / 12.0) - 1;
 
-				BinRecord max{ 1, std::abs(transformBuffer[1]), quadDelta(1) };
+			BinRecord max{ 1, std::abs(transformBuffer[1]), quadDelta(1) };
 
-				for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
+			for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
+			{
+				BinRecord current{ i, std::abs(transformBuffer[i]) };
+
+				// candidate must be vastly better
+				if (current.value > max.value * 2)
 				{
-					BinRecord current{ i, std::abs(transformBuffer[i]) };
-
-					// candidate must be vastly better
-					if (current.value > max.value * 2)
+					// weird parabolas
+					if (max.omega() > 0)
 					{
-						// weird parabolas
-						if (max.omega() > 0)
-						{
-							// check if it is somewhat harmonically related, in which case we discard the candidate
-							current.offset = quadDelta(i);
+						// check if it is somewhat harmonically related, in which case we discard the candidate
+						current.offset = quadDelta(i);
 
-							// harmonic relationship
-							auto factor = current.omega() / max.omega();
+						// harmonic relationship
+						auto factor = current.omega() / max.omega();
 
-							auto sensivity = current.value / max.value;
+						auto sensivity = current.value / max.value;
 
-							// shortcut if the value is 20 times bigger
-							if (sensivity > 20)
-							{
-								max = current;
-								continue;
-							}
-
-							// the same value, just a better estimate, from another bin
-							// TODO: fix this case by polynomially interpolate the value as well
-							if (std::abs(1 - factor) < quarterSemitone)
-							{
-								max = current;
-								continue;
-							}
-
-							auto multipleDeviation = std::abs(factor - std::floor(factor + 0.5));
-
-							// check if the harmonic series is more than half a semi-tone away, in which case we take the candidate
-							if (std::abs(multipleDeviation) > quarterSemitone)
-							{
-								max = current;
-							}
-						}
-						else
+						// shortcut if the value is 20 times bigger
+						if (sensivity > 20)
 						{
 							max = current;
-							max.offset = quadDelta(max.index);
+							continue;
 						}
 
+						// the same value, just a better estimate, from another bin
+						// TODO: fix this case by polynomially interpolate the value as well
+						if (std::abs(1 - factor) < quarterSemitone)
+						{
+							max = current;
+							continue;
+						}
+
+						auto multipleDeviation = std::abs(factor - std::floor(factor + 0.5));
+
+						// check if the harmonic series is more than half a semi-tone away, in which case we take the candidate
+						if (std::abs(multipleDeviation) > quarterSemitone)
+						{
+							max = current;
+						}
 					}
-				}
-
-				// copy old filter
-				auto localMedian = medianTriggerFilter;
-
-				// store new data
-				medianTriggerFilter[medianPos].record = max;
-
-				medianPos++;
-				medianPos &= (MedianData::FilterSize - 1);
-
-				const auto middle = (MedianData::FilterSize >> 1);
-				std::nth_element(
-					localMedian.begin(), 
-					localMedian.begin() + middle, 
-					localMedian.end(), 
-					[](const auto & a, const auto & b)
-					{ 
-						return a.record.index < b.record.index; 
+					else
+					{
+						max = current;
+						max.offset = quadDelta(max.index);
 					}
-				);
 
-				auto & oldMedianBin = localMedian[middle];
-
-				// check to discard (temporarily) much higher frequencies through a median filter
-				if (oldMedianBin.record.index != -1 && std::abs(max.omega() - (oldMedianBin.record.omega())) > 0.5)
-				{
-					max = oldMedianBin.record;
 				}
-
-				triggerState.record = max;
-
-				// interpolate peak position quadratically
-
-				auto fundamental = audioStream.getAudioHistorySamplerate() * (max.omega()) / TransformSize;
-
-				triggerState.fundamental = fundamental = std::max(5.0, fundamental);
-				triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
-
 			}
+
+			// copy old filter
+			auto localMedian = medianTriggerFilter;
+
+			// store new data
+			medianTriggerFilter[medianPos].record = max;
+
+			medianPos++;
+			medianPos &= (MedianData::FilterSize - 1);
+
+			const auto middle = (MedianData::FilterSize >> 1);
+			std::nth_element(
+				localMedian.begin(), 
+				localMedian.begin() + middle, 
+				localMedian.end(), 
+				[](const auto & a, const auto & b)
+				{ 
+					return a.record.index < b.record.index; 
+				}
+			);
+
+			auto & oldMedianBin = localMedian[middle];
+
+			// check to discard (temporarily) much higher frequencies through a median filter
+			if (oldMedianBin.record.index != -1 && std::abs(max.omega() - (oldMedianBin.record.omega())) > 0.5)
+			{
+				max = oldMedianBin.record;
+			}
+
+			triggerState.record = max;
+
+			// interpolate peak position quadratically
+
+			auto fundamental = audioStream.getAudioHistorySamplerate() * (max.omega()) / TransformSize;
+
+			triggerState.fundamental = fundamental = std::max(5.0, fundamental);
+			triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
 		}
 	}
 

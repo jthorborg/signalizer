@@ -246,7 +246,8 @@ namespace Signalizer
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
-
+		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
+		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
 		state.colourWire = content->skeletonColour.getAsJuceColour();

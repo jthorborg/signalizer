@@ -365,13 +365,14 @@ namespace Signalizer
 
 			while (currentMsPos < end)
 			{
+				double moduloI = std::fmod(i, roundedPower) + 1;
+
 				auto const fraction = currentMsPos / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
 				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
 				g.drawLine(x, 0, x, rect.getHeight());
 
 				float offset = 10;
-				double moduloI = std::fmod(i, roundedPower) + 1;
 
 				auto textOut = [&](auto format, auto... args) {
 					sprintf_s(textBuf, format, args...);

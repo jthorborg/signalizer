@@ -237,6 +237,109 @@
 				TimeMode timeMode;
 			};
 
+			template<typename ParameterView>
+			class LinearHzFormatter : public ParameterView::ParameterType::Formatter
+			{
+			public:
+
+				typedef typename ParameterView::ParameterType::ValueType ValueType;
+
+				LinearHzFormatter(AudioStream & as)
+					: stream(as)
+				{
+					setTuningFromA4();
+				}
+
+				void setTuningFromA4(double hz = 440)
+				{
+					a4InHz = hz;
+				}
+
+				virtual bool format(const ValueType & val, std::string & buf) override
+				{
+					char buffer[100];
+					sprintf_s(buffer, "%.5f Hz", val);
+					buf = buffer;
+					return true;
+				}
+
+				virtual bool interpret(const std::string & buf, ValueType & val) override
+				{
+					ValueType contained;
+
+					// try to parse it as a note firstly:
+					int octave;
+					char tone;
+					char hash;
+					static const std::pair<char, int> notes[] = { { 'a', 0 },{ 'b', 2 },{ 'c', -9 },{ 'd', -7 },{ 'e', -5 },{ 'f', -4 },{ 'g', -2 } };
+
+					if (std::sscanf(buf.c_str(), "%c%d", &tone, &octave) == 2)
+					{
+						tone = tolower(tone);
+						if (tone >= 'a' && tone <= 'g')
+						{
+							auto offset = notes[tone - 'a'].second;
+							auto note = octave * 12 + offset;
+							val = a4InHz * std::pow(2, (note - 48) / 12.0);
+							return true;
+						}
+						else
+						{
+							return false;
+						}
+					}
+					else if (std::sscanf(buf.c_str(), "%c%c%d", &tone, &hash, &octave) == 3)
+					{
+						tone = tolower(tone);
+						if (tone >= 'a' && tone <= 'g')
+						{
+							auto offset = notes[tone - 'a'].second;
+							if (hash == '#') offset++;
+							else if (tolower(hash) == 'b') offset--;
+							auto note = octave * 12 + offset;
+							val = a4InHz * std::pow(2, (note - 48) / 12.0);
+							return true;
+						}
+						else
+						{
+							return false;
+						}
+					}
+					else if (cpl::lexicalConversion(buf, contained))
+					{
+
+						if (buf.find("smps") != std::string::npos)
+						{
+							contained = stream.getAudioHistorySamplerate() / contained;
+						}
+						else if (buf.find("ms") != std::string::npos)
+						{
+							contained = 1.0 / (contained / 1000);
+						}
+						else if (buf.find("r") != std::string::npos)
+						{
+							contained = (contained / (2 * cpl::simd::consts<ValueType>::pi)) * stream.getAudioHistorySamplerate();
+						}
+						else if (buf.find("b") != std::string::npos)
+						{
+							// TODO: Tecnically illegal to acquire the async playhead here -
+							contained = (contained * stream.getASyncPlayhead().getBPM()) / 60;
+						}
+
+						val = contained;
+
+						return true;
+					}
+
+					return false;
+				}
+
+
+			private:
+				double a4InHz;
+				const AudioStream & stream;
+			};
+
 			class OscilloscopeController 
 				: public CContentPage
 			{
@@ -264,6 +367,8 @@
 					, ktriggerMode(&parentValue.triggerMode.param)
 					, ktimeMode(&parentValue.timeMode.param)
 					, kdotSamples(&parentValue.dotSamples)
+					, ktriggerOnCustomFrequency(&parentValue.triggerOnCustomFrequency)
+					, kcustomFrequency(&parentValue.customTriggerFrequency)
 
 					, editorSerializer(
 						*this, 
@@ -303,6 +408,7 @@
 					ktriggerMode.bSetTitle("Trigger mode");
 					ktriggerPhaseOffset.bSetTitle("Trigger phase");
 					ktimeMode.bSetTitle("Time mode");
+					kcustomFrequency.bSetTitle("Custom trigger");
 
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
@@ -312,7 +418,8 @@
 					kenvelopeMode.bSetTitle("Auto-gain mode");
 					kdotSamples.bSetTitle("Dot samples");
 					kdotSamples.setToggleable(true);
-
+					ktriggerOnCustomFrequency.bSetTitle("Trigger on custom");
+					ktriggerOnCustomFrequency.setToggleable(true);
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -333,6 +440,8 @@
 					ktriggerPhaseOffset.bSetDescription("A custom +/- full-circle offset for the phase on triggering");
 					ktimeMode.bSetDescription("Specifies the working units of the time display");
 					kdotSamples.bSetDescription("Marks sample positions when drawing subsampled interpolated lines");
+					ktriggerOnCustomFrequency.bSetDescription("If toggled, the oscilloscope will trigger on the specified custom frequency instead of autodetecting a fundamental");
+					kcustomFrequency.bSetDescription("Specifies a custom frequency to trigger on - input units can be notes (like a#2), hz, radians (rads), beats, samples (smps) or period (ms)");
 				}
 
 				void initUI()
@@ -356,15 +465,17 @@
 							section->addControl(&kwindow, 0);
 							section->addControl(&ktimeMode, 1);
 							section->addControl(&kpctForDivision, 0);
-
+							
 
 							page->addSection(section, "Utility");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&ktriggerMode, 0);
-							section->addControl(&ktriggerPhaseOffset, 1);
-
+							section->addControl(&kcustomFrequency, 1);
+							section->addControl(&ktriggerPhaseOffset, 0);
+							section->addControl(&ktriggerOnCustomFrequency, 1);
+	
 							page->addSection(section, "Triggering");
 						}
 					}
@@ -426,6 +537,8 @@
 					archive << ktriggerMode;
 					archive << ktimeMode;
 					archive << kdotSamples;
+					archive << ktriggerOnCustomFrequency;
+					archive << kcustomFrequency;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -456,6 +569,8 @@
 					builder >> ktriggerMode;
 					builder >> ktimeMode;
 					builder >> kdotSamples;
+					builder >> ktriggerOnCustomFrequency;
+					builder >> kcustomFrequency;
 				}
 
 
@@ -492,7 +607,8 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kdiagnostics, kdotSamples;
+				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency;
+				cpl::CValueInputControl kcustomFrequency;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
 				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
 				cpl::CTransformWidget ktransform;
@@ -517,10 +633,11 @@
 				, ptsRange(0.01, 10)
 				, phaseRange(-180, 180)
 				, reverseUnitRange(1, 0)
-
+				, customTriggerRange(5, 48000)
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
+				, customTriggerFormatter(system.getAudioStream())
 
 				, autoGain("AutoGain")
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
@@ -536,6 +653,8 @@
 				, triggerMode("TrgMode")
 				, timeMode("TimeMode")
 				, dotSamples("DotSmps", boolRange, boolFormatter)
+				, triggerOnCustomFrequency("CustomTrg", boolRange, boolFormatter)
+				, customTriggerFrequency("TrgFreq", customTriggerRange, customTriggerFormatter)
 
 				, colourBehavior()
 				, drawingColour(colourBehavior, "Draw.")
@@ -572,7 +691,9 @@
 					&triggerPhaseOffset,
 					&triggerMode.param,
 					&timeMode.param,
-					&dotSamples
+					&dotSamples,
+					&triggerOnCustomFrequency,
+					&customTriggerFrequency
 				};
 
 				for (auto sparam : singleParameters)
@@ -592,9 +713,7 @@
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
 				parameterSet.seal();
-
-				postParameterInitialization();
-
+				audioHistoryTransformatter.initialize(windowSize.getParameterView());
 				timeMode.param.getParameterView().addListener(this);
 			}
 
@@ -621,7 +740,7 @@
 				return parameterSet;
 			}
 
-			virtual void serialize(cpl::CSerializer::Archiver & archive, cpl::Version v) override
+			virtual void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override
 			{
 				archive << windowSize;
 				archive << inputGain;
@@ -646,9 +765,11 @@
 					archive << v;
 				}
 				archive << dotSamples;
+				archive << triggerOnCustomFrequency;
+				archive << customTriggerFrequency;
 			}
 
-			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
+			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
 			{
 				builder >> windowSize;
 				builder >> inputGain;
@@ -673,9 +794,12 @@
 					builder >> v;
 				}
 				builder >> dotSamples;
+				builder >> triggerOnCustomFrequency;
+				builder >> customTriggerFrequency;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
+			LinearHzFormatter<ParameterSet::ParameterView> customTriggerFormatter;
 			SystemView systemView;
 			ParameterSet parameterSet;
 
@@ -700,7 +824,8 @@
 				windowRange,
 				degreeRange,
 				phaseRange,
-				reverseUnitRange;
+				reverseUnitRange,
+				customTriggerRange;
 
 			cpl::UnityRange<double> unityRange;
 			
@@ -718,7 +843,9 @@
 				primitiveSize,
 				pctForDivision,
 				triggerPhaseOffset,
-				dotSamples;
+				dotSamples,
+				triggerOnCustomFrequency,
+				customTriggerFrequency;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 

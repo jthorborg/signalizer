@@ -383,6 +383,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\Controls.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueControl.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\controls\CValueInputControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CToolTip.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CViews.h" />
