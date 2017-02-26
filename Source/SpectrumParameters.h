@@ -616,12 +616,12 @@
 				, freeQ("FreeQ", boolRange, boolFormatter)
 
 
-				, colourBehavior()
+				, colourBehaviour()
 
 				// TODO: Figure out automatic way to initialize N array in constructor
-				, gridColour(colourBehavior, "Grid.")
-				, backgroundColour(colourBehavior, "Bck.")
-				, specColours { { colourBehavior , "Grdnt1."}, { colourBehavior , "Grdnt2." }, { colourBehavior , "Grdnt3." }, { colourBehavior , "Grdnt4." }, { colourBehavior , "Grdnt5." } }
+				, gridColour(colourBehaviour, "Grid.")
+				, backgroundColour(colourBehaviour, "Bck.")
+				, specColours { { colourBehaviour , "Grdnt1."}, { colourBehaviour , "Grdnt2." }, { colourBehaviour , "Grdnt3." }, { colourBehaviour , "Grdnt4." }, { colourBehaviour , "Grdnt5." } }
 
 				, specRatios{
 					{ "GradRatio1", unitRange, basicFormatter },
@@ -632,8 +632,8 @@
 				}
 
 				, lines {
-					{ { "Grph1.Decay", unitRange, dbSecFormatter }, { colourBehavior , "Grph1.1."}, { colourBehavior , "Grph1.2." } },
-					{ { "Grph2.Decay", unitRange, dbSecFormatter }, { colourBehavior , "Grph2.1." }, { colourBehavior , "Grph2.1." } }
+					{ { "Grph1.Decay", unitRange, dbSecFormatter }, { colourBehaviour , "Grph1.1."}, { colourBehaviour , "Grph1.2." } },
+					{ { "Grph2.Decay", unitRange, dbSecFormatter }, { colourBehaviour , "Grph2.1." }, { colourBehaviour , "Grph2.1." } }
 				}
 
 			{
@@ -878,7 +878,7 @@
 			cpl::ExponentialRange<SFloat>
 				blobRange;
 
-			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
+			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 
 		private:

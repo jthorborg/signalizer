@@ -329,12 +329,12 @@
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
 
 
-				, colourBehavior()
-				, drawingColour(colourBehavior, "Draw.")
-				, graphColour(colourBehavior, "Graph.")
-				, backgroundColour(colourBehavior, "BackG.")
-				, skeletonColour(colourBehavior, "Skelt.")
-				, meterColour(colourBehavior, "Meter.")
+				, colourBehaviour()
+				, drawingColour(colourBehaviour, "Draw.")
+				, graphColour(colourBehaviour, "Graph.")
+				, backgroundColour(colourBehaviour, "BackG.")
+				, skeletonColour(colourBehaviour, "Skelt.")
+				, meterColour(colourBehaviour, "Meter.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
@@ -459,7 +459,7 @@
 				autoGain,
 				operationalMode;
 
-			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
+			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				drawingColour,

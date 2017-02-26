@@ -273,7 +273,7 @@
 					char hash;
 					static const std::pair<char, int> notes[] = { { 'a', 0 },{ 'b', 2 },{ 'c', -9 },{ 'd', -7 },{ 'e', -5 },{ 'f', -4 },{ 'g', -2 } };
 
-					if (std::sscanf(buf.c_str(), "%c%d", &tone, &octave) == 2)
+					if (std::sscanf(buf.c_str(), "%c%d", &tone, &octave) == 2 && !isdigit(tone))
 					{
 						tone = tolower(tone);
 						if (tone >= 'a' && tone <= 'g')
@@ -288,7 +288,7 @@
 							return false;
 						}
 					}
-					else if (std::sscanf(buf.c_str(), "%c%c%d", &tone, &hash, &octave) == 3)
+					else if (std::sscanf(buf.c_str(), "%c%c%d", &tone, &hash, &octave) == 3 && !isdigit(tone))
 					{
 						tone = tolower(tone);
 						if (tone >= 'a' && tone <= 'g')
@@ -356,7 +356,9 @@
 					, kdrawingColour(&parentValue.drawingColour)
 					, kgraphColour(&parentValue.graphColour)
 					, kbackgroundColour(&parentValue.backgroundColour)
-					, kskeletonColour(&parentValue.skeletonColour)
+					, klowColour(&parentValue.lowColour)
+					, kmidColour(&parentValue.midColour)
+					, khighColour(&parentValue.highColour)
 					, ktransform(&parentValue.transform)
 					, kenvelopeMode(&parentValue.autoGain.param)
 					, kpresets(&valueSerializer, "oscilloscope")
@@ -369,7 +371,8 @@
 					, kdotSamples(&parentValue.dotSamples)
 					, ktriggerOnCustomFrequency(&parentValue.triggerOnCustomFrequency)
 					, kcustomFrequency(&parentValue.customTriggerFrequency)
-
+					, koverlayChannels(&parentValue.overlayChannels)
+					, kchannelColouring(&parentValue.channelColouring.param)
 					, editorSerializer(
 						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -399,7 +402,9 @@
 					kgraphColour.bSetTitle("Graph colour");
 					kbackgroundColour.bSetTitle("Backg. colour");
 					kdrawingColour.bSetTitle("Drawing colour");
-					kskeletonColour.bSetTitle("Skeleton colour");
+					klowColour.bSetTitle("Low band colour");
+					kmidColour.bSetTitle("Mid band colour");
+					khighColour.bSetTitle("High band colour");
 					kprimitiveSize.bSetTitle("Primitive size");
 					kenvelopeSmooth.bSetTitle("Env. window");
 					ksubSampleInterpolationMode.bSetTitle("Sample interpolation");
@@ -409,7 +414,7 @@
 					ktriggerPhaseOffset.bSetTitle("Trigger phase");
 					ktimeMode.bSetTitle("Time mode");
 					kcustomFrequency.bSetTitle("Custom trigger");
-
+					kchannelColouring.bSetTitle("Channel colouring");
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
@@ -420,6 +425,8 @@
 					kdotSamples.setToggleable(true);
 					ktriggerOnCustomFrequency.bSetTitle("Trigger on custom");
 					ktriggerOnCustomFrequency.setToggleable(true);
+					koverlayChannels.bSetTitle("Overlay channels");
+					koverlayChannels.setToggleable(true);
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -429,7 +436,6 @@
 					kgraphColour.bSetDescription("The colour of the graph.");
 					kbackgroundColour.bSetDescription("The background colour of the view.");
 					kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
-					kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
 					kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 					kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
 					kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
@@ -442,6 +448,11 @@
 					kdotSamples.bSetDescription("Marks sample positions when drawing subsampled interpolated lines");
 					ktriggerOnCustomFrequency.bSetDescription("If toggled, the oscilloscope will trigger on the specified custom frequency instead of autodetecting a fundamental");
 					kcustomFrequency.bSetDescription("Specifies a custom frequency to trigger on - input units can be notes (like a#2), hz, radians (rads), beats, samples (smps) or period (ms)");
+					klowColour.bSetDescription("Colour for the low frequency band");
+					kmidColour.bSetDescription("Colour for the mid frequency band");
+					khighColour.bSetDescription("Colour for the high frequency band");
+					kchannelColouring.bSetDescription("Method for colouring of channels, static equals just the drawing colour while spectral paints with separate colours for each frequency band");
+					koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
 				}
 
 				void initUI()
@@ -458,14 +469,15 @@
 							section->addControl(&kenvelopeMode, 0);
 							section->addControl(&kenvelopeSmooth, 1);
 							
-							section->addControl(&kchannelConfiguration, 0);
+							section->addControl(&kgain, 0);
+							section->addControl(&kpctForDivision, 1);
 
-							section->addControl(&kgain, 1);
+							section->addControl(&kchannelConfiguration, 0);
+							section->addControl(&koverlayChannels, 1);
 
 							section->addControl(&kwindow, 0);
 							section->addControl(&ktimeMode, 1);
-							section->addControl(&kpctForDivision, 0);
-							
+
 
 							page->addSection(section, "Utility");
 						}
@@ -494,10 +506,16 @@
 							section->addControl(&kprimitiveSize, 0);
 							section->addControl(&ksubSampleInterpolationMode, 1);
 
-							section->addControl(&kdrawingColour, 0);
-							section->addControl(&kgraphColour, 1);
-							section->addControl(&kbackgroundColour, 0);
-							section->addControl(&kskeletonColour, 1);
+
+							section->addControl(&kgraphColour, 0);
+							section->addControl(&kbackgroundColour, 1);
+
+							section->addControl(&kchannelColouring, 0);
+							section->addControl(&kdrawingColour, 1);
+
+							section->addControl(&klowColour, 1);
+							section->addControl(&kmidColour, 0);
+							section->addControl(&khighColour, 1);
 
 							page->addSection(section, "Look");
 						}
@@ -525,7 +543,6 @@
 					archive << kbackgroundColour;
 					archive << kdrawingColour;
 					archive << ktransform;
-					archive << kskeletonColour;
 					archive << kprimitiveSize;
 					archive << kenvelopeMode;
 					archive << kenvelopeSmooth;
@@ -539,6 +556,9 @@
 					archive << kdotSamples;
 					archive << ktriggerOnCustomFrequency;
 					archive << kcustomFrequency;
+					archive << koverlayChannels;
+					archive << kchannelColouring;
+					archive << klowColour << kmidColour << khighColour;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -557,7 +577,6 @@
 					builder >> kbackgroundColour;
 					builder >> kdrawingColour;
 					builder >> ktransform;
-					builder >> kskeletonColour;
 					builder >> kprimitiveSize;
 					builder >> kenvelopeMode;
 					builder >> kenvelopeSmooth;
@@ -571,6 +590,9 @@
 					builder >> kdotSamples;
 					builder >> ktriggerOnCustomFrequency;
 					builder >> kcustomFrequency;
+					builder >> koverlayChannels;
+					builder >> kchannelColouring;
+					builder >> klowColour >> kmidColour >> khighColour;
 				}
 
 
@@ -607,12 +629,12 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency;
+				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels;
 				cpl::CValueInputControl kcustomFrequency;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
-				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour;
+				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour;
 				cpl::CTransformWidget ktransform;
-				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode;
+				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 				cpl::CPresetWidget kpresets;
 
 				OscilloscopeContent & parent;
@@ -655,12 +677,16 @@
 				, dotSamples("DotSmps", boolRange, boolFormatter)
 				, triggerOnCustomFrequency("CustomTrg", boolRange, boolFormatter)
 				, customTriggerFrequency("TrgFreq", customTriggerRange, customTriggerFormatter)
+				, overlayChannels("Overlay", boolRange, boolFormatter)
+				, channelColouring("Colouring")
 
-				, colourBehavior()
-				, drawingColour(colourBehavior, "Draw.")
-				, graphColour(colourBehavior, "Graph.")
-				, backgroundColour(colourBehavior, "BackG.")
-				, skeletonColour(colourBehavior, "Skelt.")
+				, colourBehaviour()
+				, drawingColour(colourBehaviour, "Draw.")
+				, graphColour(colourBehaviour, "Graph.")
+				, backgroundColour(colourBehaviour, "BackG.")
+				, lowColour(colourBehaviour, "Low.")
+				, midColour(colourBehaviour, "Mid.")
+				, highColour(colourBehaviour, "High.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
@@ -673,9 +699,10 @@
 
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
-				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid/Merge", "Side", "Separate", "Mid+Side"});
+				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid", "Side", "Separate", "Mid+Side"});
 				triggerMode.fmt.setValues({ "None", "Spectral", "Window" /*, "Zero-crossings" */});
 				timeMode.fmt.setValues({ "Time", "Cycles", "Beats" });
+				channelColouring.fmt.setValues({ "Static", "Spectral energy" });
 				// order matters
 				auto singleParameters = { 
 					&autoGain.param, 
@@ -693,7 +720,9 @@
 					&timeMode.param,
 					&dotSamples,
 					&triggerOnCustomFrequency,
-					&customTriggerFrequency
+					&customTriggerFrequency,
+					&overlayChannels,
+					&channelColouring.param,
 				};
 
 				for (auto sparam : singleParameters)
@@ -706,10 +735,11 @@
 					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
-				parameterSet.registerParameterBundle(&drawingColour, drawingColour.getBundleName());
-				parameterSet.registerParameterBundle(&graphColour, graphColour.getBundleName());
-				parameterSet.registerParameterBundle(&backgroundColour, backgroundColour.getBundleName());
-				parameterSet.registerParameterBundle(&skeletonColour, skeletonColour.getBundleName());
+				for (auto cparam : { &drawingColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour })
+				{
+					parameterSet.registerParameterBundle(cparam, cparam->getBundleName());
+				}
+
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
 				parameterSet.seal();
@@ -750,7 +780,6 @@
 				archive << backgroundColour;
 				archive << drawingColour;
 				archive << transform;
-				archive << skeletonColour;
 				archive << primitiveSize;
 				archive << autoGain.param;
 				archive << envelopeWindow;
@@ -767,6 +796,9 @@
 				archive << dotSamples;
 				archive << triggerOnCustomFrequency;
 				archive << customTriggerFrequency;
+				archive << overlayChannels;
+				archive << channelColouring.param;
+				archive << lowColour << midColour << highColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -779,7 +811,6 @@
 				builder >> backgroundColour;
 				builder >> drawingColour;
 				builder >> transform;
-				builder >> skeletonColour;
 				builder >> primitiveSize;
 				builder >> autoGain.param;
 				builder >> envelopeWindow;
@@ -789,6 +820,7 @@
 				builder >> triggerPhaseOffset;
 				builder >> triggerMode.param;
 				builder >> timeMode.param;
+
 				for (auto & v : viewOffsets)
 				{
 					builder >> v;
@@ -796,6 +828,9 @@
 				builder >> dotSamples;
 				builder >> triggerOnCustomFrequency;
 				builder >> customTriggerFrequency;
+				builder >> overlayChannels;
+				builder >> channelColouring.param;
+				builder >> lowColour >> midColour >> highColour;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -845,7 +880,8 @@
 				triggerPhaseOffset,
 				dotSamples,
 				triggerOnCustomFrequency,
-				customTriggerFrequency;
+				customTriggerFrequency,
+				overlayChannels;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
@@ -854,16 +890,16 @@
 				channelConfiguration,
 				subSampleInterpolation,
 				triggerMode,
-				timeMode;
+				timeMode,
+				channelColouring;
 
-
-			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehavior;
+			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				drawingColour,
 				graphColour,
 				backgroundColour,
-				skeletonColour;
+				lowColour, midColour, highColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 

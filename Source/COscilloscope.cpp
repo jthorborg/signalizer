@@ -250,7 +250,6 @@ namespace Signalizer
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
-		state.colourWire = content->skeletonColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());

@@ -178,7 +178,7 @@
 
 				double viewOffsets[4];
 				std::int64_t transportPosition;
-				juce::Colour colourBackground, colourWire, colourGraph, colourDraw;
+				juce::Colour colourBackground, colourGraph, colourDraw;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;

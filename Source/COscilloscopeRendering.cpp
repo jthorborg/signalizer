@@ -209,7 +209,7 @@ namespace Signalizer
 			// quantize to multiples of 3
 			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
 
-			g.setColour(content->skeletonColour.getAsJuceColour());
+			g.setColour(state.colourGraph);
 
 			const auto offset = state.envelopeGain;
 			char textBuf[200];
@@ -348,7 +348,7 @@ namespace Signalizer
 			}
 
 	
-			g.setColour(content->skeletonColour.getAsJuceColour());
+			g.setColour(state.colourGraph);
 
 			auto transformView = [&](auto x) {
 				return (x - state.viewOffsets[VO::Left]) / horizontalDelta;
