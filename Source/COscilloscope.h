@@ -168,7 +168,7 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger;
+				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency;
 				float primitiveSize;
 				float envelopeCoeff;
 				double effectiveWindowSize;
@@ -178,7 +178,7 @@
 
 				double viewOffsets[4];
 				std::int64_t transportPosition;
-				juce::Colour colourBackground, colourGraph, colourDraw;
+				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary;
 				cpl::ValueT envelopeGain;
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;

@@ -60,6 +60,11 @@
 				Time, Cycles, Beats
 			};
 
+			enum class ColourMode
+			{
+				Static, SpectralEnergy
+			};
+
 			template<typename ParameterView>
 			class WindowSizeTransformatter : public AudioHistoryTransformatter<ParameterView>
 			{
@@ -353,7 +358,8 @@
 					, kgain(&parentValue.inputGain)
 					, kprimitiveSize(&parentValue.primitiveSize)
 					, kenvelopeSmooth(&parentValue.envelopeWindow)
-					, kdrawingColour(&parentValue.drawingColour)
+					, kprimaryColour(&parentValue.primaryColour)
+					, ksecondaryColour(&parentValue.secondaryColour)
 					, kgraphColour(&parentValue.graphColour)
 					, kbackgroundColour(&parentValue.backgroundColour)
 					, klowColour(&parentValue.lowColour)
@@ -401,7 +407,8 @@
 					kgain.bSetTitle("Input gain");
 					kgraphColour.bSetTitle("Graph colour");
 					kbackgroundColour.bSetTitle("Backg. colour");
-					kdrawingColour.bSetTitle("Drawing colour");
+					kprimaryColour.bSetTitle("Primary colour");
+					kprimaryColour.bSetTitle("Secondary colour");
 					klowColour.bSetTitle("Low band colour");
 					kmidColour.bSetTitle("Mid band colour");
 					khighColour.bSetTitle("High band colour");
@@ -432,7 +439,8 @@
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
 						" - additional transform that only affects the waveform, and not the graph");
 					kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
-					kdrawingColour.bSetDescription("The main colour to paint with.");
+					kprimaryColour.bSetDescription("Colour for the first channel");
+					ksecondaryColour.bSetDescription("Colour for the second channel");
 					kgraphColour.bSetDescription("The colour of the graph.");
 					kbackgroundColour.bSetDescription("The background colour of the view.");
 					kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
@@ -510,9 +518,11 @@
 							section->addControl(&kgraphColour, 0);
 							section->addControl(&kbackgroundColour, 1);
 
-							section->addControl(&kchannelColouring, 0);
-							section->addControl(&kdrawingColour, 1);
 
+							section->addControl(&kprimaryColour, 0);
+							section->addControl(&ksecondaryColour, 1);
+
+							section->addControl(&kchannelColouring, 0);
 							section->addControl(&klowColour, 1);
 							section->addControl(&kmidColour, 0);
 							section->addControl(&khighColour, 1);
@@ -541,7 +551,7 @@
 					archive << kdiagnostics;
 					archive << kgraphColour;
 					archive << kbackgroundColour;
-					archive << kdrawingColour;
+					archive << kprimaryColour;
 					archive << ktransform;
 					archive << kprimitiveSize;
 					archive << kenvelopeMode;
@@ -559,6 +569,7 @@
 					archive << koverlayChannels;
 					archive << kchannelColouring;
 					archive << klowColour << kmidColour << khighColour;
+					archive << ksecondaryColour;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -575,7 +586,7 @@
 					builder >> kdiagnostics;
 					builder >> kgraphColour;
 					builder >> kbackgroundColour;
-					builder >> kdrawingColour;
+					builder >> kprimaryColour;
 					builder >> ktransform;
 					builder >> kprimitiveSize;
 					builder >> kenvelopeMode;
@@ -593,6 +604,7 @@
 					builder >> koverlayChannels;
 					builder >> kchannelColouring;
 					builder >> klowColour >> kmidColour >> khighColour;
+					builder >> ksecondaryColour;
 				}
 
 
@@ -632,7 +644,7 @@
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels;
 				cpl::CValueInputControl kcustomFrequency;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
-				cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour;
+				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 				cpl::CPresetWidget kpresets;
@@ -681,7 +693,8 @@
 				, channelColouring("Colouring")
 
 				, colourBehaviour()
-				, drawingColour(colourBehaviour, "Draw.")
+				, primaryColour(colourBehaviour, "Prim.")
+				, secondaryColour(colourBehaviour, "Sec.")
 				, graphColour(colourBehaviour, "Graph.")
 				, backgroundColour(colourBehaviour, "BackG.")
 				, lowColour(colourBehaviour, "Low.")
@@ -698,7 +711,7 @@
 				viewOffsets.emplace_back("ViewBottom", reverseUnitRange, basicFormatter);
 
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
-				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos 5" });
+				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid", "Side", "Separate", "Mid+Side"});
 				triggerMode.fmt.setValues({ "None", "Spectral", "Window" /*, "Zero-crossings" */});
 				timeMode.fmt.setValues({ "Time", "Cycles", "Beats" });
@@ -735,7 +748,7 @@
 					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
-				for (auto cparam : { &drawingColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour })
+				for (auto cparam : { &primaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &secondaryColour })
 				{
 					parameterSet.registerParameterBundle(cparam, cparam->getBundleName());
 				}
@@ -778,7 +791,7 @@
 				archive << diagnostics;
 				archive << graphColour;
 				archive << backgroundColour;
-				archive << drawingColour;
+				archive << primaryColour;
 				archive << transform;
 				archive << primitiveSize;
 				archive << autoGain.param;
@@ -799,6 +812,7 @@
 				archive << overlayChannels;
 				archive << channelColouring.param;
 				archive << lowColour << midColour << highColour;
+				archive << secondaryColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -809,7 +823,7 @@
 				builder >> diagnostics;
 				builder >> graphColour;
 				builder >> backgroundColour;
-				builder >> drawingColour;
+				builder >> primaryColour;
 				builder >> transform;
 				builder >> primitiveSize;
 				builder >> autoGain.param;
@@ -831,6 +845,7 @@
 				builder >> overlayChannels;
 				builder >> channelColouring.param;
 				builder >> lowColour >> midColour >> highColour;
+				builder >> secondaryColour;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -896,8 +911,9 @@
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
-				drawingColour,
+				primaryColour,
 				graphColour,
+				secondaryColour,
 				backgroundColour,
 				lowColour, midColour, highColour;
 

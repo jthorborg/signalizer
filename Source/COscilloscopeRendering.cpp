@@ -428,6 +428,9 @@ namespace Signalizer
 
 				auto && view = lifoStream.createProxyView();
 
+				if (view.size() < 1)
+					return;
+
 				cpl::ssize_t
 					cursor = view.cursorPosition(),
 					bufferSamples = view.size(),
@@ -522,7 +525,7 @@ namespace Signalizer
 					renderSampleSpace(
 						[&] {
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_POINTS);
-							drawer.addColour(state.colourDraw);
+							drawer.addColour(state.colourPrimary);
 
 							auto localPointer = pointer;
 
@@ -555,7 +558,7 @@ namespace Signalizer
 					{
 						renderSampleSpace([&] {
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourDraw);
+							drawer.addColour(state.colourPrimary);
 							auto localPointer = pointer;
 							for (GLfloat i = 0; i < endCondition; i += 1)
 							{
@@ -571,7 +574,7 @@ namespace Signalizer
 					{
 						renderSampleSpace([&]{
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourDraw);
+							drawer.addColour(state.colourPrimary);
 							auto localPointer = pointer;
 							for (GLfloat i = 0; i < endCondition; i += 1)
 							{
@@ -641,7 +644,7 @@ namespace Signalizer
 
 						{
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourDraw);
+							drawer.addColour(state.colourPrimary);
 
 							do
 							{

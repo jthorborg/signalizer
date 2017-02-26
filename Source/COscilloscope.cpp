@@ -248,8 +248,11 @@ namespace Signalizer
 		state.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
+		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
+		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 
-		state.colourDraw = content->drawingColour.getAsJuceColour();
+		state.colourPrimary = content->primaryColour.getAsJuceColour();
+		state.colourSecondary = content->secondaryColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
