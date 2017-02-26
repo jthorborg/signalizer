@@ -110,8 +110,6 @@ namespace Signalizer
 		info.anticipatedSize = samplesPerBlock;
 		info.callAsyncListeners = true;
 		info.callRTListeners = true;
-		info.isFrozen = false;
-		info.isSuspended = false;
 		info.sampleRate = sampleRate;
 		info.storeAudioHistory = true;
 
