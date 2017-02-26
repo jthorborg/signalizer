@@ -129,7 +129,12 @@ namespace Signalizer
 			CPL_BREAKIFDEBUGGED();
 		}
 		// stream will take it from here.
-		stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *getPlayHead());
+
+
+		if(auto ph = getPlayHead())
+			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+		else
+			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't
