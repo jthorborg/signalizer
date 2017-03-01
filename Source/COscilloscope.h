@@ -37,6 +37,8 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "OscilloscopeParameters.h"
+	#include <cpl/dsp/LinkwitzRileyNetwork.h>
+	#include <cpl/dsp/SmoothedParameterState.h>
 
 	namespace cpl
 	{
@@ -184,6 +186,7 @@
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
+
 			} state;
 
 			using VO = OscilloscopeContent::ViewOffsets;
@@ -247,12 +250,71 @@
 				static const std::size_t FilterSize = 8;
 				BinRecord record{};
 			};
+
+			struct ChannelData
+			{
+				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, 3> Crossover;
+
+				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
+				{
+					if (capacity == -1)
+						capacity = cpl::nextPowerOfTwo(samples);
+
+					for (auto & c : channels)
+					{
+						c.audioData.setStorageRequirements(samples, capacity);
+						c.colourData.setStorageRequirements(samples, capacity);
+					}
+					phaseData.setStorageRequirements(samples, capacity);
+				}
+
+				void resizeChannels(std::size_t newChannels)
+				{
+					if (newChannels > channels.size())
+					{
+						auto original = channels.size();
+						auto diff = newChannels - original;
+
+						while (diff--)
+						{
+							channels.emplace_back();
+
+						}
+
+						if (original > 0)
+							resizeStorage(channels.back().audioData.getSize(), channels.back().audioData.getCapacity());
+					}
+				}
+
+				void tuneCrossOver(double lowCrossover, double highCrossover, double sampleRate)
+				{
+					networkCoeffs = Crossover::Coefficients::design({ static_cast<AFloat>(lowCrossover / sampleRate), static_cast<AFloat>(lowCrossover / sampleRate) });
+				}
+
+				void tuneColourSmoothing(double milliseconds, double sampleRate)
+				{
+					smoothFilterPole = cpl::dsp::SmoothedParameterState<AFloat, 1>::design(milliseconds, sampleRate);
+				}
+
+				struct Channel
+				{
+					cpl::CLIFOStream<AFloat, 32> audioData;
+					cpl::CLIFOStream<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>, 32> colourData;
+					AFloat smoothFilters[4]{};
+					Crossover network;
+				};
+
+				cpl::CLIFOStream<AFloat, 32> phaseData;
+				Crossover::Coefficients networkCoeffs;
+				cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
+				std::vector<Channel> channels;
+			};
+
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
 
 			cpl::CMutex::Lockable bufferLock;
-			cpl::CLIFOStream<float, 16> lifoStream;
-
+			ChannelData channelData;
 		};
 
 	};

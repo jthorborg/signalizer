@@ -39,25 +39,6 @@
 
 namespace Signalizer
 {
-	// swapping the right channel might give an more intuitive view
-
-	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C", "S" };
-
-	static const float quarterPISinCos = 0.707106781186547f;
-	static const float circleScaleFactor = 1.1f;
-
-	enum Textures
-	{
-		LPlus,
-		RPlus,
-		LMinus,
-		RMinus,
-		Left,
-		Right,
-		Center,
-		Side
-	};
-
 	template<typename V>
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
 	{

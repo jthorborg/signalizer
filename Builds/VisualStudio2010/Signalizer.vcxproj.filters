@@ -379,6 +379,9 @@
     <Filter Include="Signalizer\Source\Processor">
       <UniqueIdentifier>{a6d0243e-d651-489a-b133-bc3ed22d21e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\cpl\dsp\filters">
+      <UniqueIdentifier>{a3f1f081-be88-4f79-922c-c9844d6dd635}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -2587,6 +2590,27 @@
     </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\gui\controls\CValueInputControl.h">
       <Filter>Signalizer\Source\cpl\gui\controls</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\AC_SVF.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\Allpass.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h">
+      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\OnePoleNetwork.h">
+      <Filter>Signalizer\Source\cpl\dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h">
+      <Filter>Signalizer\Source\cpl\dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h">
+      <Filter>Signalizer\Source\cpl\dsp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

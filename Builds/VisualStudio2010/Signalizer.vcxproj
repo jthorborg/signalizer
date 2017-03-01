@@ -364,8 +364,15 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CPeakFilter.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CSignalTransform.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\DSPWindows.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\AC_SVF.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\Allpass.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\IIRResonator.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\OnePoleNetwork.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\SDFTSystem.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts\dustfft.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\BuildingBlocks.h" />
