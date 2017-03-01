@@ -341,8 +341,12 @@ namespace Signalizer
 				return;
 
 			cpl::CMutex scopedLock(bufferLock);
+			auto const sampleRate = audioStream.getAudioHistorySamplerate();
 
 			channelData.resizeChannels(numChannels);
+			channelData.tuneColourSmoothing(content->colourSmoothing.getTransformedValue(), sampleRate);
+			channelData.tuneCrossOver(300, 3000, sampleRate);
+
 
 			if (channelData.channels[0].audioData.getSize() < 1)
 				return;
@@ -353,28 +357,56 @@ namespace Signalizer
 			auto const vectorSamples = numSamples - (numSamples & (loopIncrement - 1));
 			auto const remainder = numSamples - vectorSamples;
 
+			auto const colourSmoothPole = channelData.smoothFilterPole;
+
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
 
+			auto colourArray = [](const auto & colourParam)
+			{
+				return std::array<float, 3> {static_cast<AFloat>(colourParam.r.getValue()), static_cast<AFloat>(colourParam.g.getValue()), static_cast<AFloat>(colourParam.b.getValue())};
+			};
+
+			auto filterStates = [=](const auto & bands, auto & states)
+			{
+				for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+					states[i] = states[i] + colourSmoothPole * (states[i] - std::abs(bands[i])); // can also rectify
+			};
+
+			decltype(colourArray(content->lowColour)) colours[] = { colourArray(content->lowColour), colourArray(content->midColour), colourArray(content->highColour) };
+
+			auto accumulateColour = [&colours](const auto & state)
+			{
+				typedef ChannelData::PixelType::ComponentType C;
+				ChannelData::PixelType ret;
+				constexpr auto PixelMax = static_cast<AFloat>(std::numeric_limits<C>::max());
+				AFloat red(0), green(0), blue(0);
+
+				for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+				{
+					red += state[i] * colours[i][0];
+					blue += state[i] * colours[i][1];
+					green += state[i] * colours[i][2];
+				}
+
+				auto invMax = PixelMax / std::max(red, std::max(blue, green));
+
+				ret.pixel.a = std::numeric_limits<C>::max();
+				ret.pixel.r = static_cast<C>(red * invMax);
+				ret.pixel.g = static_cast<C>(blue * invMax);
+				ret.pixel.b = static_cast<C>(green * invMax);
+
+				return ret;
+			};
+
+			std::size_t n = 0;
+
+			using fs = FilterStates;
+
 			if (numChannels == 2)
 			{
-				std::size_t n = 0;
-				using fs = FilterStates;
 
-				auto const colourSmoothPole = channelData.smoothFilterPole;
-
-				auto colourArray = [](const auto & colourParam)
-				{
-					return std::array<float, 3> {static_cast<AFloat>(colourParam.r.getValue()), static_cast<AFloat>(colourParam.g.getValue()), static_cast<AFloat>(colourParam.b.getValue())};
-				};
-
-				auto filterStates = [=](const auto & bands, auto & states)
-				{
-					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-						states[i] = states[i] + colourSmoothPole * (states[i] - std::abs(bands[i])); // can also rectify
-				};
-
-				auto subStates = [](const auto & left, const auto & right)
+				auto sideSignal = [](const auto & left, const auto & right)
 				{
 					val_typeof(left) ret;
 					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
@@ -382,7 +414,7 @@ namespace Signalizer
 					return ret;
 				};
 
-				auto addStates = [](const auto & left, const auto & right)
+				auto midSignal = [](const auto & left, const auto & right)
 				{
 					val_typeof(left) ret;
 					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
@@ -390,38 +422,11 @@ namespace Signalizer
 					return ret;
 				};
 
-
 				auto 
 					leftSmoothState = channelData.channels[fs::Left].smoothFilters, 
 					rightSmoothState = channelData.channels[fs::Right].smoothFilters,
 					midSmoothState = channelData.midSideSmoothsFilters[0],
 					sideSmoothState = channelData.midSideSmoothsFilters[1];
-
-				decltype(colourArray(content->lowColour)) colours[] = { colourArray(content->lowColour), colourArray(content->midColour), colourArray(content->highColour) };
-
-				auto accumulateColour = [&colours](const auto & state)
-				{
-					typedef ChannelData::PixelType::ComponentType C;
-					ChannelData::PixelType ret;
-					constexpr auto PixelMax = static_cast<AFloat>(std::numeric_limits<C>::max());
-					AFloat red(0), green(0), blue(0);
-
-					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-					{
-						red += state[i] * colours[i][0];
-						blue += state[i] * colours[i][1];
-						green += state[i] * colours[i][2];
-					}
-
-					auto invMax = PixelMax / std::max(red, std::max(blue, green));
-
-					ret.pixel.a = std::numeric_limits<C>::max();
-					ret.pixel.r = static_cast<C>(red * invMax);
-					ret.pixel.g = static_cast<C>(blue * invMax);
-					ret.pixel.b = static_cast<C>(green * invMax);
-
-					return ret;
-				};
 
 				auto && 
 					lw = channelData.channels[fs::Left].colourData.createWriter(),
@@ -449,14 +454,44 @@ namespace Signalizer
 					filterStates(rightBands, rightSmoothState);
 
 					// magnitude doesn't matter for these, as we normalize the data anyway -
-					filterStates(addStates(leftBands, rightBands), midSmoothState);
-					filterStates(subStates(leftBands, rightBands), sideSmoothState);
+					filterStates(midSignal(leftBands, rightBands), midSmoothState);
+					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
 
 					lw.setHeadAndAdvance(accumulateColour(leftSmoothState));
 					rw.setHeadAndAdvance(accumulateColour(rightSmoothState));
 					mw.setHeadAndAdvance(accumulateColour(midSmoothState));
 					sw.setHeadAndAdvance(accumulateColour(sideSmoothState));
 				}
+
+				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
+				channelData.channels[fs::Right].smoothFilters = rightSmoothState;
+				channelData.midSideSmoothsFilters[0] = midSmoothState;
+				channelData.midSideSmoothsFilters[1] = sideSmoothState;
+
+			}
+			else if (numChannels == 1)
+			{
+				filterEnv[1] = 0;
+				auto && lw = channelData.channels[fs::Left].colourData.createWriter();
+				auto leftSmoothState = channelData.channels[fs::Left].smoothFilters;
+
+				for (; n < numSamples; n++)
+				{
+
+					const auto left = buffer[fs::Left][n];
+					const auto lSquared = left * left;
+
+					// average envelope
+					filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
+
+					// split signal into bands:
+					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
+
+					filterStates(leftBands, leftSmoothState);
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState));
+				}
+
+				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
 
 			}
 			// store calculated envelope

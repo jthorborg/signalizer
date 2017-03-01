@@ -259,6 +259,7 @@
 				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, Bands> Crossover;
 				typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> PixelType;
 
+
 				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
 				{
 					if (capacity == -1)

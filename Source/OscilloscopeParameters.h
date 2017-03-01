@@ -379,6 +379,8 @@
 					, kcustomFrequency(&parentValue.customTriggerFrequency)
 					, koverlayChannels(&parentValue.overlayChannels)
 					, kchannelColouring(&parentValue.channelColouring.param)
+					, kcolourSmoothingTime(&parentValue.colourSmoothing)
+
 					, editorSerializer(
 						*this, 
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -422,6 +424,7 @@
 					ktimeMode.bSetTitle("Time mode");
 					kcustomFrequency.bSetTitle("Custom trigger");
 					kchannelColouring.bSetTitle("Channel colouring");
+					kcolourSmoothingTime.bSetTitle("Colour smoothing");
 					// buttons n controls
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
@@ -461,6 +464,7 @@
 					khighColour.bSetDescription("Colour for the high frequency band");
 					kchannelColouring.bSetDescription("Method for colouring of channels, static equals just the drawing colour while spectral paints with separate colours for each frequency band");
 					koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
+					kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 				}
 
 				void initUI()
@@ -526,7 +530,7 @@
 							section->addControl(&klowColour, 1);
 							section->addControl(&kmidColour, 0);
 							section->addControl(&khighColour, 1);
-
+							section->addControl(&kcolourSmoothingTime, 0);
 							page->addSection(section, "Look");
 						}
 					}
@@ -570,6 +574,7 @@
 					archive << kchannelColouring;
 					archive << klowColour << kmidColour << khighColour;
 					archive << ksecondaryColour;
+					archive << kcolourSmoothingTime;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -605,6 +610,7 @@
 					builder >> kchannelColouring;
 					builder >> klowColour >> kmidColour >> khighColour;
 					builder >> ksecondaryColour;
+					builder >> kcolourSmoothingTime;
 				}
 
 
@@ -643,7 +649,7 @@
 
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels;
 				cpl::CValueInputControl kcustomFrequency;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime;
 				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
@@ -668,6 +674,7 @@
 				, phaseRange(-180, 180)
 				, reverseUnitRange(1, 0)
 				, customTriggerRange(5, 48000)
+				, colourSmoothRange(0.01, 1000)
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
@@ -691,6 +698,7 @@
 				, customTriggerFrequency("TrgFreq", customTriggerRange, customTriggerFormatter)
 				, overlayChannels("Overlay", boolRange, boolFormatter)
 				, channelColouring("Colouring")
+				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 
 				, colourBehaviour()
 				, primaryColour(colourBehaviour, "Prim.")
@@ -736,6 +744,7 @@
 					&customTriggerFrequency,
 					&overlayChannels,
 					&channelColouring.param,
+					&colourSmoothing
 				};
 
 				for (auto sparam : singleParameters)
@@ -813,6 +822,7 @@
 				archive << channelColouring.param;
 				archive << lowColour << midColour << highColour;
 				archive << secondaryColour;
+				archive << colourSmoothing;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -846,6 +856,7 @@
 				builder >> channelColouring.param;
 				builder >> lowColour >> midColour >> highColour;
 				builder >> secondaryColour;
+				builder >> colourSmoothing;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -867,7 +878,7 @@
 			cpl::BasicFormatter<double> basicFormatter;
 			cpl::BooleanRange<double> boolRange;
 
-			cpl::ExponentialRange<double> dbRange;
+			cpl::ExponentialRange<double> dbRange, colourSmoothRange;
 
 			cpl::LinearRange<double>
 				ptsRange,
@@ -896,7 +907,8 @@
 				dotSamples,
 				triggerOnCustomFrequency,
 				customTriggerFrequency,
-				overlayChannels;
+				overlayChannels,
+				colourSmoothing;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
