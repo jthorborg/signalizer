@@ -59,7 +59,7 @@ namespace Signalizer
 		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
 
-			const auto && view = lifoStream.createProxyView();
+			const auto && view = channelData.channels[0].audioData.createProxyView();
 
 			cpl::ssize_t
 				cursor = view.cursorPosition(),
@@ -224,7 +224,7 @@ namespace Signalizer
 		auto const TransformSize = OscilloscopeContent::LookaheadSize;
 #endif
 
-		auto && view = lifoStream.createProxyView();
+		auto && view = channelData.channels[0].audioData.createProxyView();
 		cpl::ssize_t
 			cursor = view.cursorPosition(),
 			totalBufferSamples = view.size();
@@ -306,7 +306,8 @@ namespace Signalizer
 			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
 			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
 		}
-		lifoStream.setStorageRequirements(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
+
+		channelData.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
 
 	bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -329,7 +330,8 @@ namespace Signalizer
 		}
 		return false;
 	}
-	
+
+
 	template<typename V>
 		void COscilloscope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
@@ -340,20 +342,121 @@ namespace Signalizer
 
 			cpl::CMutex scopedLock(bufferLock);
 
+			channelData.resizeChannels(numChannels);
+
+			if (channelData.channels[0].audioData.getSize() < 1)
+				return;
+
+			auto const loopIncrement = elements_of<V>::value;
+
+			// ensure a perfect multiple and no buffer overrun
+			auto const vectorSamples = numSamples - (numSamples & (loopIncrement - 1));
+			auto const remainder = numSamples - vectorSamples;
+
+
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
 
-			for (std::size_t n = 0; n < numSamples; n++)
+			if (numChannels == 2)
 			{
+				std::size_t n = 0;
 				using fs = FilterStates;
-				// collect squared inputs (really just a cheap abs)
-				const auto lSquared = buffer[fs::Left][n] * buffer[fs::Left][n];
-				const auto rSquared = buffer[fs::Right][n] * buffer[fs::Right][n];
 
-				// average envelope
-				filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
-				filterEnv[fs::Right] = rSquared + state.envelopeCoeff * (filterEnv[fs::Right] - rSquared);
+				auto const colourSmoothPole = channelData.smoothFilterPole;
+
+				auto colourArray = [](const auto & colourParam)
+				{
+					return std::array<float, 3> {static_cast<AFloat>(colourParam.r.getValue()), static_cast<AFloat>(colourParam.g.getValue()), static_cast<AFloat>(colourParam.b.getValue())};
+				};
+
+				auto filterStates = [=](const auto & bands, auto & states)
+				{
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+						states[i] = states[i] + colourSmoothPole * (states[i] - std::abs(bands[i])); // can also rectify
+				};
+
+				auto subStates = [](const auto & left, const auto & right)
+				{
+					val_typeof(left) ret;
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+						ret[i] = left[i] - right[i]; 
+					return ret;
+				};
+
+				auto addStates = [](const auto & left, const auto & right)
+				{
+					val_typeof(left) ret;
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+						ret[i] = left[i] + right[i];
+					return ret;
+				};
 
 
+				auto 
+					leftSmoothState = channelData.channels[fs::Left].smoothFilters, 
+					rightSmoothState = channelData.channels[fs::Right].smoothFilters,
+					midSmoothState = channelData.midSideSmoothsFilters[0],
+					sideSmoothState = channelData.midSideSmoothsFilters[1];
+
+				decltype(colourArray(content->lowColour)) colours[] = { colourArray(content->lowColour), colourArray(content->midColour), colourArray(content->highColour) };
+
+				auto accumulateColour = [&colours](const auto & state)
+				{
+					typedef ChannelData::PixelType::ComponentType C;
+					ChannelData::PixelType ret;
+					constexpr auto PixelMax = static_cast<AFloat>(std::numeric_limits<C>::max());
+					AFloat red(0), green(0), blue(0);
+
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+					{
+						red += state[i] * colours[i][0];
+						blue += state[i] * colours[i][1];
+						green += state[i] * colours[i][2];
+					}
+
+					auto invMax = PixelMax / std::max(red, std::max(blue, green));
+
+					ret.pixel.a = std::numeric_limits<C>::max();
+					ret.pixel.r = static_cast<C>(red * invMax);
+					ret.pixel.g = static_cast<C>(blue * invMax);
+					ret.pixel.b = static_cast<C>(green * invMax);
+
+					return ret;
+				};
+
+				auto && 
+					lw = channelData.channels[fs::Left].colourData.createWriter(),
+					rw = channelData.channels[fs::Right].colourData.createWriter(),
+					mw = channelData.midSideColour[0].createWriter(),
+					sw = channelData.midSideColour[1].createWriter();
+
+				for (; n < numSamples; n++)
+				{
+
+					const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
+					// collect squared inputs (really just a cheap abs)
+					const auto lSquared = left * left;
+					const auto rSquared = right * right;
+
+					// average envelope
+					filterEnv[fs::Left] = lSquared + state.envelopeCoeff * (filterEnv[fs::Left] - lSquared);
+					filterEnv[fs::Right] = rSquared + state.envelopeCoeff * (filterEnv[fs::Right] - rSquared);
+
+					// split signal into bands:
+					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
+					auto rightBands = channelData.channels[fs::Right].network.process(right, channelData.networkCoeffs);
+
+					filterStates(leftBands, leftSmoothState);
+					filterStates(rightBands, rightSmoothState);
+
+					// magnitude doesn't matter for these, as we normalize the data anyway -
+					filterStates(addStates(leftBands, rightBands), midSmoothState);
+					filterStates(subStates(leftBands, rightBands), sideSmoothState);
+
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState));
+					rw.setHeadAndAdvance(accumulateColour(rightSmoothState));
+					mw.setHeadAndAdvance(accumulateColour(midSmoothState));
+					sw.setHeadAndAdvance(accumulateColour(sideSmoothState));
+				}
 
 			}
 			// store calculated envelope
@@ -375,8 +478,11 @@ namespace Signalizer
 					);
 				}
 			}
-			// save data
-			lifoStream.createWriter().copyIntoHead(buffer[0], numSamples);
+
+			// save audio data
+			for(std::size_t c = 0; c < channelData.channels.size(); ++c)
+				channelData.channels[c].audioData.createWriter().copyIntoHead(buffer[0], numSamples);
+
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
 		}
 

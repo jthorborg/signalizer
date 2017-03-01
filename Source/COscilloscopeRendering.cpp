@@ -407,7 +407,7 @@ namespace Signalizer
 				auto verticalDelta = bottom - top;
 				auto horizontalDelta = right - left;
 
-				auto && view = lifoStream.createProxyView();
+				auto && view = channelData.channels[0].audioData.createProxyView();
 
 				if (view.size() < 1)
 					return;

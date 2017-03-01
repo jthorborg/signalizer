@@ -173,6 +173,7 @@
 				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency;
 				float primitiveSize;
 				float envelopeCoeff;
+
 				double effectiveWindowSize;
 				double windowTimeOffset;
 				double beatDivision;
@@ -186,6 +187,7 @@
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
+				OscChannels channelMode;
 
 			} state;
 
@@ -253,7 +255,9 @@
 
 			struct ChannelData
 			{
-				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, 3> Crossover;
+				static const std::size_t Bands = 3;
+				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, Bands> Crossover;
+				typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> PixelType;
 
 				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
 				{
@@ -265,7 +269,11 @@
 						c.audioData.setStorageRequirements(samples, capacity);
 						c.colourData.setStorageRequirements(samples, capacity);
 					}
-					phaseData.setStorageRequirements(samples, capacity);
+
+					for (auto & c : midSideColour)
+					{
+						c.setStorageRequirements(samples, capacity);
+					}
 				}
 
 				void resizeChannels(std::size_t newChannels)
@@ -299,15 +307,16 @@
 				struct Channel
 				{
 					cpl::CLIFOStream<AFloat, 32> audioData;
-					cpl::CLIFOStream<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>, 32> colourData;
-					AFloat smoothFilters[4]{};
+					cpl::CLIFOStream<PixelType, 32> colourData;
+					Crossover::BandArray smoothFilters{};
 					Crossover network;
 				};
 
-				cpl::CLIFOStream<AFloat, 32> phaseData;
 				Crossover::Coefficients networkCoeffs;
 				cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
 				std::vector<Channel> channels;
+				cpl::CLIFOStream<PixelType, 32> midSideColour[2];
+				Crossover::BandArray midSideSmoothsFilters[2];
 			};
 
 			std::size_t medianPos;
