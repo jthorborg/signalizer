@@ -452,9 +452,10 @@ namespace Signalizer
 					bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
 					offset += (1 - subSampleOffset) / sizeMinusOne;
 				}
-
+				auto && cview = channelData.channels[0].colourData.createWriter();
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
+				auto cpointer = cview.begin() + (cursor - bufferOffset) - 1;
 
 				auto adjustCircular = [&](auto & pointer, cpl::ssize_t offset) {
 					pointer += offset;
@@ -464,7 +465,9 @@ namespace Signalizer
 						pointer -= bufferSamples;
 				};
 
-				adjustCircular(pointer, 0);
+				adjustCircular(pointer, 0); 
+				while (cpointer < cview.begin())
+					cpointer += bufferSamples;
 
 				roundedWindow = std::max(2, roundedWindow);
 
@@ -537,37 +540,90 @@ namespace Signalizer
 				{
 					case SubSampleInterpolation::Linear:
 					{
-						renderSampleSpace([&] {
-							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourPrimary);
-							auto localPointer = pointer;
-							for (GLfloat i = 0; i < endCondition; i += 1)
-							{
-								drawer.addVertex(i, *localPointer++, 0);
+						if (state.colourChannelsByFrequency)
+						{
+							renderSampleSpace([&] {
+								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+								//drawer.addColour(state.colourPrimary);
+								auto localPointer = pointer;
+								for (GLfloat i = 0; i < endCondition; i += 1)
+								{
+									drawer.addColour(*cpointer++);
+									drawer.addVertex(i, *localPointer++, 0);
 
-								if (localPointer == end)
-									localPointer -= bufferSamples;
-							}
-						});
+									if (localPointer == end)
+									{
+										localPointer -= bufferSamples;
+										cpointer -= bufferSamples;
+									}
+
+								}
+							});
+						}
+						else
+						{
+							renderSampleSpace([&] {
+								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+								//drawer.addColour(state.colourPrimary);
+								auto localPointer = pointer;
+								for (GLfloat i = 0; i < endCondition; i += 1)
+								{
+									drawer.addVertex(i, *localPointer++, 0);
+
+									if (localPointer == end)
+									{
+										localPointer -= bufferSamples;
+									}
+
+								}
+							});
+						}
+
 						break;
 					}
 					case SubSampleInterpolation::Rectangular:
 					{
-						renderSampleSpace([&]{
-							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourPrimary);
-							auto localPointer = pointer;
-							for (GLfloat i = 0; i < endCondition; i += 1)
-							{
-								drawer.addVertex(i, *localPointer, 0);
-								drawer.addVertex(i + 1, *localPointer, 0);
+						if (state.colourChannelsByFrequency)
+						{
+							renderSampleSpace([&] {
+								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+								auto localPointer = pointer;
+								for (GLfloat i = 0; i < endCondition; i += 1)
+								{
+									drawer.addColour(*cpointer++);
+									drawer.addVertex(i, *localPointer, 0);
+									drawer.addVertex(i + 1, *localPointer, 0);
 
-								localPointer++;
+									localPointer++;
 
-								if (localPointer == end)
-									localPointer -= bufferSamples;
-							}
-						});
+									if (localPointer == end)
+									{
+										localPointer -= bufferSamples;
+										cpointer -= bufferSamples;
+									}
+								}
+							});
+						}
+						else
+						{
+							renderSampleSpace([&] {
+								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+								drawer.addColour(state.colourPrimary);
+								auto localPointer = pointer;
+								for (GLfloat i = 0; i < endCondition; i += 1)
+								{
+									drawer.addVertex(i, *localPointer, 0);
+									drawer.addVertex(i + 1, *localPointer, 0);
+
+									localPointer++;
+
+									if (localPointer == end)
+									{
+										localPointer -= bufferSamples;
+									}
+								}
+							});
+						}
 						break;
 					}
 					case SubSampleInterpolation::Lanczos:
@@ -605,13 +661,20 @@ namespace Signalizer
 						double currentSample = std::floor(samplePos);
 
 						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-
+						auto clocalPointer = (cview.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
 						AFloat kernel[KernelBufferSize];
+
+						val_typeof(*clocalPointer) currentColour;
 
 						auto get = [&]() {
 							auto ret = *localPointer++;
+							currentColour = *clocalPointer++;
 							if (localPointer == end)
+							{
+								clocalPointer -= bufferSamples;
 								localPointer -= bufferSamples;
+							}
+	
 							return ret;
 						};
 
@@ -621,11 +684,17 @@ namespace Signalizer
 						};
 
 						adjustCircular(localPointer, -((int)KernelSize) - 1);
+						while (clocalPointer < cview.begin())
+							clocalPointer += bufferSamples;
+
 						std::for_each(std::begin(kernel), std::end(kernel), [&](auto & f) { f = get(); });
 
 						{
 							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							drawer.addColour(state.colourPrimary);
+							if (!state.colourChannelsByFrequency)
+								drawer.addColour(state.colourPrimary);
+							else
+								drawer.addColour(currentColour);
 
 							do
 							{
@@ -636,6 +705,8 @@ namespace Signalizer
 									samplePos += 1;
 									delta -= 1;
 									insert(get());
+									if(state.colourChannelsByFrequency)
+										drawer.addColour(currentColour);
 								}
 
 								const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
