@@ -370,7 +370,11 @@ namespace Signalizer
 			auto filterStates = [=](const auto & bands, auto & states)
 			{
 				for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-					states[i] = states[i] + colourSmoothPole * (states[i] - std::abs(bands[i])); // can also rectify
+				{
+					auto const input = std::abs(bands[i]);
+					states[i] = input + colourSmoothPole * (input - states[i]); // can also rectify
+				}
+
 			};
 
 			decltype(colourArray(content->lowColour)) colours[] = { colourArray(content->lowColour), colourArray(content->midColour), colourArray(content->highColour) };
@@ -385,16 +389,16 @@ namespace Signalizer
 				for (std::size_t i = 0; i < ChannelData::Bands; ++i)
 				{
 					red += state[i] * colours[i][0];
-					blue += state[i] * colours[i][1];
-					green += state[i] * colours[i][2];
+					green += state[i] * colours[i][1];
+					blue += state[i] * colours[i][2];
 				}
 
 				auto invMax = PixelMax / std::max(red, std::max(blue, green));
 
 				ret.pixel.a = std::numeric_limits<C>::max();
 				ret.pixel.r = static_cast<C>(red * invMax);
-				ret.pixel.g = static_cast<C>(blue * invMax);
-				ret.pixel.b = static_cast<C>(green * invMax);
+				ret.pixel.g = static_cast<C>(green * invMax);
+				ret.pixel.b = static_cast<C>(blue * invMax);
 
 				return ret;
 			};

@@ -259,6 +259,18 @@
 				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, Bands> Crossover;
 				typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> PixelType;
 
+				struct Channel
+				{
+					cpl::CLIFOStream<AFloat, 32> audioData;
+					cpl::CLIFOStream<PixelType, 32> colourData;
+					Crossover::BandArray smoothFilters{};
+					Crossover network;
+				};
+
+				Channel & defaultChannel()
+				{
+					return channels[0];
+				}
 
 				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
 				{
@@ -297,7 +309,7 @@
 
 				void tuneCrossOver(double lowCrossover, double highCrossover, double sampleRate)
 				{
-					networkCoeffs = Crossover::Coefficients::design({ static_cast<AFloat>(lowCrossover / sampleRate), static_cast<AFloat>(lowCrossover / sampleRate) });
+					networkCoeffs = Crossover::Coefficients::design({ static_cast<AFloat>(lowCrossover / sampleRate), static_cast<AFloat>(highCrossover / sampleRate) });
 				}
 
 				void tuneColourSmoothing(double milliseconds, double sampleRate)
@@ -305,17 +317,9 @@
 					smoothFilterPole = cpl::dsp::SmoothedParameterState<AFloat, 1>::design(milliseconds, sampleRate);
 				}
 
-				struct Channel
-				{
-					cpl::CLIFOStream<AFloat, 32> audioData;
-					cpl::CLIFOStream<PixelType, 32> colourData;
-					Crossover::BandArray smoothFilters{};
-					Crossover network;
-				};
-
 				Crossover::Coefficients networkCoeffs;
 				cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
-				std::vector<Channel> channels;
+				std::vector<Channel> channels{ 1 };
 				cpl::CLIFOStream<PixelType, 32> midSideColour[2];
 				Crossover::BandArray midSideSmoothsFilters[2];
 			};

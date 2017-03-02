@@ -410,7 +410,7 @@
 					kgraphColour.bSetTitle("Graph colour");
 					kbackgroundColour.bSetTitle("Backg. colour");
 					kprimaryColour.bSetTitle("Primary colour");
-					kprimaryColour.bSetTitle("Secondary colour");
+					ksecondaryColour.bSetTitle("Secondary colour");
 					klowColour.bSetTitle("Low band colour");
 					kmidColour.bSetTitle("Mid band colour");
 					khighColour.bSetTitle("High band colour");
