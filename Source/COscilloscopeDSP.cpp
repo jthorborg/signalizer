@@ -357,8 +357,9 @@ namespace Signalizer
 			auto const vectorSamples = numSamples - (numSamples & (loopIncrement - 1));
 			auto const remainder = numSamples - vectorSamples;
 
-			auto const colourSmoothPole = channelData.smoothFilterPole;
+			auto colourSmoothPole = channelData.smoothFilterPole;
 
+			colourSmoothPole = 0;
 
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
 

@@ -183,7 +183,7 @@ namespace Signalizer
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
 			// TODO: reset to preset
-			content->inputGain.setTransformedValue(1);
+			//content->inputGain.setTransformedValue(1);
 			auto & matrix = content->transform;
 			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
 			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);

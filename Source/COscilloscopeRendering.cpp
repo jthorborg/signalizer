@@ -661,20 +661,26 @@ namespace Signalizer
 						double currentSample = std::floor(samplePos);
 
 						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-						auto clocalPointer = (cview.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+						auto clocalPointer = (cview.begin() + cursor + 1 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
 						AFloat kernel[KernelBufferSize];
 
-						val_typeof(*clocalPointer) currentColour;
+						val_typeof(*clocalPointer) currentColour, nextColour;
 
 						auto get = [&]() {
 							auto ret = *localPointer++;
-							currentColour = *clocalPointer++;
+							currentColour = nextColour;
+							nextColour = *clocalPointer++;
+
 							if (localPointer == end)
 							{
-								clocalPointer -= bufferSamples;
 								localPointer -= bufferSamples;
 							}
 	
+							if(clocalPointer == cview.end())
+							{
+								clocalPointer -= bufferSamples;
+							}
+
 							return ret;
 						};
 
@@ -705,11 +711,16 @@ namespace Signalizer
 									samplePos += 1;
 									delta -= 1;
 									insert(get());
-									if(state.colourChannelsByFrequency)
-										drawer.addColour(currentColour);
+									//if(state.colourChannelsByFrequency)
+									//	drawer.addColour(currentColour);
 								}
 
 								const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
+
+								if (state.colourChannelsByFrequency)
+								{
+									drawer.addColour(currentColour.lerp(nextColour, delta));
+								}
 
 								drawer.addVertex(unitSpacePos, interpolatedValue, 0);
 								currentSample += samplesPerPixel;
