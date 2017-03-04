@@ -455,7 +455,7 @@ namespace Signalizer
 				auto && cview = channelData.channels[0].colourData.createWriter();
 				// minus one to account for samples being halfway into the screen
 				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
-				auto cpointer = cview.begin() + (cursor - bufferOffset) - 1;
+				auto cpointer = cview.begin() + (cursor - bufferOffset);
 
 				auto adjustCircular = [&](auto & pointer, cpl::ssize_t offset) {
 					pointer += offset;
@@ -588,17 +588,31 @@ namespace Signalizer
 							renderSampleSpace([&] {
 								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 								auto localPointer = pointer;
+								auto nextColour = *cpointer;
+								val_typeof(nextColour) oldColour;
+								if (cpointer == cview.end())
+								{
+									cpointer -= bufferSamples;
+								}
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
-									drawer.addColour(*cpointer++);
-									drawer.addVertex(i, *localPointer, 0);
-									drawer.addVertex(i + 1, *localPointer, 0);
+									auto const vertex = *localPointer++;
+									oldColour = nextColour;
+									nextColour = *cpointer++;
 
-									localPointer++;
+									drawer.addColour(oldColour);
+									drawer.addVertex(i - 1, vertex, 0);
+									drawer.addColour(nextColour);
+									drawer.addVertex(i, vertex, 0);
 
 									if (localPointer == end)
 									{
 										localPointer -= bufferSamples;
+
+									}
+
+									if (cpointer == cview.end())
+									{
 										cpointer -= bufferSamples;
 									}
 								}
@@ -612,8 +626,8 @@ namespace Signalizer
 								auto localPointer = pointer;
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
+									drawer.addVertex(i - 1, *localPointer, 0);
 									drawer.addVertex(i, *localPointer, 0);
-									drawer.addVertex(i + 1, *localPointer, 0);
 
 									localPointer++;
 
@@ -661,7 +675,7 @@ namespace Signalizer
 						double currentSample = std::floor(samplePos);
 
 						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-						auto clocalPointer = (cview.begin() + cursor + 1 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+						auto clocalPointer = (cview.begin() + cursor + 2 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
 						AFloat kernel[KernelBufferSize];
 
 						val_typeof(*clocalPointer) currentColour, nextColour;
