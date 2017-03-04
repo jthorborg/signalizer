@@ -359,8 +359,6 @@ namespace Signalizer
 
 			auto colourSmoothPole = channelData.smoothFilterPole;
 
-			colourSmoothPole = 0;
-
 			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
 
 			auto colourArray = [](const auto & colourParam)
@@ -372,8 +370,8 @@ namespace Signalizer
 			{
 				for (std::size_t i = 0; i < ChannelData::Bands; ++i)
 				{
-					auto const input = std::abs(bands[i]);
-					states[i] = input + colourSmoothPole * (input - states[i]); // can also rectify
+					auto const input = bands[i] * bands[i];
+					states[i] = input + colourSmoothPole * (states[i] - input); // can also rectify
 				}
 
 			};

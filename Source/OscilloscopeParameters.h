@@ -674,7 +674,7 @@
 				, phaseRange(-180, 180)
 				, reverseUnitRange(1, 0)
 				, customTriggerRange(5, 48000)
-				, colourSmoothRange(0.01, 1000)
+				, colourSmoothRange(0.001, 1000)
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")

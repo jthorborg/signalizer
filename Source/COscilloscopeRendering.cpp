@@ -554,6 +554,11 @@ namespace Signalizer
 									if (localPointer == end)
 									{
 										localPointer -= bufferSamples;
+
+									}
+
+									if (cpointer == cview.end())
+									{
 										cpointer -= bufferSamples;
 									}
 
@@ -590,10 +595,7 @@ namespace Signalizer
 								auto localPointer = pointer;
 								auto nextColour = *cpointer;
 								val_typeof(nextColour) oldColour;
-								if (cpointer == cview.end())
-								{
-									cpointer -= bufferSamples;
-								}
+
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
 									auto const vertex = *localPointer++;
