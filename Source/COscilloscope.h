@@ -57,10 +57,6 @@
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 		{
-
-			template<OscChannels channelType>
-				class SampleColourEvaluator;
-
 		public:
 
 			static const double higherAutoGainBounds;
@@ -335,6 +331,25 @@
 
 			cpl::CMutex::Lockable bufferLock;
 			ChannelData channelData;
+
+			class SampleColourEvaluatorBase
+			{
+			public:
+
+				typedef COscilloscope::ChannelData ChannelData;
+
+				typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
+				typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
+				typedef ChannelData::AudioBuffer::ProxyView::value_type AudioT;
+				typedef ChannelData::ColourBuffer::ProxyView::value_type ColourT;
+
+			};
+
+			template<OscChannels channelConfiguration>
+				class SampleColourEvaluator;
+
+			template<std::size_t ChannelIndex>
+				class SimpleChannelEvaluator;
 		};
 
 	};

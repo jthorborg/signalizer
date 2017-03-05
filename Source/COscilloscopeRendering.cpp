@@ -392,20 +392,14 @@ namespace Signalizer
 	}
 
 
-	template<>
-	class COscilloscope::SampleColourEvaluator<OscChannels::Left>
+	template<std::size_t ChannelIndex>
+	class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase
 	{
 	public:
 
-		typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
-		typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
-		typedef ChannelData::AudioBuffer::ProxyView::value_type AudioT;
-		typedef ChannelData::ColourBuffer::ProxyView::value_type ColourT;
-
-		SampleColourEvaluator(COscilloscope & oscilloscope)
-			: osc(oscilloscope)
-			, audioView(oscilloscope.channelData.channels[0].audioData.createProxyView())
-			, colourView(oscilloscope.channelData.channels[0].colourData.createProxyView())
+		SimpleChannelEvaluator(ChannelData & data)
+			: audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
+			, colourView(data.channels.at(ChannelIndex).colourData.createProxyView())
 		{
 
 		}
@@ -417,31 +411,18 @@ namespace Signalizer
 
 		void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
 		{
-			audioPointer = audioView.begin() + audioView.cursorPosition() + audioOffset;
-
-			while (audioPointer < audioView.begin())
-				audioPointer += audioView.size();
-
-			while (audioPointer >= audioView.end())
-				audioPointer -= audioView.size(); 
-
-			colourPointer = colourView.begin() + colourView.cursorPosition() + colourOffset;
-
-			while (colourPointer < colourView.begin())
-				colourPointer += colourView.size();
-
-			while (colourPointer >= colourView.end())
-				colourPointer -= colourView.size(); 
+			audioPointer = audioView.begin() + (audioView.cursorPosition() + audioOffset) % audioView.size();;
+			colourPointer = colourView.begin() + (colourView.cursorPosition() + colourOffset) % colourView.size();
 
 		}
 
-		/*inline void move(cpl::ssize_t offset) noexcept
+		inline void move(cpl::ssize_t offset) noexcept
 		{
 			auto diff = distance();
 
 			audioPointer = audioView.begin() + (diff.first + offset) % audioView.size();
 			colourPointer = colourView.begin() + (diff.second + offset) % audioView.size();
-		} */
+		} 
 
 		inline void inc() noexcept
 		{
@@ -499,12 +480,23 @@ namespace Signalizer
 
 	private:
 
-		COscilloscope & osc;
 		ChannelData::AudioBuffer::ProxyView audioView;
 		ChannelData::ColourBuffer::ProxyView colourView;
 
 		AudioIt audioPointer {};
 		ColourIt colourPointer {};
+	};
+
+	template<>
+	class COscilloscope::SampleColourEvaluator<OscChannels::Left> : public SimpleChannelEvaluator<0>
+	{
+		using SimpleChannelEvaluator<0>::SimpleChannelEvaluator;
+	};
+
+	template<>
+	class COscilloscope::SampleColourEvaluator<OscChannels::Right> : public SimpleChannelEvaluator<1>
+	{
+		using SimpleChannelEvaluator<1>::SimpleChannelEvaluator;
 	};
 
 	template<typename V>
@@ -593,10 +585,10 @@ namespace Signalizer
 				// scale to sample/pixels space
 				matrixMod.scale(sampleDisplacement, 1, 1);
 
-				Evaluator eval(*this);
-
+				Evaluator eval(channelData);
 				if (!eval.isWellDefined())
 					return;
+
 				eval.startFrom(-(bufferOffset + 1 + sampleOffset), -(bufferOffset + sampleOffset));
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, primitive);
 				kernel(eval, drawer);
@@ -719,7 +711,7 @@ namespace Signalizer
 					}
 					break;
 				}
-				/*case SubSampleInterpolation::Lanczos:
+				case SubSampleInterpolation::Lanczos:
 				{
 
 					auto const KernelSize = OscilloscopeContent::InterpolationKernelSize;
@@ -753,38 +745,30 @@ namespace Signalizer
 					samplePos += -unitSpacePos / inc * samplesPerPixel;
 					double currentSample = std::floor(samplePos);
 
-					auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-					auto clocalPointer = (cview.begin() + cursor + 2 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+					Evaluator eval(channelData);
+
+					if (!eval.isWellDefined())
+						return;
+
+					eval.startFrom(-static_cast<cpl::ssize_t>(std::floor(samplePos)) - (int)KernelSize - 1, 2 - KernelBufferSize - static_cast<cpl::ssize_t>(std::floor(samplePos)));
+
 					AFloat kernel[KernelBufferSize];
 
-					val_typeof(*clocalPointer) currentColour, nextColour;
+					Evaluator::ColourT currentColour, nextColour;
 
 					auto get = [&]() {
-						auto ret = *localPointer++;
+						auto data = eval.evaluate();
+						eval.inc();
 						currentColour = nextColour;
-						nextColour = *clocalPointer++;
+						nextColour = data.second;
 
-						if (localPointer == end)
-						{
-							localPointer -= bufferSamples;
-						}
-	
-						if(clocalPointer == cview.end())
-						{
-							clocalPointer -= bufferSamples;
-						}
-
-						return ret;
+						return data.first;
 					};
 
 					auto insert = [&] (auto val) {
 						std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
 						kernel[KernelBufferSize - 1] = val;
 					};
-
-					adjustCircular(localPointer, -((int)KernelSize) - 1);
-					while (clocalPointer < cview.begin())
-						clocalPointer += bufferSamples;
 
 					std::for_each(std::begin(kernel), std::end(kernel), [&](auto & f) { f = get(); });
 
@@ -804,8 +788,6 @@ namespace Signalizer
 								samplePos += 1;
 								delta -= 1;
 								insert(get());
-								//if(state.colourChannelsByFrequency)
-								//	drawer.addColour(currentColour);
 							}
 
 							const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
@@ -825,7 +807,7 @@ namespace Signalizer
 
 
 					break;
-				}*/
+				}
 
 			}
 			
