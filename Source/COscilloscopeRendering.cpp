@@ -36,6 +36,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/CDBMeterGraph.h>
+#include <tuple>
 
 namespace Signalizer
 {
@@ -389,6 +390,87 @@ namespace Signalizer
 			}
 		}
 	}
+
+
+	template<>
+	class COscilloscope::SampleColourEvaluator<OscChannels::Left>
+	{
+	public:
+
+		typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
+		typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
+
+
+		SampleColourEvaluator(COscilloscope & oscilloscope)
+			: osc(oscilloscope)
+			, audioView(oscilloscope.channelData.channels[0].audioData.createProxyView())
+			, colourView(oscilloscope.channelData.channels[0].colourData.createProxyView())
+		{
+
+		}
+
+		inline bool isWellDefined() const noexcept
+		{
+			return audioView.size() < 1 && colourView.size() < 1;
+		}
+
+		void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
+		{
+			audioPointer = audioView.begin() + (audioOffset) % audioView.size();
+			colourPointer = colourView.begin() + (colourOffset) % audioView.size();
+		}
+
+		inline void move(cpl::ssize_t offset) noexcept
+		{
+			auto diff = distance();
+
+			audioPointer = audioView.begin() + (diff.first + offset) % audioView.size();
+			colourPointer = colourView.begin() + (diff.second + offset) % audioView.size();
+		}
+
+		inline void inc() noexcept
+		{
+			audioPointer++, colourPointer++;
+
+			if (audioPointer == audioView.end())
+				audioPointer -= audioView.size();
+
+			if (colourPointer == colourView.end())
+				colourPointer -= colourView.size();
+		}
+
+		inline std::pair<std::ptrdiff_t, std::ptrdiff_t> distance() const noexcept
+		{
+			return std::make_pair(
+				std::distance<AudioIt>(audioPointer, audioView.begin()),
+				std::distance<ColourIt>(colourPointer, colourView.begin())
+			);
+		}
+
+		inline std::pair<AFloat, ChannelData::PixelType> evaluate() const noexcept
+		{
+			return { *audioPointer, *colourPointer };
+		}
+
+		AFloat evaluateSample() const noexcept
+		{
+			return *audioPointer;
+		}
+
+		ChannelData::PixelType evaluateColour() const noexcept
+		{
+			return *colourPointer;
+		}
+
+	private:
+
+		COscilloscope & osc;
+		ChannelData::AudioBuffer::ProxyView && audioView;
+		ChannelData::ColourBuffer::ProxyView && colourView;
+
+		AudioIt audioPointer {};
+		ColourIt colourPointer {};
+	};
 
 	template<typename V>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)

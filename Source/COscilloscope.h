@@ -52,10 +52,14 @@
 	namespace Signalizer
 	{
 
+
 		class COscilloscope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 		{
+
+			template<OscChannels channelType>
+				class SampleColourEvaluator;
 
 		public:
 
@@ -258,11 +262,13 @@
 				static const std::size_t Bands = 3;
 				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, Bands> Crossover;
 				typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> PixelType;
+				typedef cpl::CLIFOStream<AFloat, 32> AudioBuffer;
+				typedef cpl::CLIFOStream<PixelType, 32> ColourBuffer;
 
 				struct Channel
 				{
-					cpl::CLIFOStream<AFloat, 32> audioData;
-					cpl::CLIFOStream<PixelType, 32> colourData;
+					AudioBuffer audioData;
+					ColourBuffer colourData;
 					Crossover::BandArray smoothFilters{};
 					Crossover network;
 				};
@@ -320,7 +326,7 @@
 				Crossover::Coefficients networkCoeffs;
 				cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
 				std::vector<Channel> channels{ 1 };
-				cpl::CLIFOStream<PixelType, 32> midSideColour[2];
+				ColourBuffer midSideColour[2];
 				Crossover::BandArray midSideSmoothsFilters[2];
 			};
 
