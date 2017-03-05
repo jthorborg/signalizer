@@ -127,7 +127,7 @@
 							buf = buffer;
 							return true;
 						}
-						case TimeMode::Time: return AudioHistoryTransformatter<ParameterView>::format(val, buf);
+						default: case TimeMode::Time: return AudioHistoryTransformatter<ParameterView>::format(val, buf);
 					}
 				}
 
@@ -196,7 +196,7 @@
 						{
 							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(1 - val, 1, 128)));
 						}
-						case TimeMode::Time:
+						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
 							const auto capacity = stream.getAudioHistoryCapacity();
@@ -223,7 +223,7 @@
 						{
 							return cpl::Math::UnityScale::Inv::exp<ValueType>(1 - val, 1, 32);
 						}
-						case TimeMode::Time:
+						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
 							const auto capacity = stream.getAudioHistoryCapacity();

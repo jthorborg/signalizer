@@ -399,7 +399,8 @@ namespace Signalizer
 
 		typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
 		typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
-
+		typedef ChannelData::AudioBuffer::ProxyView::value_type AudioT;
+		typedef ChannelData::ColourBuffer::ProxyView::value_type ColourT;
 
 		SampleColourEvaluator(COscilloscope & oscilloscope)
 			: osc(oscilloscope)
@@ -411,22 +412,36 @@ namespace Signalizer
 
 		inline bool isWellDefined() const noexcept
 		{
-			return audioView.size() < 1 && colourView.size() < 1;
+			return audioView.size() > 0 && colourView.size() > 0;
 		}
 
 		void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
 		{
-			audioPointer = audioView.begin() + (audioOffset) % audioView.size();
-			colourPointer = colourView.begin() + (colourOffset) % audioView.size();
+			audioPointer = audioView.begin() + audioView.cursorPosition() + audioOffset;
+
+			while (audioPointer < audioView.begin())
+				audioPointer += audioView.size();
+
+			while (audioPointer >= audioView.end())
+				audioPointer -= audioView.size(); 
+
+			colourPointer = colourView.begin() + colourView.cursorPosition() + colourOffset;
+
+			while (colourPointer < colourView.begin())
+				colourPointer += colourView.size();
+
+			while (colourPointer >= colourView.end())
+				colourPointer -= colourView.size(); 
+
 		}
 
-		inline void move(cpl::ssize_t offset) noexcept
+		/*inline void move(cpl::ssize_t offset) noexcept
 		{
 			auto diff = distance();
 
 			audioPointer = audioView.begin() + (diff.first + offset) % audioView.size();
 			colourPointer = colourView.begin() + (diff.second + offset) % audioView.size();
-		}
+		} */
 
 		inline void inc() noexcept
 		{
@@ -447,26 +462,46 @@ namespace Signalizer
 			);
 		}
 
-		inline std::pair<AFloat, ChannelData::PixelType> evaluate() const noexcept
+		inline std::pair<AudioT, ColourT> evaluate() const noexcept
 		{
 			return { *audioPointer, *colourPointer };
 		}
 
-		AFloat evaluateSample() const noexcept
+		AudioT evaluateSample() const noexcept
 		{
 			return *audioPointer;
 		}
 
-		ChannelData::PixelType evaluateColour() const noexcept
+		ColourT evaluateColour() const noexcept
 		{
 			return *colourPointer;
+		}
+
+		AudioT evaluateSampleInc() noexcept
+		{
+			auto ret = *audioPointer++;
+
+			if (audioPointer == audioView.end())
+				audioPointer -= audioView.size();
+
+			return ret;
+		}
+
+		ColourT evaluateColourInc() noexcept
+		{
+			auto ret = *colourPointer++;
+
+			if (colourPointer == colourView.end())
+				colourPointer -= colourView.size();
+
+			return ret;
 		}
 
 	private:
 
 		COscilloscope & osc;
-		ChannelData::AudioBuffer::ProxyView && audioView;
-		ChannelData::ColourBuffer::ProxyView && colourView;
+		ChannelData::AudioBuffer::ProxyView audioView;
+		ChannelData::ColourBuffer::ProxyView colourView;
 
 		AudioIt audioPointer {};
 		ColourIt colourPointer {};
@@ -475,365 +510,325 @@ namespace Signalizer
 	template<typename V>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
+
+			typedef SampleColourEvaluator<OscChannels::Left> Evaluator;
+			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
+
+			cpl::OpenGLRendering::MatrixModification matrixMod;
+			// and apply the gain:
+			const auto gain = (GLfloat)state.envelopeGain;
+
+			auto 
+				left = state.viewOffsets[VO::Left], 
+				right = state.viewOffsets[VO::Right],
+				top = state.viewOffsets[VO::Top],
+				bottom = state.viewOffsets[VO::Bottom];
+
+			auto verticalDelta = bottom - top;
+			auto horizontalDelta = right - left;
+
+
+			cpl::ssize_t
+				roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize)),
+				quantizedCycleSamples(0);
+
+			const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
+			const auto sampleDisplacement = 1.0 / sizeMinusOne;
+			cpl::ssize_t bufferOffset = 0;
+			double subSampleOffset = 0, offset = 0;
+			auto const pixelsPerSample = oglc->getRenderingScale() * std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
+
+
+			auto interpolation = state.sampleInterpolation;
+			if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
 			{
-				cpl::OpenGLRendering::MatrixModification matrixMod;
-				// and apply the gain:
-				const auto gain = (GLfloat)state.envelopeGain;
+				interpolation = SubSampleInterpolation::Linear;
+			}
 
-				auto 
-					left = state.viewOffsets[VO::Left], 
-					right = state.viewOffsets[VO::Right],
-					top = state.viewOffsets[VO::Top],
-					bottom = state.viewOffsets[VO::Bottom];
+			if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+			{
+				auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
+				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
+				offset = subSampleOffset = 0;
+			}
+			else
+			{
+				// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
+				auto const cycleBuffers = interpolation == SubSampleInterpolation::Lanczos ? 2 : 1;
+				// calculate fractionate offsets used for sample-space rendering
+				if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+				{
 
-				auto verticalDelta = bottom - top;
-				auto horizontalDelta = right - left;
+					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
+					subSampleOffset = cycleBuffers * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
+					offset = -triggerState.sampleOffset / sizeMinusOne;
+				}
+				bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
+				offset += (1 - subSampleOffset) / sizeMinusOne;
+			}
+			
 
-				auto && view = channelData.channels[0].audioData.createProxyView();
+			roundedWindow = std::max(2, roundedWindow);
 
-				if (view.size() < 1)
+			// modify the horizontal axis into [0, 1] instead of [-1, 1]
+			matrixMod.translate(-1, 0, 0);
+			matrixMod.scale(2, 1, 1);
+
+			// apply horizontal transformation
+			matrixMod.scale(1 / (horizontalDelta), 1, 1);
+			matrixMod.translate(-left, 0, 0);
+
+			// apply vertical transformation
+			matrixMod.scale(1, 1.0 / verticalDelta, 0);
+			matrixMod.translate(0, top + (bottom - 1), 0);
+			matrixMod.scale(1, gain, 0);
+
+			const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
+
+			auto renderSampleSpace = [&](auto kernel, GLint primitive, cpl::ssize_t sampleOffset = 0)
+			{
+				cpl::OpenGLRendering::MatrixModification m;
+				// translate triggering offset + 1
+				matrixMod.translate(offset - sampleDisplacement, 0, 0);
+				// scale to sample/pixels space
+				matrixMod.scale(sampleDisplacement, 1, 1);
+
+				Evaluator eval(*this);
+
+				if (!eval.isWellDefined())
 					return;
+				eval.startFrom(-(bufferOffset + 1 + sampleOffset), -(bufferOffset + sampleOffset));
+				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, primitive);
+				kernel(eval, drawer);
+			};
 
-				cpl::ssize_t
-					cursor = view.cursorPosition(),
-					bufferSamples = view.size(),
-					roundedWindow = static_cast<cpl::ssize_t>(std::ceil(state.effectiveWindowSize)),
-					quantizedCycleSamples(0);
+			auto dotSamples = [&] (cpl::ssize_t offset) 
+			{
+				auto oldPointSize = openGLStack.getPointSize();
 
-				const auto sizeMinusOne = std::max(1.0, state.effectiveWindowSize - 1);
-				const auto sampleDisplacement = 1.0 / sizeMinusOne;
-				cpl::ssize_t bufferOffset = 0;
-				double subSampleOffset = 0, offset = 0;
-				auto const pixelsPerSample = oglc->getRenderingScale() * std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
-
-
-				auto interpolation = state.sampleInterpolation;
-				if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
+				if (pixelsPerSample > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
 				{
-					interpolation = SubSampleInterpolation::Linear;
+					openGLStack.setPointSize(oldPointSize * 4);
 				}
 
-				if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
-				{
-					auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
-					bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
-					offset = subSampleOffset = 0;
-				}
-				else
-				{
-					// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
-					auto const cycleBuffers = interpolation == SubSampleInterpolation::Lanczos ? 2 : 1;
-					// calculate fractionate offsets used for sample-space rendering
-					if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+				renderSampleSpace(
+					// nested lambda auto evaluation fails on vc 2015
+					[&] (Evaluator & evaluator, Renderer & drawer)
 					{
+						drawer.addColour(state.colourPrimary);
 
-						quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
-						subSampleOffset = cycleBuffers * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
-						offset = -triggerState.sampleOffset / sizeMinusOne;
-					}
-					bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
-					offset += (1 - subSampleOffset) / sizeMinusOne;
-				}
-				auto && cview = channelData.channels[0].colourData.createWriter();
-				// minus one to account for samples being halfway into the screen
-				auto pointer = view.begin() + (cursor - bufferOffset) - 1;
-				auto cpointer = cview.begin() + (cursor - bufferOffset);
+						for (GLfloat i = 0; i < endCondition; i += 1)
+						{
+							drawer.addVertex(i, evaluator.evaluateSampleInc(), 0);
+						}
+					},
+					GL_POINTS,
+					offset
+				);
 
-				auto adjustCircular = [&](auto & pointer, cpl::ssize_t offset) {
-					pointer += offset;
-					while (pointer < view.begin())
-						pointer += bufferSamples;
-					while (pointer >= view.end())
-						pointer -= bufferSamples;
-				};
+				openGLStack.setPointSize(oldPointSize);
+			};
 
-				adjustCircular(pointer, 0); 
-				while (cpointer < cview.begin())
-					cpointer += bufferSamples;
+			// draw dots for very zoomed displays and when there's no subsample interpolation
+			if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
+			{
+				dotSamples(interpolation == SubSampleInterpolation::Lanczos && state.triggerMode == OscilloscopeContent::TriggeringMode::None && state.timeMode == OscilloscopeContent::TimeMode::Time
+					? -(int)(OscilloscopeContent::InterpolationKernelSize) : 0);
+			}
 
-				roundedWindow = std::max(2, roundedWindow);
-
-				auto end = view.end();
-
-				// modify the horizontal axis into [0, 1] instead of [-1, 1]
-				matrixMod.translate(-1, 0, 0);
-				matrixMod.scale(2, 1, 1);
-
-				// apply horizontal transformation
-				matrixMod.scale(1 / (horizontalDelta), 1, 1);
-				matrixMod.translate(-left, 0, 0);
-
-				// apply vertical transformation
-				matrixMod.scale(1, 1.0 / verticalDelta, 0);
-				matrixMod.translate(0, top + (bottom - 1), 0);
-				matrixMod.scale(1, gain, 0);
-
-				const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
-
-				auto renderSampleSpace = [&](auto render)
+			// TODO: Add scaled rendering (getAttachedContext()->getRenderingScale())
+			switch (interpolation)
+			{
+				case SubSampleInterpolation::Linear:
 				{
-					cpl::OpenGLRendering::MatrixModification m;
-					// translate triggering offset + 1
-					matrixMod.translate(offset - sampleDisplacement, 0, 0);
-					// scale to sample/pixels space
-					matrixMod.scale(sampleDisplacement, 1, 1);
-
-					render();
-				};
-
-				auto dotSamples = [&](cpl::ssize_t sampleOffset)
-				{
-					auto oldPointSize = openGLStack.getPointSize();
-					if (pixelsPerSample > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
+					if (state.colourChannelsByFrequency)
 					{
-						openGLStack.setPointSize(oldPointSize * 4);
-					}
-					renderSampleSpace(
-						[&] {
-							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_POINTS);
-							drawer.addColour(state.colourPrimary);
-
-							auto localPointer = pointer;
-
-							adjustCircular(localPointer, sampleOffset);
-
-							for (GLfloat i = 0; i < endCondition; i += 1)
+						renderSampleSpace(
+							[&] (auto & evaluator, auto & drawer)
 							{
-								drawer.addVertex(i, *localPointer++, 0);
-
-								if (localPointer == end)
-									localPointer -= bufferSamples;
-							}
-						}
-					);
-
-					openGLStack.setPointSize(oldPointSize);
-				};
-
-				// draw dots for very zoomed displays and when there's no subsample interpolation
-				if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
-				{
-					dotSamples(interpolation == SubSampleInterpolation::Lanczos && state.triggerMode == OscilloscopeContent::TriggeringMode::None && state.timeMode == OscilloscopeContent::TimeMode::Time
-						? -(int)(OscilloscopeContent::InterpolationKernelSize) : 0);
-				}
-
-				// TODO: Add scaled rendering (getAttachedContext()->getRenderingScale())
-				switch (interpolation)
-				{
-					case SubSampleInterpolation::Linear:
-					{
-						if (state.colourChannelsByFrequency)
-						{
-							renderSampleSpace([&] {
-								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-								//drawer.addColour(state.colourPrimary);
-								auto localPointer = pointer;
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
-									drawer.addColour(*cpointer++);
-									drawer.addVertex(i, *localPointer++, 0);
+									const auto data = evaluator.evaluate();
 
-									if (localPointer == end)
-									{
-										localPointer -= bufferSamples;
+									drawer.addColour(data.second);
+									drawer.addVertex(i, data.first, 0);
 
-									}
-
-									if (cpointer == cview.end())
-									{
-										cpointer -= bufferSamples;
-									}
-
+									evaluator.inc();
 								}
-							});
-						}
-						else
-						{
-							renderSampleSpace([&] {
-								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-								//drawer.addColour(state.colourPrimary);
-								auto localPointer = pointer;
-								for (GLfloat i = 0; i < endCondition; i += 1)
-								{
-									drawer.addVertex(i, *localPointer++, 0);
-
-									if (localPointer == end)
-									{
-										localPointer -= bufferSamples;
-									}
-
-								}
-							});
-						}
-
-						break;
+							},
+							GL_LINE_STRIP
+						);
 					}
-					case SubSampleInterpolation::Rectangular:
+					else
 					{
-						if (state.colourChannelsByFrequency)
-						{
-							renderSampleSpace([&] {
-								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-								auto localPointer = pointer;
-								auto nextColour = *cpointer;
-								val_typeof(nextColour) oldColour;
+						renderSampleSpace(
+							[&] (auto & evaluator, auto & drawer)
+							{
+								for (GLfloat i = 0; i < endCondition; i += 1)
+								{
+									drawer.addVertex(i, evaluator.evaluateSampleInc(), 0);
+								}
+							},
+							GL_LINE_STRIP
+						);
+					}
+
+					break;
+				}
+				case SubSampleInterpolation::Rectangular:
+				{
+					if (state.colourChannelsByFrequency)
+					{
+						renderSampleSpace(
+							[&] (auto & evaluator, auto & drawer) 
+							{
+								Evaluator::ColourT oldColour = evaluator.evaluateColour();
 
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
-									auto const vertex = *localPointer++;
-									oldColour = nextColour;
-									nextColour = *cpointer++;
+									const auto data = evaluator.evaluate();
 
 									drawer.addColour(oldColour);
-									drawer.addVertex(i - 1, vertex, 0);
-									drawer.addColour(nextColour);
-									drawer.addVertex(i, vertex, 0);
+									drawer.addVertex(i - 1, data.first, 0);
+									drawer.addColour(data.second);
+									drawer.addVertex(i, data.first, 0);
 
-									if (localPointer == end)
-									{
-										localPointer -= bufferSamples;
+									oldColour = data.second;
 
-									}
-
-									if (cpointer == cview.end())
-									{
-										cpointer -= bufferSamples;
-									}
+									evaluator.inc();
 								}
-							});
-						}
-						else
-						{
-							renderSampleSpace([&] {
-								cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+							},
+							GL_LINE_STRIP
+						);
+					}
+					else
+					{
+						renderSampleSpace(
+							[&](auto & evaluator, auto & drawer)
+							{
 								drawer.addColour(state.colourPrimary);
-								auto localPointer = pointer;
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
-									drawer.addVertex(i - 1, *localPointer, 0);
-									drawer.addVertex(i, *localPointer, 0);
-
-									localPointer++;
-
-									if (localPointer == end)
-									{
-										localPointer -= bufferSamples;
-									}
+									const auto vertex = evaluator.evaluateSampleInc();
+									drawer.addVertex(i - 1, vertex, 0);
+									drawer.addVertex(i, vertex, 0);
 								}
-							});
-						}
-						break;
+							},
+							GL_LINE_STRIP
+						);
 					}
-					case SubSampleInterpolation::Lanczos:
-					{
-
-						auto const KernelSize = OscilloscopeContent::InterpolationKernelSize;
-						auto const KernelBufferSize = KernelSize * 2 + 1;
-
-						double samplePos = 0;
-
-						if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
-						{
-							samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
-						}
-						else
-						{
-							// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
-							samplePos = /*OscilloscopeContent::InterpolationKernelSize + */triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
-						}
-
-						// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
-						if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
-						{
-							samplePos = std::ceil(samplePos);
-							if (state.timeMode == OscilloscopeContent::TimeMode::Time)
-								samplePos += KernelSize;
-						}
-
-						// adjust for left
-						double inc = horizontalDelta / (oglc->getRenderingScale() * (getWidth() - 1));
-						double unitSpacePos = left;
-						double samplesPerPixel = 1.0 / (pixelsPerSample);
-
-						samplePos += -unitSpacePos / inc * samplesPerPixel;
-						double currentSample = std::floor(samplePos);
-
-						auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-						auto clocalPointer = (cview.begin() + cursor + 2 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
-						AFloat kernel[KernelBufferSize];
-
-						val_typeof(*clocalPointer) currentColour, nextColour;
-
-						auto get = [&]() {
-							auto ret = *localPointer++;
-							currentColour = nextColour;
-							nextColour = *clocalPointer++;
-
-							if (localPointer == end)
-							{
-								localPointer -= bufferSamples;
-							}
-	
-							if(clocalPointer == cview.end())
-							{
-								clocalPointer -= bufferSamples;
-							}
-
-							return ret;
-						};
-
-						auto insert = [&] (auto val) {
-							std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
-							kernel[KernelBufferSize - 1] = val;
-						};
-
-						adjustCircular(localPointer, -((int)KernelSize) - 1);
-						while (clocalPointer < cview.begin())
-							clocalPointer += bufferSamples;
-
-						std::for_each(std::begin(kernel), std::end(kernel), [&](auto & f) { f = get(); });
-
-						{
-							cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
-							if (!state.colourChannelsByFrequency)
-								drawer.addColour(state.colourPrimary);
-							else
-								drawer.addColour(currentColour);
-
-							do
-							{
-								auto delta = currentSample - samplePos;
-
-								while (delta > 1)
-								{
-									samplePos += 1;
-									delta -= 1;
-									insert(get());
-									//if(state.colourChannelsByFrequency)
-									//	drawer.addColour(currentColour);
-								}
-
-								const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
-
-								if (state.colourChannelsByFrequency)
-								{
-									drawer.addColour(currentColour.lerp(nextColour, delta));
-								}
-
-								drawer.addVertex(unitSpacePos, interpolatedValue, 0);
-								currentSample += samplesPerPixel;
-
-								unitSpacePos += inc;
-
-							} while (unitSpacePos < (right + inc));
-						}
-
-
-						break;
-					}
-
+					break;
 				}
+				/*case SubSampleInterpolation::Lanczos:
+				{
+
+					auto const KernelSize = OscilloscopeContent::InterpolationKernelSize;
+					auto const KernelBufferSize = KernelSize * 2 + 1;
+
+					double samplePos = 0;
+
+					if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					{
+						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
+					}
+					else
+					{
+						// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
+						samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
+					}
+
+					// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
+					if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					{
+						samplePos = std::ceil(samplePos);
+						if (state.timeMode == OscilloscopeContent::TimeMode::Time)
+							samplePos += KernelSize;
+					}
+
+					// adjust for left
+					double inc = horizontalDelta / (oglc->getRenderingScale() * (getWidth() - 1));
+					double unitSpacePos = left;
+					double samplesPerPixel = 1.0 / (pixelsPerSample);
+
+					samplePos += -unitSpacePos / inc * samplesPerPixel;
+					double currentSample = std::floor(samplePos);
+
+					auto localPointer = (view.begin() + cursor) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+					auto clocalPointer = (cview.begin() + cursor + 2 - KernelBufferSize) - static_cast<cpl::ssize_t>(std::floor(samplePos));
+					AFloat kernel[KernelBufferSize];
+
+					val_typeof(*clocalPointer) currentColour, nextColour;
+
+					auto get = [&]() {
+						auto ret = *localPointer++;
+						currentColour = nextColour;
+						nextColour = *clocalPointer++;
+
+						if (localPointer == end)
+						{
+							localPointer -= bufferSamples;
+						}
+	
+						if(clocalPointer == cview.end())
+						{
+							clocalPointer -= bufferSamples;
+						}
+
+						return ret;
+					};
+
+					auto insert = [&] (auto val) {
+						std::rotate(kernel, kernel + 1, kernel + KernelBufferSize);
+						kernel[KernelBufferSize - 1] = val;
+					};
+
+					adjustCircular(localPointer, -((int)KernelSize) - 1);
+					while (clocalPointer < cview.begin())
+						clocalPointer += bufferSamples;
+
+					std::for_each(std::begin(kernel), std::end(kernel), [&](auto & f) { f = get(); });
+
+					{
+						cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
+						if (!state.colourChannelsByFrequency)
+							drawer.addColour(state.colourPrimary);
+						else
+							drawer.addColour(currentColour);
+
+						do
+						{
+							auto delta = currentSample - samplePos;
+
+							while (delta > 1)
+							{
+								samplePos += 1;
+								delta -= 1;
+								insert(get());
+								//if(state.colourChannelsByFrequency)
+								//	drawer.addColour(currentColour);
+							}
+
+							const auto interpolatedValue = cpl::dsp::lanczosFilter<double>(kernel, KernelBufferSize, (KernelSize) + delta, KernelSize);
+
+							if (state.colourChannelsByFrequency)
+							{
+								drawer.addColour(currentColour.lerp(nextColour, delta));
+							}
+
+							drawer.addVertex(unitSpacePos, interpolatedValue, 0);
+							currentSample += samplesPerPixel;
+
+							unitSpacePos += inc;
+
+						} while (unitSpacePos < (right + inc));
+					}
+
+
+					break;
+				}*/
+
 			}
+			
 		}
 
 	template<typename V>
