@@ -155,12 +155,21 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
+
 				switch (state.channelMode)
 				{
 				case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); break;
 				case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); break;
 				case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack); break;
 				case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); break;
+				case OscChannels::Separate:
+					drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); 
+					drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); 
+					break;
+				case OscChannels::MidSide:
+					drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack);
+					drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); 
+					break;
 				default:
 					break;
 				}
