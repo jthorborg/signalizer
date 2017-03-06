@@ -106,7 +106,7 @@
 			void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
-			template<typename V>
+			template<typename V, typename Eval>
 				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename V>
@@ -350,6 +350,9 @@
 
 			template<std::size_t ChannelIndex>
 				class SimpleChannelEvaluator;
+
+			template<std::size_t ChannelIndex, typename BinaryFunction>
+				class MidSideEvaluatorBase;
 		};
 
 	};

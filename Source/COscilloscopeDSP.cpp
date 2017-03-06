@@ -519,7 +519,7 @@ namespace Signalizer
 
 			// save audio data
 			for(std::size_t c = 0; c < channelData.channels.size(); ++c)
-				channelData.channels[c].audioData.createWriter().copyIntoHead(buffer[0], numSamples);
+				channelData.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
 
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
 		}

@@ -258,6 +258,7 @@ namespace Signalizer
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
+		state.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();

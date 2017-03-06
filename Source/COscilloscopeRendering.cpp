@@ -36,10 +36,11 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/CDBMeterGraph.h>
-#include <tuple>
+#include "SampleColourEvaluators.h"
 
 namespace Signalizer
 {
+
 	template<typename V>
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
@@ -154,7 +155,16 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				drawWavePlot<V>(openGLStack);
+				switch (state.channelMode)
+				{
+				case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); break;
+				case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); break;
+				case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack); break;
+				case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); break;
+				default:
+					break;
+				}
+
 				CPL_DEBUGCHECKGL();
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
@@ -391,119 +401,10 @@ namespace Signalizer
 		}
 	}
 
-
-	template<std::size_t ChannelIndex>
-	class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase
-	{
-	public:
-
-		SimpleChannelEvaluator(ChannelData & data)
-			: audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
-			, colourView(data.channels.at(ChannelIndex).colourData.createProxyView())
-		{
-
-		}
-
-		inline bool isWellDefined() const noexcept
-		{
-			return audioView.size() > 0 && colourView.size() > 0;
-		}
-
-		void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
-		{
-			audioPointer = audioView.begin() + (audioView.cursorPosition() + audioOffset) % audioView.size();;
-			colourPointer = colourView.begin() + (colourView.cursorPosition() + colourOffset) % colourView.size();
-
-		}
-
-		inline void move(cpl::ssize_t offset) noexcept
-		{
-			auto diff = distance();
-
-			audioPointer = audioView.begin() + (diff.first + offset) % audioView.size();
-			colourPointer = colourView.begin() + (diff.second + offset) % audioView.size();
-		} 
-
-		inline void inc() noexcept
-		{
-			audioPointer++, colourPointer++;
-
-			if (audioPointer == audioView.end())
-				audioPointer -= audioView.size();
-
-			if (colourPointer == colourView.end())
-				colourPointer -= colourView.size();
-		}
-
-		inline std::pair<std::ptrdiff_t, std::ptrdiff_t> distance() const noexcept
-		{
-			return std::make_pair(
-				std::distance<AudioIt>(audioPointer, audioView.begin()),
-				std::distance<ColourIt>(colourPointer, colourView.begin())
-			);
-		}
-
-		inline std::pair<AudioT, ColourT> evaluate() const noexcept
-		{
-			return { *audioPointer, *colourPointer };
-		}
-
-		AudioT evaluateSample() const noexcept
-		{
-			return *audioPointer;
-		}
-
-		ColourT evaluateColour() const noexcept
-		{
-			return *colourPointer;
-		}
-
-		AudioT evaluateSampleInc() noexcept
-		{
-			auto ret = *audioPointer++;
-
-			if (audioPointer == audioView.end())
-				audioPointer -= audioView.size();
-
-			return ret;
-		}
-
-		ColourT evaluateColourInc() noexcept
-		{
-			auto ret = *colourPointer++;
-
-			if (colourPointer == colourView.end())
-				colourPointer -= colourView.size();
-
-			return ret;
-		}
-
-	private:
-
-		ChannelData::AudioBuffer::ProxyView audioView;
-		ChannelData::ColourBuffer::ProxyView colourView;
-
-		AudioIt audioPointer {};
-		ColourIt colourPointer {};
-	};
-
-	template<>
-	class COscilloscope::SampleColourEvaluator<OscChannels::Left> : public SimpleChannelEvaluator<0>
-	{
-		using SimpleChannelEvaluator<0>::SimpleChannelEvaluator;
-	};
-
-	template<>
-	class COscilloscope::SampleColourEvaluator<OscChannels::Right> : public SimpleChannelEvaluator<1>
-	{
-		using SimpleChannelEvaluator<1>::SimpleChannelEvaluator;
-	};
-
-	template<typename V>
+	template<typename V, typename Evaluator>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 
-			typedef SampleColourEvaluator<OscChannels::Left> Evaluator;
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
@@ -603,21 +504,40 @@ namespace Signalizer
 					openGLStack.setPointSize(oldPointSize * 4);
 				}
 
-				renderSampleSpace(
-					// nested lambda auto evaluation fails on vc 2015
-					[&] (Evaluator & evaluator, Renderer & drawer)
-					{
-						drawer.addColour(state.colourPrimary);
-
-						for (GLfloat i = 0; i < endCondition; i += 1)
+				if (state.colourChannelsByFrequency)
+				{
+					renderSampleSpace(
+						// nested lambda auto evaluation fails on vc 2015
+						[&] (Evaluator & evaluator, Renderer & drawer)
 						{
-							drawer.addVertex(i, evaluator.evaluateSampleInc(), 0);
-						}
-					},
-					GL_POINTS,
-					offset
-				);
+							for (GLfloat i = 0; i < endCondition; i += 1)
+							{
+								const auto data = evaluator.evaluate();
+								drawer.addColour(data.second);
+								drawer.addVertex(i, data.first, 0);
+								evaluator.inc();
+							}
+						},
+						GL_POINTS,
+						offset
+					);
+				}
+				else
+				{
+					renderSampleSpace(
+						[&] (Evaluator & evaluator, Renderer & drawer)
+						{
+							drawer.addColour(state.colourPrimary);
 
+							for (GLfloat i = 0; i < endCondition; i += 1)
+							{
+								drawer.addVertex(i, evaluator.evaluateSampleInc(), 0);
+							}
+						},
+						GL_POINTS,
+						offset
+					);
+				}
 				openGLStack.setPointSize(oldPointSize);
 			};
 
