@@ -67,7 +67,32 @@ namespace Signalizer
 
 		}
 
-		drawWireFrame<V>(g, getLocalBounds().toFloat(), state.envelopeGain);
+		if (state.colourGraph.getAlpha() != 0)
+		{
+			auto bounds = getLocalBounds().toFloat();
+			drawTimeDivisions<V>(g, bounds);
+
+			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			{
+				bounds.setHeight(bounds.getHeight() * 0.5f);
+				drawWireFrame<V>(g, bounds, state.envelopeGain);
+				bounds.setY(bounds.getY() + bounds.getHeight());
+				drawWireFrame<V>(g, bounds, state.envelopeGain);
+
+
+				g.setColour(state.colourGraph);
+				g.drawLine(0, bounds.getY(), bounds.getWidth(), bounds.getY());
+
+			}
+			else
+			{
+				drawWireFrame<V>(g, bounds, state.envelopeGain);
+			}
+
+
+		} 
+
+
 	}
 
 	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
@@ -158,20 +183,54 @@ namespace Signalizer
 
 				switch (state.channelMode)
 				{
-				case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); break;
-				case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); break;
-				case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack); break;
-				case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); break;
-				case OscChannels::Separate:
-					drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); 
-					drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); 
-					break;
-				case OscChannels::MidSide:
-					drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack);
-					drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); 
-					break;
-				default:
-					break;
+					default: case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); break;
+					case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); break;
+					case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack); break;
+					case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); break;
+					case OscChannels::Separate:
+					{
+						cpl::OpenGLRendering::MatrixModification m;
+						if (!state.overlayChannels)
+						{
+							m.scale(1, 0.5f, 1);
+							m.translate(0, 1, 0);
+							//openGLStack.enable(GL_SCISSOR_TEST);
+							//glScissor(0, 1, getWidth(), 1);
+						}
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack);
+						if (!state.overlayChannels)
+						{
+							m.translate(0, -2, 0);
+							//glScissor(0, 1, getWidth(), 1);
+						}
+
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); 
+						//if (!state.overlayChannels)
+						//	openGLStack.disable(GL_SCISSOR_TEST);
+						break;
+					}
+					case OscChannels::MidSide:
+					{
+						cpl::OpenGLRendering::MatrixModification m;
+						if (!state.overlayChannels)
+						{
+							m.scale(1, 0.5f, 1);
+							m.translate(0, 1, 0);
+							//openGLStack.enable(GL_SCISSOR_TEST);
+							//glScissor(0, cpl::Math::round<GLint>(state.viewOffsets[VO::Top]) * , getWidth(), 1);
+						}
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack);
+						if (!state.overlayChannels)
+						{
+							m.translate(0, -2, 0);
+							glScissor(0, 1, getWidth(), 1);
+						}
+
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack);
+						//if (!state.overlayChannels)
+						//	openGLStack.disable(GL_SCISSOR_TEST);
+						break;
+					}
 				}
 
 				CPL_DEBUGCHECKGL();
@@ -247,7 +306,9 @@ namespace Signalizer
 			auto bottom = viewTransform(0);
 			auto top = viewTransform(1);
 
-			auto unitSpacePos = cpl::Math::roundToNextMultiplier(1 - state.viewOffsets[VO::Bottom], inc);
+			auto start = cpl::Math::roundToNextMultiplier(1 - state.viewOffsets[VO::Bottom], inc);
+
+			auto unitSpacePos = start + inc;
 
 
 			while (unitSpacePos < end)
@@ -259,13 +320,12 @@ namespace Signalizer
 				unitSpacePos += inc;
 			}
 
-			drawMarkerAt(0.5);
-
-			drawTimeDivisions<V>(g, rect, rect.getHeight() / numLines);
+			if(start < 0.5 && end > 0.5)
+				drawMarkerAt(0.5);
 		}
 
 	template<typename V>
-	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalFractionGranularity)
+	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect)
 	{
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
 		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
@@ -371,13 +431,13 @@ namespace Signalizer
 				auto const fraction = currentMsPos / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
 				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
-				g.drawLine(x, 0, x, rect.getHeight());
+				g.drawLine(x, yoff, x, rect.getHeight());
 
 				float offset = 10;
 
 				auto textOut = [&](auto format, auto... args) {
 					sprintf_s(textBuf, format, args...);
-					g.drawSingleLineText(textBuf, std::floor(x + 5), rect.getHeight() - offset, juce::Justification::left);
+					g.drawSingleLineText(textBuf, std::floor(x + 5), yoff + rect.getHeight() - offset, juce::Justification::left);
 					offset += 15;
 				};
 

@@ -113,7 +113,7 @@
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
 			template<typename V>
-				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect, double horizontalGranularity);
+				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
 
 			void calculateFundamentalPeriod();
 			void calculateTriggeringOffset();

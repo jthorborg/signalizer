@@ -117,7 +117,22 @@ namespace Signalizer
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
-		auto yp = double(event.position.y) / (getHeight() - 1);
+		double yp;
+
+		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+		{
+			auto halfHeight = 0.5 * (getHeight() - 1);
+			yp = event.position.y;
+			if (yp > halfHeight)
+				yp -= halfHeight;
+
+			yp = yp / halfHeight;
+		}
+		else
+		{
+			auto yp = double(event.position.y) / (getHeight() - 1);
+		}
+
 		auto xp = double(event.position.x) / (getWidth() - 1);
 
 		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
@@ -215,10 +230,12 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
+		auto verticalFactor = !state.overlayChannels && state.channelMode > OscChannels::OffsetForMono ? 2 : 1;
+
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));
-		addClamped(V::Top, yp * (top - bottom));
-		addClamped(V::Bottom, yp * (top - bottom));
+		addClamped(V::Top, verticalFactor * yp * (top - bottom));
+		addClamped(V::Bottom, verticalFactor * yp * (top - bottom));
 
 		lastMousePos = event.position;
 	}
