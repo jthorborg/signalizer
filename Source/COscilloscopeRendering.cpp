@@ -723,8 +723,8 @@ namespace Signalizer
 					if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
 					{
 						samplePos = std::ceil(samplePos);
-						if (state.timeMode == OscilloscopeContent::TimeMode::Time)
-							samplePos += KernelSize;
+						//if (state.timeMode == OscilloscopeContent::TimeMode::Time)
+						//	samplePos += KernelSize;
 					}
 
 					// adjust for left
