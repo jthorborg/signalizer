@@ -180,6 +180,7 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
+				const GLint halfHeight = static_cast<GLint>(getHeight() * 0.5f);
 
 				switch (state.channelMode)
 				{
@@ -194,19 +195,19 @@ namespace Signalizer
 						{
 							m.scale(1, 0.5f, 1);
 							m.translate(0, 1, 0);
-							//openGLStack.enable(GL_SCISSOR_TEST);
-							//glScissor(0, 1, getWidth(), 1);
+							openGLStack.enable(GL_SCISSOR_TEST);
+							glScissor(0, halfHeight, getWidth(), halfHeight);
 						}
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack);
 						if (!state.overlayChannels)
 						{
 							m.translate(0, -2, 0);
-							//glScissor(0, 1, getWidth(), 1);
+							glScissor(0, 0, getWidth(), halfHeight);
 						}
 
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); 
-						//if (!state.overlayChannels)
-						//	openGLStack.disable(GL_SCISSOR_TEST);
+						if (!state.overlayChannels)
+							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
 					}
 					case OscChannels::MidSide:
@@ -216,19 +217,19 @@ namespace Signalizer
 						{
 							m.scale(1, 0.5f, 1);
 							m.translate(0, 1, 0);
-							//openGLStack.enable(GL_SCISSOR_TEST);
-							//glScissor(0, cpl::Math::round<GLint>(state.viewOffsets[VO::Top]) * , getWidth(), 1);
+							openGLStack.enable(GL_SCISSOR_TEST);
+							glScissor(0, halfHeight, getWidth(), halfHeight);
 						}
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack);
 						if (!state.overlayChannels)
 						{
 							m.translate(0, -2, 0);
-							glScissor(0, 1, getWidth(), 1);
+							glScissor(0, 0, getWidth(), halfHeight);
 						}
 
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack);
-						//if (!state.overlayChannels)
-						//	openGLStack.disable(GL_SCISSOR_TEST);
+						if (!state.overlayChannels)
+							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
 					}
 				}
