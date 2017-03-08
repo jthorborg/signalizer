@@ -179,6 +179,8 @@
 				double beatDivision;
 				double customTriggerFrequency;
 
+				double triggerState;
+
 				double viewOffsets[4];
 				std::int64_t transportPosition;
 				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary;

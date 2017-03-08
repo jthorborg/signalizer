@@ -211,10 +211,14 @@ namespace Signalizer
 
 	void COscilloscope::calculateTriggeringOffset()
 	{
-		if (state.triggerMode == OscilloscopeContent::TriggeringMode::None)
+		if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
 		{
-			triggerState.sampleOffset = 0;
-			triggerState.cycleSamples = 0;
+			if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			{
+				triggerState.sampleOffset = 0;
+				triggerState.cycleSamples = 0;
+			}
+
 			return;
 		}
 		
@@ -464,6 +468,22 @@ namespace Signalizer
 					rw.setHeadAndAdvance(accumulateColour(rightSmoothState));
 					mw.setHeadAndAdvance(accumulateColour(midSmoothState));
 					sw.setHeadAndAdvance(accumulateColour(sideSmoothState));
+
+					if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+					{
+						if (lSquared > state.triggerState)
+						{
+							state.triggerState = lSquared;
+							triggerState.sampleOffset = 0;
+						}
+						else
+						{
+							state.triggerState *= 0.9999;
+							triggerState.sampleOffset += 1;
+						}
+
+					}
+
 				}
 
 				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
