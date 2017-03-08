@@ -130,7 +130,7 @@ namespace Signalizer
 		}
 		else
 		{
-			auto yp = double(event.position.y) / (getHeight() - 1);
+			yp = double(event.position.y) / (getHeight() - 1);
 		}
 
 		auto xp = double(event.position.x) / (getWidth() - 1);
