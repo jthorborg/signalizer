@@ -62,7 +62,7 @@ namespace Signalizer
 				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
 				(double)triggerState.record.index,
 				triggerState.fundamental,
-				triggerState.phase);
+				triggerState.sampleOffset);
 			g.drawSingleLineText(textbuf.get(), 10, 20);
 
 		}
@@ -519,7 +519,7 @@ namespace Signalizer
 				// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
 				auto const cycleBuffers = interpolation == SubSampleInterpolation::Lanczos ? 2 : 1;
 				// calculate fractionate offsets used for sample-space rendering
-				if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
 
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));

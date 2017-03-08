@@ -51,7 +51,7 @@
 				None,
 				Spectral,
 				Window,
-				//ZeroCrossing,
+				EnvelopeHold,
 				end
 			};
 
@@ -721,7 +721,7 @@
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid", "Side", "Separate", "Mid+Side"});
-				triggerMode.fmt.setValues({ "None", "Spectral", "Window" /*, "Zero-crossings" */});
+				triggerMode.fmt.setValues({ "None", "Spectral", "Window", "Envelope" });
 				timeMode.fmt.setValues({ "Time", "Cycles", "Beats" });
 				channelColouring.fmt.setValues({ "Static", "Spectral energy" });
 				// order matters
