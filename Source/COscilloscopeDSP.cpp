@@ -211,13 +211,16 @@ namespace Signalizer
 
 	void COscilloscope::calculateTriggeringOffset()
 	{
-		if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 		{
-			if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold)
-			{
-				triggerState.sampleOffset = 0;
-				triggerState.cycleSamples = 0;
-			}
+			triggerState.cycleSamples = state.effectiveWindowSize;
+			triggerState.sampleOffset = triggerState.currentPeakSampleOffset + state.effectiveWindowSize * cpl::Math::UnityScale::linear(content->triggerPhaseOffset.getParameterView().getValueNormalized(), -0.5, 0.5);
+			return;
+		}
+		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		{
+			triggerState.sampleOffset = 0;
+			triggerState.cycleSamples = 0;
 
 			return;
 		}
@@ -300,6 +303,7 @@ namespace Signalizer
 		std::size_t requiredSampleBufferSize = 0;
 		// TODO: Add
 		std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
+		
 		if (state.triggerMode != OscilloscopeContent::TriggeringMode::Window)
 		{
 			// buffer size = length of detected freq in samples + display window size + lookahead
@@ -471,15 +475,17 @@ namespace Signalizer
 
 					if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 					{
-						if (lSquared > state.triggerState)
+						if (lSquared > triggerState.peakState)
 						{
-							state.triggerState = lSquared;
-							triggerState.sampleOffset = 0;
+							triggerState.peakState = lSquared;
+							triggerState.lastPeakSampleOffset = triggerState.currentPeakSampleOffset;
+							triggerState.currentPeakSampleOffset = 0;
 						}
 						else
 						{
-							state.triggerState *= 0.9999;
-							triggerState.sampleOffset += 1;
+							triggerState.peakState *= 0.9999;
+							triggerState.lastPeakSampleOffset += 1;
+							triggerState.currentPeakSampleOffset += 1;
 						}
 
 					}

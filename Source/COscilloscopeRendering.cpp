@@ -716,7 +716,9 @@ namespace Signalizer
 					else
 					{
 						// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
-						samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
+						//samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
+
+						samplePos = triggerState.sampleOffset;
 					}
 
 					// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0

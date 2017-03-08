@@ -179,8 +179,6 @@
 				double beatDivision;
 				double customTriggerFrequency;
 
-				double triggerState;
-
 				double viewOffsets[4];
 				std::int64_t transportPosition;
 				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary;
@@ -228,6 +226,9 @@
 
 			struct TriggerData
 			{
+				double currentPeakSampleOffset;
+				double lastPeakSampleOffset;
+				double peakState;
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
