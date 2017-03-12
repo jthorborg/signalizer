@@ -145,6 +145,24 @@ namespace Signalizer
 		}
 	}
 
+	bool COscilloscope::checkAndInformInvalidCombinations()
+	{
+		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		{
+			renderGraphics(
+				[&](juce::Graphics & g)
+				{
+					g.setColour(cpl::GetColour(cpl::ColourEntry::Error));
+					g.drawFittedText("Invalid combination of time and triggering modes", getLocalBounds(), juce::Justification::centred, 5);
+				}
+			);
+
+			return false;
+		}
+
+		return true;
+	}
+
 	template<typename V>
 		void COscilloscope::vectorGLRendering()
 		{
@@ -154,13 +172,16 @@ namespace Signalizer
 
 			handleFlagUpdates();
 
+			juce::OpenGLHelpers::clear(state.colourBackground);
+
+			if (!checkAndInformInvalidCombinations())
+				return;
+
 			calculateFundamentalPeriod();
 			calculateTriggeringOffset();
 
 			resizeAudioStorage();
 
-
-			juce::OpenGLHelpers::clear(state.colourBackground);
 			{
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
@@ -514,6 +535,13 @@ namespace Signalizer
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 				offset = subSampleOffset = 0;
 			}
+			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			{
+				auto const realOffset = triggerState.sampleOffset;
+				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
+				subSampleOffset = bufferOffset - realOffset;
+				offset += (1 - subSampleOffset) / sizeMinusOne;
+			}
 			else
 			{
 				// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
@@ -521,7 +549,6 @@ namespace Signalizer
 				// calculate fractionate offsets used for sample-space rendering
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
-
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 					subSampleOffset = cycleBuffers * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
 					offset = -triggerState.sampleOffset / sizeMinusOne;
@@ -713,9 +740,14 @@ namespace Signalizer
 					{
 						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
 					}
+					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+					{
+						samplePos = triggerState.sampleOffset;
+					}
 					else
 					{
 						// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
+						// calculations different here, depending on how you interpret phase information in the frequency domain
 						samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
 					}
 

@@ -347,6 +347,7 @@
 
 			class OscilloscopeController 
 				: public CContentPage
+				, public ParameterSet::UIListener
 			{
 			public:
 
@@ -394,12 +395,47 @@
 				{
 					initControls();
 					initUI();
+
+					parent.getParameterSet().addUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
+					parent.getParameterSet().addUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
+
+					enforceTriggeringModeCompability();
+				}
+
+				
+				void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
+				{
+					if(parameter == &parent.timeMode.param.getParameterView())
+						enforceTriggeringModeCompability();
+				}
+
+				void enforceTriggeringModeCompability()
+				{
+					if (parent.timeMode.param.getAsTEnum<TimeMode>() == TimeMode::Cycles)
+					{
+						for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+						{
+							ktriggerMode.setEnabledStateFor(i, i == cpl::enum_cast<int>(TimeMode::Cycles));
+						}
+
+						ktriggerMode.getValueReference().setTransformedValue(cpl::enum_cast<double>(TimeMode::Cycles));
+					}
+					else
+					{
+						for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+						{
+							ktriggerMode.setEnabledStateFor(i, true);
+						}
+					}
+
 				}
 
 				cpl::SafeSerializableObject & getEditorSO() override { return editorSerializer; }
 
 				~OscilloscopeController()
 				{
+					parent.getParameterSet().removeUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
+					parent.getParameterSet().removeUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
 					notifyDestruction();
 				}
 
@@ -662,9 +698,9 @@
 					valueSerializer;
 			};
 
-			OscilloscopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
+			OscilloscopeContent(std::size_t parameterOffset, bool shouldCreateShortNames, SystemView system)
 				: systemView(system)
-				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(offset))
+				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
 				, audioHistoryTransformatter(system.getAudioStream(), LookaheadSize, audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
