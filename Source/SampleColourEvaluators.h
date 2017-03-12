@@ -39,7 +39,7 @@
 		class COscilloscope::DefaultKey
 		{
 		public:
-			DefaultKey(ChannelData & data, int index)
+			DefaultKey(ChannelData & data, std::size_t index)
 				: defaultKey(data.channels.at(index).defaultKey)
 			{
 
@@ -54,13 +54,13 @@
 			ChannelData::PixelType defaultKey;
 		};
 
-		template<std::size_t ChannelIndex>
+		template<std::size_t ChannelIndex, std::size_t ColourIndex>
 			class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
 			{
 			public:
 
 				SimpleChannelEvaluator(ChannelData & data)
-					: DefaultKey(data, ChannelIndex)
+					: DefaultKey(data, ColourIndex)
 					, audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
 					, colourView(data.channels.at(ChannelIndex).colourData.createProxyView())
 				{
@@ -157,13 +157,13 @@
 				ColourIt colourPointer {};
 			};
 
-		template<std::size_t ChannelIndex, typename BinaryFunction>
+		template<std::size_t ChannelIndex, std::size_t ColourIndex, typename BinaryFunction>
 			class COscilloscope::MidSideEvaluatorBase : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
 			{
 			public:
 
 				MidSideEvaluatorBase(ChannelData & data)
-					: DefaultKey(data, ChannelIndex)
+					: DefaultKey(data, ColourIndex)
 					, audioViewLeft(data.channels.at(0).audioData.createProxyView())
 					, audioViewRight(data.channels.at(1).audioData.createProxyView())
 					, colourView(data.midSideColour[ChannelIndex].createProxyView())
@@ -277,29 +277,53 @@
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Left> : public SimpleChannelEvaluator<0>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Left, 0> : public SimpleChannelEvaluator<0, 0>
 			{
-				using SimpleChannelEvaluator<0>::SimpleChannelEvaluator;
+				using SimpleChannelEvaluator<0, 0>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Right> : public SimpleChannelEvaluator<1>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Left, 1> : public SimpleChannelEvaluator<0, 1>
 			{
-				using SimpleChannelEvaluator<1>::SimpleChannelEvaluator;
+				using SimpleChannelEvaluator<0, 1>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Mid> : public MidSideEvaluatorBase<0, std::plus<>>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Right, 0> : public SimpleChannelEvaluator<1, 0>
 			{
-				using MidSideEvaluatorBase<0, std::plus<>>::MidSideEvaluatorBase;
+				using SimpleChannelEvaluator<1, 0>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Side> : public MidSideEvaluatorBase<1, std::minus<>>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Right, 1> : public SimpleChannelEvaluator<1, 1>
 			{
-				using MidSideEvaluatorBase<1, std::minus<>>::MidSideEvaluatorBase;
+				using SimpleChannelEvaluator<1, 1>::SimpleChannelEvaluator;
 			};
-	
+
+
+		template<>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Mid, 0> : public MidSideEvaluatorBase<0, 0, std::plus<>>
+			{
+				using MidSideEvaluatorBase<0, 0, std::plus<>>::MidSideEvaluatorBase;
+			};
+
+		template<>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Mid, 1> : public MidSideEvaluatorBase<0, 1, std::plus<>>
+			{
+				using MidSideEvaluatorBase<0, 1, std::plus<>>::MidSideEvaluatorBase;
+			};
+
+		template<>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Side, 0> : public MidSideEvaluatorBase<1, 0, std::minus<>>
+			{
+				using MidSideEvaluatorBase<1, 0, std::minus<>>::MidSideEvaluatorBase;
+			};
+
+		template<>
+			class COscilloscope::SampleColourEvaluator<OscChannels::Side, 1> : public MidSideEvaluatorBase<1, 1, std::minus<>>
+			{
+				using MidSideEvaluatorBase<1, 1, std::minus<>>::MidSideEvaluatorBase;
+			};
 	};
 
 #endif

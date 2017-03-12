@@ -203,10 +203,10 @@ namespace Signalizer
 
 				switch (state.channelMode)
 				{
-					default: case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack); break;
-					case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); break;
-					case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack); break;
-					case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack); break;
+					default: case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); break;
+					case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); break;
+					case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); break;
+					case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); break;
 					case OscChannels::Separate:
 					{
 						cpl::OpenGLRendering::MatrixModification m;
@@ -217,14 +217,14 @@ namespace Signalizer
 							openGLStack.enable(GL_SCISSOR_TEST);
 							glScissor(0, halfHeight, getWidth(), halfHeight);
 						}
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left>>(openGLStack);
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
 						if (!state.overlayChannels)
 						{
 							m.translate(0, -2, 0);
 							glScissor(0, 0, getWidth(), halfHeight);
 						}
 
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right>>(openGLStack); 
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack); 
 						if (!state.overlayChannels)
 							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
@@ -239,14 +239,14 @@ namespace Signalizer
 							openGLStack.enable(GL_SCISSOR_TEST);
 							glScissor(0, halfHeight, getWidth(), halfHeight);
 						}
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid>>(openGLStack);
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
 						if (!state.overlayChannels)
 						{
 							m.translate(0, -2, 0);
 							glScissor(0, 0, getWidth(), halfHeight);
 						}
 
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side>>(openGLStack);
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
 						if (!state.overlayChannels)
 							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
@@ -639,7 +639,7 @@ namespace Signalizer
 			// draw dots for very zoomed displays and when there's no subsample interpolation
 			if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
 			{
-				dotSamples(interpolation == SubSampleInterpolation::Lanczos && state.triggerMode == OscilloscopeContent::TriggeringMode::None && state.timeMode == OscilloscopeContent::TimeMode::Time
+				dotSamples(interpolation == SubSampleInterpolation::Lanczos && state.timeMode == OscilloscopeContent::TimeMode::Time
 					? -(int)(OscilloscopeContent::InterpolationKernelSize) : 0);
 			}
 

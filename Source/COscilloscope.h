@@ -353,13 +353,13 @@
 
 			};
 
-			template<OscChannels channelConfiguration>
+			template<OscChannels channelConfiguration, std::size_t ColourIndice>
 				class SampleColourEvaluator;
 
-			template<std::size_t ChannelIndex>
+			template<std::size_t ChannelIndex, std::size_t ColourIndice>
 				class SimpleChannelEvaluator;
 
-			template<std::size_t ChannelIndex, typename BinaryFunction>
+			template<std::size_t ChannelIndex, std::size_t ColourIndice, typename BinaryFunction>
 				class MidSideEvaluatorBase;
 		};
 
