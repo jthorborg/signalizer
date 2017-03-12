@@ -281,6 +281,14 @@ namespace Signalizer
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
+		for (std::size_t c = 0; c < channelData.channels.size(); ++c)
+		{
+			if (c == 0)
+				channelData.channels[c].defaultKey = state.colourPrimary;
+			else
+				channelData.channels[c].defaultKey = state.colourSecondary;
+		}
+
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:

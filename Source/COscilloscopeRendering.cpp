@@ -624,7 +624,7 @@ namespace Signalizer
 					renderSampleSpace(
 						[&] (Evaluator & evaluator, Renderer & drawer)
 						{
-							drawer.addColour(state.colourPrimary);
+							drawer.addColour(evaluator.getDefaultKey());
 
 							for (GLfloat i = 0; i < endCondition; i += 1)
 							{
@@ -673,6 +673,8 @@ namespace Signalizer
 						renderSampleSpace(
 							[&] (auto & evaluator, auto & drawer)
 							{
+								drawer.addColour(evaluator.getDefaultKey());
+
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
 									drawer.addVertex(i, evaluator.evaluateSampleInc(), 0);
@@ -715,7 +717,7 @@ namespace Signalizer
 						renderSampleSpace(
 							[&](auto & evaluator, auto & drawer)
 							{
-								drawer.addColour(state.colourPrimary);
+								drawer.addColour(evaluator.getDefaultKey());
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
 									const auto vertex = evaluator.evaluateSampleInc();
@@ -797,7 +799,7 @@ namespace Signalizer
 					{
 						cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, GL_LINE_STRIP);
 						if (!state.colourChannelsByFrequency)
-							drawer.addColour(state.colourPrimary);
+							drawer.addColour(eval.getDefaultKey());
 						else
 							drawer.addColour(currentColour);
 

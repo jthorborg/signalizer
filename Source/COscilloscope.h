@@ -272,6 +272,7 @@
 					ColourBuffer colourData;
 					Crossover::BandArray smoothFilters{};
 					Crossover network;
+					juce::Colour defaultKey;
 				};
 
 				Channel & defaultChannel()
@@ -336,6 +337,8 @@
 
 			cpl::CMutex::Lockable bufferLock;
 			ChannelData channelData;
+
+			class DefaultKey;
 
 			class SampleColourEvaluatorBase
 			{

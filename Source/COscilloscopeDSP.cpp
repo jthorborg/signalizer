@@ -386,7 +386,7 @@ namespace Signalizer
 
 			decltype(colourArray(content->lowColour)) colours[] = { colourArray(content->lowColour), colourArray(content->midColour), colourArray(content->highColour) };
 
-			auto accumulateColour = [&colours](const auto & state)
+			auto accumulateColour = [&colours](const auto & state, ChannelData::PixelType key, float blend)
 			{
 				typedef ChannelData::PixelType::ComponentType C;
 				ChannelData::PixelType ret;
@@ -407,7 +407,7 @@ namespace Signalizer
 				ret.pixel.g = static_cast<C>(green * invMax);
 				ret.pixel.b = static_cast<C>(blue * invMax);
 
-				return ret;
+				return ret.lerp(key, blend);
 			};
 
 			std::size_t n = 0;
@@ -416,6 +416,11 @@ namespace Signalizer
 
 			if (numChannels == 2)
 			{
+				ChannelData::PixelType 
+					firstColour(content->primaryColour.getAsJuceColour()), 
+					secondColour(content->secondaryColour.getAsJuceColour());
+
+				const auto firstAlpha = content->primaryColour.a.getValue(), secondAlpha = content->secondaryColour.a.getValue();
 
 				auto sideSignal = [](const auto & left, const auto & right)
 				{
@@ -468,10 +473,10 @@ namespace Signalizer
 					filterStates(midSignal(leftBands, rightBands), midSmoothState);
 					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
 
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState));
-					rw.setHeadAndAdvance(accumulateColour(rightSmoothState));
-					mw.setHeadAndAdvance(accumulateColour(midSmoothState));
-					sw.setHeadAndAdvance(accumulateColour(sideSmoothState));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, firstAlpha));
+					rw.setHeadAndAdvance(accumulateColour(rightSmoothState, secondColour, secondAlpha));
+					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, firstAlpha));
+					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, secondAlpha));
 
 					if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 					{
@@ -500,6 +505,11 @@ namespace Signalizer
 			}
 			else if (numChannels == 1)
 			{
+				ChannelData::PixelType
+					firstColour(content->primaryColour.getAsJuceColour());
+
+				const auto firstAlpha = content->primaryColour.a.getValue();
+
 				filterEnv[1] = 0;
 				auto && lw = channelData.channels[fs::Left].colourData.createWriter();
 				auto leftSmoothState = channelData.channels[fs::Left].smoothFilters;
@@ -517,7 +527,7 @@ namespace Signalizer
 					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, firstAlpha));
 				}
 
 				channelData.channels[fs::Left].smoothFilters = leftSmoothState;

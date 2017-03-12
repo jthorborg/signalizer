@@ -36,13 +36,32 @@
 	namespace Signalizer
 	{
 
+		class COscilloscope::DefaultKey
+		{
+		public:
+			DefaultKey(ChannelData & data, int index)
+				: defaultKey(data.channels.at(index).defaultKey)
+			{
+
+			}
+
+			ChannelData::PixelType getDefaultKey() const noexcept
+			{
+				return defaultKey;
+			}
+
+		private:
+			ChannelData::PixelType defaultKey;
+		};
+
 		template<std::size_t ChannelIndex>
-			class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase
+			class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
 			{
 			public:
 
 				SimpleChannelEvaluator(ChannelData & data)
-					: audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
+					: DefaultKey(data, ChannelIndex)
+					, audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
 					, colourView(data.channels.at(ChannelIndex).colourData.createProxyView())
 				{
 
@@ -129,6 +148,8 @@
 
 			private:
 
+				juce::Colour defaultKey;
+
 				ChannelData::AudioBuffer::ProxyView audioView;
 				ChannelData::ColourBuffer::ProxyView colourView;
 
@@ -137,12 +158,13 @@
 			};
 
 		template<std::size_t ChannelIndex, typename BinaryFunction>
-			class COscilloscope::MidSideEvaluatorBase : public COscilloscope::SampleColourEvaluatorBase
+			class COscilloscope::MidSideEvaluatorBase : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
 			{
 			public:
 
 				MidSideEvaluatorBase(ChannelData & data)
-					: audioViewLeft(data.channels.at(0).audioData.createProxyView())
+					: DefaultKey(data, ChannelIndex)
+					, audioViewLeft(data.channels.at(0).audioData.createProxyView())
 					, audioViewRight(data.channels.at(1).audioData.createProxyView())
 					, colourView(data.midSideColour[ChannelIndex].createProxyView())
 				{

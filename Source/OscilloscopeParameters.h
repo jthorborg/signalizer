@@ -489,7 +489,7 @@
 					ksubSampleInterpolationMode.bSetDescription("Controls how point samples are interpolated to wave forms");
 					kpctForDivision.bSetDescription("The minimum amount of free space that triggers a recursed frequency grid division; smaller values draw more frequency divisions.");
 					kchannelConfiguration.bSetDescription("Select how the audio channels are interpreted.");
-					ktriggerMode.bSetDescription("Select a mode for triggering waveforms - i.e. syncing them to the grid");
+					ktriggerMode.bSetDescription("Select a mode for triggering waveforms - i.e. syncing to frequency content, time or transition information");
 					ktriggerPhaseOffset.bSetDescription("A custom +/- full-circle offset for the phase on triggering");
 					ktimeMode.bSetDescription("Specifies the working units of the time display");
 					kdotSamples.bSetDescription("Marks sample positions when drawing subsampled interpolated lines");
