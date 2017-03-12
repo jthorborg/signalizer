@@ -639,8 +639,7 @@ namespace Signalizer
 			// draw dots for very zoomed displays and when there's no subsample interpolation
 			if ((state.dotSamples && pixelsPerSample > 5) || state.sampleInterpolation == SubSampleInterpolation::None)
 			{
-				dotSamples(interpolation == SubSampleInterpolation::Lanczos && state.timeMode == OscilloscopeContent::TimeMode::Time
-					? -(int)(OscilloscopeContent::InterpolationKernelSize) : 0);
+				dotSamples(0);
 			}
 
 			// TODO: Add scaled rendering (getAttachedContext()->getRenderingScale())
