@@ -128,6 +128,8 @@
 			template<typename V>
 				void paint2DGraphics(juce::Graphics & g);
 
+			bool checkAndInformInvalidCombinations();
+
 			void initPanelAndControls();
 
 			// guis and whatnot

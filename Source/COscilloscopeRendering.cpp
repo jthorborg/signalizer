@@ -145,6 +145,24 @@ namespace Signalizer
 		}
 	}
 
+	bool COscilloscope::checkAndInformInvalidCombinations()
+	{
+		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		{
+			renderGraphics(
+				[&](juce::Graphics & g)
+				{
+					g.setColour(cpl::GetColour(cpl::ColourEntry::Error));
+					g.drawFittedText("Invalid combination of time and triggering modes", getLocalBounds(), juce::Justification::centred, 5);
+				}
+			);
+
+			return false;
+		}
+
+		return true;
+	}
+
 	template<typename V>
 		void COscilloscope::vectorGLRendering()
 		{
@@ -154,13 +172,16 @@ namespace Signalizer
 
 			handleFlagUpdates();
 
+			juce::OpenGLHelpers::clear(state.colourBackground);
+
+			if (!checkAndInformInvalidCombinations())
+				return;
+
 			calculateFundamentalPeriod();
 			calculateTriggeringOffset();
 
 			resizeAudioStorage();
 
-
-			juce::OpenGLHelpers::clear(state.colourBackground);
 			{
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
