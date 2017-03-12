@@ -75,24 +75,22 @@ namespace Signalizer
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
 				bounds.setHeight(bounds.getHeight() * 0.5f);
-				drawWireFrame<V>(g, bounds, state.envelopeGain);
-				bounds.setY(bounds.getY() + bounds.getHeight());
-				drawWireFrame<V>(g, bounds, state.envelopeGain);
-
+				const auto rectBottom = bounds.withY(bounds.getY() + bounds.getHeight());
 
 				g.setColour(state.colourGraph);
-				g.drawLine(0, bounds.getY(), bounds.getWidth(), bounds.getY());
+				g.drawLine(0, rectBottom.getY(), bounds.getWidth(), rectBottom.getY());
+
+				drawWireFrame<V>(g, rectBottom, state.envelopeGain);
+
+				g.reduceClipRegion(bounds.toType<int>());
+				drawWireFrame<V>(g, bounds, state.envelopeGain);
 
 			}
 			else
 			{
 				drawWireFrame<V>(g, bounds, state.envelopeGain);
 			}
-
-
 		} 
-
-
 	}
 
 	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
