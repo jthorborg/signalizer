@@ -514,6 +514,13 @@ namespace Signalizer
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 				offset = subSampleOffset = 0;
 			}
+			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			{
+				auto const realOffset = triggerState.sampleOffset;
+				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
+				subSampleOffset = bufferOffset - realOffset;
+				offset += (1 - subSampleOffset) / sizeMinusOne;
+			}
 			else
 			{
 				// TODO: FIX. This causes an extra cycle to be rendered for lanczos so it has more to eat from the edges.
@@ -521,7 +528,6 @@ namespace Signalizer
 				// calculate fractionate offsets used for sample-space rendering
 				if (state.triggerMode != OscilloscopeContent::TriggeringMode::None)
 				{
-
 					quantizedCycleSamples = static_cast<cpl::ssize_t>(std::ceil(triggerState.cycleSamples));
 					subSampleOffset = cycleBuffers * (quantizedCycleSamples - triggerState.cycleSamples) + (roundedWindow - state.effectiveWindowSize);
 					offset = -triggerState.sampleOffset / sizeMinusOne;
@@ -713,12 +719,15 @@ namespace Signalizer
 					{
 						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
 					}
+					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+					{
+						samplePos = triggerState.sampleOffset;
+					}
 					else
 					{
 						// TODO: possible small graphic glitch here if the interpolation eats into the next cycle.
-						//samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
-
-						samplePos = triggerState.sampleOffset;
+						// calculations different here, depending on how you interpret phase information in the frequency domain
+						samplePos = triggerState.cycleSamples * 2 + state.effectiveWindowSize - triggerState.sampleOffset;
 					}
 
 					// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
