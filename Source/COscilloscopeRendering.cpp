@@ -556,7 +556,7 @@ namespace Signalizer
 			}
 			
 
-			roundedWindow = std::max(2, roundedWindow);
+			roundedWindow = std::max<cpl::ssize_t>(2, roundedWindow);
 
 			// modify the horizontal axis into [0, 1] instead of [-1, 1]
 			matrixMod.translate(-1, 0, 0);
