@@ -438,17 +438,26 @@ namespace Signalizer
 			auto end = state.viewOffsets[VO::Right] * windowSize;
 
 			auto start = state.viewOffsets[VO::Left] * windowSize;
+			double offset = 0;
+			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			{
+				offset = windowSize * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
+				end -= offset;
+				start -= offset;
+			}
+			
 			auto multiplier = start / msIncrease;
 
 			auto i = static_cast<int>(std::floor(multiplier)) - 1;
 
 			auto currentMsPos = cpl::Math::roundToNextMultiplier(start, msIncrease);
 
+
 			while (currentMsPos < end)
 			{
 				double moduloI = std::fmod(i, roundedPower) + 1;
 
-				auto const fraction = currentMsPos / windowSize;
+				auto const fraction = (currentMsPos + offset) / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
 				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
 				g.drawLine(x, yoff, x, rect.getHeight());

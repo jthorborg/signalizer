@@ -214,7 +214,7 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 		{
 			triggerState.cycleSamples = state.effectiveWindowSize;
-			triggerState.sampleOffset = triggerState.currentPeakSampleOffset + state.effectiveWindowSize * cpl::Math::UnityScale::linear(content->triggerPhaseOffset.getParameterView().getValueNormalized(), -0.5, 0.5);
+			triggerState.sampleOffset = triggerState.currentPeakSampleOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
 			return;
 		}
 		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
