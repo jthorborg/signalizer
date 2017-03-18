@@ -85,7 +85,6 @@
 
 			// cbasecontrol overrides
 			bool isEditorOpen() const;
-			double getGain();
 
 		protected:
 
@@ -132,6 +131,8 @@
 
 			void initPanelAndControls();
 
+			double getGain();
+
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
@@ -169,10 +170,10 @@
 					audioWindowWasResized;
 			} mtFlags;
 
-			// contains non-atomic structures
+			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency;
+				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker;
 				float primitiveSize;
 				float envelopeCoeff;
 
@@ -181,10 +182,12 @@
 				double beatDivision;
 				double customTriggerFrequency;
 
+				double autoGain, manualGain;
+
 				double viewOffsets[4];
 				std::int64_t transportPosition;
-				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary;
-				cpl::ValueT envelopeGain;
+				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary, colourTracker;
+
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TriggeringMode triggerMode;
@@ -205,6 +208,7 @@
 			juce::Point<float> lastMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
+			std::atomic<double> autoGainEnvelope;
 
 			struct BinRecord
 			{

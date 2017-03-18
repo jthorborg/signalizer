@@ -37,9 +37,8 @@
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
 #include "VectorScopeParameters.h"
-#define _CRTDBG_MAP_ALLOC  
-#include <stdlib.h>  
-#include <crtdbg.h>  
+#include "COscilloscopeDSP.inl"
+
 namespace Signalizer
 {
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
@@ -256,9 +255,10 @@ namespace Signalizer
 
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate()));
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
-		state.envelopeGain = content->inputGain.getTransformedValue();
+		state.manualGain = content->inputGain.getTransformedValue();
+		state.autoGain = autoGainEnvelope.load(std::memory_order_relaxed);
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
@@ -267,11 +267,14 @@ namespace Signalizer
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
 		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
+		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 
 		state.colourPrimary = content->primaryColour.getAsJuceColour();
 		state.colourSecondary = content->secondaryColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
+		state.colourTracker = content->trackerColour.getAsJuceColour();
+
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
@@ -328,5 +331,25 @@ namespace Signalizer
 		} */
 	}
 
+	inline bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	{
+		switch (cpl::simd::max_vector_capacity<float>())
+		{
+		case 32:
+		case 16:
+		case 8:
+#ifdef CPL_COMPILER_SUPPORTS_AVX
+			audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
+			break;
+#endif
+		case 4:
+			audioProcessing<cpl::Types::v4sf>(buffer, numChannels, numSamples);
+			break;
+		default:
+			audioProcessing<float>(buffer, numChannels, numSamples);
+			break;
+		}
+		return false;
+	}
 
 };

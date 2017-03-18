@@ -867,7 +867,7 @@
     <ClCompile Include="..\..\Source\PluginProcessor.cpp">
       <Filter>Signalizer\Source\Processor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\COscilloscopeDSP.cpp">
+    <ClCompile Include="..\..\Source\COscilloscopeDSP.inl">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClCompile>
   </ItemGroup>

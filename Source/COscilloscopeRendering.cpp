@@ -37,9 +37,45 @@
 #include <cpl/simd.h>
 #include <cpl/CDBMeterGraph.h>
 #include "SampleColourEvaluators.h"
+#include "COscilloscopeDSP.inl"
 
 namespace Signalizer
 {
+
+	struct VerticalScreenSplitter
+	{
+		VerticalScreenSplitter(juce::Rectangle<int> clipRectangle, cpl::OpenGLRendering::COpenGLStack & stack, bool doSeparate)
+			: stack(stack), width(clipRectangle.getWidth()), halfHeight(clipRectangle.getHeight() >> 1), separate(doSeparate)
+		{
+
+		}
+
+		void firstPass()
+		{
+			if (separate)
+			{
+				m.scale(1, 0.5f, 1);
+				m.translate(0, 1, 0);
+				stack.enable(GL_SCISSOR_TEST);
+				glScissor(0, halfHeight, width, halfHeight);
+			}
+		}
+
+		void secondPass()
+		{
+			if (separate)
+			{
+				m.translate(0, -2, 0);
+				glScissor(0, 0, width, halfHeight);
+			}
+		}
+
+		~VerticalScreenSplitter() { if (separate) stack.disable(GL_SCISSOR_TEST); }
+		cpl::OpenGLRendering::MatrixModification m;
+		cpl::OpenGLRendering::COpenGLStack & stack;
+		GLint width, halfHeight;
+		bool separate;
+	};
 
 	template<typename V>
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
@@ -70,27 +106,35 @@ namespace Signalizer
 		if (state.colourGraph.getAlpha() != 0)
 		{
 			auto bounds = getLocalBounds().toFloat();
+			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<V>(g, bounds);
 
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
+				juce::Graphics::ScopedSaveState s(g);
+
 				bounds.setHeight(bounds.getHeight() * 0.5f);
 				const auto rectBottom = bounds.withY(bounds.getY() + bounds.getHeight());
 
 				g.setColour(state.colourGraph);
 				g.drawLine(0, rectBottom.getY(), bounds.getWidth(), rectBottom.getY());
 
-				drawWireFrame<V>(g, rectBottom, state.envelopeGain);
+				drawWireFrame<V>(g, rectBottom, gain);
 
 				g.reduceClipRegion(bounds.toType<int>());
-				drawWireFrame<V>(g, bounds, state.envelopeGain);
+				drawWireFrame<V>(g, bounds, gain);
 
 			}
 			else
 			{
-				drawWireFrame<V>(g, bounds, state.envelopeGain);
+				drawWireFrame<V>(g, bounds, gain);
 			}
 		} 
+
+		if (state.drawCursorTracker)
+		{
+
+		}
 	}
 
 	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
@@ -195,12 +239,17 @@ namespace Signalizer
 				{
 					runPeakFilter<V>(audioStream.getAudioBufferViews());
 				}
+				else if (state.envelopeMode == EnvelopeModes::None)
+				{
+					autoGainEnvelope.store(1, std::memory_order_release);
+				}
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
 				const GLint halfHeight = static_cast<GLint>(getHeight() * 0.5f);
 
+				CPL_DEBUGCHECKGL();
 				switch (state.channelMode)
 				{
 					default: case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); break;
@@ -209,55 +258,25 @@ namespace Signalizer
 					case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); break;
 					case OscChannels::Separate:
 					{
-						cpl::OpenGLRendering::MatrixModification m;
-						if (!state.overlayChannels)
-						{
-							m.scale(1, 0.5f, 1);
-							m.translate(0, 1, 0);
-							openGLStack.enable(GL_SCISSOR_TEST);
-							glScissor(0, halfHeight, getWidth(), halfHeight);
-						}
+						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						w.firstPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
-						if (!state.overlayChannels)
-						{
-							m.translate(0, -2, 0);
-							glScissor(0, 0, getWidth(), halfHeight);
-						}
-
+						w.secondPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack); 
-						if (!state.overlayChannels)
-							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
 					}
 					case OscChannels::MidSide:
 					{
-						cpl::OpenGLRendering::MatrixModification m;
-						if (!state.overlayChannels)
-						{
-							m.scale(1, 0.5f, 1);
-							m.translate(0, 1, 0);
-							openGLStack.enable(GL_SCISSOR_TEST);
-							glScissor(0, halfHeight, getWidth(), halfHeight);
-						}
+						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						w.firstPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
-						if (!state.overlayChannels)
-						{
-							m.translate(0, -2, 0);
-							glScissor(0, 0, getWidth(), halfHeight);
-						}
-
+						w.secondPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
-						if (!state.overlayChannels)
-							openGLStack.disable(GL_SCISSOR_TEST);
 						break;
 					}
 				}
-
 				CPL_DEBUGCHECKGL();
 
-				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-
-				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
 
@@ -265,9 +284,7 @@ namespace Signalizer
 				[&](juce::Graphics & g)
 				{
 					// draw graph and wireframe
-					//drawWireFrame<V>(openGLStack);
 					paint2DGraphics<V>(g);
-
 				}
 			);
 
@@ -291,7 +308,7 @@ namespace Signalizer
 
 			g.setColour(state.colourGraph);
 
-			const auto offset = state.envelopeGain;
+			const auto offset = gain;
 			char textBuf[200];
 
 
@@ -507,7 +524,7 @@ namespace Signalizer
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// and apply the gain:
-			const auto gain = (GLfloat)state.envelopeGain;
+			const auto gain = static_cast<GLfloat>(getGain());
 
 			auto 
 				left = state.viewOffsets[VO::Left], 
@@ -847,9 +864,17 @@ namespace Signalizer
 		void COscilloscope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
 			// TODO: Fix to extract data per-channel
-			if (state.normalizeGain && audio.getNumChannels() >= 2)
+
+			if (!state.normalizeGain)
+				autoGainEnvelope.store(1, std::memory_order_release);
+
+			if (audio.getNumChannels() == 1)
 			{
-				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+
+			}
+			else if (audio.getNumChannels() >= 2)
+			{
+				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.channels[0].audioData.createProxyView(), channelData.channels[1].audioData.createProxyView() };
 
 				std::size_t numSamples = views[0].size();
 
@@ -898,15 +923,8 @@ namespace Signalizer
 				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
 				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
 
-				currentEnvelope = 1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1]));
+				autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
 
-				if (std::isnormal(currentEnvelope))
-				{
-					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope,
-						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
-					);
-				}
 			}
 		}
 };

@@ -381,6 +381,7 @@
 					, koverlayChannels(&parentValue.overlayChannels)
 					, kchannelColouring(&parentValue.channelColouring.param)
 					, kcolourSmoothingTime(&parentValue.colourSmoothing)
+					, kcursorTracker(&parentValue.cursorTracker)
 
 					, editorSerializer(
 						*this, 
@@ -461,7 +462,9 @@
 					kcustomFrequency.bSetTitle("Custom trigger");
 					kchannelColouring.bSetTitle("Channel colouring");
 					kcolourSmoothingTime.bSetTitle("Colour smoothing");
+					ktrackerColour.bSetTitle("Tracker colour");
 					// buttons n controls
+
 					kantiAlias.setSingleText("Antialias");
 					kantiAlias.setToggleable(true);
 					kdiagnostics.setSingleText("Diagnostics");
@@ -473,6 +476,10 @@
 					ktriggerOnCustomFrequency.setToggleable(true);
 					koverlayChannels.bSetTitle("Overlay channels");
 					koverlayChannels.setToggleable(true);
+					kcursorTracker.bSetTitle("Cursor tracker");
+					kcursorTracker.setToggleable(true);
+					
+
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
 					kgain.bSetDescription("How much the input (x,y) is scaled (or the input gain)" \
@@ -501,42 +508,49 @@
 					kchannelColouring.bSetDescription("Method for colouring of channels, static equals just the drawing colour while spectral paints with separate colours for each frequency band");
 					koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
 					kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
+					kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
+					ktrackerColour.bSetDescription("Colour of the cursor tracker");
 				}
 
 				void initUI()
 				{
 					if (auto page = addPage("Settings", "icons/svg/gear.svg"))
 					{
-						if (auto section = new Signalizer::CContentPage::MatrixSection())
+						/* if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
 							section->addControl(&ktransform, 0);
 							page->addSection(section, "Transform");
-						}
+						} */
+
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
 						{
-							section->addControl(&kenvelopeMode, 0);
-							section->addControl(&kenvelopeSmooth, 1);
-							
+							section->addControl(&koverlayChannels, 0);
+							section->addControl(&kcursorTracker, 1);
+							page->addSection(section, "Options");
+						}
+
+						if (auto section = new Signalizer::CContentPage::MatrixSection())
+						{
 							section->addControl(&kgain, 0);
-							section->addControl(&kpctForDivision, 1);
+							section->addControl(&kchannelConfiguration, 1);
 
-							section->addControl(&kchannelConfiguration, 0);
-							section->addControl(&koverlayChannels, 1);
+							section->addControl(&kenvelopeSmooth, 0);
+							section->addControl(&kenvelopeMode, 1);
 
-							section->addControl(&kwindow, 0);
-							section->addControl(&ktimeMode, 1);
-
+							section->addControl(&kpctForDivision, 0);
 
 							page->addSection(section, "Utility");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
-						{
+						{							
+							section->addControl(&kwindow, 0);
+							section->addControl(&ktimeMode, 1);
 							section->addControl(&ktriggerMode, 0);
 							section->addControl(&kcustomFrequency, 1);
 							section->addControl(&ktriggerPhaseOffset, 0);
 							section->addControl(&ktriggerOnCustomFrequency, 1);
 	
-							page->addSection(section, "Triggering");
+							page->addSection(section, "Spatial");
 						}
 					}
 
@@ -550,24 +564,30 @@
 							page->addSection(section, "Options");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
-						{							
+						{				
 							section->addControl(&kprimitiveSize, 0);
 							section->addControl(&ksubSampleInterpolationMode, 1);
 
-
 							section->addControl(&kgraphColour, 0);
 							section->addControl(&kbackgroundColour, 1);
+							section->addControl(&ktrackerColour, 0);
 
+							page->addSection(section, "Look");
+						}
+
+						if (auto section = new Signalizer::CContentPage::MatrixSection())
+						{
+							section->addControl(&kcolourSmoothingTime, 0);
+							section->addControl(&kchannelColouring, 1);
 
 							section->addControl(&kprimaryColour, 0);
 							section->addControl(&ksecondaryColour, 1);
 
-							section->addControl(&kchannelColouring, 0);
-							section->addControl(&klowColour, 1);
-							section->addControl(&kmidColour, 0);
-							section->addControl(&khighColour, 1);
-							section->addControl(&kcolourSmoothingTime, 0);
-							page->addSection(section, "Look");
+							section->addControl(&klowColour, 0);
+							section->addControl(&kmidColour, 1);
+							section->addControl(&khighColour, 0);
+
+							page->addSection(section, "Spectral colouring");
 						}
 					}
 
@@ -611,6 +631,8 @@
 					archive << klowColour << kmidColour << khighColour;
 					archive << ksecondaryColour;
 					archive << kcolourSmoothingTime;
+					archive << kcursorTracker;
+					archive << ktrackerColour;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -647,6 +669,8 @@
 					builder >> klowColour >> kmidColour >> khighColour;
 					builder >> ksecondaryColour;
 					builder >> kcolourSmoothingTime;
+					builder >> kcursorTracker;
+					builder >> ktrackerColour;
 				}
 
 
@@ -683,10 +707,10 @@
 					}
 				}
 
-				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels;
+				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
 				cpl::CValueInputControl kcustomFrequency;
 				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime;
-				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour;
+				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 				cpl::CPresetWidget kpresets;
@@ -735,6 +759,7 @@
 				, overlayChannels("Overlay", boolRange, boolFormatter)
 				, channelColouring("Colouring")
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
+				, cursorTracker("CursorTrck", unityRange, boolFormatter)
 
 				, colourBehaviour()
 				, primaryColour(colourBehaviour, "Prim.")
@@ -744,7 +769,7 @@
 				, lowColour(colourBehaviour, "Low.")
 				, midColour(colourBehaviour, "Mid.")
 				, highColour(colourBehaviour, "High.")
-
+				, trackerColour(colourBehaviour, "Trckr.")
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 
@@ -780,7 +805,8 @@
 					&customTriggerFrequency,
 					&overlayChannels,
 					&channelColouring.param,
-					&colourSmoothing
+					&colourSmoothing,
+					&cursorTracker
 				};
 
 				for (auto sparam : singleParameters)
@@ -793,7 +819,7 @@
 					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
-				for (auto cparam : { &primaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &secondaryColour })
+				for (auto cparam : { &primaryColour, &secondaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &trackerColour })
 				{
 					parameterSet.registerParameterBundle(cparam, cparam->getBundleName());
 				}
@@ -859,6 +885,8 @@
 				archive << lowColour << midColour << highColour;
 				archive << secondaryColour;
 				archive << colourSmoothing;
+				archive << cursorTracker;
+				archive << trackerColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -885,6 +913,7 @@
 				{
 					builder >> v;
 				}
+
 				builder >> dotSamples;
 				builder >> triggerOnCustomFrequency;
 				builder >> customTriggerFrequency;
@@ -893,6 +922,8 @@
 				builder >> lowColour >> midColour >> highColour;
 				builder >> secondaryColour;
 				builder >> colourSmoothing;
+				builder >> cursorTracker;
+				builder >> trackerColour;
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -944,7 +975,8 @@
 				triggerOnCustomFrequency,
 				customTriggerFrequency,
 				overlayChannels,
-				colourSmoothing;
+				colourSmoothing,
+				cursorTracker;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
@@ -963,7 +995,8 @@
 				graphColour,
 				secondaryColour,
 				backgroundColour,
-				lowColour, midColour, highColour;
+				lowColour, midColour, highColour,
+				trackerColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 

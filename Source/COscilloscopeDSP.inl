@@ -38,7 +38,7 @@
 namespace Signalizer
 {
 
-	void COscilloscope::calculateFundamentalPeriod()
+	inline void COscilloscope::calculateFundamentalPeriod()
 	{
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
@@ -209,7 +209,12 @@ namespace Signalizer
 		}
 	}
 
-	void COscilloscope::calculateTriggeringOffset()
+	inline double COscilloscope::getGain()
+	{
+		return state.autoGain * state.manualGain;
+	}
+
+	inline void COscilloscope::calculateTriggeringOffset()
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 		{
@@ -298,7 +303,7 @@ namespace Signalizer
 
 	}
 
-	void COscilloscope::resizeAudioStorage()
+	inline void COscilloscope::resizeAudioStorage()
 	{
 		std::size_t requiredSampleBufferSize = 0;
 		// TODO: Add
@@ -317,28 +322,6 @@ namespace Signalizer
 
 		channelData.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
-
-	bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
-	{
-		switch (cpl::simd::max_vector_capacity<float>())
-		{
-		case 32:
-		case 16:
-		case 8:
-#ifdef CPL_COMPILER_SUPPORTS_AVX
-			audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
-			break;
-#endif
-		case 4:
-			audioProcessing<cpl::Types::v4sf>(buffer, numChannels, numSamples);
-			break;
-		default:
-			audioProcessing<float>(buffer, numChannels, numSamples);
-			break;
-		}
-		return false;
-	}
-
 
 	template<typename V>
 		void COscilloscope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -538,19 +521,13 @@ namespace Signalizer
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
-				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
 				// only update filters if this mode is on.
 				filters.envelope[0] = filterEnv[0];
 				filters.envelope[1] = filterEnv[1];
 
-				if (std::isnormal(currentEnvelope))
-				{
-					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope,
-						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
-					);
-				}
+				autoGainEnvelope.store(currentEnvelope, std::memory_order_release);
 			}
 
 			// save audio data
