@@ -219,11 +219,6 @@ namespace Signalizer
 			if (!checkAndInformInvalidCombinations())
 				return;
 
-			calculateFundamentalPeriod();
-			calculateTriggeringOffset();
-
-			resizeAudioStorage();
-
 			{
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
@@ -235,14 +230,7 @@ namespace Signalizer
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
 				// the peak filter has to run on the whole buffer each time.
-				if (state.envelopeMode == EnvelopeModes::PeakDecay)
-				{
-					runPeakFilter<V>(audioStream.getAudioBufferViews());
-				}
-				else if (state.envelopeMode == EnvelopeModes::None)
-				{
-					autoGainEnvelope.store(1, std::memory_order_release);
-				}
+
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
@@ -250,15 +238,30 @@ namespace Signalizer
 				const GLint halfHeight = static_cast<GLint>(getHeight() * 0.5f);
 
 				CPL_DEBUGCHECKGL();
+
+
 				switch (state.channelMode)
 				{
-					default: case OscChannels::Left: drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); break;
-					case OscChannels::Right: drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); break;
-					case OscChannels::Mid: drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); break;
-					case OscChannels::Side: drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); break;
+					default: case OscChannels::Left: 
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Left, 0>>();
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); 
+						break;
+					case OscChannels::Right: 
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Right, 0>>();
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); 
+						break;
+					case OscChannels::Mid: 
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Mid, 0>>();
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); 
+						break;
+					case OscChannels::Side: 
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Side, 0>>();
+						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); 
+						break;
 					case OscChannels::Separate:
 					{
 						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Left, 0>>();
 						w.firstPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
 						w.secondPass();
@@ -268,6 +271,7 @@ namespace Signalizer
 					case OscChannels::MidSide:
 					{
 						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Mid, 0>>();
 						w.firstPass();
 						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
 						w.secondPass();
@@ -858,73 +862,5 @@ namespace Signalizer
 
 			}
 			
-		}
-
-	template<typename V>
-		void COscilloscope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
-		{
-			// TODO: Fix to extract data per-channel
-
-			if (!state.normalizeGain)
-				autoGainEnvelope.store(1, std::memory_order_release);
-
-			if (audio.getNumChannels() == 1)
-			{
-
-			}
-			else if (audio.getNumChannels() >= 2)
-			{
-				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.channels[0].audioData.createProxyView(), channelData.channels[1].audioData.createProxyView() };
-
-				std::size_t numSamples = views[0].size();
-
-				double currentEnvelope = 0;
-				// since this runs in every frame, we need to scale the coefficient by how often this function runs
-				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-
-				double coeff = std::pow(state.envelopeCoeff, power);
-
-				// there is a number of optimisations we can do here, mostly that we actually don't care about
-				// timing, we are only interested in the current largest value in the set.
-				using namespace cpl;
-				using namespace cpl::simd;
-				using cpl::simd::load;
-
-				V
-					vLMax = zero<V>(),
-					vRMax = zero<V>(),
-					vSign = consts<V>::sign_mask;
-
-				auto const loopIncrement = elements_of<V>::value;
-
-				auto * leftBuffer = views[0].begin();
-				auto * rightBuffer = views[1].begin();
-
-				auto stop = numSamples - (numSamples & (loopIncrement - 1));
-				if (stop <= 0)
-					stop = 0;
-
-				for (std::size_t i = 0; i < stop; i += loopIncrement)
-				{
-					auto const vLInput = loadu<V>(leftBuffer + i);
-					vLMax = max(vand(vLInput, vSign), vLMax);
-					auto const vRInput = loadu<V>(rightBuffer + i);
-					vRMax = max(vand(vRInput, vSign), vRMax);
-				}
-
-				// TODO: remainder?
-
-				suitable_container<V> lmax = vLMax, rmax = vRMax;
-
-				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
-				double highestRight = *std::max_element(rmax.begin(), rmax.end());
-
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
-
-				autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
-
-			}
 		}
 };

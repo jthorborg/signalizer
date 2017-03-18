@@ -38,7 +38,26 @@
 namespace Signalizer
 {
 
-	inline void COscilloscope::calculateFundamentalPeriod()
+	template<typename V, typename Eval>
+	void COscilloscope::analyseAndSetupState()
+	{
+		calculateFundamentalPeriod<V, Eval>();
+		calculateTriggeringOffset<V, Eval>();
+
+		resizeAudioStorage();
+
+		if (state.envelopeMode == EnvelopeModes::PeakDecay)
+		{
+			runPeakFilter<V>();
+		}
+		else if (state.envelopeMode == EnvelopeModes::None)
+		{
+			autoGainEnvelope.store(1, std::memory_order_release);
+		}
+	}
+
+	template<typename V, typename Eval>
+	void COscilloscope::calculateFundamentalPeriod()
 	{
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
@@ -58,31 +77,19 @@ namespace Signalizer
 		}
 		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
+			Eval eval(channelData);
 
-			const auto && view = channelData.channels[0].audioData.createProxyView();
-
-			cpl::ssize_t
-				cursor = view.cursorPosition(),
-				totalBufferSamples = view.size();
-				
-			if (totalBufferSamples < OscilloscopeContent::LookaheadSize)
+			if (!eval.isWellDefined())
 				return;
 
 			// we will try to analyse the points closest to the sync point (latest in time)
 			auto offset = std::max<std::size_t>(std::ceil(state.effectiveWindowSize), OscilloscopeContent::LookaheadSize);
 
-			auto pointer = view.begin() + (cursor - offset);
-			while (pointer < view.begin())
-				pointer += totalBufferSamples;
-
-			auto end = view.end();
+			eval.startFrom(-static_cast<cpl::ssize_t>(offset));
 
 			for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 			{
-				transformBuffer[i] = *pointer++;
-
-				if (pointer == end)
-					pointer -= totalBufferSamples;
+				transformBuffer[i] = eval.evaluateSampleInc();
 			}
 
 
@@ -214,7 +221,8 @@ namespace Signalizer
 		return state.autoGain * state.manualGain;
 	}
 
-	inline void COscilloscope::calculateTriggeringOffset()
+	template<typename V, typename Eval>
+	void COscilloscope::calculateTriggeringOffset()
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
 		{
@@ -236,12 +244,9 @@ namespace Signalizer
 		auto const TransformSize = OscilloscopeContent::LookaheadSize;
 #endif
 
-		auto && view = channelData.channels[0].audioData.createProxyView();
-		cpl::ssize_t
-			cursor = view.cursorPosition(),
-			totalBufferSamples = view.size();
+		Eval eval(channelData);
 
-		if (totalBufferSamples < OscilloscopeContent::LookaheadSize)
+		if (!eval.isWellDefined())
 			return;
 
 		const auto tau = cpl::simd::consts<double>::tau;
@@ -253,20 +258,11 @@ namespace Signalizer
 
 		auto sampleDifference = offset - (state.effectiveWindowSize + triggerState.cycleSamples);
 
-		auto pointer = view.begin() + (cursor - offset);
-		while (pointer < view.begin())
-			pointer += totalBufferSamples;
-
-		auto const end = view.end();
+		eval.startFrom(-static_cast<cpl::ssize_t>(offset));
 
 		for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 		{
-			auto sample = *pointer;
-
-			temporaryBuffer[i] = sample;
-			pointer++;
-			if (pointer == end)
-				pointer -= totalBufferSamples;
+			temporaryBuffer[i] = eval.evaluateSampleInc();
 		}
 
 		// get the complex sinusoid phase
@@ -537,4 +533,173 @@ namespace Signalizer
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
 		}
 
+	template<typename V>
+		void COscilloscope::runPeakFilter()
+		{
+			// TODO: Fix to extract data per-channel
+
+			if (!state.normalizeGain)
+			{
+				autoGainEnvelope.store(1, std::memory_order_release);
+				return;
+			}
+
+			// there is a number of optimisations we can do here, mostly that we actually don't care about
+			// timing, we are only interested in the current largest value in the set.
+			using namespace cpl;
+			using namespace cpl::simd;
+			using cpl::simd::load;
+
+			V
+				vLMax = zero<V>(),
+				vRMax = zero<V>(),
+				vSign = consts<V>::sign_mask;
+
+			auto const loopIncrement = elements_of<V>::value;
+
+			auto const vHalf = consts<V>::half;
+
+			if (state.channelMode <= OscChannels::OffsetForMono)
+			{
+				auto && view = channelData.channels[0].audioData.createProxyView();
+
+				std::size_t numSamples = view.size();
+
+				const auto * leftBuffer = view.begin();
+
+				auto stop = numSamples - (numSamples & (loopIncrement - 1));
+				if (stop <= 0)
+					stop = 0;
+
+				// since this runs in every frame, we need to scale the coefficient by how often this function runs
+				// (and the amount of samples)
+				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+				double coeff = std::pow(state.envelopeCoeff, power);
+
+				if (state.channelMode == OscChannels::Left)
+				{
+					for (std::size_t i = 0; i < stop; i += loopIncrement)
+					{
+						auto const vLInput = load<V>(leftBuffer + i);
+						vLMax = max(vand(vLInput, vSign), vLMax);
+					}
+				}
+				else
+				{
+					if (channelData.channels.size() < 2)
+					{
+						autoGainEnvelope.store(1, std::memory_order_release);
+						return;
+					}
+
+					auto && rightView = channelData.channels[1].audioData.createProxyView();
+					const auto * rightBuffer = rightView.begin();
+
+					switch (state.channelMode)
+					{
+					case OscChannels::Right:
+
+						for (std::size_t i = 0; i < stop; i += loopIncrement)
+						{
+							auto const vLInput = load<V>(rightBuffer + i);
+							vLMax = max(vand(vLInput, vSign), vLMax);
+						}
+						break;
+					case OscChannels::Mid:
+						for (std::size_t i = 0; i < stop; i += loopIncrement)
+						{
+							auto const vInput = load<V>(leftBuffer + i) + load<V>(rightBuffer + i);
+							vLMax = max(vand(vInput * vHalf, vSign), vLMax);
+						}
+						break;
+					case OscChannels::Side:
+
+						for (std::size_t i = 0; i < stop; i += loopIncrement)
+						{
+							auto const vInput = load<V>(leftBuffer + i) - load<V>(rightBuffer + i);
+							vLMax = max(vand(vInput * vHalf, vSign), vLMax);
+						}
+						break;
+					}
+				}
+
+				vRMax = vLMax;
+
+				// TODO: remainder?
+
+				suitable_container<V> lmax = vLMax, rmax = vRMax;
+
+				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
+				double highestRight = *std::max_element(rmax.begin(), rmax.end());
+
+				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
+				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+
+				autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
+
+			}
+			else
+			{
+				if (channelData.channels.size() < 2)
+				{
+					autoGainEnvelope.store(1, std::memory_order_release);
+					return;
+				}
+
+				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.channels[0].audioData.createProxyView(), channelData.channels[1].audioData.createProxyView() };
+
+				std::size_t numSamples = views[0].size();
+
+				const auto * leftBuffer = views[0].begin();
+				const auto * rightBuffer = views[1].begin();
+
+				auto stop = numSamples - (numSamples & (loopIncrement - 1));
+				if (stop <= 0)
+					stop = 0;
+
+				// since this runs in every frame, we need to scale the coefficient by how often this function runs
+				// (and the amount of samples)
+				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+				double coeff = std::pow(state.envelopeCoeff, power);
+
+				switch (state.channelMode)
+				{
+				case OscChannels::Separate:
+					for (std::size_t i = 0; i < stop; i += loopIncrement)
+					{
+						auto const vLInput = load<V>(leftBuffer + i);
+						vLMax = max(vand(vLInput, vSign), vLMax);
+						auto const vRInput = load<V>(rightBuffer + i);
+						vRMax = max(vand(vRInput, vSign), vRMax);
+					}
+					break;
+				case OscChannels::MidSide:
+					for (std::size_t i = 0; i < stop; i += loopIncrement)
+					{
+						auto const vLInput = load<V>(leftBuffer + i);
+						auto const vRInput = load<V>(rightBuffer + i);
+
+						auto const a = vLInput + vRInput;
+						auto const b = vLInput - vRInput;
+
+						vLMax = max(vand(a * vHalf, vSign), vLMax);
+						vRMax = max(vand(b * vHalf, vSign), vRMax);
+					}
+					break;
+				}
+
+				// TODO: remainder?
+
+				suitable_container<V> lmax = vLMax, rmax = vRMax;
+
+				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
+				double highestRight = *std::max_element(rmax.begin(), rmax.end());
+
+				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
+				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+
+				autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
+
+			}
+		}
 };

@@ -114,12 +114,19 @@
 			template<typename V>
 				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
 
-			void calculateFundamentalPeriod();
-			void calculateTriggeringOffset();
+			template<typename V, typename Eval>
+				void calculateFundamentalPeriod();
+
+			template<typename V, typename Eval>
+				void calculateTriggeringOffset();
+
 			void resizeAudioStorage();
 
 			template<typename V>
-				void runPeakFilter(const AudioStream::AudioBufferAccess &);
+				void runPeakFilter();
+
+			template<typename V, typename Eval>
+				void analyseAndSetupState();
 
 			template<typename V>
 				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);

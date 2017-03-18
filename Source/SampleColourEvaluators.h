@@ -72,6 +72,11 @@
 					return audioView.size() > 0 && colourView.size() > 0;
 				}
 
+				void startFrom(cpl::ssize_t offset)
+				{
+					startFrom(offset, offset);
+				}
+
 				void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
 				{
 					audioPointer = audioView.begin() + audioView.cursorPosition() + audioOffset;
@@ -174,6 +179,11 @@
 				inline bool isWellDefined() const noexcept
 				{
 					return audioViewLeft.size() > 0 && audioViewRight.size() > 0 && audioViewLeft.size() == audioViewRight.size() && colourView.size() > 0;
+				}
+
+				void startFrom(cpl::ssize_t offset)
+				{
+					startFrom(offset, offset);
 				}
 
 				void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
