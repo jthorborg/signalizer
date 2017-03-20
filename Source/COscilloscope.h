@@ -138,6 +138,9 @@
 
 			void initPanelAndControls();
 
+			/// <summary>
+			/// Returns the combined gain value for the current frame.
+			/// </summary>
 			double getGain();
 
 			// guis and whatnot
@@ -180,9 +183,8 @@
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool normalizeGain, isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker;
+				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker;
 				float primitiveSize;
-				float envelopeCoeff;
 
 				double effectiveWindowSize;
 				double windowTimeOffset;
@@ -203,6 +205,12 @@
 
 			} state;
 
+			struct SharedStateOptions
+			{
+				std::atomic<double> 
+					autoGainEnvelope;
+			} shared;
+
 			using VO = OscilloscopeContent::ViewOffsets;
 
 			OscilloscopeContent * content;
@@ -215,7 +223,7 @@
 			juce::Point<float> lastMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
-			std::atomic<double> autoGainEnvelope;
+
 
 			struct BinRecord
 			{
@@ -238,7 +246,7 @@
 			};
 
 			struct TriggerData
-			{
+			{ 
 				double currentPeakSampleOffset;
 				double lastPeakSampleOffset;
 				double peakState;

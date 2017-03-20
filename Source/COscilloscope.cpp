@@ -252,13 +252,10 @@ namespace Signalizer
 	{
 		const auto windowValue = content->windowSize.getTransformedValue();
 
-
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
-		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate()));
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
-		state.autoGain = autoGainEnvelope.load(std::memory_order_relaxed);
+		state.autoGain = shared.autoGainEnvelope.load(std::memory_order_relaxed);
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
