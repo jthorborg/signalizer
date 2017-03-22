@@ -382,6 +382,7 @@
 					, kchannelColouring(&parentValue.channelColouring.param)
 					, kcolourSmoothingTime(&parentValue.colourSmoothing)
 					, kcursorTracker(&parentValue.cursorTracker)
+					, ktrackerColour(&parentValue.trackerColour)
 
 					, editorSerializer(
 						*this, 

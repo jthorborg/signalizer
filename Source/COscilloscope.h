@@ -39,13 +39,13 @@
 	#include "OscilloscopeParameters.h"
 	#include <cpl/dsp/LinkwitzRileyNetwork.h>
 	#include <cpl/dsp/SmoothedParameterState.h>
+	#include <utility>
 
 	namespace cpl
 	{
 		namespace OpenGLRendering
 		{
 			class COpenGLStack;
-
 		};
 	};
 
@@ -67,11 +67,8 @@
 
 			// Component overrides
 			void onGraphicsRendering(juce::Graphics & g) override;
-			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
-			void mouseDoubleClick(const juce::MouseEvent& event) override;
-			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
+
+
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
 			void initOpenGL() override;
@@ -87,6 +84,13 @@
 			bool isEditorOpen() const;
 
 		protected:
+
+			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
+			void mouseDoubleClick(const juce::MouseEvent& event) override;
+			void mouseDrag(const juce::MouseEvent& event) override;
+			void mouseUp(const juce::MouseEvent& event) override;
+			void mouseDown(const juce::MouseEvent& event) override;
+			void mouseMove(const juce::MouseEvent& event) override;
 
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			//void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
@@ -142,6 +146,8 @@
 			/// Returns the combined gain value for the current frame.
 			/// </summary>
 			double getGain();
+
+			void setLastMousePos(const juce::Point<float> position) noexcept;
 
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
@@ -221,6 +227,11 @@
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
+
+			/// <summary>
+			/// Updates are not guaranteed to be in order
+			/// </summary>
+			std::pair<std::atomic<float>, std::atomic<float>> threadedMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 

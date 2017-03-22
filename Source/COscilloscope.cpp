@@ -112,6 +112,13 @@ namespace Signalizer
 		state.isFrozen = false;
 	}
 
+	void COscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
+	{
+		lastMousePos = position;
+		threadedMousePos.first.store(position.x, std::memory_order_release);
+		threadedMousePos.second.store(position.y, std::memory_order_release);
+	}
+
 	void COscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
@@ -236,7 +243,7 @@ namespace Signalizer
 		addClamped(V::Top, verticalFactor * yp * (top - bottom));
 		addClamped(V::Bottom, verticalFactor * yp * (top - bottom));
 
-		lastMousePos = event.position;
+		setLastMousePos(event.position);
 	}
 	void COscilloscope::mouseUp(const juce::MouseEvent& event)
 	{
@@ -245,7 +252,12 @@ namespace Signalizer
 	void COscilloscope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()
-		lastMousePos = event.position;
+		setLastMousePos(event.position);
+	}
+
+	void COscilloscope::mouseMove(const juce::MouseEvent & event)
+	{
+		setLastMousePos(event.position);
 	}
 
 	void COscilloscope::handleFlagUpdates()

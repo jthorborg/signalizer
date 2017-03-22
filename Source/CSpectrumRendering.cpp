@@ -564,7 +564,6 @@ namespace Signalizer
 		auto rectInside = rect.withSizeKeepingCentre(estimatedSize[0] * 0.95f, estimatedSize[1] * 0.95f).toType<int>();
 
 		// clear background
-		// TODO: add a nice semi transparent effect!
 		g.setColour(state.colourBackground);
 		g.fillRoundedRectangle(rect, 2);
 

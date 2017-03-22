@@ -103,9 +103,10 @@ namespace Signalizer
 
 		}
 
+		auto bounds = getLocalBounds().toFloat();
+
 		if (state.colourGraph.getAlpha() != 0)
 		{
-			auto bounds = getLocalBounds().toFloat();
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<V>(g, bounds);
 
@@ -133,13 +134,70 @@ namespace Signalizer
 
 		if (state.drawCursorTracker)
 		{
+			g.setColour(state.colourTracker);
 
+			const auto mouseX = threadedMousePos.first.load(std::memory_order_acquire), mouseY = threadedMousePos.second.load(std::memory_order_acquire);
+
+			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
+			g.drawLine(mouseX, 0, mouseX, bounds.getHeight());
+
+			double estimatedSize[2] = { 170, 70 };
+			double textOffset[2] = { 20, -estimatedSize[1] };
+
+			auto xpoint = mouseX + textOffset[0];
+			if (xpoint + estimatedSize[0] > getWidth())
+				xpoint = mouseX - (textOffset[0] + estimatedSize[0]);
+
+			auto ypoint = mouseY + textOffset[1] - textOffset[0];
+			if (ypoint < 0)
+				ypoint = mouseY + textOffset[0];
+
+			auto fraction = (double)mouseY / (getHeight() - 1);
+
+			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			{
+				if (fraction > 0.5)
+				{
+					fraction -= 0.5;
+				}
+				fraction *= 2;
+			}
+			fraction = cpl::Math::UnityScale::linear(fraction, state.viewOffsets[VO::Top], state.viewOffsets[VO::Bottom]);
+			fraction = 2 * (0.5 - fraction) / getGain();
+
+			juce::Rectangle<float> rect{ (float)xpoint, (float)ypoint, (float)estimatedSize[0], (float)estimatedSize[1] };
+
+			auto rectInside = rect.withSizeKeepingCentre(estimatedSize[0] * 0.95f, estimatedSize[1] * 0.95f).toType<int>();
+
+			// clear background
+			g.setColour(state.colourBackground);
+			g.fillRoundedRectangle(rect, 2);
+
+			// reset colour
+			g.setColour(state.colourTracker);
+			g.drawRoundedRectangle(rect, 2, 0.7f);
+
+			auto const horizontalFraction = cpl::Math::UnityScale::linear((double)mouseX / (getWidth() - 1), state.viewOffsets[VO::Left], state.viewOffsets[VO::Right]);
+			auto samples = (state.effectiveWindowSize - 1) * horizontalFraction;
+
+			char text[200];
+
+			sprintf_s(text, 
+				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps", 
+				fraction, 
+				20 * std::log10(std::abs(fraction)),
+				1e3 * samples / audioStream.getAudioHistorySamplerate(),
+				samples
+			);
+
+			g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText * 0.9f, 0));
+
+			g.drawFittedText(text, rectInside, juce::Justification::centredLeft, 6);
 		}
 	}
 
 	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
 	{
-
 		// do software rendering
 		if(!isOpenGL())
 		{
@@ -151,10 +209,7 @@ namespace Signalizer
 			auto tickNow = juce::Time::getHighResolutionTicks();
 			avgFps.setNext(tickNow - lastFrameTick);
 			lastFrameTick = tickNow;
-
 		}
-
-
 	}
 
 	void COscilloscope::initOpenGL()
