@@ -180,6 +180,11 @@ namespace Signalizer
 			auto const horizontalFraction = cpl::Math::UnityScale::linear((double)mouseX / (getWidth() - 1), state.viewOffsets[VO::Left], state.viewOffsets[VO::Right]);
 			auto samples = (state.effectiveWindowSize - 1) * horizontalFraction;
 
+			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			{
+				samples -= (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
+			}
+
 			char text[200];
 
 			sprintf_s(text, 
