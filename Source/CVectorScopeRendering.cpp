@@ -135,25 +135,10 @@ namespace Signalizer
 	}
 	void CVectorScope::onOpenGLRendering()
 	{
-		switch (cpl::simd::max_vector_capacity<float>())
-		{
-		case 32:
-		case 16:
-		case 8:
-            #ifdef CPL_COMPILER_SUPPORTS_AVX
-                vectorGLRendering<cpl::Types::v8sf>();
-                break;
-            #endif
-		case 4:
-			vectorGLRendering<cpl::Types::v4sf>();
-			break;
-		default:
-			vectorGLRendering<float>();
-			break;
-		}
+		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::vectorGLRendering()
 		{
 
@@ -175,7 +160,7 @@ namespace Signalizer
 				// the peak filter has to run on the whole buffer each time.
 				if (state.envelopeMode == EnvelopeModes::PeakDecay)
 				{
-					runPeakFilter<V>(lockedView);
+					runPeakFilter<ISA>(lockedView);
 				}
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
@@ -186,11 +171,11 @@ namespace Signalizer
 				{
 					if (state.isPolar)
 					{
-						drawPolarPlot<V>(openGLStack, lockedView);
+						drawPolarPlot<ISA>(openGLStack, lockedView);
 					}
 					else // is Lissajous
 					{
-						drawRectPlot<V>(openGLStack, lockedView);
+						drawRectPlot<ISA>(openGLStack, lockedView);
 					}
 				}
 				CPL_DEBUGCHECKGL();
@@ -198,13 +183,13 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 
 				// draw graph and wireframe
-				drawWireFrame<V>(openGLStack);
+				drawWireFrame<ISA>(openGLStack);
 				CPL_DEBUGCHECKGL();
 				// draw channel text(ures)
-				drawGraphText<V>(openGLStack, lockedView);
+				drawGraphText<ISA>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 				// draw 2d stuff (like stereo meters)
-				drawStereoMeters<V>(openGLStack, lockedView);
+				drawStereoMeters<ISA>(openGLStack, lockedView);
 				CPL_DEBUGCHECKGL();
 				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
@@ -217,7 +202,7 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			openGLStack.enable(GL_TEXTURE_2D);
@@ -301,7 +286,7 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			using consts = cpl::simd::consts<float>;
@@ -407,7 +392,7 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
@@ -461,9 +446,10 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
+			typedef ISA::V V;
 			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			using namespace cpl::simd;
@@ -708,7 +694,7 @@ namespace Signalizer
 			}
 		}
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			using namespace cpl;
@@ -783,9 +769,10 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CVectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
+			typedef ISA::V V;
 			if (state.normalizeGain && audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };

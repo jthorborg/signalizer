@@ -142,7 +142,21 @@
 
 		protected:
 
-            template<typename V>
+			struct RenderingDispatcher
+			{
+				template<typename ISA> static void dispatch(CSpectrum & c) { c.vectorGLRendering<ISA>(); }
+			};
+
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(CSpectrum & c, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					c.audioProcessing<ISA>(buffer, numChannels, numSamples);
+				}
+			};
+
+
+            template<typename ISA>
                 void vectorGLRendering();
 
 			virtual void paint2DGraphics(juce::Graphics & g);
@@ -221,8 +235,6 @@
 
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override;
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override;
-
-			void audioConsumerThread();
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
@@ -339,19 +351,19 @@
 			template<typename T>
 				std::size_t getNumWorkingElements() const noexcept;
 
-			template<typename V>
+			template<typename ISA>
 				void renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack &);
 
-			template<typename V>
+			template<typename ISA>
 				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
 
-			template<typename V>
+			template<typename ISA>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
-			template<typename V>
+			template<typename ISA>
 				void resonatingDispatch(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
-			template<typename V>
+			template<typename ISA>
 				void addAudioFrame();
 
 			/// <summary>
@@ -363,7 +375,7 @@
 			///
 			/// Returns the total number of complex samples copied into the output
 			/// </summary>
-			template<typename V, class Vector>
+			template<typename ISA, class Vector>
 				std::size_t copyResonatorStateInto(Vector & output);
 
 			void drawFrequencyTracking(juce::Graphics & g);

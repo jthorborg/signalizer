@@ -260,9 +260,10 @@ namespace Signalizer
 	}
 
 
-	template<typename V>
-		void CVectorScope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
+	template<typename ISA>
+		void CVectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			typedef ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
 			if (numChannels != 2)
@@ -365,22 +366,7 @@ namespace Signalizer
 
 	bool CVectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		switch (cpl::simd::max_vector_capacity<float>())
-		{
-		case 32:
-		case 16:
-		case 8:
-		#ifdef CPL_COMPILER_SUPPORTS_AVX
-				audioProcessing<cpl::Types::v8sf>(buffer, numChannels, numSamples);
-				break;
-		#endif
-		case 4:
-			audioProcessing<cpl::Types::v4sf>(buffer, numChannels, numSamples);
-			break;
-		default:
-			audioProcessing<float>(buffer, numChannels, numSamples);
-			break;
-		}
+		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);
 		return false;
 	}
 

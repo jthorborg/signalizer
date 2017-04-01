@@ -668,25 +668,10 @@ namespace Signalizer
 
     void CSpectrum::onOpenGLRendering()
     {
-        switch (cpl::simd::max_vector_capacity<float>())
-        {
-            case 32:
-            case 16:
-            case 8:
-                #ifdef CPL_COMPILER_SUPPORTS_AVX
-                    vectorGLRendering<cpl::Types::v8sf>();
-                    break;
-                #endif
-            case 4:
-                vectorGLRendering<cpl::Types::v4sf>();
-                break;
-            default:
-                vectorGLRendering<float>();
-                break;
-        }
+		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
     }
 
-    template<typename V>
+    template<typename ISA>
     void CSpectrum::vectorGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
@@ -739,10 +724,10 @@ namespace Signalizer
 				mapToLinearSpace();
 				postProcessStdTransform();
 			}
-			renderLineGraph<V>(openGLStack); break;
+			renderLineGraph<ISA>(openGLStack); break;
 		case SpectrumContent::DisplayMode::ColourSpectrum:
 			// mapping and processing is already done here.
-			renderColourSpectrum<V>(openGLStack); break;
+			renderColourSpectrum<ISA>(openGLStack); break;
 
 		}
 		renderCycles = cpl::Misc::ClockCounter() - cStart;
@@ -755,7 +740,7 @@ namespace Signalizer
 	}
 
 
-	template<typename V>
+	template<typename ISA>
 		void CSpectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
@@ -863,7 +848,7 @@ namespace Signalizer
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 	void CSpectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
 	{
 		int points = getAxisPoints() - 1;

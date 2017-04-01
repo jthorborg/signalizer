@@ -138,34 +138,48 @@
 			virtual void handleFlagUpdates();
 
 		private:
+
+			struct RenderingDispatcher
+			{
+				template<typename ISA> static void dispatch(CVectorScope & v) { v.vectorGLRendering<ISA>(); }
+			};
+
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(CVectorScope & v, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					v.audioProcessing<ISA>(buffer, numChannels, numSamples);
+				}
+			};
+
 			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
-			template<typename V>
+			template<typename ISA>
 				void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
-			template<typename V>
+			template<typename ISA>
 				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
-			template<typename V>
+			template<typename ISA>
 				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
-			template<typename V>
+			template<typename ISA>
 				void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
 
-			template<typename V>
+			template<typename ISA>
 				void drawGraphText(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
-			template<typename V>
+			template<typename ISA>
 				void drawStereoMeters(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
 
-			template<typename V>
+			template<typename ISA>
 				void runPeakFilter(const AudioStream::AudioBufferAccess &);
 
-			template<typename V>
-				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
+			template<typename ISA>
+				void audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			void initPanelAndControls();
 

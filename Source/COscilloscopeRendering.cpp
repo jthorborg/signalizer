@@ -77,7 +77,7 @@ namespace Signalizer
 		bool separate;
 	};
 
-	template<typename V>
+	template<typename ISA>
 	void COscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
 
@@ -108,7 +108,7 @@ namespace Signalizer
 		if (state.colourGraph.getAlpha() != 0)
 		{
 			auto gain = static_cast<float>(getGain());
-			drawTimeDivisions<V>(g, bounds);
+			drawTimeDivisions<ISA>(g, bounds);
 
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
@@ -120,15 +120,15 @@ namespace Signalizer
 				g.setColour(state.colourGraph);
 				g.drawLine(0, rectBottom.getY(), bounds.getWidth(), rectBottom.getY());
 
-				drawWireFrame<V>(g, rectBottom, gain);
+				drawWireFrame<ISA>(g, rectBottom, gain);
 
 				g.reduceClipRegion(bounds.toType<int>());
-				drawWireFrame<V>(g, bounds, gain);
+				drawWireFrame<ISA>(g, bounds, gain);
 
 			}
 			else
 			{
-				drawWireFrame<V>(g, bounds, gain);
+				drawWireFrame<ISA>(g, bounds, gain);
 			}
 		} 
 
@@ -229,22 +229,7 @@ namespace Signalizer
 
 	void COscilloscope::onOpenGLRendering()
 	{
-		switch (cpl::simd::max_vector_capacity<float>())
-		{
-		case 32:
-		case 16:
-		case 8:
-            #ifdef CPL_COMPILER_SUPPORTS_AVX
-                vectorGLRendering<cpl::Types::v8sf>();
-                break;
-            #endif
-		case 4:
-			vectorGLRendering<cpl::Types::v4sf>();
-			break;
-		default:
-			vectorGLRendering<float>();
-			break;
-		}
+		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
 	bool COscilloscope::checkAndInformInvalidCombinations()
@@ -265,7 +250,7 @@ namespace Signalizer
 		return true;
 	}
 
-	template<typename V>
+	template<typename ISA>
 		void COscilloscope::vectorGLRendering()
 		{
 			cpl::CMutex lock(bufferLock);
@@ -303,39 +288,39 @@ namespace Signalizer
 				switch (state.channelMode)
 				{
 					default: case OscChannels::Left: 
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Left, 0>>();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); 
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); 
 						break;
 					case OscChannels::Right: 
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Right, 0>>();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); 
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>();
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); 
 						break;
 					case OscChannels::Mid: 
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); 
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); 
 						break;
 					case OscChannels::Side: 
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Side, 0>>();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); 
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>();
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); 
 						break;
 					case OscChannels::Separate:
 					{
 						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Left, 0>>();
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
 						w.firstPass();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
 						w.secondPass();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack); 
 						break;
 					}
 					case OscChannels::MidSide:
 					{
 						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<V, SampleColourEvaluator<OscChannels::Mid, 0>>();
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
 						w.firstPass();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
 						w.secondPass();
-						drawWavePlot<V, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
 						break;
 					}
 				}
@@ -348,7 +333,7 @@ namespace Signalizer
 				[&](juce::Graphics & g)
 				{
 					// draw graph and wireframe
-					paint2DGraphics<V>(g);
+					paint2DGraphics<ISA>(g);
 				}
 			);
 
@@ -358,7 +343,7 @@ namespace Signalizer
 
 		}
 
-	template<typename V>
+	template<typename ISA>
 		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
 			const auto xoff = rect.getX();
@@ -425,7 +410,7 @@ namespace Signalizer
 				drawMarkerAt(0.5);
 		}
 
-	template<typename V>
+	template<typename ISA>
 	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect)
 	{
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
@@ -580,7 +565,7 @@ namespace Signalizer
 		}
 	}
 
-	template<typename V, typename Evaluator>
+	template<typename ISA, typename Evaluator>
 		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 

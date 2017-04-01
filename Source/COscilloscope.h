@@ -65,6 +65,8 @@
 			COscilloscope(const std::string & nameId, AudioStream & data, ProcessorState * params);
 			virtual ~COscilloscope();
 
+		protected:
+			
 			// Component overrides
 			void onGraphicsRendering(juce::Graphics & g) override;
 
@@ -82,8 +84,6 @@
 
 			// cbasecontrol overrides
 			bool isEditorOpen() const;
-
-		protected:
 
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
@@ -105,37 +105,51 @@
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
-			template<typename V>
-			void vectorGLRendering();
+			struct RenderingDispatcher
+			{
+				template<typename ISA> static void dispatch(COscilloscope & o) { o.vectorGLRendering<ISA>(); }
+			};
+
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(COscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
+				{ 
+					o.audioProcessing<ISA>(buffer, numChannels, numSamples); 
+				}
+			};
+
+
+			template<typename ISA>
+				void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
-			template<typename V, typename Eval>
+			template<typename ISA, typename Eval>
 				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
 
-			template<typename V>
+			template<typename ISA>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
 
-			template<typename V>
+			template<typename ISA>
 				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
 
-			template<typename V, typename Eval>
+			template<typename ISA, typename Eval>
 				void calculateFundamentalPeriod();
 
-			template<typename V, typename Eval>
+			template<typename ISA, typename Eval>
 				void calculateTriggeringOffset();
 
 			void resizeAudioStorage();
 
-			template<typename V>
+			template<typename ISA>
 				void runPeakFilter();
 
-			template<typename V, typename Eval>
+			template<typename ISA, typename Eval>
 				void analyseAndSetupState();
 
-			template<typename V>
-				void audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples);
+			template<typename ISA>
+				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
-			template<typename V>
+			template<typename ISA>
 				void paint2DGraphics(juce::Graphics & g);
 
 			bool checkAndInformInvalidCombinations();

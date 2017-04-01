@@ -1442,27 +1442,13 @@ namespace Signalizer
 	{
 		if (isSuspended)
 			return false;
-		auto const factor = std::is_same<AudioStream::DataType, float>::value ? 1 : 2;
-		switch (cpl::simd::max_vector_capacity<fpoint>())
-		{
-		case 32:
-		case 16:
-		case 8:
-			#ifdef CPL_COMPILER_SUPPORTS_AVX
-				audioProcessing<typename cpl::simd::vector_of<fpoint, 8 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples); 
-				break;
-			#endif
-		case 4:
-			audioProcessing<typename cpl::simd::vector_of<fpoint, 4 * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
-			break;
-		default:
-			audioProcessing<typename cpl::simd::vector_of<fpoint, factor * 4 / (sizeof(fpoint))>::type>(buffer, numChannels, numSamples);
-			break;
-		}
+		
+		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);
+
 		return false;
 	}
 
-	template<typename V>
+	template<typename ISA>
 	void CSpectrum::addAudioFrame()
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
@@ -1503,7 +1489,7 @@ namespace Signalizer
 		return numResFilters << (numChannels - 1);
 	}
 
-	template<typename V>
+	template<typename ISA>
 		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			cpl::CMutex audioLock;
@@ -1524,7 +1510,7 @@ namespace Signalizer
 					{
 						audioLock.acquire(audioResource);
 						fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
-						resonatingDispatch<V>(offBuf, numChannels, availableSamples);
+						resonatingDispatch<ISA>(offBuf, numChannels, availableSamples);
 					}
 
 					sfbuf.currentCounter += availableSamples;
@@ -1553,7 +1539,7 @@ namespace Signalizer
 						}
 
 						if(transformReady)
-							addAudioFrame<V>();
+							addAudioFrame<ISA>();
 
 						sfbuf.currentCounter = 0;
 
@@ -1571,14 +1557,14 @@ namespace Signalizer
 			else if(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
 			{
 				audioLock.acquire(audioResource);
-				resonatingDispatch<V>(buffer, numChannels, numSamples);
+				resonatingDispatch<ISA>(buffer, numChannels, numSamples);
 			}
 
 			return;
 		}
 
 
-	template<typename V>
+	template<typename ISA>
 	void CSpectrum::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
@@ -1591,12 +1577,12 @@ namespace Signalizer
 		{
 			case SpectrumChannels::Right:
 			{
-				cresonator.resonateReal<V>(&buffer[1], 1, numSamples);
+				cresonator.resonateReal<ISA::V>(&buffer[1], 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Left:
 			{
-				cresonator.resonateReal<V>(buffer, 1, numSamples);
+				cresonator.resonateReal<ISA::V>(buffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Mid:
@@ -1609,7 +1595,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] + buffer[1][i]);
 				}
 
-				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<ISA::V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Side:
@@ -1622,7 +1608,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] - buffer[1][i]);
 				}
 
-				cresonator.resonateReal<V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<ISA::V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::MidSide:
@@ -1636,18 +1622,18 @@ namespace Signalizer
 					rbuffer[1][i] = buffer[0][i] - buffer[1][i];
 				}
 
-				cresonator.resonateReal<V>(rbuffer, 2, numSamples);
+				cresonator.resonateReal<ISA::V>(rbuffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Phase:
 			case SpectrumChannels::Separate:
 			{
-				cresonator.resonateReal<V>(buffer, 2, numSamples);
+				cresonator.resonateReal<ISA::V>(buffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Complex:
 			{
-				cresonator.resonateComplex<V>(buffer, numSamples);
+				cresonator.resonateComplex<ISA::V>(buffer, numSamples);
 				break;
 			}
 		}

@@ -38,17 +38,17 @@
 namespace Signalizer
 {
 
-	template<typename V, typename Eval>
+	template<typename ISA, typename Eval>
 	void COscilloscope::analyseAndSetupState()
 	{
-		calculateFundamentalPeriod<V, Eval>();
-		calculateTriggeringOffset<V, Eval>();
+		calculateFundamentalPeriod<ISA, Eval>();
+		calculateTriggeringOffset<ISA, Eval>();
 
 		resizeAudioStorage();
 
 		if (state.envelopeMode == EnvelopeModes::PeakDecay)
 		{
-			runPeakFilter<V>();
+			runPeakFilter<ISA>();
 		}
 		else if (state.envelopeMode == EnvelopeModes::None)
 		{
@@ -56,7 +56,7 @@ namespace Signalizer
 		}
 	}
 
-	template<typename V, typename Eval>
+	template<typename ISA, typename Eval>
 	void COscilloscope::calculateFundamentalPeriod()
 	{
 #ifdef PHASE_VOCODER
@@ -221,7 +221,7 @@ namespace Signalizer
 		return (std::isfinite(state.autoGain) ? state.autoGain : 1) * state.manualGain;
 	}
 
-	template<typename V, typename Eval>
+	template<typename ISA, typename Eval>
 	void COscilloscope::calculateTriggeringOffset()
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
@@ -319,11 +319,11 @@ namespace Signalizer
 		channelData.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
 
-	template<typename V>
-		void COscilloscope::audioProcessing(typename cpl::simd::scalar_of<V>::type ** buffer, std::size_t numChannels, std::size_t numSamples)
+	template<typename ISA>
+		void COscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			using namespace cpl::simd;
-			typedef typename scalar_of<V>::type T;
+			typedef AFloat T;
 
 			cpl::CMutex scopedLock(bufferLock);
 			auto const sampleRate = audioStream.getAudioHistorySamplerate();
@@ -335,12 +335,6 @@ namespace Signalizer
 
 			if (channelData.channels[0].audioData.getSize() < 1)
 				return;
-
-			auto const loopIncrement = elements_of<V>::value;
-
-			// ensure a perfect multiple and no buffer overrun
-			auto const vectorSamples = numSamples - (numSamples & (loopIncrement - 1));
-			auto const remainder = numSamples - vectorSamples;
 
 			auto colourSmoothPole = channelData.smoothFilterPole;
 
@@ -613,7 +607,7 @@ namespace Signalizer
 
 		}
 
-	template<typename V>
+	template<typename ISA>
 		void COscilloscope::runPeakFilter()
 		{
 			// there is a number of optimisations we can do here, mostly that we actually don't care about
@@ -621,6 +615,8 @@ namespace Signalizer
 			using namespace cpl;
 			using namespace cpl::simd;
 			using cpl::simd::load;
+
+			typedef ISA::V V;
 
 			V
 				vLMax = zero<V>(),
