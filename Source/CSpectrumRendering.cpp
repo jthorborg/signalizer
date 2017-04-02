@@ -188,7 +188,7 @@ namespace Signalizer
 			laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
+			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * laggedFPS;
 			double asu = 100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed);
 			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);

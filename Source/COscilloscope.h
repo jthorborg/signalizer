@@ -327,7 +327,7 @@
 				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
 				{
 					if (capacity == -1)
-						capacity = cpl::nextPowerOfTwo(samples);
+						capacity = cpl::Math::nextPow2Inc(samples);
 
 					for (auto & c : channels)
 					{
