@@ -185,7 +185,7 @@ namespace Signalizer
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+			laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
@@ -195,7 +195,7 @@ namespace Signalizer
 			//TODO: ensure format specifiers are correct always (%llu mostly)
 			sprintf(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
-				fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
+				laggedFPS, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
 				audioStream.getPerfMeasures().droppedAudioFrames.load(std::memory_order_relaxed),
@@ -519,6 +519,14 @@ namespace Signalizer
 			peakDBs = std::numeric_limits<double>::infinity();
 		else if(peakDBs < -1000)
 			peakDBs = -std::numeric_limits<double>::infinity();
+
+		peakState.clearNonNormals();
+		peakState.design(content->floodFillAlpha.parameter.getValue() * 1000, laggedFPS);
+
+		peakState.process(peakDBs, peakFrequency);
+
+		peakDBs = peakState.getPeakDBs();
+		peakFrequency = peakState.getFrequency();
 
 		auto reference = content->referenceTuning.getTransformedValue();
 		std::string mouseNote = frequencyToSemitone(reference, mouseFrequency);

@@ -61,6 +61,7 @@ namespace Signalizer
 		, scallopLoss()
 		, oldWindowSize(-1)
 		, framesPerUpdate()
+		, laggedFPS()
 	{
 		setOpaque(true);
 		if (!(content = dynamic_cast<SpectrumContent *>(processorState)))

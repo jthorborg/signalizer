@@ -45,6 +45,7 @@
 	#include <vector>
 	#include "CommonSignalizer.h"
 	#include "SpectrumParameters.h"
+	#include <cpl/dsp/SmoothedParameterState.h>
 
 	namespace cpl
 	{
@@ -565,6 +566,7 @@
 			SpectrumContent * content;
 			unsigned long long processorSpeed; // clocks / sec
 			double audioThreadUsage;
+			double laggedFPS;
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			long long lastFrameTick, renderCycles;
@@ -662,6 +664,62 @@
 				cpl::aligned_vector<fpoint, 32> buffer;
 				std::size_t samples, channels;
 			} relay;
+
+			struct SmoothedPeakState
+			{
+				typedef cpl::dsp::SmoothedParameterState<double, 8> SmoothParam; 
+
+
+				void clearNonNormals()
+				{
+					if (!std::isnormal(currentPeak))
+						currentPeak = 0;
+					if (!std::isnormal(frequencyState.getState()))
+						frequencyState.reset();
+					if (!std::isnormal(peakDBsState.getState()))
+						peakDBsState.reset();
+				}
+
+				void process(double peakDBs, double frequency)
+				{
+					auto peak = std::pow(10, peakDBs / 20);
+
+					currentPeak *= peakPole;
+
+					if (peak > currentPeak)
+					{
+						currentPeak = 1.2 * (peak / peakPole);
+						currentFrequency = frequency;
+						currentPeakDBs = peakDBs;
+					}
+
+					
+					frequencyState.process(filterPole, currentFrequency);
+					peakDBsState.process(filterPole, currentPeakDBs);
+				}
+
+				void design(double ms, double sampleRate)
+				{
+					peakPole = SmoothParam::design(ms * 10, sampleRate);
+					filterPole = SmoothParam::design(ms / 5, sampleRate);
+				}
+
+				double getPeakDBs()
+				{
+					return peakDBsState.getState();
+				}
+
+				double getFrequency()
+				{
+					return frequencyState.getState();
+				}
+
+			private:
+				SmoothParam::PoleState peakPole, filterPole;
+				SmoothParam frequencyState, peakDBsState;
+				double currentFrequency{}, currentPeakDBs{}, currentPeak{};
+
+			} peakState;
 
 			/// <summary>
 			/// Temporary memory buffer for other applications.
