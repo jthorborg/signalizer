@@ -571,7 +571,7 @@
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			long long lastFrameTick, renderCycles;
-			bool wasResized, isSuspended;
+			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
 			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
 			double scallopLoss;

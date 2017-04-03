@@ -49,7 +49,6 @@ namespace Signalizer
 		, lastMousePos()
 		, state()
 		, framePixelPosition()
-		, isSuspended()
 		, frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, flags()
@@ -99,13 +98,13 @@ namespace Signalizer
 
 	void CSpectrum::suspend()
 	{
-		isSuspended = true;
+		state.isSuspended = true;
 		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
 	void CSpectrum::resume()
 	{
-		isSuspended = false;
+		state.isSuspended = false;
 		if (oldWindowSize != -1)
 		{
 			//TODO: possibly unsynchronized. fix to have an internal size instead

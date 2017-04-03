@@ -226,7 +226,7 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
+				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics, isSuspended;
 				float primitiveSize, rotation;
 				float stereoCoeff;
 				float envelopeCoeff;

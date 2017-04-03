@@ -85,6 +85,7 @@ namespace Signalizer
 	{
 		//TODO: possibly unsynchronized. fix to have an internal size instead
 		oldWindowSize = content->windowSize.getTransformedValue();
+		state.isSuspended = true;
 	}
 
 	void CVectorScope::resume()
@@ -94,6 +95,7 @@ namespace Signalizer
 			//TODO: possibly unsynchronized. fix to have an internal size instead
 			content->windowSize.setTransformedValue(oldWindowSize);
 		}
+		state.isSuspended = false;
 	}
 
 	juce::Component * CVectorScope::getWindow()
@@ -366,6 +368,9 @@ namespace Signalizer
 
 	bool CVectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
+			return false;
+
 		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);
 		return false;
 	}

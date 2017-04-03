@@ -344,7 +344,7 @@ namespace Signalizer
 
 	inline bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended)
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
 
 		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, buffer, numChannels, numSamples);
