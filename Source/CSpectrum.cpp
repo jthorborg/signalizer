@@ -40,8 +40,9 @@
 namespace Signalizer
 {
 
-	CSpectrum::CSpectrum(const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
+	CSpectrum::CSpectrum(const SharedBehaviour& globalBehaviour, const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
 		: COpenGLView(nameId)
+		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, processorSpeed(0)
 		, lastFrameTick(0)

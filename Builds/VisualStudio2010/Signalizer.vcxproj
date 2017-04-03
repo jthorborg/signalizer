@@ -919,6 +919,7 @@
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
     <ClInclude Include="..\..\Source\SampleColourEvaluators.h" />
     <ClInclude Include="..\..\Source\SentientViewState.h" />
+    <ClInclude Include="..\..\Source\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\SignalizerDesign.h" />
     <ClInclude Include="..\..\Source\SpectrumParameters.h" />
     <ClInclude Include="..\..\Source\VectorScopeParameters.h" />

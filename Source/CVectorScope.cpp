@@ -53,17 +53,17 @@ namespace Signalizer
 	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	CVectorScope::CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params)
-	:
-		COpenGLView(nameId),
-		audioStream(data),
-		processorSpeed(0),
-		lastFrameTick(0),
-		lastMousePos(),
-		editor(nullptr),
-		state(),
-		filters(),
-		oldWindowSize(-1)
+	CVectorScope::CVectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
+		: COpenGLView(nameId)
+		, globalBehaviour(globalBehaviour)
+		, audioStream(data)
+		, processorSpeed(0)
+		, lastFrameTick(0)
+		, lastMousePos()
+		, editor(nullptr)
+		, state()
+		, filters()
+		, oldWindowSize(-1)
 	{
 		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
 		{

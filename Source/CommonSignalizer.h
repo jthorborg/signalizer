@@ -38,7 +38,6 @@
 	#include <cpl/infrastructure/parameters/ParameterSystem.h>
 	#include "SignalizerDesign.h"
 
-
 	namespace Signalizer
 	{
 		enum class EnvelopeModes : int

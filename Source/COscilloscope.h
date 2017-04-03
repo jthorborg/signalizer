@@ -40,6 +40,7 @@
 	#include <cpl/dsp/LinkwitzRileyNetwork.h>
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
+	#include "SharedBehaviour.h"
 
 	namespace cpl
 	{
@@ -62,7 +63,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			COscilloscope(const std::string & nameId, AudioStream & data, ProcessorState * params);
+			COscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
 			virtual ~COscilloscope();
 
 		protected:
@@ -163,14 +164,6 @@
 
 			void setLastMousePos(const juce::Point<float> position) noexcept;
 
-			// guis and whatnot
-			cpl::CBoxFilter<double, 60> avgFps;
-
-			juce::MouseCursor displayCursor;
-
-			// vars
-			long long lastFrameTick, renderCycles;
-
 			struct FilterStates
 			{
 				enum Entry
@@ -203,7 +196,7 @@
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker;
+				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended;
 				float primitiveSize;
 
 				double effectiveWindowSize;
@@ -232,7 +225,8 @@
 			} shared;
 
 			using VO = OscilloscopeContent::ViewOffsets;
-
+			cpl::CBoxFilter<double, 60> avgFps;
+			juce::MouseCursor displayCursor;
 			OscilloscopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
@@ -241,14 +235,14 @@
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
-
+			long long lastFrameTick, renderCycles;
 			/// <summary>
 			/// Updates are not guaranteed to be in order
 			/// </summary>
 			std::pair<std::atomic<float>, std::atomic<float>> threadedMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
-
+			const SharedBehaviour & globalBehaviour;
 
 			struct BinRecord
 			{
@@ -351,7 +345,6 @@
 						while (diff--)
 						{
 							channels.emplace_back();
-
 						}
 
 						if (original > 0)

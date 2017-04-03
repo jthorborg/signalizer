@@ -48,18 +48,18 @@ namespace Signalizer
 	const double COscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	COscilloscope::COscilloscope(const std::string & nameId, AudioStream & data, ProcessorState * params)
-	:
-		COpenGLView(nameId),
-		audioStream(data),
-		processorSpeed(0),
-		lastFrameTick(0),
-		lastMousePos(),
-		editor(nullptr),
-		state(),
-		filters(),
-		triggerState(),
-		medianPos()
+	COscilloscope::COscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
+		: COpenGLView(nameId)
+		, globalBehaviour(globalBehaviour)
+		, audioStream(data)
+		, processorSpeed(0)
+		, lastFrameTick(0)
+		, lastMousePos()
+		, editor(nullptr)
+		, state()
+		, filters()
+		, triggerState()
+		, medianPos()
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{
@@ -79,10 +79,12 @@ namespace Signalizer
 
 	void COscilloscope::suspend()
 	{
+		state.isSuspended = true;
 	}
 
 	void COscilloscope::resume()
 	{
+		state.isSuspended = false;
 	}
 
 	juce::Component * COscilloscope::getWindow()
@@ -342,6 +344,8 @@ namespace Signalizer
 
 	inline bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		if (state.isSuspended)
+			return false;
 
 		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, buffer, numChannels, numSamples);
 		return false;

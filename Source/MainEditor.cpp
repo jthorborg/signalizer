@@ -177,13 +177,13 @@ namespace Signalizer
 			{
 				int i = cpl::enum_cast<int>(index);
 				auto & name = ViewIndexToMap[i];
-				auto & state = *params->getState(i);
+				auto & localState = *params->getState(i);
 				views.emplace_back(
 					name,
-					state,
-					[=, &state]
+					localState,
+					[=, &localState]
 					{
-						return GenerateView(index, name, engine->stream, &state);
+						return GenerateView(index, globalState, name, engine->stream, &localState);
 					}
 				);
 			}
@@ -347,6 +347,8 @@ namespace Signalizer
 			addAndMakeVisible(editor);
 			resized();
 			repaint();
+			if (!tabs.isOpen())
+				tabs.openPanel();
 		}
 	}
 	StateEditor * MainEditor::getTopEditor() const
@@ -966,14 +968,14 @@ namespace Signalizer
 		// TODO: spawn the clicked editor, if it doesn't exist.
 		if(ksettings.bGetBoolState())
 		{
-			removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
-			ksettings.bSetInternal(0);
 			// make sure an editor is active
-			if(editorStack.empty() && hasCurrentView())
+			if (hasCurrentView() && !std::none_of(editorStack.begin(), editorStack.end(), [](auto & edit) { return edit.get()->getName() == MainEditorName; }))
 			{
 				pushEditor(views[index].getEditorDSO().getCached());
 			}
 
+			removeAnyEditor([](juce::Component * e) { return e->getName() == MainEditorName; });
+			ksettings.bSetInternal(0);
 		}
 	}
 

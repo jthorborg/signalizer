@@ -37,6 +37,7 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "VectorScopeParameters.h"
+	#include "SharedBehaviour.h"
 
 	namespace cpl
 	{
@@ -101,7 +102,7 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(const std::string & nameId, AudioStream & data, ProcessorState * params);
+			CVectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
 			virtual ~CVectorScope();
 
 			// Component overrides
@@ -238,6 +239,7 @@
 				EnvelopeModes envelopeMode;
 			} state;
 
+			const SharedBehaviour & globalBehaviour;
 			VectorScopeContent * content;
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;

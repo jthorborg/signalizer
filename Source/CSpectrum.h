@@ -46,6 +46,7 @@
 	#include "CommonSignalizer.h"
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
+	#include "SharedBehaviour.h"
 
 	namespace cpl
 	{
@@ -98,7 +99,7 @@
 				double low, high;
 			};
 
-			CSpectrum(const std::string & nameId, AudioStream & data, ProcessorState * state);
+			CSpectrum(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * state);
 			virtual ~CSpectrum();
 
 			// Component overrides
@@ -555,7 +556,7 @@
 			/// <summary>
 			/// visual objects
 			/// </summary>
-
+			const SharedBehaviour & globalBehaviour;
 			juce::MouseCursor displayCursor;
 			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::CFrequencyGraph frequencyGraph, complexFrequencyGraph;

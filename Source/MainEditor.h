@@ -39,6 +39,7 @@
 	#include "SignalizerDesign.h"
 	#include <array>
 	#include "SentientViewState.h"
+	#include "SharedBehaviour.h"
 
 	namespace Signalizer
 	{
@@ -211,7 +212,7 @@
 			SentientViewState * currentView;
 			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
-			//cpl::CMessageSystem messageSystem;
+			SharedBehaviour globalState;
 		};
 	};
 
