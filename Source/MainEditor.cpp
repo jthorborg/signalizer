@@ -238,6 +238,8 @@ namespace Signalizer
 				section->addControl(&krefreshState, 0);
 				section->addControl(&kidle, 1);
 				section->addControl(&khideTabs, 2);
+				section->addControl(&kstopProcessingOnSuspend, 0);
+				section->addControl(&khideWidgets, 1);
 				page->addSection(section, "Globals");
 			}
 		}
@@ -702,6 +704,14 @@ namespace Signalizer
 			RetryResizeCapacity(this)();
 
 		}
+		else if (c == &kstopProcessingOnSuspend)
+		{
+			globalState.stopProcessingOnSuspend.store(kstopProcessingOnSuspend.bGetBoolState(), std::memory_order_release);
+		}
+		else if (c == &khideWidgets)
+		{
+			globalState.hideWidgetsOnMouseExit.store(khideWidgets.bGetBoolState(), std::memory_order_release);
+		}
 		else
 		{
 			// check if it was one of the colours
@@ -1080,6 +1090,8 @@ namespace Signalizer
 			data << 1000ll;
 
 		data << khideTabs;
+
+		data << khideWidgets << kstopProcessingOnSuspend;
 	}
 
 	void MainEditor::nestedOnMouseMove(const juce::MouseEvent & e)
@@ -1193,7 +1205,7 @@ namespace Signalizer
 		data >> kvsync;
 		data >> kswapInterval;
 
-		if (!(version < cpl::Version(0, 2, 8)))
+		if (version >= cpl::Version(0, 2, 8))
 		{
 			std::int64_t historySize;
 			data >> historySize;
@@ -1201,6 +1213,11 @@ namespace Signalizer
 				kmaxHistorySize.setInputValue(std::to_string(historySize));
 
 			data >> khideTabs;
+		}
+
+		if (version >= cpl::Version(0, 3, 1))
+		{
+			data >> khideWidgets >> kstopProcessingOnSuspend;
 		}
 	}
 
@@ -1503,6 +1520,8 @@ namespace Signalizer
 		khelp.bAddChangeListener(this);
 		krefreshState.bAddChangeListener(this);
 		kswapInterval.bAddFormatter(this);
+		kstopProcessingOnSuspend.bAddChangeListener(this);
+		khideWidgets.bAddChangeListener(this);
 
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1510,12 +1529,14 @@ namespace Signalizer
 		khelp.setImage("icons/svg/help.svg");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
 
-		kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
-		krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
+		//kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
+		//kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
+		//krefreshState.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		kstableFps.setToggleable(true);
 		kvsync.setToggleable(true);
 		khideTabs.setToggleable(true);
+		kstopProcessingOnSuspend.setToggleable(true);
+		khideWidgets.setToggleable(true);
 
 		khideTabs.setSingleText("Auto-hide tabs");
 		krefreshRate.bSetTitle("Refresh Rate");
@@ -1525,6 +1546,10 @@ namespace Signalizer
 		kswapInterval.bSetTitle("Swap interval");
 		kstableFps.setSingleText("Stable FPS");
 		kvsync.setSingleText("Vertical Sync");
+
+		kstopProcessingOnSuspend.setSingleText("Suspend processing");
+		khideWidgets.setSingleText("Hide widgets");
+
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);
@@ -1574,7 +1599,10 @@ namespace Signalizer
 		kmaxHistorySize.bSetDescription("The maximum audio history capacity, set in the respective views. No limit, so be careful!");
 		kswapInterval.bSetDescription("Determines the swap interval for the graphics context; a value of zero means the graphics will"
 			"update as fast as possible, a value of 1 means it updates synced to the vertical sync, a value of N means it updates every Nth vertical frame sync.");
-		khideTabs.bSetDescription("Auto hides the top tabs and buttons when not used.");
+		khideTabs.bSetDescription("Auto-hides the top tabs and buttons when not used.");
+		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but view are out of sync when frozen");
+		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
+
 
 		// initial values that should be through handlers
 		// TODO: remove if changed to parameter

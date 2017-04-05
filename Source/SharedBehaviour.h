@@ -36,11 +36,11 @@ namespace Signalizer
 {
 	class SharedBehaviour
 	{
+	public:
 		/// <summary>
 		/// std::memory_order_release guaranteed.
 		/// </summary>
 		std::atomic<bool>
-			showDiagnostics,
 			hideWidgetsOnMouseExit,
 			stopProcessingOnSuspend;
 	};

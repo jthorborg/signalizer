@@ -1440,7 +1440,7 @@ namespace Signalizer
 	
 	bool CSpectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
 		
 		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);

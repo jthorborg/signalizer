@@ -86,13 +86,15 @@
 					: parent(parentValue)
 					, kdspWin(&parentValue.dspWin)
 					, kslope(&parentValue.slope)
-
+					
 					, kviewScaling(&parentValue.viewScaling.param)
 					, kalgorithm(&parentValue.algorithm.param)
 					, kchannelConfiguration(&parentValue.channelConfiguration.param)
 					, kdisplayMode(&parentValue.displayMode.param)
 					, kbinInterpolation(&parentValue.binInterpolation.param)
 					, kfrequencyTracker(&parentValue.frequencyTracker.param)
+					, ktrackerColour(&parentValue.trackerColour)
+					, ktrackerSmoothing(&parentValue.trackerSmoothing)
 
 					, klowDbs(&parentValue.lowDbs)
 					, khighDbs(&parentValue.highDbs)
@@ -435,6 +437,8 @@
 					archive << kfloodFillAlpha;
 					archive << kslope;
 					archive << kreferenceTuning;
+					archive << ktrackerSmoothing;
+					archive << ktrackerSmoothing;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -494,6 +498,11 @@
 						builder >> kslope;
 						builder >> kreferenceTuning;
 					}
+
+					if (version >= cpl::Version(0, 3, 1))
+					{
+						builder >> ktrackerSmoothing >> ktrackerColour;
+					}
 				}
 
 				// entrypoints for completely storing values and settings in independant blobs (the preset widget)
@@ -549,9 +558,10 @@
 					kspectrumStretching,
 					kprimitiveSize,
 					kfloodFillAlpha,
-					kreferenceTuning;
+					kreferenceTuning,
+					ktrackerSmoothing;
 
-				cpl::CColourControl kgridColour, kbackgroundColour;
+				cpl::CColourControl kgridColour, kbackgroundColour, ktrackerColour;
 
 				struct LineControl
 				{
@@ -589,6 +599,7 @@
 				, primitiveRange(0.01, 10)
 				, referenceRange(220, 880)
 				, smoothCappedRange(0, 0.996)
+				, trackerSmoothRange(0, 1000)
 
 				, dspWin(windowBehavior, "DSPWin")
 				, slope(slopeBehavior, "Slope")
@@ -614,13 +625,14 @@
 				, viewRight("ViewRight", reverseUnitRange, basicFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, freeQ("FreeQ", boolRange, boolFormatter)
-
+				, trackerSmoothing("TrckSmth", trackerSmoothRange, msFormatter)
 
 				, colourBehaviour()
 
 				// TODO: Figure out automatic way to initialize N array in constructor
 				, gridColour(colourBehaviour, "Grid.")
 				, backgroundColour(colourBehaviour, "Bck.")
+				, trackerColour(colourBehaviour, "Trck.")
 				, specColours { { colourBehaviour , "Grdnt1."}, { colourBehaviour , "Grdnt2." }, { colourBehaviour , "Grdnt3." }, { colourBehaviour , "Grdnt4." }, { colourBehaviour , "Grdnt5." } }
 
 				, specRatios{
@@ -661,7 +673,7 @@
 
 				auto singleParameters = {
 					&lowDbs, &highDbs, &windowSize, &pctForDivision, &blobSize, &frameUpdateSmoothing, &spectrumStretching,
-					&primitiveSize, &floodFillAlpha, &referenceTuning, &viewLeft, &viewRight, &diagnostics, &freeQ
+					&primitiveSize, &floodFillAlpha, &referenceTuning, &viewLeft, &viewRight, &diagnostics, &freeQ, &trackerSmoothing
 				};
 
 				for (auto sparam : singleParameters)
@@ -684,7 +696,8 @@
 				regBundle(dspWin, "DWin.");
 				regBundle(slope, "Slope.");
 				regBundle(gridColour, gridColour.getBundleName());
-				regBundle(backgroundColour, "Bck.");
+				regBundle(backgroundColour, backgroundColour.getBundleName());
+				regBundle(trackerColour, trackerColour.getBundleName());
 
 				for (std::size_t i = 0; i < std::extent<decltype(specColours)>::value; ++i)
 					regBundle(specColours[i], specColours[i].getBundleName());
@@ -753,6 +766,8 @@
 				archive << slope;
 				archive << referenceTuning;
 				archive << audioHistoryTransformatter;
+
+				archive << trackerSmoothing << trackerColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -797,6 +812,11 @@
 				builder >> slope;
 				builder >> referenceTuning;
 				builder >> audioHistoryTransformatter;
+
+				if (v >= cpl::Version(0, 3, 1))
+				{
+					builder >> trackerSmoothing >> trackerColour;
+				}
 			}
 
 			SystemView systemView;
@@ -842,14 +862,16 @@
 				referenceTuning,
 				viewLeft,
 				viewRight,
-				diagnostics,
 				freeQ,
-				specRatios[numSpectrumColours];
+				diagnostics,
+				specRatios[numSpectrumColours],
+				trackerSmoothing;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				gridColour,
 				backgroundColour,
-				specColours[numSpectrumColours];
+				specColours[numSpectrumColours],
+				trackerColour;
 
 			struct LineControl
 			{
@@ -873,7 +895,8 @@
 				smoothCappedRange,
 				spectrumStretchRange,
 				primitiveRange,
-				referenceRange;
+				referenceRange,
+				trackerSmoothRange;
 
 			cpl::ExponentialRange<SFloat>
 				blobRange;
