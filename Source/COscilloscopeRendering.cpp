@@ -132,7 +132,9 @@ namespace Signalizer
 			}
 		} 
 
-		if (state.drawCursorTracker)
+		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire) ? isMouseInside.load(std::memory_order_relaxed) : true;
+
+		if (state.drawCursorTracker && mouseCheck)
 		{
 			g.setColour(state.colourTracker);
 

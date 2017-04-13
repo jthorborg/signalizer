@@ -91,6 +91,8 @@
 			void mouseUp(const juce::MouseEvent& event) override;
 			void mouseDown(const juce::MouseEvent& event) override;
 			void mouseMove(const juce::MouseEvent& event) override;
+			void mouseExit(const juce::MouseEvent & e) override;
+			void mouseEnter(const juce::MouseEvent & e) override;
 
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
 			//void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
@@ -235,6 +237,7 @@
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			long long lastFrameTick, renderCycles;
+			std::atomic_bool isMouseInside;
 			/// <summary>
 			/// Updates are not guaranteed to be in order
 			/// </summary>

@@ -109,6 +109,9 @@
 			void mouseUp(const juce::MouseEvent& event) override;
 			void mouseDown(const juce::MouseEvent& event) override;
 			void mouseMove(const juce::MouseEvent& event) override;
+			void mouseExit(const juce::MouseEvent & e) override;
+			void mouseEnter(const juce::MouseEvent & e) override;
+
 			void resized() override;
 
 
@@ -574,6 +577,7 @@
 			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
 			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
+			std::atomic_bool isMouseInside;
 			double scallopLoss;
 			int lastPeak;
 			/*struct NewChanges

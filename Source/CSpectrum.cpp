@@ -62,6 +62,7 @@ namespace Signalizer
 		, oldWindowSize(-1)
 		, framesPerUpdate()
 		, laggedFPS()
+		, isMouseInside(false)
 	{
 		setOpaque(true);
 		if (!(content = dynamic_cast<SpectrumContent *>(processorState)))
@@ -287,6 +288,7 @@ namespace Signalizer
 		content->viewLeft.setNormalizedValue(0); content->viewRight.setNormalizedValue(0);
 		flags.viewChanged = true;
 	}
+
 	void CSpectrum::mouseDrag(const juce::MouseEvent& event)
 	{
 		if (event.mods.isLeftButtonDown())
@@ -320,13 +322,25 @@ namespace Signalizer
 
 		flags.mouseMove = true;
 	}
+
 	void CSpectrum::mouseUp(const juce::MouseEvent& event)
 	{
 
 	}
+
 	void CSpectrum::mouseDown(const juce::MouseEvent& event)
 	{
 		lastMousePos = event.position;
+	}
+
+	void CSpectrum::mouseExit(const juce::MouseEvent & e)
+	{
+		isMouseInside.store(false, std::memory_order_relaxed);
+	}
+
+	void CSpectrum::mouseEnter(const juce::MouseEvent & e)
+	{
+		isMouseInside.store(true, std::memory_order_relaxed);
 	}
 
 	void CSpectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)

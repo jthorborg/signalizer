@@ -209,6 +209,12 @@ namespace Signalizer
 
 	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
+		if (globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire))
+		{
+			if (!isMouseInside.load(std::memory_order_relaxed))
+				return;
+		}
+
 		auto graphN = state.frequencyTrackingGraph;
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
 		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)

@@ -60,6 +60,7 @@ namespace Signalizer
 		, filters()
 		, triggerState()
 		, medianPos()
+		, isMouseInside(false)
 	{
 		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
 		{
@@ -260,6 +261,16 @@ namespace Signalizer
 	void COscilloscope::mouseMove(const juce::MouseEvent & event)
 	{
 		setLastMousePos(event.position);
+	}
+
+	void COscilloscope::mouseExit(const juce::MouseEvent & e)
+	{
+		isMouseInside.store(false, std::memory_order_relaxed);
+	}
+
+	void COscilloscope::mouseEnter(const juce::MouseEvent & e)
+	{
+		isMouseInside.store(true, std::memory_order_relaxed);
 	}
 
 	void COscilloscope::handleFlagUpdates()
