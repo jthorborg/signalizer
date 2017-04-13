@@ -71,7 +71,6 @@
 			// Component overrides
 			void onGraphicsRendering(juce::Graphics & g) override;
 
-
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
 			void initOpenGL() override;

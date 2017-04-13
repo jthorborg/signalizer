@@ -141,7 +141,7 @@ namespace Signalizer
 			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
 			g.drawLine(mouseX, 0, mouseX, bounds.getHeight());
 
-			double estimatedSize[2] = { 170, 70 };
+			double estimatedSize[2] = { 180, 70 };
 			double textOffset[2] = { 20, -estimatedSize[1] };
 
 			auto xpoint = mouseX + textOffset[0];
@@ -280,24 +280,30 @@ namespace Signalizer
 
 				CPL_DEBUGCHECKGL();
 
+				auto mode = state.channelMode;
 
-				switch (state.channelMode)
+				if (mode > OscChannels::OffsetForMono && channelData.channels.size() < 2)
+					mode = OscChannels::Left;
+
+				if (channelData.channels.size() > 0)
 				{
-					default: case OscChannels::Left: 
+					switch (mode)
+					{
+					default: case OscChannels::Left:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
 						break;
-					case OscChannels::Right: 
+					case OscChannels::Right:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack);
 						break;
-					case OscChannels::Mid: 
+					case OscChannels::Mid:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
 						break;
-					case OscChannels::Side: 
+					case OscChannels::Side:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack);
 						break;
 					case OscChannels::Separate:
 					{
@@ -306,7 +312,7 @@ namespace Signalizer
 						w.firstPass();
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
 						w.secondPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack); 
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack);
 						break;
 					}
 					case OscChannels::MidSide:
@@ -319,7 +325,10 @@ namespace Signalizer
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
 						break;
 					}
+					}
 				}
+
+
 				CPL_DEBUGCHECKGL();
 
 				renderCycles = cpl::Misc::ClockCounter() - cStart;

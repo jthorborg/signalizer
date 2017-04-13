@@ -670,8 +670,13 @@
 					builder >> klowColour >> kmidColour >> khighColour;
 					builder >> ksecondaryColour;
 					builder >> kcolourSmoothingTime;
-					builder >> kcursorTracker;
-					builder >> ktrackerColour;
+
+					if (version > cpl::Version(0, 3, 1))
+					{
+						builder >> kcursorTracker;
+						builder >> ktrackerColour;
+					}
+
 				}
 
 
@@ -923,8 +928,13 @@
 				builder >> lowColour >> midColour >> highColour;
 				builder >> secondaryColour;
 				builder >> colourSmoothing;
-				builder >> cursorTracker;
-				builder >> trackerColour;
+
+				if (version >= cpl::Version(0, 3, 1))
+				{
+					builder >> cursorTracker;
+					builder >> trackerColour;
+				}
+
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;

@@ -1600,7 +1600,7 @@ namespace Signalizer
 		kswapInterval.bSetDescription("Determines the swap interval for the graphics context; a value of zero means the graphics will"
 			"update as fast as possible, a value of 1 means it updates synced to the vertical sync, a value of N means it updates every Nth vertical frame sync.");
 		khideTabs.bSetDescription("Auto-hides the top tabs and buttons when not used.");
-		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but view are out of sync when frozen");
+		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
 
 
