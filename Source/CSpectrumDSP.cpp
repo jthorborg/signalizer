@@ -29,7 +29,7 @@
 
 #include "CSpectrum.h"
 #include <cpl/ffts.h>
-#include <cpl/SysStats.h>
+#include <cpl/system/SysStats.h>
 #include <cpl/lib/LockFreeDataQueue.h>
 #include <cpl/stdext.h>
 

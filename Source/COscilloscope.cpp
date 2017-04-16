@@ -36,7 +36,6 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
-#include "VectorScopeParameters.h"
 #include "COscilloscopeDSP.inl"
 
 namespace Signalizer
@@ -73,7 +72,7 @@ namespace Signalizer
 		mtFlags.firstRun = true;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[400]);
-		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
+		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		listenToSource(audioStream);
 	}

@@ -35,7 +35,7 @@
 #include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
-#include <cpl/CDBMeterGraph.h>
+#include <cpl/special/AxisTools.h>
 #include "SampleColourEvaluators.h"
 #include "COscilloscopeDSP.inl"
 
@@ -441,51 +441,7 @@ namespace Signalizer
 			if (state.timeMode == OscilloscopeContent::TimeMode::Time)
 			{
 				constexpr double scaleTable[] = { 1, 2, 5, 10 };
-				int size = std::extent<decltype(scaleTable)>::value;
-
-				auto getIncrement = [&](int level)
-				{
-
-					if (level < 0)
-					{
-						return std::pow(2, level);
-					}
-					else if (level >= size)
-					{
-						// scale by magnitude difference
-						return scaleTable[level % size] * std::pow(scaleTable[size - 1], level / size);
-					}
-					else
-					{
-						return scaleTable[level];
-					}
-				};
-
-				int index = 0;
-				std::size_t count = 0;
-
-				std::size_t numLines = 0;
-
-				for (;;)
-				{
-					msIncrease = getIncrement(index);
-					double incz1 = getIncrement(index - 1);
-					std::size_t numLinesz1 = static_cast<int>(windowSize / incz1);
-					numLines = static_cast<int>(windowSize / msIncrease);
-
-					if (numLines > wantedVerticalLines)
-						index++;
-					else if (numLinesz1 > wantedVerticalLines)
-						break;
-					else
-						index--;
-
-					count++;
-
-					// TODO: converge problem? - also, provide inital estimate
-					if (count > 20)
-						break;
-				}
+				msIncrease = cpl::special::SuitableAxisDivision<double>(scaleTable, wantedVerticalLines, windowSize);
 			}
 			else if (state.timeMode == OscilloscopeContent::TimeMode::Cycles)
 			{

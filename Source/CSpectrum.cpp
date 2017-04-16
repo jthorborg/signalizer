@@ -72,7 +72,7 @@ namespace Signalizer
 
 		content->getParameterSet().addRTListener(this, true);
 
-        processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
+        processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		flags.firstChange = true;
 

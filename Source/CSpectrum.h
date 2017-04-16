@@ -36,9 +36,8 @@
 	#include <cpl/dsp/CComplexResonator.h>
 	#include <memory>
 	#include <cpl/rendering/COpenGLImage.h>
-	#include <cpl/CFrequencyGraph.h>
+	#include <cpl/special/AxisTools.h>
 	#include <cpl/dsp/CPeakFilter.h>
-	#include <cpl/CDBMeterGraph.h>
 	#include <queue>
 	#include <cpl/lib/LockFreeQueue.h>
 	#include <cpl/lib/BlockingLockFreeQueue.h>
@@ -562,8 +561,8 @@
 			const SharedBehaviour & globalBehaviour;
 			juce::MouseCursor displayCursor;
 			cpl::OpenGLRendering::COpenGLImage oglImage;
-			cpl::CFrequencyGraph frequencyGraph, complexFrequencyGraph;
-			cpl::CDBMeterGraph dbGraph;
+			cpl::special::FrequencyAxis frequencyGraph, complexFrequencyGraph;
+			cpl::special::DBMeterAxis dbGraph;
 			cpl::CBoxFilter<double, 60> avgFps;
 
 			// non-state variables

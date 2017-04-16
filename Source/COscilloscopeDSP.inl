@@ -33,7 +33,6 @@
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/simd.h>
-#include <cpl/CDBMeterGraph.h>
 
 namespace Signalizer
 {

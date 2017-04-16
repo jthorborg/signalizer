@@ -75,7 +75,7 @@ namespace Signalizer
 		state.secondStereoFilterSpeed = 0.25f;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
-		processorSpeed = cpl::SysStats::CProcessorInfo::instance().getMHz();
+		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		listenToSource(audioStream);
 		content->getParameterSet().addRTListener(this, true);
