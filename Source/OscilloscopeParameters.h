@@ -149,10 +149,30 @@
 							}
 							else if (timeMode == TimeMode::Beats)
 							{
+								std::size_t numeratorEnd = 0;
+								if ((numeratorEnd = buf.find('/')) != std::string::npos)
+								{
+
+									ValueType numerator, denominator;
+
+									if (cpl::lexicalConversion(std::string(buf.begin() + numeratorEnd + 1, buf.end()), denominator) 
+										&& cpl::lexicalConversion(std::string(buf.begin(), buf.begin() + numeratorEnd), numerator))
+									{
+										collectedValue = numerator / denominator;
+									}
+									else
+									{
+										return false;
+									}
+
+								}
+
 								if (buf.find("bars") != std::string::npos)
 								{
 									collectedValue /= 4;
 								}
+								// stored as reciprocal.
+								collectedValue = 1 / collectedValue;
 							}
 							val = collectedValue;
 							return true;
@@ -194,7 +214,7 @@
 						}
 						case TimeMode::Beats:
 						{
-							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(1 - val, 1, 128)));
+							return cpl::Math::nextPow2Inc(cpl::Math::round<std::size_t>(cpl::Math::UnityScale::exp<ValueType>(1 - val, 1, 32)));
 						}
 						default: case TimeMode::Time:
 						{
@@ -217,18 +237,18 @@
 					{
 						case TimeMode::Cycles:
 						{
-							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 128);
+							return cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 32);
 						}
 						case TimeMode::Beats:
 						{
-							return cpl::Math::UnityScale::Inv::exp<ValueType>(1 - val, 1, 32);
+							return 1 - cpl::Math::UnityScale::Inv::exp<ValueType>(val, 1, 32);
 						}
 						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
 							const auto capacity = stream.getAudioHistoryCapacity();
 							const auto top = capacity;
-							const auto linear = cpl::Math::UnityScale::Inv::linear<ValueType>(val, 1, top);
+							const auto linear = cpl::Math::UnityScale::Inv::linear<ValueType>(val, 2, top);
 							const auto expSamples = cpl::Math::UnityScale::linear<ValueType>(linear, minExponential, top);
 
 							const auto normalized = cpl::Math::UnityScale::Inv::exp<ValueType>(expSamples, minExponential, top);
