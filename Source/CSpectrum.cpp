@@ -433,6 +433,7 @@ namespace Signalizer
 		state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
+		state.colourTracker = content->trackerColour.getAsJuceColour();
 		state.viewRect = { content->viewLeft.getTransformedValue(), content->viewRight.getTransformedValue() };
 
 		for (std::size_t i = 0; i < SpectrumContent::LineEnd; ++i)

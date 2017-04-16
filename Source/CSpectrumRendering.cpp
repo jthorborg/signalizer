@@ -180,12 +180,13 @@ namespace Signalizer
 			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
 		}
 
-		drawFrequencyTracking(g);
+		laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
+		drawFrequencyTracking(g);
+		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
-			laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * laggedFPS;
@@ -220,8 +221,10 @@ namespace Signalizer
 		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
 
-		if(state.colourGrid.getAlpha() == 0)
+		if(state.colourTracker.getAlpha() == 0)
 			return;
+
+		g.setColour(state.colourTracker);
 
 		double
 			mouseFrequency = 0,
@@ -527,10 +530,11 @@ namespace Signalizer
 			peakDBs = -std::numeric_limits<double>::infinity();
 
 		peakState.clearNonNormals();
-		peakState.design(content->floodFillAlpha.parameter.getValue() * 1000, laggedFPS);
+		peakState.design(content->trackerSmoothing.parameter.getValue() * 1000, laggedFPS);
 
 		peakState.process(peakDBs, peakFrequency);
 
+		// TODO: Translate these back
 		peakDBs = peakState.getPeakDBs();
 		peakFrequency = peakState.getFrequency();
 
@@ -583,7 +587,7 @@ namespace Signalizer
 
 
 		// reset colour
-		g.setColour(state.colourGrid.withMultipliedBrightness(1.1f));
+		g.setColour(state.colourTracker);
 		g.drawRoundedRectangle(rect, 2, 0.7f);
 
 		g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText * 0.9f, 0));

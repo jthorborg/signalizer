@@ -245,6 +245,8 @@
 					kreferenceTuning.bSetTitle("A4 ref. tuning");
 					kpctForDivision.bSetTitle("Grid div. space");
 					kblobSize.bSetTitle("Update speed");
+					ktrackerSmoothing.bSetTitle("Tracker smooth");
+					ktrackerColour.bSetTitle("Tracker colour");
 
 					// ------ descriptions -----
 					kviewScaling.bSetDescription("Set the scale of the frequency-axis of the coordinate system.");
@@ -268,6 +270,8 @@
 					kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 					kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
 					kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
+					ktrackerSmoothing.bSetDescription("Eliminates small fluctuations and holds analysis values in the frequency tracker for a longer time");
+					ktrackerColour.bSetDescription("Colour of the frequency tracker");
 
 					klines[LineGraphs::LineMain]->colourOne.bSetDescription("The colour of the first channel of the main graph.");
 					klines[LineGraphs::LineMain]->colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -301,6 +305,7 @@
 							section->addControl(&kchannelConfiguration, 0);
 							section->addControl(&kdisplayMode, 1);
 							section->addControl(&kfrequencyTracker, 1);
+							section->addControl(&ktrackerSmoothing, 0);
 							page->addSection(section);
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -356,6 +361,11 @@
 						{
 							section->addControl(&kgridColour, 0);
 							section->addControl(&kbackgroundColour, 1);
+							section->addControl(&ktrackerColour, 0);
+							page->addSection(section);
+						}
+						if (auto section = new Signalizer::CContentPage::MatrixSection())
+						{
 							for (std::size_t i = 0; i < LineGraphs::LineEnd; ++i)
 							{
 								section->addControl(&klines[i]->colourOne, 0);
@@ -438,7 +448,7 @@
 					archive << kslope;
 					archive << kreferenceTuning;
 					archive << ktrackerSmoothing;
-					archive << ktrackerSmoothing;
+					archive << ktrackerColour;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
