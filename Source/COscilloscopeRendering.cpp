@@ -360,7 +360,7 @@ namespace Signalizer
 
 			auto const minSpacing = (rect.getHeight() / 50) / verticalDelta;
 			// quantize to multiples of 3
-			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * content->pctForDivision.getNormalizedValue() * minSpacing) - 1;
+			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * (1 - content->pctForDivision.getNormalizedValue()) * minSpacing) - 1;
 
 			g.setColour(state.colourGraph);
 
@@ -422,7 +422,7 @@ namespace Signalizer
 	{
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
 		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
-		auto const wantedVerticalLines = (std::size_t)(0.5 + content->pctForDivision.getNormalizedValue() * minVerticalSpacing);
+		auto const wantedVerticalLines = (std::size_t)(0.5 + (1 - content->pctForDivision.getNormalizedValue()) * minVerticalSpacing);
 
 		const auto xoff = rect.getX();
 		const auto yoff = rect.getY();
