@@ -354,7 +354,7 @@ namespace Signalizer
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
-				double currentEnvelope = 1.0 / (2 * std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
 				// only update filters if this mode is on.
 				filters.envelope[0] = filterEnv[0];
