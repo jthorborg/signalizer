@@ -285,8 +285,11 @@ namespace Signalizer
 
 	void CSpectrum::mouseDoubleClick(const juce::MouseEvent& event)
 	{
-		content->viewLeft.setNormalizedValue(0); content->viewRight.setNormalizedValue(0);
-		flags.viewChanged = true;
+		if (event.mods.testFlags(juce::ModifierKeys::leftButtonModifier))
+		{
+			content->viewLeft.setNormalizedValue(0); content->viewRight.setNormalizedValue(0);
+			flags.viewChanged = true;
+		}
 	}
 
 	void CSpectrum::mouseDrag(const juce::MouseEvent& event)

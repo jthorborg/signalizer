@@ -908,6 +908,8 @@ namespace Signalizer
 		{
 			AudioProcessorEditor::mouseUp(event);
 		}
+
+		
 	}
 
 	void MainEditor::mouseDown(const juce::MouseEvent& event)
@@ -924,6 +926,23 @@ namespace Signalizer
 			AudioProcessorEditor::mouseUp(event);
 		}
 	}
+
+	void MainEditor::mouseDoubleClick(const juce::MouseEvent& event)
+	{
+		if (hasCurrentView() && event.eventComponent == activeView().getWindow())
+		{
+			if (event.mods.testFlags(juce::ModifierKeys::rightButtonModifier))
+			{
+				kfreeze.setToggleState(!kfreeze.getToggleState(), juce::NotificationType::sendNotification);
+			}
+		}
+		else
+		{
+			AudioProcessorEditor::mouseDoubleClick(event);
+		}
+	}
+
+
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
 		index = cpl::Math::confineTo(index, 0, (int)ViewTypes::end - 1);

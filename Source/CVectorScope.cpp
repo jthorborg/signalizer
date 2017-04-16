@@ -156,9 +156,9 @@ namespace Signalizer
 		}
 
 	}
+
 	void CVectorScope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
-
 		if (event.mods.isLeftButtonDown())
 		{
 			// reset all zooming, offsets etc. when doubleclicking left
@@ -169,6 +169,7 @@ namespace Signalizer
 			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
 		}
 	}
+
 	void CVectorScope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto & matrix = content->transform;
@@ -200,10 +201,12 @@ namespace Signalizer
 
 		lastMousePos = event.position;
 	}
+
 	void CVectorScope::mouseUp(const juce::MouseEvent& event)
 	{
 		// TODO: implement beginChangeGesture()
 	}
+
 	void CVectorScope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()

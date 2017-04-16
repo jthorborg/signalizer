@@ -87,6 +87,7 @@
 			void focusGained(FocusChangeType cause) override;
 			void focusLost(FocusChangeType cause) override;
 			virtual void mouseDown(const juce::MouseEvent& event) override;
+			virtual void mouseDoubleClick(const juce::MouseEvent& event) override;
 			virtual void mouseUp(const juce::MouseEvent& event) override;
 
 			void componentMovedOrResized(juce::Component& component, bool wasMoved, bool wasResized) override;
