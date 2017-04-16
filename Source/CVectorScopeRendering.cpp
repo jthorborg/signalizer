@@ -129,10 +129,12 @@ namespace Signalizer
 			textures[i]->loadImage(letter);
 		}
 	}
+	
 	void CVectorScope::closeOpenGL()
 	{
 		textures.clear();
 	}
+
 	void CVectorScope::onOpenGLRendering()
 	{
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
@@ -161,6 +163,10 @@ namespace Signalizer
 				if (state.envelopeMode == EnvelopeModes::PeakDecay)
 				{
 					runPeakFilter<ISA>(lockedView);
+				} 
+				else if (state.envelopeMode == EnvelopeModes::None)
+				{
+					state.envelopeGain = 1;
 				}
 
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
@@ -399,7 +405,7 @@ namespace Signalizer
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
-			auto gain = (GLfloat)state.envelopeGain;
+			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
@@ -457,7 +463,7 @@ namespace Signalizer
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
-			auto const gain = (GLfloat)state.envelopeGain;
+			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
@@ -773,13 +779,15 @@ namespace Signalizer
 		void CVectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
 			typedef ISA::V V;
-			if (state.normalizeGain && audio.getNumChannels() >= 2)
+
+			double currentEnvelope = 1;
+
+			if (audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 				std::size_t numSamples = views[0].size();
 
-				double currentEnvelope = 0;
 				// since this runs in every frame, we need to scale the coefficient by how often this function runs
 				// (and the amount of samples)
 				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
@@ -826,13 +834,11 @@ namespace Signalizer
 
 				currentEnvelope = 1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1]));
 
-				if (std::isnormal(currentEnvelope))
-				{
-					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope,
-						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
-					);
-				}
+			}
+
+			if (std::isnormal(currentEnvelope))
+			{
+				state.envelopeGain = currentEnvelope;
 			}
 		}
 };

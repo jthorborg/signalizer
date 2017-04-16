@@ -73,6 +73,7 @@ namespace Signalizer
 
 		mtFlags.firstRun = true;
 		state.secondStereoFilterSpeed = 0.25f;
+		state.envelopeGain = 1;
 		setOpaque(true);
 		textbuf = std::unique_ptr<char>(new char[300]);
 		processorSpeed = cpl::system::CProcessor::getMHz();
@@ -227,7 +228,7 @@ namespace Signalizer
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
 		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
 		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.envelopeGain = content->inputGain.getTransformedValue();
+
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.fadeHistory = content->fadeOlderPoints.getTransformedValue() > 0.5;
@@ -235,6 +236,7 @@ namespace Signalizer
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.rotation = content->waveZRotation.getNormalizedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
+		state.userGain = content->inputGain.getTransformedValue();
 
 		state.colourDraw = content->drawingColour.getAsJuceColour();
 		state.colourWire = content->skeletonColour.getAsJuceColour();
@@ -360,10 +362,7 @@ namespace Signalizer
 
 				if (std::isnormal(currentEnvelope))
 				{
-					content->inputGain.getParameterView().updateFromProcessorTransformed(
-						currentEnvelope,
-						cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem
-					);
+					state.envelopeGain = currentEnvelope;
 				}
 			}
 

@@ -235,7 +235,7 @@
 				/// </summary>
 				float secondStereoFilterSpeed;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
-				cpl::ValueT envelopeGain;
+				cpl::ValueT envelopeGain, userGain;
 				EnvelopeModes envelopeMode;
 			} state;
 
