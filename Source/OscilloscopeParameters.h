@@ -52,6 +52,7 @@
 				Spectral,
 				Window,
 				EnvelopeHold,
+				ZeroCrossing,
 				end
 			};
 
@@ -403,6 +404,7 @@
 					, kcolourSmoothingTime(&parentValue.colourSmoothing)
 					, kcursorTracker(&parentValue.cursorTracker)
 					, ktrackerColour(&parentValue.trackerColour)
+					, kfreqColourBlend(&parentValue.frequencyColouringBlend)
 
 					, editorSerializer(
 						*this, 
@@ -484,6 +486,7 @@
 					kchannelColouring.bSetTitle("Channel colouring");
 					kcolourSmoothingTime.bSetTitle("Colour smoothing");
 					ktrackerColour.bSetTitle("Tracker colour");
+					kfreqColourBlend.bSetTitle("Colour blend");
 					// buttons n controls
 
 					kantiAlias.setSingleText("Antialias");
@@ -527,6 +530,7 @@
 					kmidColour.bSetDescription("Colour for the mid frequency band");
 					khighColour.bSetDescription("Colour for the high frequency band");
 					kchannelColouring.bSetDescription("Method for colouring of channels, static equals just the drawing colour while spectral paints with separate colours for each frequency band");
+					kfreqColourBlend.bSetDescription("Blending between the static and spectral colouring of channels");
 					koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
 					kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 					kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
@@ -604,9 +608,10 @@
 							section->addControl(&kprimaryColour, 0);
 							section->addControl(&ksecondaryColour, 1);
 
-							section->addControl(&klowColour, 0);
-							section->addControl(&kmidColour, 1);
-							section->addControl(&khighColour, 0);
+							section->addControl(&kfreqColourBlend, 0);
+							section->addControl(&klowColour, 1);
+							section->addControl(&kmidColour, 0);
+							section->addControl(&khighColour, 1);
 
 							page->addSection(section, "Spectral colouring");
 						}
@@ -654,6 +659,7 @@
 					archive << kcolourSmoothingTime;
 					archive << kcursorTracker;
 					archive << ktrackerColour;
+					archive << kfreqColourBlend;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -695,6 +701,7 @@
 					{
 						builder >> kcursorTracker;
 						builder >> ktrackerColour;
+						builder >> kfreqColourBlend;
 					}
 
 				}
@@ -735,7 +742,7 @@
 
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
 				cpl::CValueInputControl kcustomFrequency;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime;
+				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend;
 				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
@@ -786,6 +793,7 @@
 				, channelColouring("Colouring")
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 				, cursorTracker("CursorTrck", unityRange, boolFormatter)
+				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
 
 				, colourBehaviour()
 				, primaryColour(colourBehaviour, "Prim.")
@@ -808,9 +816,10 @@
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
 				subSampleInterpolation.fmt.setValues({ "None", "Rectangular", "Linear", "Lanczos" });
 				channelConfiguration.fmt.setValues({ "Left", "Right", "Mid", "Side", "Separate", "Mid+Side"});
-				triggerMode.fmt.setValues({ "None", "Spectral", "Window", "Envelope" });
+				triggerMode.fmt.setValues({ "None", "Spectral", "Window", "Envelope" , "Zero-crossing"});
 				timeMode.fmt.setValues({ "Time", "Cycles", "Beats" });
 				channelColouring.fmt.setValues({ "Static", "Spectral energy" });
+
 				// order matters
 				auto singleParameters = { 
 					&autoGain.param, 
@@ -832,7 +841,8 @@
 					&overlayChannels,
 					&channelColouring.param,
 					&colourSmoothing,
-					&cursorTracker
+					&cursorTracker,
+					&frequencyColouringBlend
 				};
 
 				for (auto sparam : singleParameters)
@@ -913,6 +923,7 @@
 				archive << colourSmoothing;
 				archive << cursorTracker;
 				archive << trackerColour;
+				archive << frequencyColouringBlend;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -953,6 +964,7 @@
 				{
 					builder >> cursorTracker;
 					builder >> trackerColour;
+					builder >> frequencyColouringBlend;
 				}
 
 			}
@@ -1007,7 +1019,8 @@
 				customTriggerFrequency,
 				overlayChannels,
 				colourSmoothing,
-				cursorTracker;
+				cursorTracker,
+				frequencyColouringBlend;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 

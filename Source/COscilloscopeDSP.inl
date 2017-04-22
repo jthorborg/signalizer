@@ -411,14 +411,13 @@ namespace Signalizer
 				}
 			};
 
+			const auto blend = 1 - content->frequencyColouringBlend.parameter.getValue();
 
 			if (numChannels >= 2)
 			{
 				ChannelData::PixelType 
 					firstColour(content->primaryColour.getAsJuceColour()), 
 					secondColour(content->secondaryColour.getAsJuceColour());
-
-				const auto firstAlpha = content->primaryColour.a.getValue(), secondAlpha = content->secondaryColour.a.getValue();
 
 				auto sideSignal = [](const auto & left, const auto & right)
 				{
@@ -535,10 +534,10 @@ namespace Signalizer
 					filterStates(midSignal(leftBands, rightBands), midSmoothState);
 					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
 
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, firstAlpha));
-					rw.setHeadAndAdvance(accumulateColour(rightSmoothState, secondColour, secondAlpha));
-					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, firstAlpha));
-					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, secondAlpha));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
+					rw.setHeadAndAdvance(accumulateColour(rightSmoothState, secondColour, blend));
+					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, blend));
+					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, blend));
 
 				}
 
@@ -552,8 +551,6 @@ namespace Signalizer
 			{
 				ChannelData::PixelType
 					firstColour(content->primaryColour.getAsJuceColour());
-
-				const auto firstAlpha = content->primaryColour.a.getValue();
 
 				filterEnv[1] = 0;
 				auto && lw = channelData.channels[fs::Left].colourData.createWriter();
@@ -573,7 +570,7 @@ namespace Signalizer
 					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, firstAlpha));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
 				}
 
 				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
