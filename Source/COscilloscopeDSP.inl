@@ -223,7 +223,7 @@ namespace Signalizer
 	template<typename ISA, typename Eval>
 	void COscilloscope::calculateTriggeringOffset()
 	{
-		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = state.effectiveWindowSize;
 			triggerState.sampleOffset = triggerState.currentPeakSampleOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
@@ -394,20 +394,41 @@ namespace Signalizer
 				lastPeakSampleOffset = triggerState.lastPeakSampleOffset,
 				currentPeakSampleOffset = triggerState.currentPeakSampleOffset;
 
+			const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
 
 			auto processPeakState = [&](double sample)
 			{
-				if (sample < peakState)
+				if (!isZeroCrossingPeakSampler)
 				{
-					peakState *= 0.9999;
-					lastPeakSampleOffset += 1;
-					currentPeakSampleOffset += 1;
+					sample *= sample;
+					if (sample < peakState)
+					{
+						peakState *= 0.9999;
+						lastPeakSampleOffset += 1;
+						currentPeakSampleOffset += 1;
+					}
+					else
+					{
+						peakState = sample;
+						lastPeakSampleOffset = currentPeakSampleOffset;
+						currentPeakSampleOffset = 0;
+					}
 				}
 				else
 				{
+
+					if (sample > 0 && peakState < 0)
+					{
+						lastPeakSampleOffset = currentPeakSampleOffset;
+						currentPeakSampleOffset = 0;
+					}
+					else
+					{
+						lastPeakSampleOffset += 1;
+						currentPeakSampleOffset += 1;
+					}
+
 					peakState = sample;
-					lastPeakSampleOffset = currentPeakSampleOffset;
-					currentPeakSampleOffset = 0;
 				}
 			};
 
@@ -461,7 +482,7 @@ namespace Signalizer
 					{
 						const auto sample = cpl::Math::square(channel[n]);
 						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(sample);
+						processPeakState(channel[n]);
 					}
 
 					filterEnv[fs::Right] = filterEnv[fs::Left];
@@ -472,9 +493,10 @@ namespace Signalizer
 				case OscChannels::Mid:
 					for (std::size_t n = 0; n < numSamples; ++n)
 					{
-						const auto sample = 0.5 * cpl::Math::square(buffer[fs::Left][n] + buffer[fs::Right][n]);
+						const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
+						const auto sample = cpl::Math::square(mid);
 						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(sample);
+						processPeakState(mid);
 					}
 
 					filterEnv[fs::Right] = filterEnv[fs::Left];
@@ -483,9 +505,10 @@ namespace Signalizer
 				case OscChannels::Side:
 					for (std::size_t n = 0; n < numSamples; ++n)
 					{
-						const auto sample = 0.5 * cpl::Math::square(buffer[fs::Left][n] - buffer[fs::Right][n]);
+						const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
+						const auto sample = cpl::Math::square(side);
 						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(sample);
+						processPeakState(side);
 					}
 
 					filterEnv[fs::Right] = filterEnv[fs::Left];
@@ -498,7 +521,7 @@ namespace Signalizer
 						const auto left = cpl::Math::square(buffer[fs::Left][n]), right = cpl::Math::square(buffer[fs::Right][n]);
 						filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
 						filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
-						processPeakState(left);
+						processPeakState(buffer[fs::Left][n]);
 					}
 
 					break;
@@ -511,7 +534,7 @@ namespace Signalizer
 
 						filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
 						filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
-						processPeakState(mid);
+						processPeakState(0.5 * (left + right));
 					}
 
 					break;
@@ -564,7 +587,7 @@ namespace Signalizer
 					// average envelope
 					filterEnv[fs::Left] = lSquared + envelopeCoeff * (filterEnv[fs::Left] - lSquared);
 					// get peak sample
-					processPeakState(lSquared);
+					processPeakState(left);
 
 					// split signal into bands:
 					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);

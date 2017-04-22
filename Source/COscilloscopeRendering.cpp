@@ -182,7 +182,7 @@ namespace Signalizer
 			auto const horizontalFraction = cpl::Math::UnityScale::linear((double)mouseX / (getWidth() - 1), state.viewOffsets[VO::Left], state.viewOffsets[VO::Right]);
 			auto samples = (state.effectiveWindowSize - 1) * horizontalFraction;
 
-			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
 				samples -= (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
 			}
@@ -468,7 +468,7 @@ namespace Signalizer
 
 			auto start = state.viewOffsets[VO::Left] * windowSize;
 			double offset = 0;
-			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
 				offset = windowSize * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
 				end -= offset;
@@ -571,7 +571,7 @@ namespace Signalizer
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 				offset = subSampleOffset = 0;
 			}
-			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
 				auto const realOffset = triggerState.sampleOffset;
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
@@ -777,7 +777,7 @@ namespace Signalizer
 					{
 						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
 					}
-					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold)
+					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 					{
 						samplePos = triggerState.sampleOffset;
 					}
