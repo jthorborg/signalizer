@@ -468,6 +468,7 @@
     <ClInclude Include="..\..\Source\CVectorScope.h" />
     <ClInclude Include="..\..\Source\MainEditor.h" />
     <ClInclude Include="..\..\Source\OscilloscopeParameters.h" />
+    <ClInclude Include="..\..\Source\StreamPreprocessing.h" />
     <ClInclude Include="..\..\Source\PluginProcessor.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioSampleBuffer.h" />

@@ -226,7 +226,7 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = state.effectiveWindowSize;
-			triggerState.sampleOffset = triggerState.currentPeakSampleOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
+			triggerState.sampleOffset = triggerState.preTriggerState.currentOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
 			return;
 		}
 		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
@@ -318,9 +318,86 @@ namespace Signalizer
 		channelData.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
 
+
+	template<typename ISA, class Analyzer>
+	void COscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	{
+		Analyzer ana(buffer, numSamples, triggerState.preTriggerState);
+
+		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
+
+		if (numChannels == 1)
+			mode = OscChannels::Left;
+
+		if (numChannels == 1)
+		{
+			for (std::size_t n = 0; n < numSamples; ++n)
+			{
+				ana.process(buffer[0][n]);
+			}
+		}
+		else
+		{
+			std::size_t offset;
+			switch (mode)
+			{
+			case OscChannels::Right: offset = 1;
+			case OscChannels::Left:
+			{
+				const auto channel = buffer[offset];
+				for (std::size_t n = 0; n < numSamples; ++n)
+				{
+					ana.process(channel[n]);
+				}
+				break;
+			}
+			case OscChannels::Side:
+				for (std::size_t n = 0; n < numSamples; ++n)
+				{
+					ana.process(0.5 * (buffer[0][n] - buffer[1][n]));
+				}
+				break;
+			case OscChannels::Separate:
+				for (std::size_t n = 0; n < numSamples; ++n)
+				{
+					ana.process(buffer[0][n]);
+				}
+
+				break;
+			case OscChannels::Mid: case OscChannels::MidSide:
+				for (std::size_t n = 0; n < numSamples; ++n)
+				{
+					ana.process(0.5 * (buffer[0][n] + buffer[1][n]));
+				}
+				break;
+			}
+		}
+
+
+	}
+
+	template<typename ISA>
+	void COscilloscope::preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	{
+		const bool isPeakHolder = state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
+		const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
+
+		if (isZeroCrossingPeakSampler)
+		{
+			executeSamplingWindows<ISA, ZeroCrossingProcessor<ISA>>(buffer, numChannels, numSamples);
+		}
+		else if(isPeakHolder)
+		{
+			executeSamplingWindows<ISA, PeakHoldProcessor<ISA>>(buffer, numChannels, numSamples);
+		}
+	}
+
 	template<typename ISA>
 		void COscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			if (numSamples == 0 || numChannels == 0)
+				return;
+
 			using namespace cpl::simd;
 			typedef AFloat T;
 
@@ -389,49 +466,6 @@ namespace Signalizer
 			if (numChannels == 1)
 				mode = OscChannels::Left;
 
-			double
-				peakState = triggerState.peakState,
-				lastPeakSampleOffset = triggerState.lastPeakSampleOffset,
-				currentPeakSampleOffset = triggerState.currentPeakSampleOffset;
-
-			const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
-
-			auto processPeakState = [&](double sample)
-			{
-				if (!isZeroCrossingPeakSampler)
-				{
-					sample *= sample;
-					if (sample < peakState)
-					{
-						peakState *= 0.9999;
-						lastPeakSampleOffset += 1;
-						currentPeakSampleOffset += 1;
-					}
-					else
-					{
-						peakState = sample;
-						lastPeakSampleOffset = currentPeakSampleOffset;
-						currentPeakSampleOffset = 0;
-					}
-				}
-				else
-				{
-
-					if (sample > 0 && peakState < 0)
-					{
-						lastPeakSampleOffset = currentPeakSampleOffset;
-						currentPeakSampleOffset = 0;
-					}
-					else
-					{
-						lastPeakSampleOffset += 1;
-						currentPeakSampleOffset += 1;
-					}
-
-					peakState = sample;
-				}
-			};
-
 			const auto blend = 1 - content->frequencyColouringBlend.parameter.getValue();
 
 			if (numChannels >= 2)
@@ -470,76 +504,74 @@ namespace Signalizer
 
 				std::size_t offset = 0;
 
-				// process envelopes and peak states in a separate loop, so we're not thrashing the icache
-				switch (mode)
+				// process envelopes so we're not thrashing the icache
+				if (state.envelopeMode != EnvelopeModes::None)
 				{
-				case OscChannels::Right: offset = 1;
-				case OscChannels::Left:
-				{
-					const auto channel = buffer[offset];
-
-					for (std::size_t n = 0; n < numSamples; ++n)
+					switch (mode)
 					{
-						const auto sample = cpl::Math::square(channel[n]);
-						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(channel[n]);
+					case OscChannels::Right: offset = 1;
+					case OscChannels::Left:
+					{
+						const auto channel = buffer[offset];
+
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto sample = cpl::Math::square(channel[n]);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
+
+						filterEnv[fs::Right] = filterEnv[fs::Left];
+
+						break;
 					}
 
-					filterEnv[fs::Right] = filterEnv[fs::Left];
+					case OscChannels::Mid:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
+							const auto sample = cpl::Math::square(mid);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
 
-					break;
+						filterEnv[fs::Right] = filterEnv[fs::Left];
+
+						break;
+					case OscChannels::Side:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
+							const auto sample = cpl::Math::square(side);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
+
+						filterEnv[fs::Right] = filterEnv[fs::Left];
+
+						break;
+
+					case OscChannels::Separate:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto left = cpl::Math::square(buffer[fs::Left][n]), right = cpl::Math::square(buffer[fs::Right][n]);
+							filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
+							filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
+						}
+
+						break;
+
+					case OscChannels::MidSide:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
+							const auto mid = 0.5 * cpl::Math::square(left + right), side = 0.5 * cpl::Math::square(left - right);
+
+							filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
+							filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
+						}
+
+						break;
+					}
+
 				}
-
-				case OscChannels::Mid:
-					for (std::size_t n = 0; n < numSamples; ++n)
-					{
-						const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
-						const auto sample = cpl::Math::square(mid);
-						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(mid);
-					}
-
-					filterEnv[fs::Right] = filterEnv[fs::Left];
-
-					break;
-				case OscChannels::Side:
-					for (std::size_t n = 0; n < numSamples; ++n)
-					{
-						const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
-						const auto sample = cpl::Math::square(side);
-						filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						processPeakState(side);
-					}
-
-					filterEnv[fs::Right] = filterEnv[fs::Left];
-
-					break;
-
-				case OscChannels::Separate:
-					for (std::size_t n = 0; n < numSamples; ++n)
-					{
-						const auto left = cpl::Math::square(buffer[fs::Left][n]), right = cpl::Math::square(buffer[fs::Right][n]);
-						filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
-						filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
-						processPeakState(buffer[fs::Left][n]);
-					}
-
-					break;
-
-				case OscChannels::MidSide:
-					for (std::size_t n = 0; n < numSamples; ++n)
-					{
-						const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
-						const auto mid = 0.5 * cpl::Math::square(left + right), side = 0.5 * cpl::Math::square(left - right);
-
-						filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
-						filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
-						processPeakState(0.5 * (left + right));
-					}
-
-					break;
-				}
-
 
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
@@ -587,7 +619,6 @@ namespace Signalizer
 					// average envelope
 					filterEnv[fs::Left] = lSquared + envelopeCoeff * (filterEnv[fs::Left] - lSquared);
 					// get peak sample
-					processPeakState(left);
 
 					// split signal into bands:
 					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
@@ -618,11 +649,6 @@ namespace Signalizer
 				channelData.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
 
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
-
-			// store peak data
-			triggerState.peakState = peakState;
-			triggerState.lastPeakSampleOffset = lastPeakSampleOffset;
-			triggerState.currentPeakSampleOffset = currentPeakSampleOffset;
 
 		}
 

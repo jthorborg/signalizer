@@ -41,6 +41,7 @@
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
 	#include "SharedBehaviour.h"
+	#include "StreamPreprocessing.h"
 
 	namespace cpl
 	{
@@ -116,7 +117,22 @@
 			{
 				template<typename ISA> static void dispatch(COscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
 				{ 
-					o.audioProcessing<ISA>(buffer, numChannels, numSamples); 
+
+					if (numChannels > 1)
+					{
+						AFloat * localPointers[2];
+						localPointers[0] = buffer[0];
+						localPointers[1] = buffer[1];
+						o.preprocessAudio<ISA>(localPointers, 2, numSamples);
+						o.audioProcessing<ISA>(localPointers, 2, numSamples);
+					}
+					else
+					{
+						AFloat * localBuffer = buffer[0];
+						o.preprocessAudio<ISA>(&localBuffer, 1, numSamples);
+						o.audioProcessing<ISA>(&localBuffer, 1, numSamples);
+					}
+
 				}
 			};
 
@@ -147,6 +163,12 @@
 
 			template<typename ISA, typename Eval>
 				void analyseAndSetupState();
+
+			template<typename ISA>
+				void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+
+			template<typename ISA, class Analyzer>
+				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
 
 			template<typename ISA>
 				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -268,9 +290,7 @@
 
 			struct TriggerData
 			{ 
-				double currentPeakSampleOffset;
-				double lastPeakSampleOffset;
-				double peakState;
+				PreprocessingTriggerState preTriggerState{};
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>

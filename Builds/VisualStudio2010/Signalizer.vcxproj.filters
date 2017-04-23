@@ -2618,6 +2618,9 @@
     <ClInclude Include="..\..\Source\SharedBehaviour.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\StreamPreprocessing.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
