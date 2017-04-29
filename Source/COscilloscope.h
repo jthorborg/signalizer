@@ -117,22 +117,7 @@
 			{
 				template<typename ISA> static void dispatch(COscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
 				{ 
-
-					if (numChannels > 1)
-					{
-						AFloat * localPointers[2];
-						localPointers[0] = buffer[0];
-						localPointers[1] = buffer[1];
-						o.preprocessAudio<ISA>(localPointers, 2, numSamples);
-						o.audioProcessing<ISA>(localPointers, 2, numSamples);
-					}
-					else
-					{
-						AFloat * localBuffer = buffer[0];
-						o.preprocessAudio<ISA>(&localBuffer, 1, numSamples);
-						o.audioProcessing<ISA>(&localBuffer, 1, numSamples);
-					}
-
+					o.audioEntryPoint<ISA>(buffer, numChannels, numSamples);
 				}
 			};
 
@@ -169,6 +154,9 @@
 
 			template<typename ISA, class Analyzer>
 				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+
+			template<typename ISA>
+				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA>
 				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);

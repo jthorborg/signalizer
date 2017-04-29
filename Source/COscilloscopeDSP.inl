@@ -226,7 +226,7 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = state.effectiveWindowSize;
-			triggerState.sampleOffset = triggerState.preTriggerState.currentOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
+			triggerState.sampleOffset = triggerState.preTriggerState.lastOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
 			return;
 		}
 		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
@@ -322,7 +322,7 @@ namespace Signalizer
 	template<typename ISA, class Analyzer>
 	void COscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
-		Analyzer ana(buffer, numSamples, triggerState.preTriggerState);
+		Analyzer ana(buffer, numChannels, numSamples, triggerState.preTriggerState);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -393,6 +393,27 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
+	void COscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+	{
+		cpl::CMutex scopedLock(bufferLock);
+
+		if (numChannels > 1)
+		{
+			AFloat * localPointers[2];
+			localPointers[0] = buffer[0];
+			localPointers[1] = buffer[1];
+			preprocessAudio<ISA>(localPointers, 2, numSamples);
+			audioProcessing<ISA>(localPointers, 2, numSamples);
+		}
+		else
+		{
+			AFloat * localBuffer = buffer[0];
+			preprocessAudio<ISA>(&localBuffer, 1, numSamples);
+			audioProcessing<ISA>(&localBuffer, 1, numSamples);
+		}
+	}
+
+	template<typename ISA>
 		void COscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			if (numSamples == 0 || numChannels == 0)
@@ -401,7 +422,6 @@ namespace Signalizer
 			using namespace cpl::simd;
 			typedef AFloat T;
 
-			cpl::CMutex scopedLock(bufferLock);
 			auto const sampleRate = audioStream.getAudioHistorySamplerate();
 
 			channelData.resizeChannels(numChannels);

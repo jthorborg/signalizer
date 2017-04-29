@@ -328,6 +328,7 @@ namespace Signalizer
 			break;
 		}
 
+		triggerState.preTriggerState.windowSize = state.effectiveWindowSize;
 
 
 		bool firstRun = false;

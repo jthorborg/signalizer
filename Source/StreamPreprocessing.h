@@ -48,13 +48,16 @@
 		{
 		public:
 
-			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t & numSamples, PreprocessingTriggerState & outsideState)
+			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples, PreprocessingTriggerState & outsideState)
 				: buffer(buffer)
 				, numSamples(numSamples)
 				, outsideState(outsideState)
 				, state(outsideState.state)
 				, lastOffset(outsideState.lastOffset)
 				, currentOffset(outsideState.currentOffset)
+				, windowSize(outsideState.windowSize)
+				, processedSamples(0)
+				, numChannels(numChannels)
 			{
 
 			}
@@ -72,7 +75,8 @@
 			
 			PreprocessingTriggerState & outsideState;
 
-			double state, lastOffset, currentOffset;
+			double state, lastOffset, currentOffset, windowSize;
+			std::size_t processedSamples, numChannels;
 		};
 
 		template<typename ISA>
@@ -88,8 +92,14 @@
 				if (sample < state)
 				{
 					state *= 0.9999;
-					lastOffset += 1;
-					currentOffset += 1;
+
+					if (2 * windowSize > currentOffset)
+					{
+						lastOffset += 1;
+						currentOffset += 1;
+						processedSamples += 1;
+					}
+
 				}
 				else
 				{
@@ -97,6 +107,18 @@
 					lastOffset = currentOffset;
 					currentOffset = 0;
 				}
+			}
+
+			~PeakHoldProcessor()
+			{
+				auto skippedSamples = numSamples - processedSamples;
+
+				for (std::size_t c = 0; c < numChannels; ++c)
+				{
+					buffer[c] += skippedSamples;
+				}
+
+				numSamples = processedSamples;
 			}
 
 		};
