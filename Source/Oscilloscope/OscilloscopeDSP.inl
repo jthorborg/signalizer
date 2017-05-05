@@ -28,7 +28,7 @@
 *************************************************************************************/
 
 
-#include "COscilloscope.h"
+#include "Oscilloscope.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>

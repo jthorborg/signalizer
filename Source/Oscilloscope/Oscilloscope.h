@@ -30,7 +30,7 @@
 #ifndef SIGNALIZER_COSCILLOSCOPE_H
 	#define SIGNALIZER_COSCILLOSCOPE_H
 
-	#include "CommonSignalizer.h"
+	#include "Signalizer.h"
 	#include <cpl/Utility.h>
 	#include <cpl/gui/controls/Controls.h>
 	#include <cpl/gui/widgets/Widgets.h>
@@ -40,7 +40,6 @@
 	#include <cpl/dsp/LinkwitzRileyNetwork.h>
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
-	#include "SharedBehaviour.h"
 	#include "StreamPreprocessing.h"
 
 	namespace cpl

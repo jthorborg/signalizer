@@ -27,7 +27,7 @@
  
 *************************************************************************************/
 
-#include "CSpectrum.h"
+#include "Spectrum.h"
 #include <cpl/ffts.h>
 #include <cpl/system/SysStats.h>
 #include <cpl/lib/LockFreeDataQueue.h>

@@ -30,8 +30,7 @@
 #ifndef SIGNALIZER_CVECTORSCOPEPARAMETERS_H
 	#define SIGNALIZER_CVECTORSCOPEPARAMETERS_H
 
-	#include "CommonSignalizer.h"
-	#include "SignalizerDesign.h"
+	#include "Signalizer.h"
 
 	namespace Signalizer
 	{

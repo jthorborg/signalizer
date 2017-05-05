@@ -30,7 +30,7 @@
 #ifndef SIGNALIZER_SAMPLECOLOUREVALUATORS_H
 	#define SIGNALIZER_SAMPLECOLOUREVALUATORS_H
 
-	#include "COscilloscope.h"
+	#include "Oscilloscope.h"
 	#include <functional>
 
 	namespace Signalizer

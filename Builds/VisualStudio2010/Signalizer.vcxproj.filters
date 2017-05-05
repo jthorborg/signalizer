@@ -382,6 +382,9 @@
     <Filter Include="Signalizer\Source\cpl\dsp\filters">
       <UniqueIdentifier>{a3f1f081-be88-4f79-922c-c9844d6dd635}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Source\Global">
+      <UniqueIdentifier>{fc6514a4-3d8b-4434-92bb-e70f91d961b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -834,41 +837,38 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_video\juce_video.cpp">
       <Filter>Signalizer\juce source files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrum.cpp">
-      <Filter>Signalizer\Source\Spectrum</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp">
-      <Filter>Signalizer\Source\Spectrum</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp">
-      <Filter>Signalizer\Source\Spectrum</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScope.cpp">
-      <Filter>Signalizer\Source\Vectorscope</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp">
-      <Filter>Signalizer\Source\Vectorscope</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\COscilloscope.cpp">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\COscilloscopeRendering.cpp">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
       <Filter>Signalizer\Source\cpl</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\SignalizerDesign.cpp">
+    <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeRendering.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Spectrum\Spectrum.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumDSP.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumRendering.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Vectorscope\Vectorscope.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Vectorscope\VectorscopeRendering.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp">
       <Filter>Signalizer\Source\Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\MainEditor.cpp">
+    <ClCompile Include="..\..\Source\Editor\MainEditor.cpp">
       <Filter>Signalizer\Source\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Source\PluginProcessor.cpp">
+    <ClCompile Include="..\..\Source\Processor\PluginProcessor.cpp">
       <Filter>Signalizer\Source\Processor</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Source\COscilloscopeDSP.inl">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2522,12 +2522,6 @@
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h">
       <Filter>Signalizer\Source\cpl</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\CSpectrum.h">
-      <Filter>Signalizer\Source\Spectrum</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\CVectorScope.h">
-      <Filter>Signalizer\Source\Vectorscope</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h">
       <Filter>Signalizer\Source\cpl\gui\controls</Filter>
     </ClInclude>
@@ -2558,36 +2552,6 @@
     <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h">
       <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\VectorScopeParameters.h">
-      <Filter>Signalizer\Source\Vectorscope</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\SpectrumParameters.h">
-      <Filter>Signalizer\Source\Spectrum</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\COscilloscope.h">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\OscilloscopeParameters.h">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\CommonSignalizer.h">
-      <Filter>Signalizer\Source\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\SentientViewState.h">
-      <Filter>Signalizer\Source\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\SignalizerDesign.h">
-      <Filter>Signalizer\Source\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\version.h">
-      <Filter>Signalizer\Source\Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\MainEditor.h">
-      <Filter>Signalizer\Source\Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\PluginProcessor.h">
-      <Filter>Signalizer\Source\Processor</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\SDKs\cpl\gui\controls\CValueInputControl.h">
       <Filter>Signalizer\Source\cpl\gui\controls</Filter>
     </ClInclude>
@@ -2612,14 +2576,53 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h">
       <Filter>Signalizer\Source\cpl\dsp</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\SampleColourEvaluators.h">
+    <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\SharedBehaviour.h">
+    <ClInclude Include="..\..\Source\Oscilloscope\OscilloscopeParameters.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Oscilloscope\SampleColourEvaluators.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Oscilloscope\StreamPreprocessing.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\Spectrum.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\CommonSignalizer.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StreamPreprocessing.h">
-      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    <ClInclude Include="..\..\Source\Common\SentientViewState.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\SharedBehaviour.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\SignalizerDesign.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Editor\MainEditor.h">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Processor\PluginProcessor.h">
+      <Filter>Signalizer\Source\Processor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Signalizer.h">
+      <Filter>Signalizer\Source\Global</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\version.h">
+      <Filter>Signalizer\Source\Global</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2673,6 +2676,9 @@
     </None>
     <None Include="..\..\..\SDKs\cpl\dsp\mqdft.inl">
       <Filter>Signalizer\Source\cpl\dsp</Filter>
+    </None>
+    <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

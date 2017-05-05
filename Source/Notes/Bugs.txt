@@ -1,6 +1,0 @@
-ColourEditor for CControlColour doesn't properly respond to automation changes 
-- it propagates automation messages when it receives them, creating possible loops and/or stale values on the host side)
-
-When opening the editor, automation messages are sent when updating control values.
-- This is possibly fixed when changing serialization from controls to values, so we can control the notification listener logic
--- Possibly this will never be a problem then, as updating controls from values should never emit notifications.

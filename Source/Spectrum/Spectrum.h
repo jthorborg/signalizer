@@ -30,6 +30,7 @@
 #ifndef SIGNALIZER_CSPECTRUM_H
 	#define SIGNALIZER_CSPECTRUM_H
 
+	#include "Signalizer.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/GUI.h>
 	#include <cpl/Utility.h>
@@ -42,10 +43,8 @@
 	#include <cpl/lib/LockFreeQueue.h>
 	#include <cpl/lib/BlockingLockFreeQueue.h>
 	#include <vector>
-	#include "CommonSignalizer.h"
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
-	#include "SharedBehaviour.h"
 
 	namespace cpl
 	{

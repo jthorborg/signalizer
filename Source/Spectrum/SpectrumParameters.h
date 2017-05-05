@@ -30,8 +30,7 @@
 #ifndef SIGNALIZER_SPECTRUMPARAMETERS_H
 	#define SIGNALIZER_SPECTRUMPARAMETERS_H
 
-	#include "CommonSignalizer.h"
-	#include "SignalizerDesign.h"
+	#include "Signalizer.h"
 
 	namespace Signalizer
 	{

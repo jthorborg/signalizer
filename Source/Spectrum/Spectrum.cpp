@@ -27,11 +27,10 @@
 
 *************************************************************************************/
 
-#include "CSpectrum.h"
+#include "Spectrum.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
-#include "SignalizerDesign.h"
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>

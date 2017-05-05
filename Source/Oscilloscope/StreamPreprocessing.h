@@ -30,8 +30,8 @@
 #ifndef OSCILLOSCOPE_STREAM_PROCESSING_H
 	#define OSCILLOSCOPE_STREAM_PROCESSING_H
 
-	#include "CommonSignalizer.h"
-	
+	#include "Signalizer.h"
+
 	namespace Signalizer
 	{
 		struct PreprocessingTriggerState

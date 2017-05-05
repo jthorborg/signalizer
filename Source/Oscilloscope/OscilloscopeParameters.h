@@ -30,8 +30,7 @@
 #ifndef SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
 	#define SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
 
-	#include "CommonSignalizer.h"
-	#include "SignalizerDesign.h"
+	#include "Signalizer.h"
 
 	namespace Signalizer
 	{

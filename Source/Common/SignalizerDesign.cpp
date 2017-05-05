@@ -21,13 +21,9 @@
  
 **************************************************************************************
  
-	file:InstanceLog.h
+	file:SignalizerDesign.cpp
 
-		Interface for logging events about the instance of Signalizer
- 
+		Implementation of separate code from SignalizerDesign.h
+
 *************************************************************************************/
-
-#ifndef SIGNALIZER_INSTANCELOG_H
-#define SIGNALIZER_INSTANCELOG_H
-
-#endif
+#include "SignalizerDesign.h"
