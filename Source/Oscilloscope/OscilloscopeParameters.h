@@ -21,7 +21,7 @@
  
 **************************************************************************************
  
-	file:COscilloscope.h
+	file:Oscilloscope.h
 
 		Interface for the oscilloscope parameters
  

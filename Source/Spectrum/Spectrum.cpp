@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:CSpectrum.cpp
+	file:Spectrum.cpp
 
 		Implementation of UI and logic for the spectrum view.
 
@@ -39,7 +39,7 @@
 namespace Signalizer
 {
 
-	CSpectrum::CSpectrum(const SharedBehaviour& globalBehaviour, const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
+	Spectrum::Spectrum(const SharedBehaviour& globalBehaviour, const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
 		: COpenGLView(nameId)
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
@@ -96,13 +96,13 @@ namespace Signalizer
 	}
 
 
-	void CSpectrum::suspend()
+	void Spectrum::suspend()
 	{
 		state.isSuspended = true;
 		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
-	void CSpectrum::resume()
+	void Spectrum::resume()
 	{
 		state.isSuspended = false;
 		if (oldWindowSize != -1)
@@ -114,7 +114,7 @@ namespace Signalizer
 		flags.openGLInitiation = true;
 	}
 
-	CSpectrum::~CSpectrum()
+	Spectrum::~Spectrum()
 	{
 		content->getParameterSet().removeRTListener(this, true);
 		detachFromSource();
@@ -127,7 +127,7 @@ namespace Signalizer
 	}
 
 
-	void CSpectrum::setDBs(double low, double high, bool updateControls)
+	void Spectrum::setDBs(double low, double high, bool updateControls)
 	{
 		content->lowDbs.setTransformedValue(low);
 		content->highDbs.setTransformedValue(high);
@@ -159,12 +159,12 @@ namespace Signalizer
 	}
 
 
-	CSpectrum::DBRange CSpectrum::getDBs() const noexcept
+	Spectrum::DBRange Spectrum::getDBs() const noexcept
 	{
 		return{ content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue()};
 	}
 
-	void CSpectrum::initPanelAndControls()
+	void Spectrum::initPanelAndControls()
 	{
 		// preliminary initialization - this will update all controls to match audio properties.
 		// it may seem like a hack, but it's well-defined and avoids code duplications.
@@ -172,32 +172,32 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CSpectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
+	void Spectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
 	{
 
 	}
 
-	void CSpectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
+	void Spectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
 	{
 	}
 
-	void CSpectrum::resized()
+	void Spectrum::resized()
 	{
 		flags.resized = true;
 	}
 
-	void CSpectrum::freeze()
+	void Spectrum::freeze()
 	{
 		state.isFrozen = true;
 	}
 
-	void CSpectrum::unfreeze()
+	void Spectrum::unfreeze()
 	{
 		state.isFrozen = false;
 	}
 
 
-	void CSpectrum::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+	void Spectrum::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		double newFreqPos(0), newDBPos(0);
 
@@ -251,7 +251,7 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::calculateSpectrumColourRatios()
+	void Spectrum::calculateSpectrumColourRatios()
 	{
 #pragma message cwarn("Exclude colours that are zero.")
 		double acc = 0.0;
@@ -274,7 +274,7 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::mouseMove(const juce::MouseEvent & event)
+	void Spectrum::mouseMove(const juce::MouseEvent & event)
 	{
 		cmouse.x.store(event.position.x, std::memory_order_release);
 		cmouse.y.store(event.position.y, std::memory_order_release);
@@ -282,7 +282,7 @@ namespace Signalizer
 		flags.mouseMove = true;
 	}
 
-	void CSpectrum::mouseDoubleClick(const juce::MouseEvent& event)
+	void Spectrum::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		if (event.mods.testFlags(juce::ModifierKeys::leftButtonModifier))
 		{
@@ -291,7 +291,7 @@ namespace Signalizer
 		}
 	}
 
-	void CSpectrum::mouseDrag(const juce::MouseEvent& event)
+	void Spectrum::mouseDrag(const juce::MouseEvent& event)
 	{
 		if (event.mods.isLeftButtonDown())
 		{
@@ -325,27 +325,27 @@ namespace Signalizer
 		flags.mouseMove = true;
 	}
 
-	void CSpectrum::mouseUp(const juce::MouseEvent& event)
+	void Spectrum::mouseUp(const juce::MouseEvent& event)
 	{
 
 	}
 
-	void CSpectrum::mouseDown(const juce::MouseEvent& event)
+	void Spectrum::mouseDown(const juce::MouseEvent& event)
 	{
 		lastMousePos = event.position;
 	}
 
-	void CSpectrum::mouseExit(const juce::MouseEvent & e)
+	void Spectrum::mouseExit(const juce::MouseEvent & e)
 	{
 		isMouseInside.store(false, std::memory_order_relaxed);
 	}
 
-	void CSpectrum::mouseEnter(const juce::MouseEvent & e)
+	void Spectrum::mouseEnter(const juce::MouseEvent & e)
 	{
 		isMouseInside.store(true, std::memory_order_relaxed);
 	}
 
-	void CSpectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
+	void Spectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{
 		using namespace cpl;
 		// TODO: create parameter indices and turn into switch statement
@@ -401,12 +401,12 @@ namespace Signalizer
 	}
 
 
-	std::size_t CSpectrum::getWindowSize() const noexcept
+	std::size_t Spectrum::getWindowSize() const noexcept
 	{
 		return state.windowSize;
 	}
 
-	void CSpectrum::handleFlagUpdates()
+	void Spectrum::handleFlagUpdates()
 	{
 		cpl::CMutex audioLock;
 		if (flags.internalFlagHandlerRunning)
@@ -752,26 +752,26 @@ namespace Signalizer
 		flags.internalFlagHandlerRunning = false;
 	}
 
-	std::size_t CSpectrum::getValidWindowSize(std::size_t in) const noexcept
+	std::size_t Spectrum::getValidWindowSize(std::size_t in) const noexcept
 	{
 		std::size_t n = std::min(audioStream.getAudioHistoryCapacity(), in);
 		return n;
 	}
 
-	void CSpectrum::setWindowSize(std::size_t size)
+	void Spectrum::setWindowSize(std::size_t size)
 	{
 		state.newWindowSize.store(getValidWindowSize(size), std::memory_order_release);
 		flags.initiateWindowResize = true;
 	}
 
 
-	void CSpectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	void Spectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
 		flags.audioStreamChanged = true;
 		flags.audioWindowWasResized = true;
 	}
 
-	void CSpectrum::resetStaticViewAssumptions()
+	void Spectrum::resetStaticViewAssumptions()
 	{
 		lastPeak = -1;
 	}

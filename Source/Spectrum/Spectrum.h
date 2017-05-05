@@ -21,14 +21,14 @@
 
 **************************************************************************************
 
-	file:CSpectrum.h
+	file:Spectrum.h
 
 		Interface for the spectrum view.
 
 *************************************************************************************/
 
-#ifndef SIGNALIZER_CSPECTRUM_H
-	#define SIGNALIZER_CSPECTRUM_H
+#ifndef SIGNALIZER_SPECTRUM_H
+	#define SIGNALIZER_SPECTRUM_H
 
 	#include "Signalizer.h"
 	#include <cpl/Common.h>
@@ -59,7 +59,7 @@
 	namespace Signalizer
 	{
 
-		class CSpectrum
+		class Spectrum final
 		:
 			public cpl::COpenGLView,
 			protected AudioStream::Listener,
@@ -97,8 +97,8 @@
 				double low, high;
 			};
 
-			CSpectrum(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * state);
-			virtual ~CSpectrum();
+			Spectrum(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * state);
+			virtual ~Spectrum();
 
 			// Component overrides
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
@@ -147,12 +147,12 @@
 
 			struct RenderingDispatcher
 			{
-				template<typename ISA> static void dispatch(CSpectrum & c) { c.vectorGLRendering<ISA>(); }
+				template<typename ISA> static void dispatch(Spectrum & c) { c.vectorGLRendering<ISA>(); }
 			};
 
 			struct AudioDispatcher
 			{
-				template<typename ISA> static void dispatch(CSpectrum & c, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+				template<typename ISA> static void dispatch(Spectrum & c, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 				{
 					c.audioProcessing<ISA>(buffer, numChannels, numSamples);
 				}

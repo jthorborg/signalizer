@@ -38,7 +38,7 @@ namespace Signalizer
 {
 
 	template<typename ISA, typename Eval>
-	void COscilloscope::analyseAndSetupState()
+	void Oscilloscope::analyseAndSetupState()
 	{
 		calculateFundamentalPeriod<ISA, Eval>();
 		calculateTriggeringOffset<ISA, Eval>();
@@ -56,7 +56,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Eval>
-	void COscilloscope::calculateFundamentalPeriod()
+	void Oscilloscope::calculateFundamentalPeriod()
 	{
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
@@ -215,13 +215,13 @@ namespace Signalizer
 		}
 	}
 
-	inline double COscilloscope::getGain()
+	inline double Oscilloscope::getGain()
 	{
 		return (std::isfinite(state.autoGain) ? state.autoGain : 1) * state.manualGain;
 	}
 
 	template<typename ISA, typename Eval>
-	void COscilloscope::calculateTriggeringOffset()
+	void Oscilloscope::calculateTriggeringOffset()
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
@@ -298,7 +298,7 @@ namespace Signalizer
 
 	}
 
-	inline void COscilloscope::resizeAudioStorage()
+	inline void Oscilloscope::resizeAudioStorage()
 	{
 		std::size_t requiredSampleBufferSize = 0;
 		// TODO: Add
@@ -320,7 +320,7 @@ namespace Signalizer
 
 
 	template<typename ISA, class Analyzer>
-	void COscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
 		Analyzer ana(buffer, numChannels, numSamples, triggerState.preTriggerState);
 
@@ -377,7 +377,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void COscilloscope::preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
 		const bool isPeakHolder = state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
 		const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
@@ -393,7 +393,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void COscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Oscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		cpl::CMutex scopedLock(bufferLock);
 
@@ -414,7 +414,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-		void COscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void Oscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			if (numSamples == 0 || numChannels == 0)
 				return;
@@ -673,7 +673,7 @@ namespace Signalizer
 		}
 
 	template<typename ISA>
-		void COscilloscope::runPeakFilter()
+		void Oscilloscope::runPeakFilter()
 		{
 			// there is a number of optimisations we can do here, mostly that we actually don't care about
 			// timing, we are only interested in the current largest value in the set.

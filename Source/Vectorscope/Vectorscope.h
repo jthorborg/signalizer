@@ -21,14 +21,14 @@
 
 **************************************************************************************
 
-	file:CVectorScope.h
+	file:VectorScope.h
 
 		Interface for the vectorscope view
 
 *************************************************************************************/
 
-#ifndef SIGNALIZER_CVECTORSCOPE_H
-	#define SIGNALIZER_CVECTORSCOPE_H
+#ifndef SIGNALIZER_VECTORSCOPE_H
+	#define SIGNALIZER_VECTORSCOPE_H
 
 	#include "Signalizer.h"
 	#include <cpl/Utility.h>
@@ -90,7 +90,7 @@
 
 
 
-		class CVectorScope
+		class VectorScope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 			, private ParameterSet::RTListener
@@ -101,8 +101,8 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			CVectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
-			virtual ~CVectorScope();
+			VectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
+			virtual ~VectorScope();
 
 			// Component overrides
 			void onGraphicsRendering(juce::Graphics & g) override;
@@ -141,12 +141,12 @@
 
 			struct RenderingDispatcher
 			{
-				template<typename ISA> static void dispatch(CVectorScope & v) { v.vectorGLRendering<ISA>(); }
+				template<typename ISA> static void dispatch(VectorScope & v) { v.vectorGLRendering<ISA>(); }
 			};
 
 			struct AudioDispatcher
 			{
-				template<typename ISA> static void dispatch(CVectorScope & v, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+				template<typename ISA> static void dispatch(VectorScope & v, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 				{
 					v.audioProcessing<ISA>(buffer, numChannels, numSamples);
 				}

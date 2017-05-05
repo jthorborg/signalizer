@@ -36,7 +36,7 @@
 	namespace Signalizer
 	{
 
-		class COscilloscope::DefaultKey
+		class Oscilloscope::DefaultKey
 		{
 		public:
 			DefaultKey(ChannelData & data, std::size_t index)
@@ -55,7 +55,7 @@
 		};
 
 		template<std::size_t ChannelIndex, std::size_t ColourIndex>
-			class COscilloscope::SimpleChannelEvaluator : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
+			class Oscilloscope::SimpleChannelEvaluator : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
 			{
 			public:
 
@@ -163,7 +163,7 @@
 			};
 
 		template<std::size_t ChannelIndex, std::size_t ColourIndex, typename BinaryFunction>
-			class COscilloscope::MidSideEvaluatorBase : public COscilloscope::SampleColourEvaluatorBase, public COscilloscope::DefaultKey
+			class Oscilloscope::MidSideEvaluatorBase : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
 			{
 			public:
 
@@ -287,50 +287,50 @@
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Left, 0> : public SimpleChannelEvaluator<0, 0>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Left, 0> : public SimpleChannelEvaluator<0, 0>
 			{
 				using SimpleChannelEvaluator<0, 0>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Left, 1> : public SimpleChannelEvaluator<0, 1>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Left, 1> : public SimpleChannelEvaluator<0, 1>
 			{
 				using SimpleChannelEvaluator<0, 1>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Right, 0> : public SimpleChannelEvaluator<1, 0>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Right, 0> : public SimpleChannelEvaluator<1, 0>
 			{
 				using SimpleChannelEvaluator<1, 0>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Right, 1> : public SimpleChannelEvaluator<1, 1>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Right, 1> : public SimpleChannelEvaluator<1, 1>
 			{
 				using SimpleChannelEvaluator<1, 1>::SimpleChannelEvaluator;
 			};
 
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Mid, 0> : public MidSideEvaluatorBase<0, 0, std::plus<>>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Mid, 0> : public MidSideEvaluatorBase<0, 0, std::plus<>>
 			{
 				using MidSideEvaluatorBase<0, 0, std::plus<>>::MidSideEvaluatorBase;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Mid, 1> : public MidSideEvaluatorBase<0, 1, std::plus<>>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Mid, 1> : public MidSideEvaluatorBase<0, 1, std::plus<>>
 			{
 				using MidSideEvaluatorBase<0, 1, std::plus<>>::MidSideEvaluatorBase;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Side, 0> : public MidSideEvaluatorBase<1, 0, std::minus<>>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Side, 0> : public MidSideEvaluatorBase<1, 0, std::minus<>>
 			{
 				using MidSideEvaluatorBase<1, 0, std::minus<>>::MidSideEvaluatorBase;
 			};
 
 		template<>
-			class COscilloscope::SampleColourEvaluator<OscChannels::Side, 1> : public MidSideEvaluatorBase<1, 1, std::minus<>>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Side, 1> : public MidSideEvaluatorBase<1, 1, std::minus<>>
 			{
 				using MidSideEvaluatorBase<1, 1, std::minus<>>::MidSideEvaluatorBase;
 			};

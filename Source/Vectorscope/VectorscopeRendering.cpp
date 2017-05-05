@@ -63,7 +63,7 @@ namespace Signalizer
 		Center
 	};
 
-	void CVectorScope::paint2DGraphics(juce::Graphics & g)
+	void VectorScope::paint2DGraphics(juce::Graphics & g)
 	{
 
 		auto cStart = cpl::Misc::ClockCounter();
@@ -86,7 +86,7 @@ namespace Signalizer
 		}
 	}
 
-	void CVectorScope::onGraphicsRendering(juce::Graphics & g)
+	void VectorScope::onGraphicsRendering(juce::Graphics & g)
 	{
 
 		// do software rendering
@@ -106,7 +106,7 @@ namespace Signalizer
 
 	}
 
-	void CVectorScope::initOpenGL()
+	void VectorScope::initOpenGL()
 	{
 		const int imageSize = 128;
 		const float fontToPixelScale = 90 / 64.0f;
@@ -129,18 +129,18 @@ namespace Signalizer
 		}
 	}
 	
-	void CVectorScope::closeOpenGL()
+	void VectorScope::closeOpenGL()
 	{
 		textures.clear();
 	}
 
-	void CVectorScope::onOpenGLRendering()
+	void VectorScope::onOpenGLRendering()
 	{
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
 	template<typename ISA>
-		void CVectorScope::vectorGLRendering()
+		void VectorScope::vectorGLRendering()
 		{
 
 			CPL_DEBUGCHECKGL();
@@ -208,7 +208,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
+		void VectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
 			openGLStack.enable(GL_TEXTURE_2D);
 			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -292,7 +292,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
+		void VectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 			using consts = cpl::simd::consts<float>;
 			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
@@ -398,7 +398,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -452,7 +452,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			typedef ISA::V V;
 			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -700,7 +700,7 @@ namespace Signalizer
 		}
 
 	template<typename ISA>
-		void CVectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
 			using namespace cpl;
 			OpenGLRendering::MatrixModification m;
@@ -775,7 +775,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
 			typedef ISA::V V;
 

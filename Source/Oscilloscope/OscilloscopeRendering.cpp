@@ -77,7 +77,7 @@ namespace Signalizer
 	};
 
 	template<typename ISA>
-	void COscilloscope::paint2DGraphics(juce::Graphics & g)
+	void Oscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
 
 		auto cStart = cpl::Misc::ClockCounter();
@@ -202,7 +202,7 @@ namespace Signalizer
 		}
 	}
 
-	void COscilloscope::onGraphicsRendering(juce::Graphics & g)
+	void Oscilloscope::onGraphicsRendering(juce::Graphics & g)
 	{
 		// do software rendering
 		if(!isOpenGL())
@@ -218,22 +218,22 @@ namespace Signalizer
 		}
 	}
 
-	void COscilloscope::initOpenGL()
+	void Oscilloscope::initOpenGL()
 	{
 
 	}
 
-	void COscilloscope::closeOpenGL()
+	void Oscilloscope::closeOpenGL()
 	{
 
 	}
 
-	void COscilloscope::onOpenGLRendering()
+	void Oscilloscope::onOpenGLRendering()
 	{
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
-	bool COscilloscope::checkAndInformInvalidCombinations()
+	bool Oscilloscope::checkAndInformInvalidCombinations()
 	{
 		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
 		{
@@ -252,7 +252,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-		void COscilloscope::vectorGLRendering()
+		void Oscilloscope::vectorGLRendering()
 		{
 			cpl::CMutex lock(bufferLock);
 			auto cStart = cpl::Misc::ClockCounter();
@@ -350,7 +350,7 @@ namespace Signalizer
 		}
 
 	template<typename ISA>
-		void COscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
+		void Oscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
 			const auto xoff = rect.getX();
 			const auto yoff = rect.getY();
@@ -417,7 +417,7 @@ namespace Signalizer
 		}
 
 	template<typename ISA>
-	void COscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect)
+	void Oscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect)
 	{
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
 		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
@@ -528,7 +528,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Evaluator>
-		void COscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
+		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
 
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;

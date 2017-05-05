@@ -74,7 +74,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void CSpectrum::onGraphicsRendering(juce::Graphics & g)
+	void Spectrum::onGraphicsRendering(juce::Graphics & g)
 	{
 		// do software rendering
 		if (!isOpenGL())
@@ -90,7 +90,7 @@ namespace Signalizer
 		}
 	}
 
-	void CSpectrum::paint2DGraphics(juce::Graphics & g)
+	void Spectrum::paint2DGraphics(juce::Graphics & g)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -207,7 +207,7 @@ namespace Signalizer
 		}
 	}
 
-	void CSpectrum::drawFrequencyTracking(juce::Graphics & g)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
 		if (globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire))
 		{
@@ -595,7 +595,7 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::initOpenGL()
+	void Spectrum::initOpenGL()
 	{
 		//oglImage.resize(getWidth(), getHeight(), false);
 		flags.openGLInitiation = true;
@@ -603,7 +603,7 @@ namespace Signalizer
 
 	}
 
-	void CSpectrum::closeOpenGL()
+	void Spectrum::closeOpenGL()
 	{
 		textures.clear();
 		oglImage.offload();
@@ -683,13 +683,13 @@ namespace Signalizer
 
 	}
 
-    void CSpectrum::onOpenGLRendering()
+    void Spectrum::onOpenGLRendering()
     {
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
     }
 
     template<typename ISA>
-    void CSpectrum::vectorGLRendering()
+    void Spectrum::vectorGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 		cpl::CFastMutex audioLock;
@@ -758,7 +758,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CSpectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
+		void Spectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
@@ -866,7 +866,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-	void CSpectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
+	void Spectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
 	{
 		int points = getAxisPoints() - 1;
 		// render the flood fill with alpha

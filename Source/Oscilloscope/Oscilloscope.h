@@ -21,14 +21,14 @@
 
 **************************************************************************************
 
-	file:CVectorScope.h
+	file:VectorScope.h
 
 		Interface for the Oscilloscope view
 
 *************************************************************************************/
 
-#ifndef SIGNALIZER_COSCILLOSCOPE_H
-	#define SIGNALIZER_COSCILLOSCOPE_H
+#ifndef SIGNALIZER_OSCILLOSCOPE_H
+	#define SIGNALIZER_OSCILLOSCOPE_H
 
 	#include "Signalizer.h"
 	#include <cpl/Utility.h>
@@ -54,7 +54,7 @@
 	{
 
 
-		class COscilloscope final
+		class Oscilloscope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 		{
@@ -63,8 +63,8 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			COscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
-			virtual ~COscilloscope();
+			Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
+			virtual ~Oscilloscope();
 
 		protected:
 			
@@ -109,12 +109,12 @@
 
 			struct RenderingDispatcher
 			{
-				template<typename ISA> static void dispatch(COscilloscope & o) { o.vectorGLRendering<ISA>(); }
+				template<typename ISA> static void dispatch(Oscilloscope & o) { o.vectorGLRendering<ISA>(); }
 			};
 
 			struct AudioDispatcher
 			{
-				template<typename ISA> static void dispatch(COscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
+				template<typename ISA> static void dispatch(Oscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
 				{ 
 					o.audioEntryPoint<ISA>(buffer, numChannels, numSamples);
 				}
@@ -390,7 +390,7 @@
 			{
 			public:
 
-				typedef COscilloscope::ChannelData ChannelData;
+				typedef Oscilloscope::ChannelData ChannelData;
 
 				typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
 				typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;

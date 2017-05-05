@@ -21,7 +21,7 @@
  
 **************************************************************************************
  
-	file:CVectorScope.h
+	file:VectorScope.h
 
 		Interface for the vectorscope view parameters
  

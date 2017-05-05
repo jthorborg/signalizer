@@ -98,9 +98,9 @@ namespace Signalizer
 	{
 		switch (type)
 		{
-		case ViewTypes::Vectorscope: return std::make_unique<CVectorScope>(args...);
-		case ViewTypes::Oscilloscope: return std::make_unique<COscilloscope>(args...);
-		case ViewTypes::Spectrum: return std::make_unique<CSpectrum>(args...);
+		case ViewTypes::Vectorscope: return std::make_unique<VectorScope>(args...);
+		case ViewTypes::Oscilloscope: return std::make_unique<Oscilloscope>(args...);
+		case ViewTypes::Spectrum: return std::make_unique<Spectrum>(args...);
 		}
 		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
 	}

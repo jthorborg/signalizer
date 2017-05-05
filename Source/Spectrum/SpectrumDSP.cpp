@@ -36,41 +36,41 @@
 namespace Signalizer
 {
 
-	std::size_t CSpectrum::getStateConfigurationChannels() const noexcept
+	std::size_t Spectrum::getStateConfigurationChannels() const noexcept
 	{
 		return state.configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 	}
 
 	template<typename T>
-		std::size_t CSpectrum::getNumAudioElements() const noexcept
+		std::size_t Spectrum::getNumAudioElements() const noexcept
 		{
 			return audioMemory.size() / sizeof(T);
 		}
 
 	template<typename T>
-		T * CSpectrum::getWorkingMemory()
+		T * Spectrum::getWorkingMemory()
 		{
 			return reinterpret_cast<T*>(workingMemory.data());
 		}
 
 	template<typename T>
-		std::size_t CSpectrum::getNumWorkingElements() const noexcept
+		std::size_t Spectrum::getNumWorkingElements() const noexcept
 		{
 			return workingMemory.size() / sizeof(T);
 		}
 
-	std::size_t CSpectrum::getBlobSamples() const noexcept
+	std::size_t Spectrum::getBlobSamples() const noexcept
 	{
 		return static_cast<std::size_t>(content->blobSize.getTransformedValue() * 0.001 * getSampleRate());
 	}
 
-	void CSpectrum::resetState()
+	void Spectrum::resetState()
 	{
 		flags.resetStateBuffers = true;
 	}
 
 
-	void CSpectrum::computeWindowKernel()
+	void Spectrum::computeWindowKernel()
 	{
 		size_t sampleSize = getWindowSize();
 		std::size_t i = 0;
@@ -108,7 +108,7 @@ namespace Signalizer
 
 
 
-	bool CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
+	bool Spectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
 	{
 		if (audio.getNumChannels() < 2)
 			return false;
@@ -316,7 +316,7 @@ namespace Signalizer
 		return true;
 	}
 
-	bool CSpectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio, CSpectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
+	bool Spectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
 	{
 
 		auto size = getWindowSize(); // the size of the transform, containing samples
@@ -578,7 +578,7 @@ namespace Signalizer
 		return true;
 	}
 
-	void CSpectrum::doTransform()
+	void Spectrum::doTransform()
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
@@ -598,7 +598,7 @@ namespace Signalizer
 
 
 	template<class V2>
-		void CSpectrum::mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
+		void Spectrum::mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
 		{
 			double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
 			double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
@@ -733,14 +733,14 @@ namespace Signalizer
 		}
 
 	template<class InVector>
-		void CSpectrum::postProcessTransform(const InVector & transform, std::size_t size)
+		void Spectrum::postProcessTransform(const InVector & transform, std::size_t size)
 		{
 			if (size > (std::size_t)getNumFilters())
 				CPL_RUNTIME_EXCEPTION("Incompatible incoming transform size.");
 			mapAndTransformDFTFilters(state.configuration, transform, size, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
 		}
 
-	void CSpectrum::postProcessStdTransform()
+	void Spectrum::postProcessStdTransform()
 	{
 		if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
 			postProcessTransform(getWorkingMemory<fftType>(), getNumFilters());
@@ -748,7 +748,7 @@ namespace Signalizer
 			postProcessTransform(getWorkingMemory<fpoint>(), getNumFilters());
 	}
 
-	std::size_t CSpectrum::mapToLinearSpace()
+	std::size_t Spectrum::mapToLinearSpace()
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
@@ -1395,7 +1395,7 @@ namespace Signalizer
 	}
 
 
-	bool CSpectrum::processNextSpectrumFrame()
+	bool Spectrum::processNextSpectrumFrame()
 	{
 		SFrameBuffer::FrameVector * next;
 		if (sfbuf.frameQueue.popElement(next))
@@ -1438,7 +1438,7 @@ namespace Signalizer
 		return false;
 	}
 	
-	bool CSpectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	bool Spectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
@@ -1449,7 +1449,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void CSpectrum::addAudioFrame()
+	void Spectrum::addAudioFrame()
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
@@ -1477,7 +1477,7 @@ namespace Signalizer
 
 
 	template<typename V, class Vector>
-	std::size_t CSpectrum::copyResonatorStateInto(Vector & output)
+	std::size_t Spectrum::copyResonatorStateInto(Vector & output)
 	{
 		auto numResFilters = cresonator.getNumFilters();
 		auto numChannels = getStateConfigurationChannels();
@@ -1490,7 +1490,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-		void CSpectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void Spectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			cpl::CMutex audioLock;
 
@@ -1565,7 +1565,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-	void CSpectrum::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Spectrum::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
@@ -1639,29 +1639,29 @@ namespace Signalizer
 		}
 	}
 
-	CSpectrum::fpoint * CSpectrum::getRelayBufferChannel(std::size_t channel)
+	Spectrum::fpoint * Spectrum::getRelayBufferChannel(std::size_t channel)
 	{
 		return relay.buffer.data() + channel * relay.samples;
 	}
 
-	void CSpectrum::ensureRelayBufferSize(std::size_t channels, std::size_t numSamples)
+	void Spectrum::ensureRelayBufferSize(std::size_t channels, std::size_t numSamples)
 	{
 		relay.buffer.resize(channels * numSamples);
 		relay.samples = numSamples;
 		relay.channels = channels;
 	}
 
-	float CSpectrum::getSampleRate() const noexcept
+	float Spectrum::getSampleRate() const noexcept
 	{
 		return state.sampleRate.load(std::memory_order_acquire);
 	}
 
-	int CSpectrum::getAxisPoints() const noexcept
+	int Spectrum::getAxisPoints() const noexcept
 	{
 		return static_cast<int>(state.axisPoints);
 	}
 
-	double CSpectrum::getOptimalFramesPerUpdate() const noexcept
+	double Spectrum::getOptimalFramesPerUpdate() const noexcept
 	{
 #pragma message cwarn("collect this somewhere.")
 		const double monitorRefreshRate = 60.0;
@@ -1670,18 +1670,18 @@ namespace Signalizer
 		return res;
 	}
 
-	std::size_t CSpectrum::getApproximateStoredFrames() const noexcept
+	std::size_t Spectrum::getApproximateStoredFrames() const noexcept
 	{
 #pragma message cwarn("fix this to include channels, other processing methods.. etc.")
 		return sfbuf.frameQueue.enqueuededElements();
 	}
 
-	int CSpectrum::getNumFilters() const noexcept
+	int Spectrum::getNumFilters() const noexcept
 	{
 		return getAxisPoints();
 	}
 
-	double CSpectrum::getScallopingLossAtCoordinate(std::size_t coordinate)
+	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate)
 	{
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)

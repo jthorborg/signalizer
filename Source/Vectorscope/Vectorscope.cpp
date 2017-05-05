@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:CVectorScope.cpp
+	file:VectorScope.cpp
 
 		Implementation of UI, logic and dsp for the vector scope.
 
@@ -48,11 +48,11 @@ namespace Signalizer
 		Polar
 	};
 
-	const double CVectorScope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
-	const double CVectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
+	const double VectorScope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
+	const double VectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	CVectorScope::CVectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
+	VectorScope::VectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
 		: COpenGLView(nameId)
 		, globalBehaviour(globalBehaviour)
 		, audioStream(data)
@@ -81,14 +81,14 @@ namespace Signalizer
 		content->getParameterSet().addRTListener(this, true);
 	}
 
-	void CVectorScope::suspend()
+	void VectorScope::suspend()
 	{
 		//TODO: possibly unsynchronized. fix to have an internal size instead
 		oldWindowSize = content->windowSize.getTransformedValue();
 		state.isSuspended = true;
 	}
 
-	void CVectorScope::resume()
+	void VectorScope::resume()
 	{
 		if(oldWindowSize != -1)
 		{
@@ -98,36 +98,36 @@ namespace Signalizer
 		state.isSuspended = false;
 	}
 
-	juce::Component * CVectorScope::getWindow()
+	juce::Component * VectorScope::getWindow()
 	{
 		return this;
 	}
 
-	CVectorScope::~CVectorScope()
+	VectorScope::~VectorScope()
 	{
 		detachFromSource();
 		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
 	}
 
-	void CVectorScope::initPanelAndControls()
+	void VectorScope::initPanelAndControls()
 	{
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void CVectorScope::freeze()
+	void VectorScope::freeze()
 	{
 		state.isFrozen = true;
 	}
 
-	void CVectorScope::unfreeze()
+	void VectorScope::unfreeze()
 	{
 		state.isFrozen = false;
 	}
 
 
-	void CVectorScope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+	void VectorScope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		auto amount = wheel.deltaY;
 		if (event.mods.isCtrlDown())
@@ -157,7 +157,7 @@ namespace Signalizer
 
 	}
 
-	void CVectorScope::mouseDoubleClick(const juce::MouseEvent& event)
+	void VectorScope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		if (event.mods.isLeftButtonDown())
 		{
@@ -170,7 +170,7 @@ namespace Signalizer
 		}
 	}
 
-	void CVectorScope::mouseDrag(const juce::MouseEvent& event)
+	void VectorScope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto & matrix = content->transform;
 		auto factor = float(getWidth()) / getHeight();
@@ -202,18 +202,18 @@ namespace Signalizer
 		lastMousePos = event.position;
 	}
 
-	void CVectorScope::mouseUp(const juce::MouseEvent& event)
+	void VectorScope::mouseUp(const juce::MouseEvent& event)
 	{
 		// TODO: implement beginChangeGesture()
 	}
 
-	void CVectorScope::mouseDown(const juce::MouseEvent& event)
+	void VectorScope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()
 		lastMousePos = event.position;
 	}
 
-	void CVectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
+	void VectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{
 		if (param == &content->windowSize.parameter)
 		{
@@ -221,7 +221,7 @@ namespace Signalizer
 		}
 	}
 
-	void CVectorScope::handleFlagUpdates()
+	void VectorScope::handleFlagUpdates()
 	{
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
@@ -267,7 +267,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void CVectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void VectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			typedef ISA::V V;
 			using namespace cpl::simd;
@@ -367,7 +367,7 @@ namespace Signalizer
 
 		}
 
-	bool CVectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	bool VectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
@@ -376,7 +376,7 @@ namespace Signalizer
 		return false;
 	}
 
-	void CVectorScope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	void VectorScope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
 	{
 		mtFlags.audioWindowWasResized = true;
 	}

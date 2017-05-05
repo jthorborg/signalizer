@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:COscilloscope.cpp
+	file:Oscilloscope.cpp
 
 		Implementation of UI, logic and dsp for the oscilloscope.
 
@@ -42,11 +42,11 @@ namespace Signalizer
 	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
 
-	const double COscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
-	const double COscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
+	const double Oscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
+	const double Oscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	COscilloscope::COscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
+	Oscilloscope::Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
 		: COpenGLView(nameId)
 		, globalBehaviour(globalBehaviour)
 		, audioStream(data)
@@ -76,51 +76,51 @@ namespace Signalizer
 		listenToSource(audioStream);
 	}
 
-	void COscilloscope::suspend()
+	void Oscilloscope::suspend()
 	{
 		state.isSuspended = true;
 	}
 
-	void COscilloscope::resume()
+	void Oscilloscope::resume()
 	{
 		state.isSuspended = false;
 	}
 
-	juce::Component * COscilloscope::getWindow()
+	juce::Component * Oscilloscope::getWindow()
 	{
 		return this;
 	}
 
-	COscilloscope::~COscilloscope()
+	Oscilloscope::~Oscilloscope()
 	{
 		detachFromSource();
 		notifyDestruction();
 	}
 
-	void COscilloscope::initPanelAndControls()
+	void Oscilloscope::initPanelAndControls()
 	{
 		// design
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void COscilloscope::freeze()
+	void Oscilloscope::freeze()
 	{
 		state.isFrozen = true;
 	}
 
-	void COscilloscope::unfreeze()
+	void Oscilloscope::unfreeze()
 	{
 		state.isFrozen = false;
 	}
 
-	void COscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
+	void Oscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
 	{
 		lastMousePos = position;
 		threadedMousePos.first.store(position.x, std::memory_order_release);
 		threadedMousePos.second.store(position.y, std::memory_order_release);
 	}
 
-	void COscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+	void Oscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
@@ -197,7 +197,7 @@ namespace Signalizer
 		}
 
 	}
-	void COscilloscope::mouseDoubleClick(const juce::MouseEvent& event)
+	void Oscilloscope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
@@ -216,7 +216,7 @@ namespace Signalizer
 			content->viewOffsets[V::Bottom].setNormalizedValue(0);
 		}
 	}
-	void COscilloscope::mouseDrag(const juce::MouseEvent& event)
+	void Oscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto & matrix = content->transform;
 		auto deltaDifference = event.position - lastMousePos;
@@ -246,32 +246,32 @@ namespace Signalizer
 
 		setLastMousePos(event.position);
 	}
-	void COscilloscope::mouseUp(const juce::MouseEvent& event)
+	void Oscilloscope::mouseUp(const juce::MouseEvent& event)
 	{
 		// TODO: implement beginChangeGesture()
 	}
-	void COscilloscope::mouseDown(const juce::MouseEvent& event)
+	void Oscilloscope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()
 		setLastMousePos(event.position);
 	}
 
-	void COscilloscope::mouseMove(const juce::MouseEvent & event)
+	void Oscilloscope::mouseMove(const juce::MouseEvent & event)
 	{
 		setLastMousePos(event.position);
 	}
 
-	void COscilloscope::mouseExit(const juce::MouseEvent & e)
+	void Oscilloscope::mouseExit(const juce::MouseEvent & e)
 	{
 		isMouseInside.store(false, std::memory_order_relaxed);
 	}
 
-	void COscilloscope::mouseEnter(const juce::MouseEvent & e)
+	void Oscilloscope::mouseEnter(const juce::MouseEvent & e)
 	{
 		isMouseInside.store(true, std::memory_order_relaxed);
 	}
 
-	void COscilloscope::handleFlagUpdates()
+	void Oscilloscope::handleFlagUpdates()
 	{
 		const auto windowValue = content->windowSize.getTransformedValue();
 
@@ -352,7 +352,7 @@ namespace Signalizer
 		} */
 	}
 
-	inline bool COscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
