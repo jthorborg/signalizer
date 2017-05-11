@@ -283,10 +283,10 @@ namespace Signalizer
 
 				auto mode = state.channelMode;
 
-				if (mode > OscChannels::OffsetForMono && channelData.channels.size() < 2)
+				if (mode > OscChannels::OffsetForMono && channelData.front.channels.size() < 2)
 					mode = OscChannels::Left;
 
-				if (channelData.channels.size() > 0)
+				if (channelData.front.channels.size() > 0)
 				{
 					switch (mode)
 					{

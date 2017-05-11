@@ -467,6 +467,7 @@
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
     <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\OscilloscopeParameters.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\SampleColourEvaluators.h" />

@@ -304,12 +304,12 @@ namespace Signalizer
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
-		for (std::size_t c = 0; c < channelData.channels.size(); ++c)
+		for (std::size_t c = 0; c < channelData.filterStates.channels.size(); ++c)
 		{
 			if (c == 0)
-				channelData.channels[c].defaultKey = state.colourPrimary;
+				channelData.filterStates.channels[c].defaultKey = state.colourPrimary;
 			else
-				channelData.channels[c].defaultKey = state.colourSecondary;
+				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
 		}
 
 		switch (state.timeMode)

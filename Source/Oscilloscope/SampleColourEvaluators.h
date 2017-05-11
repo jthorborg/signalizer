@@ -40,7 +40,7 @@
 		{
 		public:
 			DefaultKey(ChannelData & data, std::size_t index)
-				: defaultKey(data.channels.at(index).defaultKey)
+				: defaultKey(data.filterStates.channels.at(index).defaultKey)
 			{
 
 			}
@@ -61,8 +61,8 @@
 
 				SimpleChannelEvaluator(ChannelData & data)
 					: DefaultKey(data, ColourIndex)
-					, audioView(data.channels.at(ChannelIndex).audioData.createProxyView())
-					, colourView(data.channels.at(ChannelIndex).colourData.createProxyView())
+					, audioView(data.back.channels.at(ChannelIndex).audioData.createProxyView())
+					, colourView(data.back.channels.at(ChannelIndex).colourData.createProxyView())
 				{
 
 				}
@@ -169,9 +169,9 @@
 
 				MidSideEvaluatorBase(ChannelData & data)
 					: DefaultKey(data, ColourIndex)
-					, audioViewLeft(data.channels.at(0).audioData.createProxyView())
-					, audioViewRight(data.channels.at(1).audioData.createProxyView())
-					, colourView(data.midSideColour[ChannelIndex].createProxyView())
+					, audioViewLeft(data.back.channels.at(0).audioData.createProxyView())
+					, audioViewRight(data.back.channels.at(1).audioData.createProxyView())
+					, colourView(data.back.midSideColour[ChannelIndex].createProxyView())
 				{
 
 				}

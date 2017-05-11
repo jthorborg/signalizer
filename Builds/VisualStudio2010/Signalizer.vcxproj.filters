@@ -2624,6 +2624,9 @@
     <ClInclude Include="..\..\Source\version.h">
       <Filter>Signalizer\Source\Global</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

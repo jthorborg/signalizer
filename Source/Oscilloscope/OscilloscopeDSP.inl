@@ -314,8 +314,8 @@ namespace Signalizer
 			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
 			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
 		}
-
-		channelData.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
+		channelData.back.resizeStorage(requiredSampleBufferSize >> 1, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
+		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
 	}
 
 
@@ -403,18 +403,18 @@ namespace Signalizer
 			localPointers[0] = buffer[0];
 			localPointers[1] = buffer[1];
 			preprocessAudio<ISA>(localPointers, 2, numSamples);
-			audioProcessing<ISA>(localPointers, 2, numSamples);
+			audioProcessing<ISA>(localPointers, 2, numSamples, channelData.back);
 		}
 		else
 		{
 			AFloat * localBuffer = buffer[0];
 			preprocessAudio<ISA>(&localBuffer, 1, numSamples);
-			audioProcessing<ISA>(&localBuffer, 1, numSamples);
+			audioProcessing<ISA>(&localBuffer, 1, numSamples, channelData.back);
 		}
 	}
 
 	template<typename ISA>
-		void Oscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void Oscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer & target)
 		{
 			if (numSamples == 0 || numChannels == 0)
 				return;
@@ -429,7 +429,7 @@ namespace Signalizer
 			channelData.tuneCrossOver(300, 3000, sampleRate);
 
 
-			if (channelData.channels[0].audioData.getSize() < 1)
+			if (target.channels[0].audioData.getSize() < 1)
 				return;
 
 			auto colourSmoothPole = channelData.smoothFilterPole;
@@ -511,16 +511,16 @@ namespace Signalizer
 				};
 
 				auto 
-					leftSmoothState = channelData.channels[fs::Left].smoothFilters, 
-					rightSmoothState = channelData.channels[fs::Right].smoothFilters,
-					midSmoothState = channelData.midSideSmoothsFilters[0],
-					sideSmoothState = channelData.midSideSmoothsFilters[1];
+					leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters, 
+					rightSmoothState = channelData.filterStates.channels[fs::Right].smoothFilters,
+					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
+					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
 
 				auto && 
-					lw = channelData.channels[fs::Left].colourData.createWriter(),
-					rw = channelData.channels[fs::Right].colourData.createWriter(),
-					mw = channelData.midSideColour[0].createWriter(),
-					sw = channelData.midSideColour[1].createWriter();
+					lw = target.channels[fs::Left].colourData.createWriter(),
+					rw = target.channels[fs::Right].colourData.createWriter(),
+					mw = target.midSideColour[0].createWriter(),
+					sw = target.midSideColour[1].createWriter();
 
 				std::size_t offset = 0;
 
@@ -596,11 +596,14 @@ namespace Signalizer
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
 
+					auto & lN = channelData.filterStates.channels[fs::Left].network;
+					auto & rN = channelData.filterStates.channels[fs::Right].network;
+
 					const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
 
 					// split signal into bands:
-					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
-					auto rightBands = channelData.channels[fs::Right].network.process(right, channelData.networkCoeffs);
+					auto leftBands = rN.process(left, channelData.networkCoeffs);
+					auto rightBands = lN.process(right, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
 					filterStates(rightBands, rightSmoothState);
@@ -616,10 +619,10 @@ namespace Signalizer
 
 				}
 
-				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
-				channelData.channels[fs::Right].smoothFilters = rightSmoothState;
-				channelData.midSideSmoothsFilters[0] = midSmoothState;
-				channelData.midSideSmoothsFilters[1] = sideSmoothState;
+				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
+				channelData.filterStates.channels[fs::Right].smoothFilters = rightSmoothState;
+				channelData.filterStates.midSideSmoothsFilters[0] = midSmoothState;
+				channelData.filterStates.midSideSmoothsFilters[1] = sideSmoothState;
 
 			}
 			else if (numChannels == 1)
@@ -628,8 +631,8 @@ namespace Signalizer
 					firstColour(content->primaryColour.getAsJuceColour());
 
 				filterEnv[1] = 0;
-				auto && lw = channelData.channels[fs::Left].colourData.createWriter();
-				auto leftSmoothState = channelData.channels[fs::Left].smoothFilters;
+				auto && lw = target.channels[fs::Left].colourData.createWriter();
+				auto leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters;
 
 				for (std::size_t n = 0; n < numSamples; n++)
 				{
@@ -641,13 +644,13 @@ namespace Signalizer
 					// get peak sample
 
 					// split signal into bands:
-					auto leftBands = channelData.channels[fs::Left].network.process(left, channelData.networkCoeffs);
+					auto leftBands = channelData.filterStates.channels[fs::Left].network.process(left, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
 					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
 				}
 
-				channelData.channels[fs::Left].smoothFilters = leftSmoothState;
+				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
 
 			}
 			// store calculated envelope
@@ -665,8 +668,8 @@ namespace Signalizer
 			}
 
 			// save audio data
-			for(std::size_t c = 0; c < channelData.channels.size(); ++c)
-				channelData.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
+			for(std::size_t c = 0; c < target.channels.size(); ++c)
+				target.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
 
 			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
 
@@ -694,7 +697,7 @@ namespace Signalizer
 
 			if (state.channelMode <= OscChannels::OffsetForMono)
 			{
-				auto && view = channelData.channels[0].audioData.createProxyView();
+				auto && view = channelData.back.channels[0].audioData.createProxyView();
 
 				std::size_t numSamples = view.size();
 
@@ -719,13 +722,13 @@ namespace Signalizer
 				}
 				else
 				{
-					if (channelData.channels.size() < 2)
+					if (channelData.back.channels.size() < 2)
 					{
 						shared.autoGainEnvelope.store(1, std::memory_order_release);
 						return;
 					}
 
-					auto && rightView = channelData.channels[1].audioData.createProxyView();
+					auto && rightView = channelData.back.channels[1].audioData.createProxyView();
 					const auto * rightBuffer = rightView.begin();
 
 					switch (state.channelMode)
@@ -773,13 +776,13 @@ namespace Signalizer
 			}
 			else
 			{
-				if (channelData.channels.size() < 2)
+				if (channelData.back.channels.size() < 2)
 				{
 					shared.autoGainEnvelope.store(1, std::memory_order_release);
 					return;
 				}
 
-				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.channels[0].audioData.createProxyView(), channelData.channels[1].audioData.createProxyView() };
+				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.back.channels[0].audioData.createProxyView(), channelData.back.channels[1].audioData.createProxyView() };
 
 				std::size_t numSamples = views[0].size();
 

@@ -37,10 +37,10 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "OscilloscopeParameters.h"
-	#include <cpl/dsp/LinkwitzRileyNetwork.h>
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
 	#include "StreamPreprocessing.h"
+	#include "ChannelData.h"
 
 	namespace cpl
 	{
@@ -158,7 +158,7 @@
 				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA>
-				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
+				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer &);
 
 			template<typename ISA>
 				void paint2DGraphics(juce::Graphics & g);
@@ -305,78 +305,6 @@
 				BinRecord record{};
 			};
 
-			struct ChannelData
-			{
-				static const std::size_t Bands = 3;
-				typedef cpl::dsp::LinkwitzRileyNetwork<AFloat, Bands> Crossover;
-				typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> PixelType;
-				typedef cpl::CLIFOStream<AFloat, 32> AudioBuffer;
-				typedef cpl::CLIFOStream<PixelType, 32> ColourBuffer;
-
-				struct Channel
-				{
-					AudioBuffer audioData;
-					ColourBuffer colourData;
-					Crossover::BandArray smoothFilters{};
-					Crossover network;
-					juce::Colour defaultKey;
-				};
-
-				Channel & defaultChannel()
-				{
-					return channels[0];
-				}
-
-				void resizeStorage(std::size_t samples, std::size_t capacity = -1)
-				{
-					if (capacity == -1)
-						capacity = cpl::Math::nextPow2Inc(samples);
-
-					for (auto & c : channels)
-					{
-						c.audioData.setStorageRequirements(samples, capacity);
-						c.colourData.setStorageRequirements(samples, capacity);
-					}
-
-					for (auto & c : midSideColour)
-					{
-						c.setStorageRequirements(samples, capacity);
-					}
-				}
-
-				void resizeChannels(std::size_t newChannels)
-				{
-					if (newChannels > channels.size())
-					{
-						auto original = channels.size();
-						auto diff = newChannels - original;
-
-						while (diff--)
-						{
-							channels.emplace_back();
-						}
-
-						if (original > 0)
-							resizeStorage(channels.back().audioData.getSize(), channels.back().audioData.getCapacity());
-					}
-				}
-
-				void tuneCrossOver(double lowCrossover, double highCrossover, double sampleRate)
-				{
-					networkCoeffs = Crossover::Coefficients::design({ static_cast<AFloat>(lowCrossover / sampleRate), static_cast<AFloat>(highCrossover / sampleRate) });
-				}
-
-				void tuneColourSmoothing(double milliseconds, double sampleRate)
-				{
-					smoothFilterPole = cpl::dsp::SmoothedParameterState<AFloat, 1>::design(milliseconds, sampleRate);
-				}
-
-				Crossover::Coefficients networkCoeffs;
-				cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
-				std::vector<Channel> channels{ 1 };
-				ColourBuffer midSideColour[2];
-				Crossover::BandArray midSideSmoothsFilters[2];
-			};
 
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
@@ -389,8 +317,6 @@
 			class SampleColourEvaluatorBase
 			{
 			public:
-
-				typedef Oscilloscope::ChannelData ChannelData;
 
 				typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
 				typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
