@@ -225,7 +225,7 @@ namespace Signalizer
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
-			triggerState.cycleSamples = state.effectiveWindowSize;
+			triggerState.cycleSamples = 0;
 			triggerState.sampleOffset = triggerState.preTriggerState.lastOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
 			return;
 		}
@@ -304,7 +304,7 @@ namespace Signalizer
 		// TODO: Add
 		std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
 		
-		if (state.triggerMode != OscilloscopeContent::TriggeringMode::Window)
+		if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
 			// buffer size = length of detected freq in samples + display window size + lookahead
 			requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)), OscilloscopeContent::LookaheadSize);
@@ -314,15 +314,15 @@ namespace Signalizer
 			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
 			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
 		}
-		channelData.back.resizeStorage(requiredSampleBufferSize >> 1, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
-		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity() + OscilloscopeContent::LookaheadSize));
+		channelData.back.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
+		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
 	}
 
 
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
-		Analyzer ana(buffer, numChannels, numSamples, triggerState.preTriggerState);
+		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), triggerState.preTriggerState);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -338,7 +338,7 @@ namespace Signalizer
 		}
 		else
 		{
-			std::size_t offset;
+			std::size_t offset = 0;
 			switch (mode)
 			{
 			case OscChannels::Right: offset = 1;

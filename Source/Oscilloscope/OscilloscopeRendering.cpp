@@ -286,7 +286,7 @@ namespace Signalizer
 				if (mode > OscChannels::OffsetForMono && channelData.front.channels.size() < 2)
 					mode = OscChannels::Left;
 
-				if (channelData.front.channels.size() > 0)
+				if (channelData.front.channels.size() > 0 && channelData.filterStates.channels.size() > 0)
 				{
 					switch (mode)
 					{

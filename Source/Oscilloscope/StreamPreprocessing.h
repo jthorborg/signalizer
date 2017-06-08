@@ -31,6 +31,7 @@
 	#define OSCILLOSCOPE_STREAM_PROCESSING_H
 
 	#include "Signalizer.h"
+	#include <queue>
 
 	namespace Signalizer
 	{
@@ -41,6 +42,8 @@
 			double windowSize;
 			double state;
 			double lastOffset, currentOffset;
+			bool isPeakHold;
+			std::queue<std::uint64_t> peaks;
 		};
 
 		template<typename ISA>
@@ -48,7 +51,7 @@
 		{
 		public:
 
-			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples, PreprocessingTriggerState & outsideState)
+			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples, std::uint64_t steadyClock, PreprocessingTriggerState & outsideState)
 				: buffer(buffer)
 				, numSamples(numSamples)
 				, outsideState(outsideState)
@@ -58,6 +61,8 @@
 				, windowSize(outsideState.windowSize)
 				, processedSamples(0)
 				, numChannels(numChannels)
+				, steadyClock(steadyClock)
+				, isPeakHolding(outsideState.isPeakHold)
 			{
 
 			}
@@ -67,14 +72,15 @@
 				outsideState.state = state;
 				outsideState.lastOffset = lastOffset;
 				outsideState.currentOffset = currentOffset;
+				outsideState.isPeakHold = isPeakHolding;
 			}
 
 		protected:
 			AFloat ** buffer;
 			std::size_t & numSamples;
-			
+			std::uint64_t steadyClock;
 			PreprocessingTriggerState & outsideState;
-
+			bool isPeakHolding;
 			double state, lastOffset, currentOffset, windowSize;
 			std::size_t processedSamples, numChannels;
 		};
@@ -83,42 +89,40 @@
 		class PeakHoldProcessor : SignalStreamBaseProcessor<ISA>
 		{
 		public:
+			std::size_t count = 0;
 
 			using SignalStreamBaseProcessor<ISA>::SignalStreamBaseProcessor;
 
 			inline void process(double sample) noexcept 
 			{
 				sample *= sample;
+				count++;
 				if (sample < state)
 				{
 					state *= 0.9999;
-
-					if (2 * windowSize > currentOffset)
+					
+					if (isPeakHolding)
 					{
-						lastOffset += 1;
-						currentOffset += 1;
-						processedSamples += 1;
+						outsideState.peaks.push_back(steadyClock + count);
 					}
-
 				}
 				else
 				{
 					state = sample;
-					lastOffset = currentOffset;
-					currentOffset = 0;
+					isPeakHolding = true;
 				}
 			}
 
 			~PeakHoldProcessor()
 			{
-				auto skippedSamples = numSamples - processedSamples;
+				/*auto skippedSamples = numSamples - processedSamples;
 
 				for (std::size_t c = 0; c < numChannels; ++c)
 				{
 					buffer[c] += skippedSamples;
 				}
 
-				numSamples = processedSamples;
+				numSamples = processedSamples; */
 			}
 
 		};
