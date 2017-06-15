@@ -120,11 +120,11 @@
 
 			}
 
-			void swapBuffers(std::size_t historySize)
+			void swapBuffers(std::size_t historySize, cpl::ssize_t offset)
 			{
-				auto swapBuf = [historySize](const auto & inBuf, auto & outBuf)
+				auto swapBuf = [historySize, offset](const auto & inBuf, auto & outBuf)
 				{
-					outBuf.createWriter().copyIntoHead(inBuf.createProxyView(), historySize);
+					outBuf.createWriter().copyIntoHead(inBuf.createProxyView(), historySize, offset);
 				};
 
 				for (std::size_t i = 0; i < std::extent<decltype(Buffer::midSideColour)>::value; ++i)

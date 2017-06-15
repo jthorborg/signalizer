@@ -226,7 +226,8 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = 0;
-			triggerState.sampleOffset = triggerState.preTriggerState.lastOffset + (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getParameterView().getValueNormalized() - 0.5);
+			triggerState.sampleOffset = 0;
+			//triggerState.sampleOffset = state.effectiveWindowSize / 2;
 			return;
 		}
 		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
@@ -397,13 +398,139 @@ namespace Signalizer
 	{
 		cpl::CMutex scopedLock(bufferLock);
 
+		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
+		{
+			audioProcessing<ISA>(buffer, numChannels, numSamples, channelData.back);
+			return;
+		}
+
+
 		if (numChannels > 1)
 		{
 			AFloat * localPointers[2];
 			localPointers[0] = buffer[0];
 			localPointers[1] = buffer[1];
 			preprocessAudio<ISA>(localPointers, 2, numSamples);
-			audioProcessing<ISA>(localPointers, 2, numSamples, channelData.back);
+
+
+			auto & ptState = triggerState.preTriggerState;
+			auto steadyClock = audioStream.getASyncPlayhead().getSteadyClock();
+			if (ptState.frontOrigin + ptState.bufferedSamples < steadyClock)
+			{
+				ptState.frontOrigin = steadyClock;
+				ptState.bufferedSamples = 0;
+			}
+
+			auto size = std::ceil(state.effectiveWindowSize);
+			auto halfSize = state.effectiveWindowSize / 2;
+			auto bufClock = steadyClock;
+			auto processIntoFrontBuffer = [&](auto samples)
+			{
+				audioProcessing<ISA>(localPointers, numChannels, samples, channelData.front);
+				numSamples -= samples;
+				for (std::size_t c = 0; c < numChannels; ++c)
+					localPointers[c] += samples;
+
+				auto oldSamples = ptState.bufferedSamples;
+				bufClock += samples;
+				ptState.bufferedSamples += samples;
+				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size);
+
+				ptState.frontOrigin += (oldSamples + samples) - ptState.bufferedSamples;
+			};
+
+
+
+			if (size == 0 && ptState.peaks.size())
+			{
+				std::queue<std::uint64_t>().swap(ptState.peaks);
+			}
+
+			while(numSamples != 0)
+			{
+				if(!ptState.peaks.size())
+				{
+					processIntoFrontBuffer(numSamples);
+					break;
+				} 
+				else if(!ptState.isWorkingOnPeak)
+				{
+
+					ptState.isWorkingOnPeak = true;
+
+					auto nextPeak = ptState.peaks.front();
+					if(nextPeak > bufClock)
+					{
+						// select closest peak that has a full buffer
+						auto deltaToPeak = nextPeak - bufClock;
+						auto numSamplesToProcess = std::min<std::uint64_t>(numSamples, deltaToPeak + halfSize);
+						processIntoFrontBuffer(numSamplesToProcess);
+						ptState.currentPeak = nextPeak;
+					}
+					else
+					{
+						// select closest peak that has a full buffer
+						ptState.currentPeak = nextPeak;
+						
+					}
+				}
+
+				std::int64_t windowEnd;
+				bool isCaseTwo = false;
+				if(ptState.currentPeak - ptState.oldPeak < halfSize)
+				{
+					windowEnd = ptState.oldPeak + halfSize;	
+				}
+				else
+				{
+					isCaseTwo = true;
+					windowEnd = ptState.frontOrigin + ptState.bufferedSamples;
+
+				}
+
+				std::uint64_t peakWindowEnd = ptState.currentPeak + halfSize;
+				if (windowEnd > peakWindowEnd)
+				{
+					int k = 0;
+				}
+				auto missingBufferSamples = peakWindowEnd - windowEnd;
+
+				auto neededPreSamples = std::min<std::uint64_t>(halfSize, std::max<double>((ptState.currentPeak - ptState.oldPeak), halfSize) - halfSize);
+
+
+				auto numSamplesToProcess = std::min(numSamples, missingBufferSamples);
+			
+				if(numSamplesToProcess > 0)
+					processIntoFrontBuffer(numSamplesToProcess);
+			
+				if(missingBufferSamples == numSamplesToProcess)
+
+				//if(ptState.bufferedSamples == amount)
+				{
+					auto amount = (isCaseTwo ? halfSize : missingBufferSamples) + neededPreSamples;
+
+
+
+					// 1
+					channelData.swapBuffers(amount, -(cpl::ssize_t)ptState.bufferedSamples);
+					// 2
+					ptState.bufferedSamples -= std::min<std::uint64_t>(ptState.bufferedSamples, amount);
+					
+					// 4
+					ptState.backOrigin = ptState.frontOrigin;
+					// 3
+					ptState.frontOrigin += amount;
+					ptState.oldPeak = ptState.currentPeak;
+					ptState.isWorkingOnPeak = false;
+					ptState.peaks.pop();
+				}
+
+
+
+			}
+	
+
+			//audioProcessing<ISA>(localPointers, 2, numSamples, channelData.back);
 		}
 		else
 		{

@@ -43,7 +43,11 @@
 			double state;
 			double lastOffset, currentOffset;
 			bool isPeakHold;
+			std::uint64_t oldPeak;
+			std::uint64_t currentPeak, bufferedSamples;
+			std::uint64_t frontOrigin, backOrigin;
 			std::queue<std::uint64_t> peaks;
+			bool isWorkingOnPeak;
 		};
 
 		template<typename ISA>
@@ -96,14 +100,15 @@
 			inline void process(double sample) noexcept 
 			{
 				sample *= sample;
-				count++;
+
 				if (sample < state)
 				{
 					state *= 0.9999;
 					
 					if (isPeakHolding)
 					{
-						outsideState.peaks.push_back(steadyClock + count);
+						outsideState.peaks.push(steadyClock + count);
+						isPeakHolding = false;
 					}
 				}
 				else
@@ -111,6 +116,8 @@
 					state = sample;
 					isPeakHolding = true;
 				}
+
+				count++;
 			}
 
 			~PeakHoldProcessor()
