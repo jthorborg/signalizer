@@ -475,8 +475,12 @@ namespace Signalizer
 					}
 				}
 
-				std::int64_t windowEnd;
+				std::uint64_t windowEnd;
 				bool isCaseTwo = false;
+				bool condition = false;
+
+				auto peakDelta = ptState.currentPeak - ptState.oldPeak;
+
 				if(ptState.currentPeak - ptState.oldPeak < halfSize)
 				{
 					windowEnd = ptState.oldPeak + halfSize;	
@@ -488,28 +492,67 @@ namespace Signalizer
 
 				}
 
+				auto endOfBack = ptState.frontOrigin + ptState.bufferedSamples;
+				auto endOfFront = ptState.oldPeak + halfSize;
+
+				auto diff = cpl::Math::ssub(endOfBack, endOfFront);
+
 				std::uint64_t peakWindowEnd = ptState.currentPeak + halfSize;
 				if (windowEnd > peakWindowEnd)
 				{
+					//ptState.isWorkingOnPeak = false;
+					//ptState.peaks.pop();
 					int k = 0;
 				}
-				auto missingBufferSamples = peakWindowEnd - windowEnd;
+
+				std::uint64_t numSamplesToProcess = 0;
+
+				auto missingBufferSamples = peakWindowEnd - std::min(peakWindowEnd, windowEnd);
 
 				auto neededPreSamples = std::min<std::uint64_t>(halfSize, std::max<double>((ptState.currentPeak - ptState.oldPeak), halfSize) - halfSize);
 
+				if (isCaseTwo)
+				{
+					numSamplesToProcess = std::min(numSamples, missingBufferSamples);
 
-				auto numSamplesToProcess = std::min(numSamples, missingBufferSamples);
-			
-				if(numSamplesToProcess > 0)
-					processIntoFrontBuffer(numSamplesToProcess);
-			
-				if(missingBufferSamples == numSamplesToProcess)
+					if (numSamplesToProcess > 0)
+						processIntoFrontBuffer(numSamplesToProcess);
+
+					condition = missingBufferSamples == numSamplesToProcess;
+				}
+				else
+				{
+					if (ptState.bufferedSamples >= missingBufferSamples)
+					{
+						condition = true;
+					}
+					else
+					{
+						auto numRemaining = missingBufferSamples - ptState.bufferedSamples;
+
+						numSamplesToProcess = std::min(numSamples, numRemaining);
+
+						if (numSamplesToProcess > 0)
+							processIntoFrontBuffer(numSamplesToProcess);
+
+
+						condition = numRemaining == numSamplesToProcess;
+					}
+
+				}
+
+				if(condition)
 
 				//if(ptState.bufferedSamples == amount)
 				{
-					auto amount = (isCaseTwo ? halfSize : missingBufferSamples) + neededPreSamples;
+					auto adjust = peakDelta < 2 * halfSize ? std::ceil(halfSize) : halfSize;
 
+					auto amount = (isCaseTwo ? adjust : missingBufferSamples) + neededPreSamples;
 
+					if (amount < halfSize + neededPreSamples)
+					{
+						int z = 0;
+					}
 
 					// 1
 					channelData.swapBuffers(amount, -(cpl::ssize_t)ptState.bufferedSamples);
