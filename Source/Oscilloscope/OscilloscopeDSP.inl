@@ -226,7 +226,7 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = 0;
-			triggerState.sampleOffset = 0;
+			triggerState.sampleOffset = -1 - (state.effectiveWindowSize - (int)state.effectiveWindowSize) ;
 			//triggerState.sampleOffset = state.effectiveWindowSize / 2;
 			return;
 		}
@@ -407,14 +407,18 @@ namespace Signalizer
 
 		if (numChannels > 1)
 		{
+			auto & ptState = triggerState.preTriggerState;
+			auto steadyClock = audioStream.getASyncPlayhead().getSteadyClock();
 			AFloat * localPointers[2];
 			localPointers[0] = buffer[0];
 			localPointers[1] = buffer[1];
+
+			ptState.handleStateChanges(steadyClock);
+
 			preprocessAudio<ISA>(localPointers, 2, numSamples);
 
 
-			auto & ptState = triggerState.preTriggerState;
-			auto steadyClock = audioStream.getASyncPlayhead().getSteadyClock();
+
 			if (ptState.frontOrigin + ptState.bufferedSamples < steadyClock)
 			{
 				ptState.frontOrigin = steadyClock;
@@ -434,7 +438,7 @@ namespace Signalizer
 				auto oldSamples = ptState.bufferedSamples;
 				bufClock += samples;
 				ptState.bufferedSamples += samples;
-				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size);
+				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, state.effectiveWindowSize);
 
 				ptState.frontOrigin += (oldSamples + samples) - ptState.bufferedSamples;
 			};
@@ -554,15 +558,22 @@ namespace Signalizer
 						int z = 0;
 					}
 
+					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, amount);
+
+					if (isCaseTwo && cappedSize > ptState.bufferedSamples)
+					{
+						int q = 0;
+					}
+
 					// 1
-					channelData.swapBuffers(amount, -(cpl::ssize_t)ptState.bufferedSamples);
+					channelData.swapBuffers(cappedSize, -(cpl::ssize_t)ptState.bufferedSamples);
 					// 2
-					ptState.bufferedSamples -= std::min<std::uint64_t>(ptState.bufferedSamples, amount);
+					ptState.bufferedSamples -= std::min<std::uint64_t>(ptState.bufferedSamples, cappedSize);
 					
 					// 4
 					ptState.backOrigin = ptState.frontOrigin;
 					// 3
-					ptState.frontOrigin += amount;
+					ptState.frontOrigin += cappedSize;
 					ptState.oldPeak = ptState.currentPeak;
 					ptState.isWorkingOnPeak = false;
 					ptState.peaks.pop();

@@ -40,6 +40,7 @@
 			double hysterisis;
 			double timeConstant;
 			double windowSize;
+			bool windowChanged;
 			double state;
 			double lastOffset, currentOffset;
 			bool isPeakHold;
@@ -48,6 +49,31 @@
 			std::uint64_t frontOrigin, backOrigin;
 			std::queue<std::uint64_t> peaks;
 			bool isWorkingOnPeak;
+			volatile bool block;
+
+			void handleStateChanges(std::uint64_t currentTime)
+			{
+				if (windowChanged)
+				{
+					windowChanged = false;
+
+					if (isWorkingOnPeak)
+					{
+						peaks.pop();
+					}
+
+					while (peaks.size() && peaks.front() < currentTime)
+						peaks.pop();
+
+					currentPeak = oldPeak = 0;
+					backOrigin = bufferedSamples = 0;
+					frontOrigin = currentTime;
+
+					isWorkingOnPeak = false;
+
+				}
+			}
+
 		};
 
 		template<typename ISA>

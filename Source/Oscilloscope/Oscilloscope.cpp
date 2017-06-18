@@ -312,6 +312,8 @@ namespace Signalizer
 				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
 		}
 
+		auto oldWindow = state.effectiveWindowSize;
+
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:
@@ -328,7 +330,7 @@ namespace Signalizer
 		}
 
 		triggerState.preTriggerState.windowSize = state.effectiveWindowSize;
-
+		triggerState.preTriggerState.windowChanged = state.effectiveWindowSize != oldWindow;
 
 		bool firstRun = false;
 
