@@ -165,6 +165,7 @@
 		class ZeroCrossingProcessor : SignalStreamBaseProcessor<ISA>
 		{
 		public:
+			std::size_t count = 0;
 
 			using SignalStreamBaseProcessor<ISA>::SignalStreamBaseProcessor;
 
@@ -172,17 +173,11 @@
 			{
 				if (sample > 0 && state < 0)
 				{
-					state = sample;
-					lastOffset = currentOffset;
-					currentOffset = 0;
-				}
-				else
-				{
-					lastOffset += 1;
-					currentOffset += 1;
+					outsideState.peaks.push(steadyClock + count);
 				}
 
 				state = sample;
+				count++;
 			}
 
 		};
