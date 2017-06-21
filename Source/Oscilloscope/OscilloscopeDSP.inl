@@ -226,8 +226,9 @@ namespace Signalizer
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = 0;
-			triggerState.sampleOffset = -1 - (state.effectiveWindowSize - (int)state.effectiveWindowSize) ;
-			//triggerState.sampleOffset = state.effectiveWindowSize / 2;
+			triggerState.sampleOffset = 0;
+			// -1 - (state.effectiveWindowSize - (int)state.effectiveWindowSize) 
+			triggerState.sampleOffset = (state.effectiveWindowSize * 0.5 - (int)(state.effectiveWindowSize * 0.5)) - 1.5;
 			return;
 		}
 		else if (state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
@@ -295,7 +296,7 @@ namespace Signalizer
 		auto cycles = phase / tau;
 
 		// convert to samples
-		triggerState.sampleOffset = cycles * audioStream.getAudioHistorySamplerate() / (triggerState.fundamental);
+		triggerState.sampleOffset = cycles * audioStream.getAudioHistorySamplerate() / (triggerState.fundamental) - 1;
 
 	}
 
@@ -404,7 +405,6 @@ namespace Signalizer
 			return;
 		}
 
-
 		if (numChannels > 1)
 		{
 			auto & ptState = triggerState.preTriggerState;
@@ -417,8 +417,6 @@ namespace Signalizer
 
 			preprocessAudio<ISA>(localPointers, 2, numSamples);
 
-
-
 			if (ptState.frontOrigin + ptState.bufferedSamples < steadyClock)
 			{
 				ptState.frontOrigin = steadyClock;
@@ -426,7 +424,7 @@ namespace Signalizer
 			}
 
 			auto size = std::ceil(state.effectiveWindowSize);
-			auto halfSize = state.effectiveWindowSize / 2;
+			auto halfSize = size / 2;
 			auto bufClock = steadyClock;
 			auto processIntoFrontBuffer = [&](auto samples)
 			{
@@ -438,7 +436,7 @@ namespace Signalizer
 				auto oldSamples = ptState.bufferedSamples;
 				bufClock += samples;
 				ptState.bufferedSamples += samples;
-				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, state.effectiveWindowSize);
+				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size);
 
 				ptState.frontOrigin += (oldSamples + samples) - ptState.bufferedSamples;
 			};
@@ -463,7 +461,7 @@ namespace Signalizer
 					ptState.isWorkingOnPeak = true;
 
 					auto nextPeak = ptState.peaks.front();
-					if(nextPeak > bufClock)
+					if(nextPeak >= bufClock)
 					{
 						// select closest peak that has a full buffer
 						auto deltaToPeak = nextPeak - bufClock;
@@ -496,19 +494,7 @@ namespace Signalizer
 
 				}
 
-				auto endOfBack = ptState.frontOrigin + ptState.bufferedSamples;
-				auto endOfFront = ptState.oldPeak + halfSize;
-
-				auto diff = cpl::Math::ssub(endOfBack, endOfFront);
-
 				std::uint64_t peakWindowEnd = ptState.currentPeak + halfSize;
-				if (windowEnd > peakWindowEnd)
-				{
-					//ptState.isWorkingOnPeak = false;
-					//ptState.peaks.pop();
-					int k = 0;
-				}
-
 				std::uint64_t numSamplesToProcess = 0;
 
 				auto missingBufferSamples = peakWindowEnd - std::min(peakWindowEnd, windowEnd);
@@ -546,30 +532,17 @@ namespace Signalizer
 				}
 
 				if(condition)
-
-				//if(ptState.bufferedSamples == amount)
 				{
 					auto adjust = peakDelta < 2 * halfSize ? std::ceil(halfSize) : halfSize;
 
 					auto amount = (isCaseTwo ? adjust : missingBufferSamples) + neededPreSamples;
 
-					if (amount < halfSize + neededPreSamples)
-					{
-						int z = 0;
-					}
-
-					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, amount);
-
-					if (isCaseTwo && cappedSize > ptState.bufferedSamples)
-					{
-						int q = 0;
-					}
+					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, std::ceil(amount));
 
 					// 1
 					channelData.swapBuffers(cappedSize, -(cpl::ssize_t)ptState.bufferedSamples);
 					// 2
 					ptState.bufferedSamples -= std::min<std::uint64_t>(ptState.bufferedSamples, cappedSize);
-					
 					// 4
 					ptState.backOrigin = ptState.frontOrigin;
 					// 3

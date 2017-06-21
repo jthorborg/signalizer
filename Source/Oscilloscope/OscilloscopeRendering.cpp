@@ -469,7 +469,7 @@ namespace Signalizer
 			double offset = 0;
 			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
-				offset = windowSize * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
+				offset = windowSize * 0.5;
 				end -= offset;
 				start -= offset;
 			}
@@ -622,7 +622,7 @@ namespace Signalizer
 				if (!eval.isWellDefined())
 					return;
 
-				eval.startFrom(-(bufferOffset + 1 + sampleOffset), -(bufferOffset + sampleOffset));
+				eval.startFrom(-(bufferOffset + sampleOffset), -(bufferOffset + sampleOffset));
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, primitive);
 				kernel(eval, drawer);
 			};
@@ -808,7 +808,7 @@ namespace Signalizer
 					if (!eval.isWellDefined())
 						return;
 
-					eval.startFrom(-static_cast<cpl::ssize_t>(std::floor(samplePos)) - (int)KernelSize - 1, 2 - KernelBufferSize - static_cast<cpl::ssize_t>(std::floor(samplePos)));
+					eval.startFrom(-static_cast<cpl::ssize_t>(std::floor(samplePos)) - (int)KernelSize, 2 - KernelBufferSize - static_cast<cpl::ssize_t>(std::floor(samplePos)));
 
 					AFloat kernel[KernelBufferSize];
 

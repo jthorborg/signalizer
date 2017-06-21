@@ -133,7 +133,8 @@
 					
 					if (isPeakHolding)
 					{
-						outsideState.peaks.push(steadyClock + count);
+						// minus one since this is the first sample that doesn't qualify as a (rising) peak
+						outsideState.peaks.push(steadyClock + count - 1);
 						isPeakHolding = false;
 					}
 				}
