@@ -314,7 +314,7 @@ namespace Signalizer
 		else
 		{
 			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
-			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize));
+			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize + 1));
 		}
 		channelData.back.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
 		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
@@ -436,7 +436,7 @@ namespace Signalizer
 				auto oldSamples = ptState.bufferedSamples;
 				bufClock += samples;
 				ptState.bufferedSamples += samples;
-				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size);
+				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size + 1);
 
 				ptState.frontOrigin += (oldSamples + samples) - ptState.bufferedSamples;
 			};
@@ -494,7 +494,7 @@ namespace Signalizer
 
 				}
 
-				std::uint64_t peakWindowEnd = ptState.currentPeak + halfSize;
+				std::uint64_t peakWindowEnd = (isCaseTwo ? 1 : 0) + ptState.currentPeak + halfSize;
 				std::uint64_t numSamplesToProcess = 0;
 
 				auto missingBufferSamples = peakWindowEnd - std::min(peakWindowEnd, windowEnd);
@@ -537,7 +537,7 @@ namespace Signalizer
 
 					auto amount = (isCaseTwo ? adjust : missingBufferSamples) + neededPreSamples;
 
-					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, std::ceil(amount));
+					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, std::ceil(amount + 1));
 
 					// 1
 					channelData.swapBuffers(cappedSize, -(cpl::ssize_t)ptState.bufferedSamples);
