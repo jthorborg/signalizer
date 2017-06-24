@@ -36,6 +36,7 @@
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
 #include "OscilloscopeDSP.inl"
+#include "StreamPreprocessing.h"
 
 namespace Signalizer
 {
@@ -64,6 +65,8 @@ namespace Signalizer
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
+
+		triggerState.preTriggerState = std::make_unique<PreprocessingTrigger>();
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
@@ -300,6 +303,9 @@ namespace Signalizer
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
 		state.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
+		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
+		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
+
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
@@ -321,6 +327,8 @@ namespace Signalizer
 			state.effectiveWindowSize = std::max(state.effectiveWindowSize, 128.0);
 			break;
 		case OscilloscopeContent::TimeMode::Cycles:
+			// +1 to allow another sample's display when centering waveforms in the middle,
+			// used by preprocessing triggers
 			state.effectiveWindowSize = windowValue * triggerState.cycleSamples + 1;
 			break;
 		case OscilloscopeContent::TimeMode::Time:
@@ -329,10 +337,7 @@ namespace Signalizer
 			break;
 		}
 
-		triggerState.preTriggerState.windowSize = state.effectiveWindowSize;
-		triggerState.preTriggerState.windowChanged = state.effectiveWindowSize != oldWindow;
-		triggerState.preTriggerState.hysteresis = content->triggerHysteresis.parameter.getValue();
-		triggerState.preTriggerState.threshold = content->triggerThreshold.getTransformedValue();
+		triggerState.preTriggerState->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 
 		bool firstRun = false;
 

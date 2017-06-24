@@ -327,7 +327,7 @@ namespace Signalizer
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
-		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), triggerState.preTriggerState);
+		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.preTriggerState);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -391,7 +391,7 @@ namespace Signalizer
 		{
 			executeSamplingWindows<ISA, ZeroCrossingProcessor<ISA>>(buffer, numChannels, numSamples);
 		}
-		else if(isPeakHolder)
+		else if (isPeakHolder)
 		{
 			executeSamplingWindows<ISA, PeakHoldProcessor<ISA>>(buffer, numChannels, numSamples);
 		}
@@ -402,171 +402,24 @@ namespace Signalizer
 	{
 		cpl::CMutex scopedLock(bufferLock);
 
+		// TODO: dynamically determine size
+		AFloat * localBuffers[2];
+
+		numChannels = std::min<std::size_t>(2, numChannels);
+
+		for (std::size_t c = 0; c < numChannels; ++c)
+			localBuffers[c] = buffer[c];
+
+		preprocessAudio<ISA>(localBuffers, numChannels, numSamples);
+
 		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			audioProcessing<ISA>(buffer, numChannels, numSamples, channelData.back);
-			return;
-		}
-
-		if (numChannels > 1)
-		{
-			auto & ptState = triggerState.preTriggerState;
-			auto steadyClock = audioStream.getASyncPlayhead().getSteadyClock();
-			AFloat * localPointers[2];
-			localPointers[0] = buffer[0];
-			localPointers[1] = buffer[1];
-
-			ptState.handleStateChanges(steadyClock);
-
-			preprocessAudio<ISA>(localPointers, 2, numSamples);
-
-			if (ptState.frontOrigin + ptState.bufferedSamples < steadyClock)
-			{
-				ptState.frontOrigin = steadyClock;
-				ptState.bufferedSamples = 0;
-			}
-
-			auto size = std::ceil(state.effectiveWindowSize);
-			auto halfSize = size / 2;
-			auto bufClock = steadyClock;
-			auto processIntoFrontBuffer = [&](auto samples)
-			{
-				audioProcessing<ISA>(localPointers, numChannels, samples, channelData.front);
-				numSamples -= samples;
-				for (std::size_t c = 0; c < numChannels; ++c)
-					localPointers[c] += samples;
-
-				auto oldSamples = ptState.bufferedSamples;
-				bufClock += samples;
-				ptState.bufferedSamples += samples;
-				ptState.bufferedSamples = std::min<std::int64_t>(ptState.bufferedSamples, size + 1);
-
-				ptState.frontOrigin += (oldSamples + samples) - ptState.bufferedSamples;
-			};
-
-
-
-			if (size == 0 && ptState.peaks.size())
-			{
-				std::queue<std::uint64_t>().swap(ptState.peaks);
-			}
-
-			while(numSamples != 0)
-			{
-				if(!ptState.peaks.size())
-				{
-					processIntoFrontBuffer(numSamples);
-					break;
-				} 
-				else if(!ptState.isWorkingOnPeak)
-				{
-
-					ptState.isWorkingOnPeak = true;
-
-					auto nextPeak = ptState.peaks.front();
-					if(nextPeak >= bufClock)
-					{
-						// select closest peak that has a full buffer
-						auto deltaToPeak = nextPeak - bufClock;
-						auto numSamplesToProcess = std::min<std::uint64_t>(numSamples, deltaToPeak + halfSize);
-						processIntoFrontBuffer(numSamplesToProcess);
-						ptState.currentPeak = nextPeak;
-					}
-					else
-					{
-						// select closest peak that has a full buffer
-						ptState.currentPeak = nextPeak;
-						
-					}
-				}
-
-				std::uint64_t windowEnd;
-				bool isCaseTwo = false;
-				bool condition = false;
-
-				auto peakDelta = ptState.currentPeak - ptState.oldPeak;
-
-				if(ptState.currentPeak - ptState.oldPeak < halfSize)
-				{
-					windowEnd = ptState.oldPeak + halfSize;	
-				}
-				else
-				{
-					isCaseTwo = true;
-					windowEnd = ptState.frontOrigin + ptState.bufferedSamples;
-
-				}
-
-				std::uint64_t peakWindowEnd = (isCaseTwo ? 1 : 0) + ptState.currentPeak + halfSize;
-				std::uint64_t numSamplesToProcess = 0;
-
-				auto missingBufferSamples = peakWindowEnd - std::min(peakWindowEnd, windowEnd);
-
-				auto neededPreSamples = std::min<std::uint64_t>(halfSize, std::max<double>((ptState.currentPeak - ptState.oldPeak), halfSize) - halfSize);
-
-				if (isCaseTwo)
-				{
-					numSamplesToProcess = std::min<std::uint64_t>(numSamples, missingBufferSamples);
-
-					if (numSamplesToProcess > 0)
-						processIntoFrontBuffer(numSamplesToProcess);
-
-					condition = missingBufferSamples == numSamplesToProcess;
-				}
-				else
-				{
-					if (ptState.bufferedSamples >= missingBufferSamples)
-					{
-						condition = true;
-					}
-					else
-					{
-						auto numRemaining = missingBufferSamples - ptState.bufferedSamples;
-
-						numSamplesToProcess = std::min<std::uint64_t>(numSamples, numRemaining);
-
-						if (numSamplesToProcess > 0)
-							processIntoFrontBuffer(numSamplesToProcess);
-
-
-						condition = numRemaining == numSamplesToProcess;
-					}
-
-				}
-
-				if(condition)
-				{
-					auto adjust = peakDelta < 2 * halfSize ? std::ceil(halfSize) : halfSize;
-
-					auto amount = (isCaseTwo ? adjust : missingBufferSamples) + neededPreSamples;
-
-					auto cappedSize = std::min<std::size_t>(ptState.bufferedSamples, std::ceil(amount + 1));
-
-					// 1
-					channelData.swapBuffers(cappedSize, -(cpl::ssize_t)ptState.bufferedSamples);
-					// 2
-					ptState.bufferedSamples -= std::min<std::uint64_t>(ptState.bufferedSamples, cappedSize);
-					// 4
-					ptState.backOrigin = ptState.frontOrigin;
-					// 3
-					ptState.frontOrigin += cappedSize;
-					ptState.oldPeak = ptState.currentPeak;
-					ptState.isWorkingOnPeak = false;
-					ptState.peaks.pop();
-				}
-
-
-
-			}
-	
-
-			//audioProcessing<ISA>(localPointers, 2, numSamples, channelData.back);
 		}
 		else
 		{
-			AFloat * localBuffer = buffer[0];
-			preprocessAudio<ISA>(&localBuffer, 1, numSamples);
-			audioProcessing<ISA>(&localBuffer, 1, numSamples, channelData.back);
+			triggerState.preTriggerState->update(audioStream.getASyncPlayhead().getSteadyClock());
+			triggerState.preTriggerState->processMutating<ISA>(*this, buffer, numChannels, numSamples);
 		}
 	}
 

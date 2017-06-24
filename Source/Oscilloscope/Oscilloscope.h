@@ -39,7 +39,6 @@
 	#include "OscilloscopeParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
-	#include "StreamPreprocessing.h"
 	#include "ChannelData.h"
 
 	namespace cpl
@@ -52,13 +51,15 @@
 
 	namespace Signalizer
 	{
-
+		class PreprocessingTrigger;
 
 		class Oscilloscope final
 			: public cpl::COpenGLView
 			, private AudioStream::Listener
 		{
 		public:
+
+			friend class PreprocessingTrigger;
 
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
@@ -149,7 +150,7 @@
 				void analyseAndSetupState();
 
 			template<typename ISA>
-				void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+			void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
 
 			template<typename ISA, class Analyzer>
 				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
@@ -213,7 +214,8 @@
 				double windowTimeOffset;
 				double beatDivision;
 				double customTriggerFrequency;
-
+				double triggerHysteresis;
+				double triggerThreshold;
 				double autoGain, manualGain;
 
 				double viewOffsets[4];
@@ -277,7 +279,7 @@
 
 			struct TriggerData
 			{ 
-				PreprocessingTriggerState preTriggerState{};
+				std::unique_ptr<PreprocessingTrigger> preTriggerState;
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
