@@ -67,7 +67,7 @@
 					while (peaks.size() && peaks.front() < currentSteadyClock)
 						peaks.pop();
 
-					currentPeak = oldPeak = 0;
+					bufferedSamples = currentPeak = oldPeak = 0;
 					frontOrigin = currentSteadyClock;
 
 					isWorkingOnPeak = false;
@@ -76,7 +76,7 @@
 			}
 
 			template<typename ISA>
-			void processMutating(Oscilloscope & o, AFloat ** localPointers, std::size_t numChannels, std::size_t & numSamples)
+			void processMutating(Oscilloscope & o, AFloat ** localPointers, std::size_t numChannels, std::size_t numSamples)
 			{
 				if (frontOrigin + bufferedSamples < steadyClock)
 				{
@@ -86,19 +86,18 @@
 
 				auto ceilingSize = std::ceil(windowSize);
 				auto halfSize = ceilingSize / 2;
-				auto bufClock = steadyClock;
 
-				auto processIntoFrontBuffer = [&](auto samples)
+				auto processIntoBackBuffer = [&](auto samples)
 				{
-					o.audioProcessing<ISA>(localPointers, numChannels, samples, o.channelData.front);
+					o.audioProcessing<ISA>(localPointers, numChannels, samples, o.channelData.back);
 					numSamples -= samples;
 					for (std::size_t c = 0; c < numChannels; ++c)
 						localPointers[c] += samples;
 
 					auto oldSamples = bufferedSamples;
-					bufClock += samples;
+					steadyClock += samples;
 					bufferedSamples += samples;
-					bufferedSamples = std::min<std::int64_t>(bufferedSamples, ceilingSize + 1);
+					bufferedSamples = std::min<std::uint64_t>(bufferedSamples, ceilingSize + 1);
 
 					frontOrigin += (oldSamples + samples) - bufferedSamples;
 				};
@@ -112,7 +111,7 @@
 				{
 					if (!peaks.size())
 					{
-						processIntoFrontBuffer(numSamples);
+						processIntoBackBuffer(numSamples);
 						break;
 					}
 					else if (!isWorkingOnPeak)
@@ -121,12 +120,12 @@
 						isWorkingOnPeak = true;
 
 						auto nextPeak = peaks.front();
-						if (nextPeak >= bufClock)
+						if (nextPeak >= steadyClock)
 						{
 							// select closest peak that has a full buffer
-							auto deltaToPeak = nextPeak - bufClock;
+							auto deltaToPeak = nextPeak - steadyClock;
 							auto numSamplesToProcess = std::min<std::uint64_t>(numSamples, deltaToPeak + halfSize);
-							processIntoFrontBuffer(numSamplesToProcess);
+							processIntoBackBuffer(numSamplesToProcess);
 							currentPeak = nextPeak;
 						}
 						else
@@ -138,8 +137,8 @@
 					}
 
 					std::uint64_t windowEnd;
-					bool isCaseTwo = false;
-					bool condition = false;
+					bool isPeakOutsideOfWindow = false;
+					bool readyForBufferSwap = false;
 
 					auto peakDelta = currentPeak - oldPeak;
 
@@ -149,32 +148,32 @@
 					}
 					else
 					{
-						isCaseTwo = true;
+						isPeakOutsideOfWindow = true;
 						windowEnd = frontOrigin + bufferedSamples;
 
 					}
 
-					std::uint64_t peakWindowEnd = (isCaseTwo ? 1 : 0) + currentPeak + halfSize;
+					std::uint64_t peakWindowEnd = (isPeakOutsideOfWindow ? 1 : 0) + currentPeak + halfSize;
 					std::uint64_t numSamplesToProcess = 0;
 
 					auto missingBufferSamples = peakWindowEnd - std::min(peakWindowEnd, windowEnd);
 
 					auto neededPreSamples = std::min<std::uint64_t>(halfSize, std::max<double>((currentPeak - oldPeak), halfSize) - halfSize);
 
-					if (isCaseTwo)
+					if (isPeakOutsideOfWindow)
 					{
 						numSamplesToProcess = std::min<std::uint64_t>(numSamples, missingBufferSamples);
 
 						if (numSamplesToProcess > 0)
-							processIntoFrontBuffer(numSamplesToProcess);
+							processIntoBackBuffer(numSamplesToProcess);
 
-						condition = missingBufferSamples == numSamplesToProcess;
+						readyForBufferSwap = missingBufferSamples == numSamplesToProcess;
 					}
 					else
 					{
 						if (bufferedSamples >= missingBufferSamples)
 						{
-							condition = true;
+							readyForBufferSwap = true;
 						}
 						else
 						{
@@ -183,22 +182,18 @@
 							numSamplesToProcess = std::min<std::uint64_t>(numSamples, numRemaining);
 
 							if (numSamplesToProcess > 0)
-								processIntoFrontBuffer(numSamplesToProcess);
+								processIntoBackBuffer(numSamplesToProcess);
 
-
-							condition = numRemaining == numSamplesToProcess;
+							readyForBufferSwap = numRemaining == numSamplesToProcess;
 						}
 
 					}
 
-					if (condition)
+					if (readyForBufferSwap)
 					{
-						auto adjust = peakDelta < 2 * halfSize ? std::ceil(halfSize) : halfSize;
-
-						auto amount = (isCaseTwo ? adjust : missingBufferSamples) + neededPreSamples;
+						auto amount = (isPeakOutsideOfWindow ? halfSize : missingBufferSamples) + neededPreSamples;
 
 						auto cappedSize = std::min<std::size_t>(bufferedSamples, std::ceil(amount + 1));
-
 						// 1
 						o.channelData.swapBuffers(cappedSize, -(cpl::ssize_t)bufferedSamples);
 						// 2

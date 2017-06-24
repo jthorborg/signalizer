@@ -98,7 +98,7 @@
 
 			void resizeChannels(std::size_t newChannels)
 			{
-				for (auto buffer : { &front, &back })
+				for (auto buffer : { &back, &front })
 				{
 					auto & channels = buffer->channels;
 
@@ -129,13 +129,13 @@
 
 				for (std::size_t i = 0; i < std::extent<decltype(Buffer::midSideColour)>::value; ++i)
 				{
-					swapBuf(front.midSideColour[i], back.midSideColour[i]);
+					swapBuf(back.midSideColour[i], front.midSideColour[i]);
 				}
 
-				for (std::size_t i = 0; i < front.channels.size(); ++i)
+				for (std::size_t i = 0; i < back.channels.size(); ++i)
 				{
-					swapBuf(front.channels[i].audioData, back.channels[i].audioData);
-					swapBuf(front.channels[i].colourData, back.channels[i].colourData);
+					swapBuf(back.channels[i].audioData, front.channels[i].audioData);
+					swapBuf(back.channels[i].colourData, front.channels[i].colourData);
 				}
 			}
 
@@ -153,7 +153,7 @@
 			cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
 
 			FilterStates filterStates;
-			Buffer front, back;
+			Buffer back, front;
 
 		};
 	};

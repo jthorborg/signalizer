@@ -61,8 +61,8 @@
 
 				SimpleChannelEvaluator(ChannelData & data)
 					: DefaultKey(data, ColourIndex)
-					, audioView(data.back.channels.at(ChannelIndex).audioData.createProxyView())
-					, colourView(data.back.channels.at(ChannelIndex).colourData.createProxyView())
+					, audioView(data.front.channels.at(ChannelIndex).audioData.createProxyView())
+					, colourView(data.front.channels.at(ChannelIndex).colourData.createProxyView())
 				{
 
 				}
@@ -169,9 +169,9 @@
 
 				MidSideEvaluatorBase(ChannelData & data)
 					: DefaultKey(data, ColourIndex)
-					, audioViewLeft(data.back.channels.at(0).audioData.createProxyView())
-					, audioViewRight(data.back.channels.at(1).audioData.createProxyView())
-					, colourView(data.back.midSideColour[ChannelIndex].createProxyView())
+					, audioViewLeft(data.front.channels.at(0).audioData.createProxyView())
+					, audioViewRight(data.front.channels.at(1).audioData.createProxyView())
+					, colourView(data.front.midSideColour[ChannelIndex].createProxyView())
 				{
 
 				}

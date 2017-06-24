@@ -279,7 +279,7 @@
 
 			struct TriggerData
 			{ 
-				std::unique_ptr<PreprocessingTrigger> preTriggerState;
+				std::unique_ptr<PreprocessingTrigger> preprocessingTrigger;
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>

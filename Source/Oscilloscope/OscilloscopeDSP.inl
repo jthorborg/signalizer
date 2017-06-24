@@ -319,15 +319,15 @@ namespace Signalizer
 			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
 			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize + 1));
 		}
-		channelData.back.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
 		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
+		channelData.back.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
 	}
 
 
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
 	{
-		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.preTriggerState);
+		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.preprocessingTrigger);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -409,17 +409,17 @@ namespace Signalizer
 
 		for (std::size_t c = 0; c < numChannels; ++c)
 			localBuffers[c] = buffer[c];
-
+		
+		triggerState.preprocessingTrigger->update(audioStream.getASyncPlayhead().getSteadyClock());
 		preprocessAudio<ISA>(localBuffers, numChannels, numSamples);
 
 		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
-			audioProcessing<ISA>(buffer, numChannels, numSamples, channelData.back);
+			audioProcessing<ISA>(localBuffers, numChannels, numSamples, channelData.front);
 		}
 		else
 		{
-			triggerState.preTriggerState->update(audioStream.getASyncPlayhead().getSteadyClock());
-			triggerState.preTriggerState->processMutating<ISA>(*this, buffer, numChannels, numSamples);
+			triggerState.preprocessingTrigger->processMutating<ISA>(*this, localBuffers, numChannels, numSamples);
 		}
 	}
 
@@ -707,7 +707,7 @@ namespace Signalizer
 
 			if (state.channelMode <= OscChannels::OffsetForMono)
 			{
-				auto && view = channelData.back.channels[0].audioData.createProxyView();
+				auto && view = channelData.front.channels[0].audioData.createProxyView();
 
 				std::size_t numSamples = view.size();
 
@@ -732,13 +732,13 @@ namespace Signalizer
 				}
 				else
 				{
-					if (channelData.back.channels.size() < 2)
+					if (channelData.front.channels.size() < 2)
 					{
 						shared.autoGainEnvelope.store(1, std::memory_order_release);
 						return;
 					}
 
-					auto && rightView = channelData.back.channels[1].audioData.createProxyView();
+					auto && rightView = channelData.front.channels[1].audioData.createProxyView();
 					const auto * rightBuffer = rightView.begin();
 
 					switch (state.channelMode)
@@ -786,13 +786,13 @@ namespace Signalizer
 			}
 			else
 			{
-				if (channelData.back.channels.size() < 2)
+				if (channelData.front.channels.size() < 2)
 				{
 					shared.autoGainEnvelope.store(1, std::memory_order_release);
 					return;
 				}
 
-				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.back.channels[0].audioData.createProxyView(), channelData.back.channels[1].audioData.createProxyView() };
+				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
 
 				std::size_t numSamples = views[0].size();
 

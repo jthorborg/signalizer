@@ -66,7 +66,7 @@ namespace Signalizer
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
 
-		triggerState.preTriggerState = std::make_unique<PreprocessingTrigger>();
+		triggerState.preprocessingTrigger = std::make_unique<PreprocessingTrigger>();
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
@@ -337,7 +337,7 @@ namespace Signalizer
 			break;
 		}
 
-		triggerState.preTriggerState->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
+		triggerState.preprocessingTrigger->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 
 		bool firstRun = false;
 
