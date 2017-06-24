@@ -371,7 +371,7 @@ namespace Signalizer
 				return (pos + (state.viewOffsets[VO::Bottom] - 1)) / verticalDelta;
 			};
 
-			auto drawMarkerAt = [&](auto where) {
+			auto drawMarkerAt = [&](auto where, auto size) {
 
 				auto const transformedPos = viewTransform(where);
 				auto const coord = transformedPos * rect.getHeight();
@@ -385,7 +385,7 @@ namespace Signalizer
 
 				g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
 
-				g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y);
+				g.drawLine(xoff, yoff + rect.getHeight() - y, xoff + rect.getWidth(), yoff + rect.getHeight() - y, size);
 			};
 
 			// -300 dB
@@ -406,14 +406,14 @@ namespace Signalizer
 			while (unitSpacePos < end)
 			{
 				if(std::abs(unitSpacePos - 0.5) > zeroDBEpsilon)
-					drawMarkerAt(unitSpacePos);
+					drawMarkerAt(unitSpacePos, 1.5f);
 
 
 				unitSpacePos += inc;
 			}
 
 			if(start < 0.5 && end > 0.5)
-				drawMarkerAt(0.5);
+				drawMarkerAt(0.5, 1.5f);
 		}
 
 	template<typename ISA>
@@ -488,7 +488,8 @@ namespace Signalizer
 				auto const fraction = (currentMsPos + offset) / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
 				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
-				g.drawLine(x, yoff, x, rect.getHeight());
+
+				g.drawLine(x, yoff, x, rect.getHeight(), samples == 0 ? 1.5f : 1.0f);
 
 				float offset = 10;
 
