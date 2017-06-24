@@ -331,6 +331,8 @@ namespace Signalizer
 
 		triggerState.preTriggerState.windowSize = state.effectiveWindowSize;
 		triggerState.preTriggerState.windowChanged = state.effectiveWindowSize != oldWindow;
+		triggerState.preTriggerState.hysteresis = content->triggerHysteresis.parameter.getValue();
+		triggerState.preTriggerState.threshold = content->triggerThreshold.getTransformedValue();
 
 		bool firstRun = false;
 

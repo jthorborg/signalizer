@@ -123,15 +123,18 @@ namespace Signalizer
 			};
 
 			const double quarterSemitone = std::pow(2, 0.25 / 12.0) - 1;
+			const double threshold = content->triggerThreshold.getTransformedValue();
+			const double hysteresis = content->triggerHysteresis.getTransformedValue();
+			const auto invHysteresis = 1 - hysteresis;
 
-			BinRecord max{ 1, std::abs(transformBuffer[1]), quadDelta(1) };
+			BinRecord max{ 1, std::max(threshold * TransformSize, std::abs(transformBuffer[1])), quadDelta(1) };
 
 			for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
 			{
 				BinRecord current{ i, std::abs(transformBuffer[i]) };
 
 				// candidate must be vastly better
-				if (current.value > max.value * 2)
+				if (invHysteresis * current.value > max.value * 2)
 				{
 					// weird parabolas
 					if (max.omega() > 0)
@@ -145,7 +148,7 @@ namespace Signalizer
 						auto sensivity = current.value / max.value;
 
 						// shortcut if the value is 20 times bigger
-						if (sensivity > 20)
+						if (invHysteresis * sensivity > 20)
 						{
 							max = current;
 							continue;
@@ -153,7 +156,7 @@ namespace Signalizer
 
 						// the same value, just a better estimate, from another bin
 						// TODO: fix this case by polynomially interpolate the value as well
-						if (std::abs(1 - factor) < quarterSemitone)
+						if (std::abs(1 - factor) < invHysteresis * quarterSemitone)
 						{
 							max = current;
 							continue;
@@ -162,7 +165,7 @@ namespace Signalizer
 						auto multipleDeviation = std::abs(factor - std::floor(factor + 0.5));
 
 						// check if the harmonic series is more than half a semi-tone away, in which case we take the candidate
-						if (std::abs(multipleDeviation) > quarterSemitone)
+						if (invHysteresis * std::abs(multipleDeviation) > quarterSemitone)
 						{
 							max = current;
 						}
@@ -503,7 +506,7 @@ namespace Signalizer
 
 				if (isCaseTwo)
 				{
-					numSamplesToProcess = std::min(numSamples, missingBufferSamples);
+					numSamplesToProcess = std::min<std::uint64_t>(numSamples, missingBufferSamples);
 
 					if (numSamplesToProcess > 0)
 						processIntoFrontBuffer(numSamplesToProcess);
@@ -520,7 +523,7 @@ namespace Signalizer
 					{
 						auto numRemaining = missingBufferSamples - ptState.bufferedSamples;
 
-						numSamplesToProcess = std::min(numSamples, numRemaining);
+						numSamplesToProcess = std::min<std::uint64_t>(numSamples, numRemaining);
 
 						if (numSamplesToProcess > 0)
 							processIntoFrontBuffer(numSamplesToProcess);

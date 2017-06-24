@@ -37,12 +37,15 @@
 	{
 		struct PreprocessingTriggerState
 		{
-			double hysterisis;
+			double hysteresis;
+			double threshold;
 			double timeConstant;
 			double windowSize;
 			bool windowChanged;
 			double state;
 			double lastOffset, currentOffset;
+
+			std::uint64_t crossOrigin;
 			bool isPeakHold;
 			std::uint64_t oldPeak;
 			std::uint64_t currentPeak, bufferedSamples;
@@ -127,9 +130,16 @@
 			{
 				sample *= sample;
 
-				if (sample < state)
+
+				auto delta = sample - state;
+
+
+
+				if (delta < 0)
 				{
 					state *= 0.9999;
+					
+					state = std::max(outsideState.threshold * outsideState.threshold, state);
 					
 					if (isPeakHolding)
 					{
@@ -140,8 +150,10 @@
 				}
 				else
 				{
+					if (delta > outsideState.hysteresis * state)
+						isPeakHolding = true;
+
 					state = sample;
-					isPeakHolding = true;
 				}
 
 				count++;
@@ -173,9 +185,16 @@
 			{
 				if (sample > 0 && state < 0)
 				{
-					outsideState.peaks.push(steadyClock + count);
+					isPeakHolding = true;
+					outsideState.crossOrigin = steadyClock + count;
 				}
-
+				
+				if (isPeakHolding && sample > outsideState.threshold)
+				{
+					isPeakHolding = false;
+					outsideState.peaks.push(outsideState.crossOrigin);
+				}
+				
 				state = sample;
 				count++;
 			}

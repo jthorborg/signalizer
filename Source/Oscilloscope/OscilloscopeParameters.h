@@ -404,6 +404,8 @@
 					, kcursorTracker(&parentValue.cursorTracker)
 					, ktrackerColour(&parentValue.trackerColour)
 					, kfreqColourBlend(&parentValue.frequencyColouringBlend)
+					, ktriggerHysteresis(&parentValue.triggerHysteresis)
+					, ktriggerThreshold(&parentValue.triggerThreshold)
 
 					, editorSerializer(
 						*this, 
@@ -486,6 +488,8 @@
 					kcolourSmoothingTime.bSetTitle("Colour smoothing");
 					ktrackerColour.bSetTitle("Tracker colour");
 					kfreqColourBlend.bSetTitle("Colour blend");
+					ktriggerHysteresis.bSetTitle("Hysteresis");
+					ktriggerThreshold.bSetTitle("Trigger thrshld");
 					// buttons n controls
 
 					kantiAlias.setSingleText("Antialias");
@@ -534,6 +538,8 @@
 					kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 					kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
 					ktrackerColour.bSetDescription("Colour of the cursor tracker");
+					ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how willing the trigger is to change");
+					ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
 				}
 
 				void initUI()
@@ -570,8 +576,12 @@
 							section->addControl(&kwindow, 0);
 							section->addControl(&ktimeMode, 1);
 							section->addControl(&ktriggerMode, 0);
-							section->addControl(&kcustomFrequency, 1);
-							section->addControl(&ktriggerPhaseOffset, 0);
+							section->addControl(&ktriggerPhaseOffset, 1);
+
+							section->addControl(&ktriggerThreshold, 0);
+							section->addControl(&ktriggerHysteresis, 1);
+							
+							section->addControl(&kcustomFrequency, 0);
 							section->addControl(&ktriggerOnCustomFrequency, 1);
 	
 							page->addSection(section, "Spatial");
@@ -659,6 +669,8 @@
 					archive << kcursorTracker;
 					archive << ktrackerColour;
 					archive << kfreqColourBlend;
+					archive << ktriggerHysteresis;
+					archive << ktriggerThreshold;
 				}
 
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -703,6 +715,12 @@
 						builder >> kfreqColourBlend;
 					}
 
+					if (version > cpl::Version(0, 3, 2))
+					{
+						builder >> ktriggerHysteresis;
+						builder >> ktriggerThreshold;
+					}
+
 				}
 
 
@@ -741,7 +759,9 @@
 
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
 				cpl::CValueInputControl kcustomFrequency;
-				cpl::CValueKnobSlider kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend;
+				cpl::CValueKnobSlider 
+					kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
+					ktriggerHysteresis, ktriggerThreshold;
 				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
 				cpl::CTransformWidget ktransform;
 				cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
@@ -767,6 +787,7 @@
 				, reverseUnitRange(1, 0)
 				, customTriggerRange(5, 48000)
 				, colourSmoothRange(0.001, 1000)
+				, triggerThresholdRange(0, 4)
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
@@ -793,6 +814,8 @@
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 				, cursorTracker("CursorTrck", unityRange, boolFormatter)
 				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
+				, triggerHysteresis("TrgHstrs", unityRange, pctFormatter)
+				, triggerThreshold("TrgThrhold", triggerThresholdRange, dbFormatter)
 
 				, colourBehaviour()
 				, primaryColour(colourBehaviour, "Prim.")
@@ -841,7 +864,9 @@
 					&channelColouring.param,
 					&colourSmoothing,
 					&cursorTracker,
-					&frequencyColouringBlend
+					&frequencyColouringBlend,
+					&triggerHysteresis,
+					&triggerThreshold
 				};
 
 				for (auto sparam : singleParameters)
@@ -923,6 +948,8 @@
 				archive << cursorTracker;
 				archive << trackerColour;
 				archive << frequencyColouringBlend;
+				archive << triggerHysteresis;
+				archive << triggerThreshold;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -966,6 +993,11 @@
 					builder >> frequencyColouringBlend;
 				}
 
+				if (version >= cpl::Version(0, 3, 2))
+				{
+					builder >> triggerHysteresis;
+					builder >> triggerThreshold;
+				}
 			}
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -995,7 +1027,8 @@
 				degreeRange,
 				phaseRange,
 				reverseUnitRange,
-				customTriggerRange;
+				customTriggerRange,
+				triggerThresholdRange;
 
 			cpl::UnityRange<double> unityRange;
 			
@@ -1019,7 +1052,9 @@
 				overlayChannels,
 				colourSmoothing,
 				cursorTracker,
-				frequencyColouringBlend;
+				frequencyColouringBlend,
+				triggerHysteresis,
+				triggerThreshold;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
