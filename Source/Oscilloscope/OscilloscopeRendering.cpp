@@ -183,7 +183,7 @@ namespace Signalizer
 
 			if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
-				samples -= (state.effectiveWindowSize - 1) * (content->triggerPhaseOffset.getNormalizedValue() - 0.5);
+				samples -= (state.effectiveWindowSize - 1) *  0.5;
 			}
 
 			char text[200];
