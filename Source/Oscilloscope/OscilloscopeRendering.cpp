@@ -139,9 +139,6 @@ namespace Signalizer
 
 			const auto mouseX = threadedMousePos.first.load(std::memory_order_acquire), mouseY = threadedMousePos.second.load(std::memory_order_acquire);
 
-			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
-			g.drawLine(mouseX, 0, mouseX, bounds.getHeight());
-
 			double estimatedSize[2] = { 180, 70 };
 			double textOffset[2] = { 20, -estimatedSize[1] };
 
@@ -155,14 +152,21 @@ namespace Signalizer
 
 			auto fraction = (double)mouseY / (getHeight() - 1);
 
+			juce::Point<float> verticalMouseSection{ 0, (state.overlayChannels ? 1 : 0.5f) * getBounds().getHeight()};
+
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
 				if (fraction > 0.5)
 				{
+					verticalMouseSection = { getBounds().getHeight() * 0.5f, getBounds().getHeight() * 0.5f };
 					fraction -= 0.5;
 				}
 				fraction *= 2;
 			}
+
+			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
+			g.drawLine(mouseX, verticalMouseSection.getX(), mouseX, verticalMouseSection.getX() + verticalMouseSection.getY());
+
 			fraction = cpl::Math::UnityScale::linear(fraction, state.viewOffsets[VO::Top], state.viewOffsets[VO::Bottom]);
 			fraction = 2 * (0.5 - fraction) / getGain();
 
@@ -283,10 +287,10 @@ namespace Signalizer
 
 				auto mode = state.channelMode;
 
-				if (mode > OscChannels::OffsetForMono && channelData.back.channels.size() < 2)
+				if (mode > OscChannels::OffsetForMono && channelData.front.channels.size() < 2)
 					mode = OscChannels::Left;
 
-				if (channelData.back.channels.size() > 0 && channelData.filterStates.channels.size() > 0)
+				if (channelData.front.channels.size() > 0 && channelData.filterStates.channels.size() > 0)
 				{
 					switch (mode)
 					{
@@ -609,7 +613,7 @@ namespace Signalizer
 			matrixMod.translate(0, top + (bottom - 1), 0);
 			matrixMod.scale(1, gain, 0);
 
-			const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples + 2);
+			const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples /* + 2 */);
 
 			auto renderSampleSpace = [&](auto kernel, GLint primitive, cpl::ssize_t sampleOffset = 0)
 			{

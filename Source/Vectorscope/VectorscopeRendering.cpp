@@ -385,7 +385,7 @@ namespace Signalizer
 
 			// Draw basic graph
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<12> drawer(openGLStack, GL_LINES);
+				cpl::OpenGLRendering::PrimitiveDrawer<16> drawer(openGLStack, GL_LINES);
 				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
 				drawer.addColour(state.colourGraph);
 				// front x, y axii

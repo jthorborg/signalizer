@@ -304,7 +304,6 @@
 							section->addControl(&kchannelConfiguration, 0);
 							section->addControl(&kdisplayMode, 1);
 							section->addControl(&kfrequencyTracker, 1);
-							section->addControl(&ktrackerSmoothing, 0);
 							page->addSection(section);
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -399,7 +398,8 @@
 							section->addControl(&kprimitiveSize, 1);
 							section->addControl(&kfloodFillAlpha, 0);
 							section->addControl(&kreferenceTuning, 1);
-							section->addControl(&kdiagnostics, 0);
+							section->addControl(&ktrackerSmoothing, 0);
+							section->addControl(&kdiagnostics, 1);
 							page->addSection(section);
 						}
 					}
