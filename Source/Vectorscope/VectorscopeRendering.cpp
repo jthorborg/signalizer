@@ -144,60 +144,62 @@ namespace Signalizer
 		{
 
 			CPL_DEBUGCHECKGL();
-			auto && lockedView = audioStream.getAudioBufferViews();
-			handleFlagUpdates();
-			auto cStart = cpl::Misc::ClockCounter();
-			juce::OpenGLHelpers::clear(state.colourBackground);
-			{
-				cpl::OpenGLRendering::COpenGLStack openGLStack;
-				// set up openGL
-				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-				openGLStack.loadIdentityMatrix();
-				cpl::GraphicsND::Transform3D<GLfloat> transform(1);
-				content->transform.fillTransform3D(transform);
-				openGLStack.applyTransform3D(transform);
-				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
+            {
+                auto cStart = cpl::Misc::ClockCounter();
+                auto && lockedView = audioStream.getAudioBufferViews();
+                handleFlagUpdates();
+                juce::OpenGLHelpers::clear(state.colourBackground);
+                {
+                    cpl::OpenGLRendering::COpenGLStack openGLStack;
+                    // set up openGL
+                    openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+                    openGLStack.loadIdentityMatrix();
+                    cpl::GraphicsND::Transform3D<GLfloat> transform(1);
+                    content->transform.fillTransform3D(transform);
+                    openGLStack.applyTransform3D(transform);
+                    state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
-				// the peak filter has to run on the whole buffer each time.
-				if (state.envelopeMode == EnvelopeModes::PeakDecay)
-				{
-					runPeakFilter<ISA>(lockedView);
-				}
-				else if (state.envelopeMode == EnvelopeModes::None)
-				{
-					state.envelopeGain = 1;
-				}
+                    // the peak filter has to run on the whole buffer each time.
+                    if (state.envelopeMode == EnvelopeModes::PeakDecay)
+                    {
+                        runPeakFilter<ISA>(lockedView);
+                    }
+                    else if (state.envelopeMode == EnvelopeModes::None)
+                    {
+                        state.envelopeGain = 1;
+                    }
 
-				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
-				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
+                    openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
+                    openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				// draw actual stereoscopic plot
-				if (lockedView.getNumChannels() >= 2)
-				{
-					if (state.isPolar)
-					{
-						drawPolarPlot<ISA>(openGLStack, lockedView);
-					}
-					else // is Lissajous
-					{
-						drawRectPlot<ISA>(openGLStack, lockedView);
-					}
-				}
-				CPL_DEBUGCHECKGL();
+                    // draw actual stereoscopic plot
+                    if (lockedView.getNumChannels() >= 2)
+                    {
+                        if (state.isPolar)
+                        {
+                            drawPolarPlot<ISA>(openGLStack, lockedView);
+                        }
+                        else // is Lissajous
+                        {
+                            drawRectPlot<ISA>(openGLStack, lockedView);
+                        }
+                    }
+                    CPL_DEBUGCHECKGL();
 
-				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
+                    openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
 
-				// draw graph and wireframe
-				drawWireFrame<ISA>(openGLStack);
-				CPL_DEBUGCHECKGL();
-				// draw channel text(ures)
-				drawGraphText<ISA>(openGLStack, lockedView);
-				CPL_DEBUGCHECKGL();
-				// draw 2d stuff (like stereo meters)
-				drawStereoMeters<ISA>(openGLStack, lockedView);
-				CPL_DEBUGCHECKGL();
-				renderCycles = cpl::Misc::ClockCounter() - cStart;
-			}
+                    // draw graph and wireframe
+                    drawWireFrame<ISA>(openGLStack);
+                    CPL_DEBUGCHECKGL();
+                    // draw channel text(ures)
+                    drawGraphText<ISA>(openGLStack, lockedView);
+                    CPL_DEBUGCHECKGL();
+                    // draw 2d stuff (like stereo meters)
+                    drawStereoMeters<ISA>(openGLStack, lockedView);
+                    CPL_DEBUGCHECKGL();
+                    renderCycles = cpl::Misc::ClockCounter() - cStart;
+                }
+            }
 			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 
 			auto tickNow = juce::Time::getHighResolutionTicks();

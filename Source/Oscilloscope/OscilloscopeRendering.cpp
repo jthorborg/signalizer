@@ -258,18 +258,19 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::vectorGLRendering()
 		{
-			cpl::CMutex lock(bufferLock);
-			auto cStart = cpl::Misc::ClockCounter();
-			CPL_DEBUGCHECKGL();
-
-			handleFlagUpdates();
-
-			juce::OpenGLHelpers::clear(state.colourBackground);
-
-			if (!checkAndInformInvalidCombinations())
-				return;
-
+            auto cStart = cpl::Misc::ClockCounter();
+            CPL_DEBUGCHECKGL();
+            
 			{
+                cpl::CMutex lock(bufferLock);
+                
+                handleFlagUpdates();
+                
+                juce::OpenGLHelpers::clear(state.colourBackground);
+                
+                if (!checkAndInformInvalidCombinations())
+                    return;
+                
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);

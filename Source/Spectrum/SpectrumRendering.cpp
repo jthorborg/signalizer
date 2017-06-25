@@ -692,68 +692,72 @@ namespace Signalizer
     void Spectrum::vectorGLRendering()
 	{
 		auto cStart = cpl::Misc::ClockCounter();
-		cpl::CFastMutex audioLock;
-		// starting from a clean slate?
-		CPL_DEBUGCHECKGL();
-		juce::OpenGLHelpers::clear(state.colourBackground);
+        {
+
+            cpl::CFastMutex audioLock;
+            // starting from a clean slate?
+            CPL_DEBUGCHECKGL();
+            juce::OpenGLHelpers::clear(state.colourBackground);
 
 
-		for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-			lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
+            for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
+                lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 
-		bool lineTransformReady = false;
+            bool lineTransformReady = false;
 
-		// lock the memory buffers, and do our thing.
-		{
-			handleFlagUpdates();
-			// line graph data for ffts are rendered now.
-			if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
-			{
-				audioLock.acquire(audioResource);
-				lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
-			}
+            // lock the memory buffers, and do our thing.
+            {
+                handleFlagUpdates();
+                // line graph data for ffts are rendered now.
+                if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
+                {
+                    audioLock.acquire(audioResource);
+                    lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
+                }
 
-		}
-		// flags may have altered ogl state
-		CPL_DEBUGCHECKGL();
+            }
+            // flags may have altered ogl state
+            CPL_DEBUGCHECKGL();
 
-		cpl::OpenGLRendering::COpenGLStack openGLStack;
-		// set up openGL
-		//openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		openGLStack.loadIdentityMatrix();
-		CPL_DEBUGCHECKGL();
-		CPL_DEBUGCHECKGL();
+            cpl::OpenGLRendering::COpenGLStack openGLStack;
+            // set up openGL
+            //openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+            openGLStack.loadIdentityMatrix();
+            CPL_DEBUGCHECKGL();
+            CPL_DEBUGCHECKGL();
 
-		openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()));
-		openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()));
+            openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()));
+            openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()));
 
-		CPL_DEBUGCHECKGL();
+            CPL_DEBUGCHECKGL();
 
-		switch (state.displayMode)
-		{
-		case SpectrumContent::DisplayMode::LineGraph:
-			// no need to lock in this case, as this display mode is exclusively switched,
-			// such that only we have access to it.
-			if (lineTransformReady)
-			{
-				audioLock.acquire(audioResource);
-				doTransform();
-				mapToLinearSpace();
-				postProcessStdTransform();
-			}
-			renderLineGraph<ISA>(openGLStack); break;
-		case SpectrumContent::DisplayMode::ColourSpectrum:
-			// mapping and processing is already done here.
-			renderColourSpectrum<ISA>(openGLStack); break;
+            switch (state.displayMode)
+            {
+            case SpectrumContent::DisplayMode::LineGraph:
+                // no need to lock in this case, as this display mode is exclusively switched,
+                // such that only we have access to it.
+                if (lineTransformReady)
+                {
+                    audioLock.acquire(audioResource);
+                    doTransform();
+                    mapToLinearSpace();
+                    postProcessStdTransform();
+                }
+                renderLineGraph<ISA>(openGLStack); break;
+            case SpectrumContent::DisplayMode::ColourSpectrum:
+                // mapping and processing is already done here.
+                renderColourSpectrum<ISA>(openGLStack); break;
 
-		}
-		renderCycles = cpl::Misc::ClockCounter() - cStart;
-		auto tickNow = juce::Time::getHighResolutionTicks();
-		avgFps.setNext(tickNow - lastFrameTick);
-		lastFrameTick = tickNow;
+            }
+            
+        }
 		CPL_DEBUGCHECKGL();
 		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 		CPL_DEBUGCHECKGL();
+        renderCycles = cpl::Misc::ClockCounter() - cStart;
+        auto tickNow = juce::Time::getHighResolutionTicks();
+        avgFps.setNext(tickNow - lastFrameTick);
+        lastFrameTick = tickNow;
 	}
 
 
