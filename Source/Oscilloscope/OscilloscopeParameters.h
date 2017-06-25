@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:Oscilloscope.h
 
 		Interface for the oscilloscope parameters
- 
+
 *************************************************************************************/
 
 #ifndef SIGNALIZER_COSCILLOSCOPEPARAMETERS_H
@@ -69,8 +69,16 @@
 			class WindowSizeTransformatter : public AudioHistoryTransformatter<ParameterView>
 			{
 			public:
-				WindowSizeTransformatter(AudioStream & audioStream, std::size_t auxLookahead, Mode mode = Milliseconds)
-					: AudioHistoryTransformatter(audioStream, mode), lookahead(auxLookahead), timeMode(TimeMode::Time)
+
+			    typedef typename AudioHistoryTransformatter<ParameterView>::Mode Mode;
+			    typedef typename AudioHistoryTransformatter<ParameterView>::Stream Stream;
+			    typedef typename AudioHistoryTransformatter<ParameterView>::ValueType ValueType;
+			    typedef typename AudioHistoryTransformatter<ParameterView>::Scaling Scaling;
+
+				WindowSizeTransformatter(AudioStream & audioStream, std::size_t auxLookahead, Mode mode = Mode::Milliseconds)
+					: AudioHistoryTransformatter<ParameterView>(audioStream, mode)
+					, lookahead(auxLookahead)
+					, timeMode(TimeMode::Time)
 				{
 
 				}
@@ -78,7 +86,7 @@
 				void setTimeModeFromUI(TimeMode newMode)
 				{
 					timeMode = newMode;
-					param->updateFromUINormalized(param->getValueNormalized());
+					this->param->updateFromUINormalized(this->param->getValueNormalized());
 				}
 
 			private:
@@ -86,8 +94,8 @@
 				virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
 				{
 					// TODO: what if oldCapacity == 0?
-					const auto oldFraction = param->getValueNormalized();
-					auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
+					const auto oldFraction = this->param->getValueNormalized();
+					auto oldCapacity = this->lastCapacity.load(std::memory_order_relaxed);
 					auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
 					if (oldCapacity == 0)
 						oldCapacity = beforeCapacity;
@@ -95,18 +103,18 @@
 					const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
 
 					if (newCapacity > 0)
-						lastCapacity.store(newCapacity, std::memory_order_relaxed);
+						this->lastCapacity.store(newCapacity, std::memory_order_relaxed);
 
 					if (oldCapacity == 0 || newCapacity == 0)
 					{
-						param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+						this->param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 					}
 					else
 					{
 						const auto sampleSizeBefore = oldCapacity * oldFraction;
 						const auto newFraction = sampleSizeBefore / newCapacity;
 						if (oldFraction != newFraction || beforeCapacity == 0)
-							param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
+							this->param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 					}
 				}
 
@@ -155,7 +163,7 @@
 
 									ValueType numerator, denominator;
 
-									if (cpl::lexicalConversion(std::string(buf.begin() + numeratorEnd + 1, buf.end()), denominator) 
+									if (cpl::lexicalConversion(std::string(buf.begin() + numeratorEnd + 1, buf.end()), denominator)
 										&& cpl::lexicalConversion(std::string(buf.begin(), buf.begin() + numeratorEnd), numerator))
 									{
 										collectedValue = numerator / denominator;
@@ -183,15 +191,15 @@
 							{
 								collectedValue /= 1000;
 							}
-							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+							collectedValue *= this->stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 						}
 						else
 						{
 							// assume value is in miliseconds
-							if (m == Milliseconds && notSamples)
+							if (this->m == Mode::Milliseconds && notSamples)
 							{
 								collectedValue /= 1000;
-								collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+								collectedValue *= this->stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 							}
 						}
 
@@ -219,7 +227,7 @@
 						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
-							const auto capacity = stream.getAudioHistoryCapacity();
+							const auto capacity = this->stream.getAudioHistoryCapacity();
 
 							const auto top = capacity;
 							const auto expSamples = cpl::Math::UnityScale::exp<ValueType>(val, minExponential, top);
@@ -246,7 +254,7 @@
 						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
-							const auto capacity = stream.getAudioHistoryCapacity();
+							const auto capacity = this->stream.getAudioHistoryCapacity();
 							const auto top = capacity;
 							const auto linear = cpl::Math::UnityScale::Inv::linear<ValueType>(val, 2, top);
 							const auto expSamples = cpl::Math::UnityScale::linear<ValueType>(linear, minExponential, top);
@@ -365,7 +373,7 @@
 				const AudioStream & stream;
 			};
 
-			class OscilloscopeController 
+			class OscilloscopeController
 				: public CContentPage
 				, public ParameterSet::UIListener
 			{
@@ -408,7 +416,7 @@
 					, ktriggerThreshold(&parentValue.triggerThreshold)
 
 					, editorSerializer(
-						*this, 
+						*this,
 						[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
 						[](auto & oc, auto & se, auto version) { oc.deserializeEditorSettings(se, version); }
 					)
@@ -427,7 +435,7 @@
 					enforceTriggeringModeCompability();
 				}
 
-				
+
 				void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 				{
 					if(parameter == &parent.timeMode.param.getParameterView())
@@ -505,7 +513,7 @@
 					koverlayChannels.setToggleable(true);
 					kcursorTracker.bSetTitle("Cursor tracker");
 					kcursorTracker.setToggleable(true);
-					
+
 
 					// descriptions.
 					kwindow.bSetDescription("The size of the displayed time window.");
@@ -572,7 +580,7 @@
 							page->addSection(section, "Utility");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
-						{							
+						{
 							section->addControl(&kwindow, 0);
 							section->addControl(&ktimeMode, 1);
 							section->addControl(&ktriggerMode, 0);
@@ -580,10 +588,10 @@
 
 							section->addControl(&ktriggerThreshold, 0);
 							section->addControl(&ktriggerHysteresis, 1);
-							
+
 							section->addControl(&kcustomFrequency, 0);
 							section->addControl(&ktriggerOnCustomFrequency, 1);
-	
+
 							page->addSection(section, "Spatial");
 						}
 					}
@@ -598,7 +606,7 @@
 							page->addSection(section, "Options");
 						}
 						if (auto section = new Signalizer::CContentPage::MatrixSection())
-						{				
+						{
 							section->addControl(&kprimitiveSize, 0);
 							section->addControl(&ksubSampleInterpolationMode, 1);
 
@@ -676,7 +684,7 @@
 				void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
 				{
 					// in general, controls should never restore values. However, older versions
-					// of Signalizer does exactly this, so to keep backwards-compatibility, we 
+					// of Signalizer does exactly this, so to keep backwards-compatibility, we
 					// can obtain the preset values through this.
 					cpl::Serialization::ScopedModifier m(cpl::CSerializer::Modifiers::RestoreValue, version < cpl::Version(0, 2, 8));
 					builder << m;
@@ -759,7 +767,7 @@
 
 				cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
 				cpl::CValueInputControl kcustomFrequency;
-				cpl::CValueKnobSlider 
+				cpl::CValueKnobSlider
 					kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
 					ktriggerHysteresis, ktriggerThreshold;
 				cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
@@ -843,13 +851,13 @@
 				channelColouring.fmt.setValues({ "Static", "Spectral energy" });
 
 				// order matters
-				auto singleParameters = { 
-					&autoGain.param, 
+				auto singleParameters = {
+					&autoGain.param,
 					&envelopeWindow,
-					&inputGain, 
-					&windowSize, 
+					&inputGain,
+					&windowSize,
 					&antialias,
-					&diagnostics, 
+					&diagnostics,
 					&primitiveSize,
 					&subSampleInterpolation.param,
 					&channelConfiguration.param,
@@ -1031,7 +1039,7 @@
 				triggerThresholdRange;
 
 			cpl::UnityRange<double> unityRange;
-			
+
 			enum ViewOffsets
 			{
 				Left, Top, Right, Bottom, end
@@ -1087,7 +1095,7 @@
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
 			}
 		};
-	
+
 	};
 
 #endif

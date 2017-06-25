@@ -32,9 +32,9 @@
 #ifndef SIGNALIZER_MAINEDITOR_H
 	#define SIGNALIZER_MAINEDITOR_H
 
-	#include "Signalizer.h"
-	#include "Common/SignalizerDesign.h"
-	#include "Common/SentientViewState.h"
+	#include "../Signalizer.h"
+	#include "../Common/SignalizerDesign.h"
+	#include "../Common/SentientViewState.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/GUI.h>
 	#include <map>

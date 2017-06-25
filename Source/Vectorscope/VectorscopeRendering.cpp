@@ -28,7 +28,7 @@
 *************************************************************************************/
 
 
-#include "VectorScope.h"
+#include "Vectorscope.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
@@ -128,7 +128,7 @@ namespace Signalizer
 			textures[i]->loadImage(letter);
 		}
 	}
-	
+
 	void VectorScope::closeOpenGL()
 	{
 		textures.clear();
@@ -162,7 +162,7 @@ namespace Signalizer
 				if (state.envelopeMode == EnvelopeModes::PeakDecay)
 				{
 					runPeakFilter<ISA>(lockedView);
-				} 
+				}
 				else if (state.envelopeMode == EnvelopeModes::None)
 				{
 					state.envelopeGain = 1;
@@ -454,7 +454,7 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
-			typedef ISA::V V;
+			typedef typename ISA::V V;
 			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			using namespace cpl::simd;
@@ -777,7 +777,7 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
-			typedef ISA::V V;
+			typedef typename ISA::V V;
 
 			double currentEnvelope = 1;
 

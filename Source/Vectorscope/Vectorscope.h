@@ -36,7 +36,7 @@
 	#include <cpl/gui/widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
-	#include "VectorScopeParameters.h"
+	#include "VectorscopeParameters.h"
 
 	namespace cpl
 	{

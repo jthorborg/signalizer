@@ -129,7 +129,7 @@ namespace Signalizer
 			{
 				drawWireFrame<ISA>(g, bounds, gain);
 			}
-		} 
+		}
 
 		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire) ? isMouseInside.load(std::memory_order_relaxed) : true;
 
@@ -192,9 +192,9 @@ namespace Signalizer
 
 			char text[200];
 
-			sprintf_s(text, 
-				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps", 
-				fraction, 
+			sprintf_s(text,
+				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps",
+				fraction,
 				20 * std::log10(std::abs(fraction)),
 				1e3 * samples / audioStream.getAudioHistorySamplerate(),
 				samples
@@ -399,9 +399,6 @@ namespace Signalizer
 				inc = 1.0 / (numLines - 1),
 				end = 1 - state.viewOffsets[VO::Top];
 
-			auto bottom = viewTransform(0);
-			auto top = viewTransform(1);
-
 			auto start = cpl::Math::roundToNextMultiplier(1 - state.viewOffsets[VO::Bottom], inc);
 
 			auto unitSpacePos = start + inc;
@@ -460,7 +457,7 @@ namespace Signalizer
 				msIncrease = windowSize / roundedPower;
 			}
 
-	
+
 			g.setColour(state.colourGraph);
 
 			auto transformView = [&](auto x) {
@@ -477,7 +474,7 @@ namespace Signalizer
 				end -= offset;
 				start -= offset;
 			}
-			
+
 			auto multiplier = start / msIncrease;
 
 			auto i = static_cast<int>(std::floor(multiplier)) - 1;
@@ -505,7 +502,7 @@ namespace Signalizer
 
 				switch (state.timeMode)
 				{
-					case OscilloscopeContent::TimeMode::Cycles: 
+					case OscilloscopeContent::TimeMode::Cycles:
 					{
 						textOut("%.0f/%.0f (%.2f r)",
 							roundedPower > 1 ? moduloI : moduloI / roundedPower,
@@ -542,8 +539,8 @@ namespace Signalizer
 			// and apply the gain:
 			const auto gain = static_cast<GLfloat>(getGain());
 
-			auto 
-				left = state.viewOffsets[VO::Left], 
+			auto
+				left = state.viewOffsets[VO::Left],
 				right = state.viewOffsets[VO::Right],
 				top = state.viewOffsets[VO::Top],
 				bottom = state.viewOffsets[VO::Bottom];
@@ -596,7 +593,7 @@ namespace Signalizer
 				bufferOffset = roundedWindow + cycleBuffers * quantizedCycleSamples;
 				offset += (1 - subSampleOffset) / sizeMinusOne;
 			}
-			
+
 
 			roundedWindow = std::max<cpl::ssize_t>(2, roundedWindow);
 
@@ -632,7 +629,7 @@ namespace Signalizer
 				kernel(eval, drawer);
 			};
 
-			auto dotSamples = [&] (cpl::ssize_t offset) 
+			auto dotSamples = [&] (cpl::ssize_t offset)
 			{
 				auto oldPointSize = openGLStack.getPointSize();
 
@@ -730,9 +727,9 @@ namespace Signalizer
 					if (state.colourChannelsByFrequency)
 					{
 						renderSampleSpace(
-							[&] (auto & evaluator, auto & drawer) 
+							[&] (auto & evaluator, auto & drawer)
 							{
-								Evaluator::ColourT oldColour = evaluator.evaluateColour();
+								typename Evaluator::ColourT oldColour = evaluator.evaluateColour();
 
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
@@ -817,7 +814,7 @@ namespace Signalizer
 
 					AFloat kernel[KernelBufferSize];
 
-					Evaluator::ColourT currentColour, nextColour;
+					typename Evaluator::ColourT currentColour, nextColour;
 
 					auto get = [&]() {
 						auto data = eval.evaluate();
@@ -873,6 +870,6 @@ namespace Signalizer
 				}
 
 			}
-			
+
 		}
 };

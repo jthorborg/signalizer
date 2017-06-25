@@ -180,7 +180,7 @@ namespace Signalizer
 			content->viewOffsets[V::Left].setTransformedValue(left + xp * incX);
 			content->viewOffsets[V::Right].setTransformedValue(right - (1 - xp) * incX);
 		}
-		else 
+		else
 		{
 			// zoom both graph axis
 
@@ -221,7 +221,6 @@ namespace Signalizer
 	}
 	void Oscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
-		auto & matrix = content->transform;
 		auto deltaDifference = event.position - lastMousePos;
 
 		using V = OscilloscopeContent::ViewOffsets;
@@ -317,8 +316,6 @@ namespace Signalizer
 			else
 				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
 		}
-
-		auto oldWindow = state.effectiveWindowSize;
 
 		switch (state.timeMode)
 		{

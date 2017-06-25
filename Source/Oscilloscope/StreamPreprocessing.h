@@ -140,8 +140,6 @@
 					bool isPeakOutsideOfWindow = false;
 					bool readyForBufferSwap = false;
 
-					auto peakDelta = currentPeak - oldPeak;
-
 					if (currentPeak - oldPeak < halfSize)
 					{
 						windowEnd = oldPeak + halfSize;
@@ -217,7 +215,7 @@
 			OscilloscopeContent::TriggeringMode triggerType;
 			std::uint64_t crossOrigin;
 			bool isPeakHold;
-			std::uint64_t oldPeak;	
+			std::uint64_t oldPeak;
 			std::uint64_t currentPeak, bufferedSamples;
 			std::uint64_t frontOrigin;
 			std::uint64_t steadyClock;
@@ -273,12 +271,19 @@
 		template<typename ISA>
 		class PeakHoldProcessor : SignalStreamBaseProcessor<ISA>
 		{
+		    using SignalStreamBaseProcessor<ISA>::state;
+		    using SignalStreamBaseProcessor<ISA>::threshold;
+		    using SignalStreamBaseProcessor<ISA>::peaks;
+		    using SignalStreamBaseProcessor<ISA>::isPeakHolding;
+		    using SignalStreamBaseProcessor<ISA>::hysteresis;
+		    using SignalStreamBaseProcessor<ISA>::steadyClock;
+
 		public:
 			std::size_t count = 0;
 
 			using SignalStreamBaseProcessor<ISA>::SignalStreamBaseProcessor;
 
-			inline void process(double sample) noexcept 
+			inline void process(double sample) noexcept
 			{
 				sample *= sample;
 				auto delta = sample - state;
@@ -286,9 +291,9 @@
 				if (delta < 0)
 				{
 					state *= 0.9999;
-					
+
 					state = std::max(threshold * threshold, state);
-					
+
 					if (isPeakHolding)
 					{
 						// minus one since this is the first sample that doesn't qualify as a (rising) peak
@@ -312,25 +317,33 @@
 		template<typename ISA>
 		class ZeroCrossingProcessor : SignalStreamBaseProcessor<ISA>
 		{
+		    using SignalStreamBaseProcessor<ISA>::state;
+		    using SignalStreamBaseProcessor<ISA>::threshold;
+		    using SignalStreamBaseProcessor<ISA>::peaks;
+		    using SignalStreamBaseProcessor<ISA>::isPeakHolding;
+		    using SignalStreamBaseProcessor<ISA>::hysteresis;
+		    using SignalStreamBaseProcessor<ISA>::steadyClock;
+		    using SignalStreamBaseProcessor<ISA>::crossOrigin;
+
 		public:
 			std::size_t count = 0;
 
 			using SignalStreamBaseProcessor<ISA>::SignalStreamBaseProcessor;
 
-			inline void process(double sample) noexcept 
+			inline void process(double sample) noexcept
 			{
 				if (sample > 0 && state < 0)
 				{
 					isPeakHolding = true;
 					crossOrigin = steadyClock + count;
 				}
-				
+
 				if (isPeakHolding && sample > threshold)
 				{
 					isPeakHolding = false;
 					peaks.push(crossOrigin);
 				}
-				
+
 				state = sample;
 				count++;
 			}

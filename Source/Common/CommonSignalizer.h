@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CommonSignalizer.h
 
 		Interface for common code and types used in Signalizer.
- 
+
 *************************************************************************************/
 
 
@@ -60,7 +60,7 @@
 		/// </summary>
 		typedef double SFloat;
 		/// <summary>
-		/// Floating point type used for audio 
+		/// Floating point type used for audio
 		/// </summary>
 		typedef float AFloat;
 		/// <summary>
@@ -154,7 +154,7 @@
 				{
 					m = newMode;
 					// updates displays, even though the internal fraction stays the same.
-					param->updateFromUINormalized(param->getValueNormalized());
+					this->param->updateFromUINormalized(param->getValueNormalized());
 				}
 			}
 
@@ -233,7 +233,7 @@
 
 
 				if (cpl::lexicalConversion(buf, collectedValue))
-				{		
+				{
 					bool notSamples = true;
 
 					if (buf.find("s") != std::string::npos && (notSamples = buf.find("smps") == std::string::npos))
@@ -266,7 +266,7 @@
 			virtual ValueType transform(ValueType val) const noexcept override
 			{
 				auto samples = std::round(val * stream.getAudioHistoryCapacity());
-				
+
 				/* if (m == Milliseconds)
 				{
 					samples /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
@@ -300,8 +300,8 @@
 		};
 
 		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
-		
-		
+
+
 		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
 		extern std::string MainPresetName;
 		extern std::string DefaultPresetName;
@@ -482,7 +482,7 @@
 				if (!handle.get_deleter().doDelete)
 					CPL_RUNTIME_EXCEPTION("UniqueHandle asked to release ownership of something it doesn't own");
 				handle.get_deleter().doDelete = false;
-				return handle.release();  
+				return handle.release();
 			}
 
 			/// <summary>

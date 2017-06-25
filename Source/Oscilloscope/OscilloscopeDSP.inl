@@ -29,6 +29,7 @@
 
 
 #include "Oscilloscope.h"
+#include "StreamPreprocessing.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
@@ -86,7 +87,7 @@ namespace Signalizer
 
 			eval.startFrom(-static_cast<cpl::ssize_t>(offset));
 
-			for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
+			for (std::size_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 			{
 				transformBuffer[i] = eval.evaluateSampleInc();
 			}
@@ -111,9 +112,9 @@ namespace Signalizer
 
 				return deltaBinOffset / (2 * M_PI);
 #else
-				const auto 
-					x0 = transformBuffer[w], 
-					x1 = transformBuffer[w + 1], 
+				const auto
+					x0 = transformBuffer[w],
+					x1 = transformBuffer[w + 1],
 					xm1 = transformBuffer[w == 0 ? 1 : w - 1];
 
 				const auto denom = x0 * 2.0 - xm1 - x1;
@@ -190,12 +191,12 @@ namespace Signalizer
 
 			const auto middle = (MedianData::FilterSize >> 1);
 			std::nth_element(
-				localMedian.begin(), 
-				localMedian.begin() + middle, 
-				localMedian.end(), 
+				localMedian.begin(),
+				localMedian.begin() + middle,
+				localMedian.end(),
 				[](const auto & a, const auto & b)
-				{ 
-					return a.record.index < b.record.index; 
+				{
+					return a.record.index < b.record.index;
 				}
 			);
 
@@ -230,7 +231,7 @@ namespace Signalizer
 		{
 			triggerState.cycleSamples = 0;
 			triggerState.sampleOffset = 0;
-			// -1 - (state.effectiveWindowSize - (int)state.effectiveWindowSize) 
+			// -1 - (state.effectiveWindowSize - (int)state.effectiveWindowSize)
 			triggerState.sampleOffset = (state.effectiveWindowSize * 0.5 - (int)(state.effectiveWindowSize * 0.5)) - 1.5;
 			return;
 		}
@@ -241,7 +242,7 @@ namespace Signalizer
 
 			return;
 		}
-		
+
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
 #else
@@ -264,7 +265,7 @@ namespace Signalizer
 
 		eval.startFrom(-static_cast<cpl::ssize_t>(offset));
 
-		for (cpl::ssize_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
+		for (std::size_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 		{
 			temporaryBuffer[i] = eval.evaluateSampleInc();
 		}
@@ -307,8 +308,8 @@ namespace Signalizer
 	{
 		std::size_t requiredSampleBufferSize = 0;
 		// TODO: Add
-		std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
-		
+		// std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
+
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
 			// buffer size = length of detected freq in samples + display window size + lookahead
@@ -409,7 +410,7 @@ namespace Signalizer
 
 		for (std::size_t c = 0; c < numChannels; ++c)
 			localBuffers[c] = buffer[c];
-		
+
 		triggerState.preprocessingTrigger->update(audioStream.getASyncPlayhead().getSteadyClock());
 		preprocessAudio<ISA>(localBuffers, numChannels, numSamples);
 
@@ -500,33 +501,33 @@ namespace Signalizer
 
 			if (numChannels >= 2)
 			{
-				ChannelData::PixelType 
-					firstColour(content->primaryColour.getAsJuceColour()), 
+				ChannelData::PixelType
+					firstColour(content->primaryColour.getAsJuceColour()),
 					secondColour(content->secondaryColour.getAsJuceColour());
 
 				auto sideSignal = [](const auto & left, const auto & right)
 				{
-					val_typeof(left) ret;
+					unq_typeof(left) ret;
 					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-						ret[i] = left[i] - right[i]; 
+						ret[i] = left[i] - right[i];
 					return ret;
 				};
 
 				auto midSignal = [](const auto & left, const auto & right)
 				{
-					val_typeof(left) ret;
+					unq_typeof(left) ret;
 					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
 						ret[i] = left[i] + right[i];
 					return ret;
 				};
 
-				auto 
-					leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters, 
+				auto
+					leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters,
 					rightSmoothState = channelData.filterStates.channels[fs::Right].smoothFilters,
 					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
 					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
 
-				auto && 
+				auto &&
 					lw = target.channels[fs::Left].colourData.createWriter(),
 					rw = target.channels[fs::Right].colourData.createWriter(),
 					mw = target.midSideColour[0].createWriter(),
@@ -694,7 +695,7 @@ namespace Signalizer
 			using namespace cpl::simd;
 			using cpl::simd::load;
 
-			typedef ISA::V V;
+			typedef typename ISA::V V;
 
 			V
 				vLMax = zero<V>(),

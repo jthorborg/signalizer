@@ -1,30 +1,30 @@
 /*************************************************************************************
- 
+
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
- 
+
 	Copyright (C) 2016 Janus Lynggaard Thorborg (www.jthorborg.com)
- 
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
- 
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
- 
+
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
- 
+
 	See \licenses\ for additional details on licenses associated with this program.
- 
+
 **************************************************************************************
- 
+
 	file:CSpectrumDSP.cpp
 
 		Implementation of the dsp code for the spectrum.
- 
+
 *************************************************************************************/
 
 #include "Spectrum.h"
@@ -126,7 +126,7 @@ namespace Signalizer
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
-			// this is a very rare condition that can be solved by locking the audio access during the flags update and this 
+			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
 			if (views[0].size() != views[1].size() || views[0].size() < size)
 				return false;
@@ -331,7 +331,7 @@ namespace Signalizer
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
-			// this is a very rare condition that can be solved by locking the audio access during the flags update and this 
+			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
 			if (views[0].size() != views[1].size() || views[0].size() < size)
 				return false;
@@ -387,15 +387,15 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
-					
-					
+
+
 					// process preliminary
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
 						buffer[i] = preliminaryAudio[channel][k] * windowKernel[i];
 					}
 
-					
+
 					break;
 				}
 				case SpectrumChannels::Merge:
@@ -426,12 +426,12 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
-					
+
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
 						buffer[i] = (preliminaryAudio[0][k] + preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
 					}
-					
+
 					break;
 				}
 				case SpectrumChannels::Side:
@@ -462,12 +462,12 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
-					
+
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
 						buffer[i] = (preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
 					}
-					
+
 					break;
 				}
 				case SpectrumChannels::MidSide:
@@ -504,7 +504,7 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
-					
+
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
 						buffer[i] = std::complex<fftType>
@@ -513,14 +513,14 @@ namespace Signalizer
 							(preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5
 						);
 					}
-					
+
 					break;
 				}
 				case SpectrumChannels::Phase:
 				case SpectrumChannels::Separate:
 				case SpectrumChannels::Complex:
 				{
-					
+
 					for (std::size_t indice = 0; indice < Stream::bufferIndices; ++indice)
 					{
 						std::size_t range = views[channel].getItRange(indice);
@@ -551,7 +551,7 @@ namespace Signalizer
 							offset -= range;
 						}
 					}
-					
+
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
 						buffer[i] = std::complex<fftType>
@@ -560,7 +560,7 @@ namespace Signalizer
 							preliminaryAudio[1][k] * windowKernel[i]
 						);
 					}
-					
+
 					break;
 				}
 				}
@@ -772,7 +772,7 @@ namespace Signalizer
 			std::size_t numBins = N >> 1;
 			auto const topFrequency = getSampleRate() / 2;
 			auto const freqToBin = double(numBins ) / topFrequency;
-			
+
 			typedef fftType ftype;
 
 			std::complex<ftype> leftMax, rightMax;
@@ -1143,7 +1143,7 @@ namespace Signalizer
 
 						auto iLeft = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, mappedFrequencies[x] * freqToBin);
 						auto iRight = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin));
-						
+
 						csp[x] = invSize * iLeft;
 						csp[numFilters + x] = invSize * iRight;
 					}
@@ -1162,7 +1162,7 @@ namespace Signalizer
 
 						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, 5);
 						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), lanczosFilterSize);
-						
+
 						csp[x] = invSize * iLeft;
 						csp[numFilters + x] = invSize * iRight;
 					}
@@ -1345,7 +1345,7 @@ namespace Signalizer
 						csp[x] = invSize * csf[maxLBin];
 						oldBin = bin;
 					}
-				} 
+				}
 			}
 
 			break;
@@ -1363,7 +1363,7 @@ namespace Signalizer
 				filtersPerChannel = copyResonatorStateInto<fpoint>(wsp) / getStateConfigurationChannels();
 			}
 
-				
+
 			switch (state.configuration)
 			{
 			case SpectrumChannels::Phase:
@@ -1437,12 +1437,12 @@ namespace Signalizer
 		}
 		return false;
 	}
-	
+
 	bool Spectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
 			return false;
-		
+
 		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);
 
 		return false;
@@ -1514,7 +1514,7 @@ namespace Signalizer
 					}
 
 					sfbuf.currentCounter += availableSamples;
-	
+
 					if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
 					{
 						audioLock.acquire(audioResource);
@@ -1577,12 +1577,12 @@ namespace Signalizer
 		{
 			case SpectrumChannels::Right:
 			{
-				cresonator.resonateReal<ISA::V>(&buffer[1], 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(&buffer[1], 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Left:
 			{
-				cresonator.resonateReal<ISA::V>(buffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(buffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Mid:
@@ -1595,7 +1595,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] + buffer[1][i]);
 				}
 
-				cresonator.resonateReal<ISA::V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Side:
@@ -1608,7 +1608,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] - buffer[1][i]);
 				}
 
-				cresonator.resonateReal<ISA::V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::MidSide:
@@ -1622,18 +1622,18 @@ namespace Signalizer
 					rbuffer[1][i] = buffer[0][i] - buffer[1][i];
 				}
 
-				cresonator.resonateReal<ISA::V>(rbuffer, 2, numSamples);
+				cresonator.resonateReal<typename ISA::V>(rbuffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Phase:
 			case SpectrumChannels::Separate:
 			{
-				cresonator.resonateReal<ISA::V>(buffer, 2, numSamples);
+				cresonator.resonateReal<typename ISA::V>(buffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Complex:
 			{
-				cresonator.resonateComplex<ISA::V>(buffer, numSamples);
+				cresonator.resonateComplex<typename ISA::V>(buffer, numSamples);
 				break;
 			}
 		}
@@ -1697,7 +1697,7 @@ namespace Signalizer
 			auto sampleRate = getSampleRate();
 			double normalizedBandwidth = 0, fractionateScallopLoss = normalizedBandwidth;
 
-			
+
 			auto safeIndex = cpl::Math::confineTo<std::size_t>(coordinate, 0, mappedFrequencies.size() - 2);
 			if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 			{

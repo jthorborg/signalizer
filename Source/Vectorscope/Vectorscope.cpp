@@ -28,14 +28,14 @@
 *************************************************************************************/
 
 
-#include "VectorScope.h"
+#include "Vectorscope.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
-#include "VectorScopeParameters.h"
+#include "VectorscopeParameters.h"
 
 namespace Signalizer
 {
@@ -269,7 +269,7 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
-			typedef ISA::V V;
+			typedef typename ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
 			if (numChannels != 2)
