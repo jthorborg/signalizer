@@ -312,7 +312,7 @@ namespace Signalizer
 						break;
 					case OscChannels::Separate:
 					{
-						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
 						w.firstPass();
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
@@ -322,7 +322,7 @@ namespace Signalizer
 					}
 					case OscChannels::MidSide:
 					{
-						VerticalScreenSplitter w(getLocalBounds(), openGLStack, !state.overlayChannels);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
 						w.firstPass();
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
