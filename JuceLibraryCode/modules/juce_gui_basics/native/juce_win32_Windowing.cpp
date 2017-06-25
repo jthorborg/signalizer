@@ -1224,7 +1224,7 @@ private:
             clearSingletonInstance();
         }
 
-        LPCTSTR getWindowClassName() const noexcept     { return (LPCTSTR) MAKELONG (atom, 0); }
+        LPCTSTR getWindowClassName() const noexcept     { return (LPCTSTR) (std::uintptr_t) MAKELONG (atom, 0); }
 
         juce_DeclareSingleton_SingleThreaded_Minimal (WindowClassHolder)
 

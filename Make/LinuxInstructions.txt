@@ -1,0 +1,17 @@
+Required packages:
+sudo apt-get -y install libfreetype6-dev
+sudo apt-get -y install libx11-dev
+sudo apt-get -y install libxinerama-dev
+sudo apt-get -y install libcurl4-gnutls-dev
+sudo apt-get -y install libasound2-dev
+sudo apt-get -y install libxrandr-dev
+sudo apt-get -y install libxcursor-dev
+sudo apt-get -y install freeglut3-dev
+
+Possible:
+sudo apt-get -y install mesa-common-dev
+
+There's currently no working make file, compilation is done through Code::Blocks, so you'll need that. Only GCC and x64 targets on linux is supported as of now.
+
+To compile, navigate to this folder and run "python build_linux.py". A .zip output should be printed, the content of which
+is the final working plugin. This should be moved to your .vst folder, and hopefully it will magically work from there on.

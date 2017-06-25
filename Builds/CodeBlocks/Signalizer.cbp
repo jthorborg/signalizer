@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="Signalizer" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/Signalizer" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-std=c++14" />
+					<Add option="-g" />
+					<Add option="-O0" />
+					<Add option="-mstackrealign" />
+					<Add option="-flax-vector-conversions" />
+					<Add option="-fPIC" />
+					<Add option="-Wl,--no-undefined" />
+					<Add option="-D__MINGW__=1" />
+					<Add option="-D__MINGW_EXTENSION=" />
+					<Add option="-DJUCER_CODEBLOCKS_20734A5D=1" />
+					<Add option="-DJUCE_APP_VERSION=0.2.10" />
+					<Add option="-DJUCE_APP_VERSION_HEX=0x20a" />
+					<Add option="-D_DEBUG" />
+					<Add option="-DDEBUG" />
+					<Add option="-DLINUX" />
+					<Add option="-DDONT_SET_USING_JUCE_NAMESPACE" />
+					<Add directory="." />
+					<Add directory="../../JuceLibraryCode" />
+					<Add directory="../../../SDKs/" />
+					<Add directory="../../../SDKs/vstsdk2.4/" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/Signalizer" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-std=c++14" />
+					<Add option="-mstackrealign" />
+					<Add option="-flax-vector-conversions" />
+					<Add option="-fPIC" />
+					<Add option="-Wl,--no-undefined" />
+					<Add option="-D__MINGW__=1" />
+					<Add option="-D__MINGW_EXTENSION=" />
+					<Add option="-DJUCER_CODEBLOCKS_20734A5D=1" />
+					<Add option="-DJUCE_APP_VERSION=0.2.10" />
+					<Add option="-DJUCE_APP_VERSION_HEX=0x20a" />
+					<Add option="-DLINUX" />
+					<Add option="-DDONT_SET_USING_JUCE_NAMESPACE" />
+					<Add directory="." />
+					<Add directory="../../JuceLibraryCode" />
+					<Add directory="../../../SDKs/" />
+					<Add directory="../../../SDKs/vstsdk2.4/" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-Wno-strict-aliasing" />
+			<Add option="-Wno-strict-overflow" />
+			<Add option="-mno-sse2avx" />
+			<Add directory="/usr/include/freetype2" />
+			<Add directory="../../Source" />
+		</Compiler>
+		<Unit filename="../../../SDKs/cpl/CPLSource.cpp" />
+		<Unit filename="../../JuceLibraryCode/AppConfig.h" />
+		<Unit filename="../../JuceLibraryCode/JuceHeader.h" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_basics/juce_audio_basics.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_devices/juce_audio_devices.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_formats/juce_audio_formats.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/AAX/juce_AAX_Wrapper.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode1.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode2.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_DigiCode3.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_WinUtilities.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/RTAS/juce_RTAS_Wrapper.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/VST/juce_VST_Wrapper.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/VST3/juce_VST3_Wrapper.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_PluginUtilities.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_audio_processors/juce_audio_processors.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_core/juce_core.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_cryptography/juce_cryptography.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_data_structures/juce_data_structures.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_events/juce_events.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_graphics/juce_graphics.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_gui_basics/juce_gui_basics.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_gui_extra/juce_gui_extra.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_opengl/juce_opengl.cpp" />
+		<Unit filename="../../JuceLibraryCode/modules/juce_video/juce_video.cpp" />
+		<Unit filename="../../Source/COscilloscope.h" />
+		<Unit filename="../../Source/CSpectrum.h" />
+		<Unit filename="../../Source/CVectorScope.h" />
+		<Unit filename="../../Source/Common/SignalizerDesign.cpp" />
+		<Unit filename="../../Source/CommonSignalizer.h" />
+		<Unit filename="../../Source/Editor/MainEditor.cpp" />
+		<Unit filename="../../Source/MainEditor.h" />
+		<Unit filename="../../Source/Oscilloscope/Oscilloscope.cpp" />
+		<Unit filename="../../Source/Oscilloscope/OscilloscopeRendering.cpp" />
+		<Unit filename="../../Source/OscilloscopeParameters.h" />
+		<Unit filename="../../Source/PluginProcessor.h" />
+		<Unit filename="../../Source/Processor/PluginProcessor.cpp" />
+		<Unit filename="../../Source/SentientViewState.h" />
+		<Unit filename="../../Source/SignalizerDesign.h" />
+		<Unit filename="../../Source/Spectrum/Spectrum.cpp" />
+		<Unit filename="../../Source/Spectrum/SpectrumDSP.cpp" />
+		<Unit filename="../../Source/Spectrum/SpectrumRendering.cpp" />
+		<Unit filename="../../Source/SpectrumParameters.h" />
+		<Unit filename="../../Source/VectorScopeParameters.h" />
+		<Unit filename="../../Source/Vectorscope/Vectorscope.cpp" />
+		<Unit filename="../../Source/Vectorscope/VectorscopeRendering.cpp" />
+		<Unit filename="../../Source/version.h" />
+		<Extensions>
+			<envvars />
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

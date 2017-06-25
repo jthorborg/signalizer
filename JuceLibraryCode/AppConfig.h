@@ -17,7 +17,7 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-#ifdef _MSC_VER
+#if defined(CPL_WINDOWS) || defined(CPL_UNIX)
 
 #include "../Source/version.h"
 

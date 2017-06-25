@@ -232,3 +232,8 @@ Builds/VisualStudio2010/Signalizer.sln.ide/
 *.opendb
 *.db
 Source/backup/
+Builds/VisualStudio2010/.vs/
+Make/__pycache__/
+Builds/Release/
+Builds/x64/
+Releases/

@@ -1,0 +1,29 @@
+Needed to compile for 7.2++
+
+- Install base OS X base SDKs for your needed targets (I use 10.8, 10.10+ might have deprecation problems)
+- Install any missing SDKs for VST, RTAS, AAX etc.
+- Relink any missing files in the project if your SDK structure is different (like cpl)
+- Install CoreAudioUtilityClasses in Xcode.app/Contents/Developer/Extras/CoreAudio/ (fixes rez error) or relink Xcode to find the CoreAudio files
+- Fix include search paths to new SDKs like VST and cpl
+- Fix the following errors in the CoreAudio SDK (sigh):
+
+/Applications/Xcode.app/Contents/Developer/Extras/CoreAudio/AudioUnits/AUPublic/AUCarbonViewBase/AUCarbonViewBase.cpp:263:30: error: 
+      non-constant-expression cannot be narrowed from type 'short' to 'CGFloat' (aka 'float') in initializer list
+      [-Wc++11-narrowing]
+                                        HISize originalSize = { mBottomRight.h, mBottomRight.v };
+                                                                ^~~~~~~~~~~~~~
+/Applications/Xcode.app/Contents/Developer/Extras/CoreAudio/AudioUnits/AUPublic/AUCarbonViewBase/AUCarbonViewBase.cpp:263:30: note: 
+      insert an explicit cast to silence this issue
+                                        HISize originalSize = { mBottomRight.h, mBottomRight.v };
+                                                                ^~~~~~~~~~~~~~
+                                                                static_cast<CGFloat>( )
+/Applications/Xcode.app/Contents/Developer/Extras/CoreAudio/AudioUnits/AUPublic/AUCarbonViewBase/AUCarbonViewBase.cpp:263:46: error: 
+      non-constant-expression cannot be narrowed from type 'short' to 'CGFloat' (aka 'float') in initializer list
+      [-Wc++11-narrowing]
+                                        HISize originalSize = { mBottomRight.h, mBottomRight.v };
+                                                                                ^~~~~~~~~~~~~~
+/Applications/Xcode.app/Contents/Developer/Extras/CoreAudio/AudioUnits/AUPublic/AUCarbonViewBase/AUCarbonViewBase.cpp:263:46: note: 
+      insert an explicit cast to silence this issue
+                                        HISize originalSize = { mBottomRight.h, mBottomRight.v };
+                                                                                ^~~~~~~~~~~~~~
+                                                                                static_cast<CGFloat>( )

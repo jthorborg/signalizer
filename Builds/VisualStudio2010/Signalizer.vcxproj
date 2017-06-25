@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -20,31 +20,32 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{27E76635-7DBA-1DDB-5D11-9AD0F437D2C4}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -66,16 +67,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -125,7 +126,7 @@
       <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\Audio\VstPlugins\Signalizer\$(TargetFileName)"</Command>
+      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\Audio\VstPlugins\x86\Signalizer\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -233,7 +234,7 @@
       <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\Audio\VstPlugins\Signalizer\$(TargetFileName)"</Command>
+      <Command>copy /Y  "$(OutDir)\$(TargetFileName)" "C:\Audio\VstPlugins\x86\Signalizer\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -266,7 +267,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions>/wd4458 /wd4091 /wd4100 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <ResourceCompile>
@@ -297,14 +298,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp" />
-    <ClCompile Include="..\..\Source\CSpectrum.cpp" />
-    <ClCompile Include="..\..\Source\CSpectrumDSP.cpp" />
-    <ClCompile Include="..\..\Source\CSpectrumRendering.cpp" />
-    <ClCompile Include="..\..\Source\CVectorScope.cpp" />
-    <ClCompile Include="..\..\Source\CVectorScopeRendering.cpp" />
-    <ClCompile Include="..\..\Source\InstanceLog.cpp" />
-    <ClCompile Include="..\..\Source\MainEditor.cpp" />
-    <ClCompile Include="..\..\Source\PluginProcessor.cpp" />
+    <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
+    <ClCompile Include="..\..\Source\Editor\MainEditor.cpp" />
+    <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp" />
+    <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeRendering.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\AAX\juce_AAX_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_basics\juce_audio_basics.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_devices\juce_audio_devices.cpp" />
@@ -337,7 +334,12 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_video\juce_video.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST3\juce_VST3_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp" />
-    <ClCompile Include="..\..\Source\SignalizerDesign.cpp" />
+    <ClCompile Include="..\..\Source\Processor\PluginProcessor.cpp" />
+    <ClCompile Include="..\..\Source\Spectrum\Spectrum.cpp" />
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumDSP.cpp" />
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumRendering.cpp" />
+    <ClCompile Include="..\..\Source\Vectorscope\Vectorscope.cpp" />
+    <ClCompile Include="..\..\Source\Vectorscope\VectorscopeRendering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\SDKs\cpl\Aliases.h" />
@@ -362,8 +364,15 @@
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CPeakFilter.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\CSignalTransform.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\DSPWindows.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\AC_SVF.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\Allpass.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\IIRResonator.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\OnePoleNetwork.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\dsp\SDFTSystem.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\ffts\dustfft.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\BuildingBlocks.h" />
@@ -381,6 +390,7 @@
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\Controls.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueControl.h" />
+    <ClInclude Include="..\..\..\SDKs\cpl\gui\controls\CValueInputControl.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CToolTip.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\gui\CViews.h" />
@@ -452,12 +462,16 @@
     <ClInclude Include="..\..\..\SDKs\cpl\SysStats.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Types.h" />
     <ClInclude Include="..\..\..\SDKs\cpl\Utility.h" />
-    <ClInclude Include="..\..\Source\CommonSignalizer.h" />
-    <ClInclude Include="..\..\Source\CSpectrum.h" />
-    <ClInclude Include="..\..\Source\CVectorScope.h" />
-    <ClInclude Include="..\..\Source\InstanceLog.h" />
-    <ClInclude Include="..\..\Source\MainEditor.h" />
-    <ClInclude Include="..\..\Source\PluginProcessor.h" />
+    <ClInclude Include="..\..\Source\Common\CommonSignalizer.h" />
+    <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
+    <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
+    <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
+    <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\OscilloscopeParameters.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\SampleColourEvaluators.h" />
+    <ClInclude Include="..\..\Source\Oscilloscope\StreamPreprocessing.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioSampleBuffer.h" />
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_FloatVectorOperations.h" />
@@ -906,10 +920,12 @@
     <ClInclude Include="..\..\..\SDKs\juce\modules\juce_video\juce_video.h" />
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
-    <ClInclude Include="..\..\Source\SentientViewState.h" />
-    <ClInclude Include="..\..\Source\SignalizerDesign.h" />
-    <ClInclude Include="..\..\Source\SpectrumParameters.h" />
-    <ClInclude Include="..\..\Source\VectorScopeParameters.h" />
+    <ClInclude Include="..\..\Source\Processor\PluginProcessor.h" />
+    <ClInclude Include="..\..\Source\Signalizer.h" />
+    <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
+    <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />
+    <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h" />
+    <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />
   </ItemGroup>
   <ItemGroup>
@@ -930,6 +946,7 @@
     <None Include="..\..\..\SDKs\juce\modules\juce_opengl\juce_module_info" />
     <None Include="..\..\..\SDKs\juce\modules\juce_video\juce_module_info" />
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr" />
+    <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc" />
