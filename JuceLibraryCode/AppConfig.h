@@ -17,7 +17,7 @@
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
 
-#ifndef __APPLE__
+#if defined(CPL_WINDOWS) || defined(CPL_UNIX)
 
 #include "../Source/version.h"
 

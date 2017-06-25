@@ -46,6 +46,9 @@ namespace Signalizer
 	const double Oscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double Oscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
+    constexpr std::size_t OscilloscopeContent::LookaheadSize;
+    constexpr std::size_t OscilloscopeContent::InterpolationKernelSize;
+    
 
 	Oscilloscope::Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
 		: COpenGLView(nameId)

@@ -28,7 +28,7 @@
 *************************************************************************************/
 
 #include "PluginProcessor.h"
-#include "Editor/MainEditor.h"
+#include "../Editor/MainEditor.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>

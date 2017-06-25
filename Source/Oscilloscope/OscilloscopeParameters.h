@@ -42,8 +42,8 @@
 		{
 		public:
 
-			static std::size_t const LookaheadSize = 8192;
-			static std::size_t const InterpolationKernelSize = 10;
+			static constexpr std::size_t LookaheadSize = 8192;
+			static constexpr std::size_t InterpolationKernelSize = 10;
 
 			enum class TriggeringMode
 			{

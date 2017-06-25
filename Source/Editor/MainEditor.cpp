@@ -28,10 +28,10 @@
 *************************************************************************************/
 
 #include "MainEditor.h"
-#include "Processor/PluginProcessor.h"
-#include "Vectorscope/Vectorscope.h"
-#include "Oscilloscope/Oscilloscope.h"
-#include "Spectrum/Spectrum.h"
+#include "../Processor/PluginProcessor.h"
+#include "../Vectorscope/Vectorscope.h"
+#include "../Oscilloscope/Oscilloscope.h"
+#include "../Spectrum/Spectrum.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"

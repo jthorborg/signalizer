@@ -36,7 +36,7 @@
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/gui/widgets/CPresetWidget.h>
-	#include "Editor/MainEditor.h"
+	#include "../Editor/MainEditor.h"
 
 	namespace Signalizer
 	{
