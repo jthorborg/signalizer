@@ -634,9 +634,11 @@ namespace Signalizer
 			{
 				auto oldPointSize = openGLStack.getPointSize();
 
-				if (pixelsPerSample > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
+                auto normScale = 1.0 / std::sqrt(oglc->getRenderingScale());
+                
+				if (pixelsPerSample * normScale > 5 && state.sampleInterpolation != SubSampleInterpolation::None)
 				{
-					openGLStack.setPointSize(oldPointSize * 4);
+                    openGLStack.setPointSize(oldPointSize * 4 * normScale);
 				}
 
 				if (state.colourChannelsByFrequency)
