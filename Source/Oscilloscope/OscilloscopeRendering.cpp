@@ -739,9 +739,9 @@ namespace Signalizer
 									const auto data = evaluator.evaluate();
 
 									drawer.addColour(oldColour);
-									drawer.addVertex(i - 1, data.first, 0);
-									drawer.addColour(data.second);
 									drawer.addVertex(i, data.first, 0);
+									drawer.addColour(data.second);
+									drawer.addVertex(i + 1, data.first, 0);
 
 									oldColour = data.second;
 
@@ -760,8 +760,8 @@ namespace Signalizer
 								for (GLfloat i = 0; i < endCondition; i += 1)
 								{
 									const auto vertex = evaluator.evaluateSampleInc();
-									drawer.addVertex(i - 1, vertex, 0);
 									drawer.addVertex(i, vertex, 0);
+									drawer.addVertex(i + 1, vertex, 0);
 								}
 							},
 							GL_LINE_STRIP
