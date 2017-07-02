@@ -15,9 +15,7 @@
 		165278E61A9B36AD003E1953 /* MacSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = 165278E51A9B36AD003E1953 /* MacSupport.mm */; };
 		16C25EC21F003D3400C3E22C /* SignalizerDesign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EA21F003D3400C3E22C /* SignalizerDesign.cpp */; };
 		16C25EC31F003D3400C3E22C /* MainEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EA51F003D3400C3E22C /* MainEditor.cpp */; };
-		16C25EC41F003D3400C3E22C /* Bugs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 16C25EA81F003D3400C3E22C /* Bugs.txt */; };
 		16C25EC51F003D3400C3E22C /* Oscilloscope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EAB1F003D3400C3E22C /* Oscilloscope.cpp */; };
-		16C25EC61F003D3400C3E22C /* OscilloscopeDSP.inl in Resources */ = {isa = PBXBuildFile; fileRef = 16C25EAD1F003D3400C3E22C /* OscilloscopeDSP.inl */; };
 		16C25EC71F003D3400C3E22C /* OscilloscopeRendering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EAF1F003D3400C3E22C /* OscilloscopeRendering.cpp */; };
 		16C25EC81F003D3400C3E22C /* PluginProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EB31F003D3400C3E22C /* PluginProcessor.cpp */; };
 		16C25EC91F003D3400C3E22C /* Spectrum.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EB71F003D3400C3E22C /* Spectrum.cpp */; };
@@ -3096,9 +3094,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				16C25EC41F003D3400C3E22C /* Bugs.txt in Resources */,
 				16F63B151CA6BBF400816394 /* presets in Resources */,
-				16C25EC61F003D3400C3E22C /* OscilloscopeDSP.inl in Resources */,
 				16F63B141CA6BBF400816394 /* licenses in Resources */,
 				16F63B171CA6BBF400816394 /* resources in Resources */,
 				16F63B161CA6BBF400816394 /* READ ME.txt in Resources */,
