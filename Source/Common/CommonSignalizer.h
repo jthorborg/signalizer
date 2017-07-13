@@ -171,7 +171,7 @@
 
 			void deserialize(cpl::CSerializer::Builder & ar, cpl::Version v) override
 			{
-				double val;
+				std::uint64_t val;
 				ar >> val;
 				lastCapacity.store(val, std::memory_order_relaxed);
 			}

@@ -79,6 +79,11 @@ namespace Signalizer
 			cpl::Misc::MsgBox(std::string("Error reading state information from default preset:\n") + e.what(), cpl::programInfo.name);
 		}
 
+		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
+		// TODO: convert them to be invariant.
+
+		prepareToPlay(48000, 512);
+		stream.setAudioHistorySizeAndCapacity(48000, 48000);
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)

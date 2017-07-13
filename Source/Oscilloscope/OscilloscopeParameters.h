@@ -546,7 +546,7 @@
 					kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 					kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
 					ktrackerColour.bSetDescription("Colour of the cursor tracker");
-					ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how willing the trigger is to change");
+					ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 					ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
 				}
 
