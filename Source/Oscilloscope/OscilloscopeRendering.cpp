@@ -190,7 +190,7 @@ namespace Signalizer
 				samples -= (state.effectiveWindowSize - 1) *  0.5;
 			}
 
-			char text[200];
+			char text[1024];
 
 			sprintf_s(text,
 				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps",
