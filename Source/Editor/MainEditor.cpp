@@ -35,7 +35,7 @@
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"
-
+#include <cpl/Mathext.h>
 
 namespace cpl
 {
@@ -609,7 +609,7 @@ namespace Signalizer
 		// change of the rendering engine
 		else if (c == &krenderEngine)
 		{
-			auto index = cpl::distribute<RenderTypes>(value);
+			auto index = cpl::Math::distribute<RenderTypes>(value);
 
 			switch (index)
 			{
@@ -818,7 +818,7 @@ namespace Signalizer
 
 	int MainEditor::getRenderEngine()
 	{
-		return (int)cpl::distribute<RenderTypes>(krenderEngine.bGetValue());
+		return (int)cpl::Math::distribute<RenderTypes>(krenderEngine.bGetValue());
 	}
 
 	void MainEditor::suspendView(SentientViewState & svs)
@@ -1240,7 +1240,7 @@ namespace Signalizer
 		}
 	}
 
-	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val)
+	bool MainEditor::stringToValue(const cpl::CBaseControl * ctrl, const cpl::string_ref valString, cpl::iCtrlPrec_t & val)
 	{
 		double newVal = 0;
 

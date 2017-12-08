@@ -139,7 +139,7 @@
 					}
 				}
 
-				virtual bool interpret(const std::string & buf, ValueType & val) override
+				virtual bool interpret(const cpl::string_ref buf, ValueType & val) override
 				{
 					ValueType collectedValue;
 
@@ -296,7 +296,7 @@
 					return true;
 				}
 
-				virtual bool interpret(const std::string & buf, ValueType & val) override
+				virtual bool interpret(const cpl::string_ref buf, ValueType & val) override
 				{
 					ValueType contained;
 

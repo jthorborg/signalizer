@@ -119,7 +119,7 @@
 
 			// cpl::CBaseControl interface
 			void valueChanged(const cpl::CBaseControl * cbc) override;
-			bool stringToValue(const cpl::CBaseControl * ctrl, const std::string & valString, cpl::iCtrlPrec_t & val) override;
+			bool stringToValue(const cpl::CBaseControl * ctrl, const cpl::string_ref valString, cpl::iCtrlPrec_t & val) override;
 			bool valueToString(const cpl::CBaseControl * ctrl, std::string & valString, cpl::iCtrlPrec_t val) override;
 			void onObjectDestruction(const cpl::Utility::DestructionServer<cpl::CBaseControl>::ObjectProxy & destroyedObject) override;
 		private:
