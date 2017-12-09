@@ -32,7 +32,7 @@
 
 	#include "Signalizer.h"
 	#include <cpl/Common.h>
-	#include <cpl/gui/GUI.h>
+	#include <cpl/gui/CViews.h>
 	#include <cpl/Utility.h>
 	#include <cpl/dsp/CComplexResonator.h>
 	#include <memory>

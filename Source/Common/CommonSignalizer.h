@@ -32,11 +32,10 @@
 	#define SIGNALIZER_COMMON_SIGNALIZER_H
 
 	#include <cpl/Common.h>
-	#include <cpl/gui/GUI.h>
 	#include <cpl/CAudioStream.h>
 	#include <complex>
 	#include <cpl/infrastructure/parameters/ParameterSystem.h>
-	#include "SignalizerDesign.h"
+	#include <cpl/infrastructure/values/Values.h>
 
 	namespace Signalizer
 	{
@@ -74,7 +73,7 @@
 
 		// TODO: Figure out why sizes around 256 causes buffer overruns
 		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
-		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
+		class StateEditor;
 
 		class ProcessorState
 			: public cpl::SafeSerializableObject
