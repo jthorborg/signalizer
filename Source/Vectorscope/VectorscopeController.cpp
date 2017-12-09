@@ -292,4 +292,10 @@ namespace Signalizer
 			valueSerializer;
 	};
 	
+
+	std::unique_ptr<StateEditor> VectorScopeContent::createEditor()
+	{
+		return std::make_unique<VectorScopeController>(*this);
+	}
+
 };

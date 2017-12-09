@@ -105,10 +105,7 @@
 				postParameterInitialization();
 			}
 
-			virtual std::unique_ptr<StateEditor> createEditor() override;/*
-			{
-				return std::make_unique<VectorScopeController>(*this);
-			}*/
+			virtual std::unique_ptr<StateEditor> createEditor() override;
 
 			virtual ParameterSet & getParameterSet() override
 			{

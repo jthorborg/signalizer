@@ -553,4 +553,8 @@ namespace Signalizer
 	};
 
 
+	std::unique_ptr<StateEditor> SpectrumContent::createEditor()
+	{
+		return std::make_unique<SpectrumController>(*this);
+	}
 }

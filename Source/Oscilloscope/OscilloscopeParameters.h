@@ -505,9 +505,6 @@
 			}
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
-			//{
-			//	return std::make_unique<OscilloscopeController>(*this);
-			//}
 
 			virtual ParameterSet & getParameterSet() override
 			{

@@ -442,4 +442,9 @@ namespace Signalizer
 			valueSerializer;
 	};
 
+	std::unique_ptr<StateEditor> OscilloscopeContent::createEditor()
+	{
+		return std::make_unique<OscilloscopeController>(*this);
+	}
+
 };
