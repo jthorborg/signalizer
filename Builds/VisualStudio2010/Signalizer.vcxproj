@@ -67,16 +67,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -473,6 +473,7 @@
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
+    <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h" />
     <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />

@@ -32,10 +32,8 @@
 	#define SIGNALIZER_COMMON_SIGNALIZER_H
 
 	#include <cpl/Common.h>
-	#include <cpl/CAudioStream.h>
 	#include <complex>
-	#include <cpl/infrastructure/parameters/ParameterSystem.h>
-	#include <cpl/infrastructure/values/Values.h>
+	#include "SignalizerConfiguration.h"
 
 	namespace Signalizer
 	{
@@ -54,26 +52,9 @@
 			Lanczos
 		};
 
-		/// <summary>
-		/// Floating-point type used for parameters etc. in Signalizer
-		/// </summary>
-		typedef double SFloat;
-		/// <summary>
-		/// Floating point type used for audio
-		/// </summary>
-		typedef float AFloat;
-		/// <summary>
-		/// Floating point type used for parameters of the host system
-		/// </summary>
-		typedef float PFloat;
-
-		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
-		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
-
-
-		// TODO: Figure out why sizes around 256 causes buffer overruns
-		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
 		class StateEditor;
+		class ProcessorState;
+		class SystemView;
 
 		class ProcessorState
 			: public cpl::SafeSerializableObject
@@ -299,11 +280,6 @@
 		};
 
 		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
-
-
-		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
-		extern std::string MainPresetName;
-		extern std::string DefaultPresetName;
 
 		enum class OscChannels
 		{

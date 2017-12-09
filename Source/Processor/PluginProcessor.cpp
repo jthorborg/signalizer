@@ -36,9 +36,10 @@
 
 namespace Signalizer
 {
+	extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
+	extern std::string MainPresetName;
+	extern std::string DefaultPresetName;
 
-
-	//==============================================================================
 	AudioProcessor::AudioProcessor()
 		: stream(16, true)
 		, nChannels(2)
