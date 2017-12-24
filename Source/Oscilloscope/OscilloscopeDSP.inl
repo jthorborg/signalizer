@@ -27,6 +27,8 @@
 
 *************************************************************************************/
 
+#ifndef SIGNALIZER_OSCILLOSCOPEDSP_INL
+#define SIGNALIZER_OSCILLOSCOPEDSP_INL
 
 #include "Oscilloscope.h"
 #include "StreamPreprocessing.h"
@@ -850,3 +852,4 @@ namespace Signalizer
 			}
 		}
 };
+#endif

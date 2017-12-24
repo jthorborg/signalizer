@@ -40,17 +40,9 @@ namespace Signalizer
 	// swapping the right channel might give an more intuitive view
 
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
-	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 
 	static const float quarterPISinCos = 0.707106781186547f;
 	static const float circleScaleFactor = 1.1f;
-
-	enum class OperationalModes
-	{
-		Lissajous,
-		Polar
-
-	};
 
 	enum Textures
 	{
