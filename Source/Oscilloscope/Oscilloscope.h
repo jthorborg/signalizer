@@ -38,6 +38,7 @@
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
 	#include "ChannelData.h"
+	#include <cpl/gui/CViews.h>
 
 	namespace cpl
 	{
@@ -205,7 +206,7 @@
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended;
+				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended, drawLegend;
 				float primitiveSize;
 
 				double effectiveWindowSize;
@@ -242,6 +243,7 @@
 			//cpl::AudioBuffer audioStreamCopy;
 			juce::Component * editor;
 			// unused.
+			std::vector<std::string> channelNames;
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;

@@ -405,6 +405,9 @@ namespace Signalizer
 	{
 		cpl::CMutex scopedLock(bufferLock);
 
+		// get channel names for legend display
+		channelNames = audioStream.getAsyncChannelNames();
+
 		// TODO: dynamically determine size
 		AFloat * localBuffers[2];
 

@@ -133,6 +133,16 @@ namespace Signalizer
 
 		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire) ? isMouseInside.load(std::memory_order_relaxed) : true;
 
+		// TODO: Add button for state.drawLegend
+		if (true || state.drawLegend && mouseCheck)
+		{
+			cpl::CMutex scopedLock(bufferLock);
+			std::array<juce::Colour, 32> colours;
+			colours[0] = state.colourPrimary;
+			colours[1] = state.colourSecondary;
+			PaintLegend(g, state.colourTracker, state.colourBackground, { 10, 10 }, channelNames, colours, channelNames.size());
+		}
+
 		if (state.drawCursorTracker && mouseCheck)
 		{
 			g.setColour(state.colourTracker);
@@ -204,6 +214,7 @@ namespace Signalizer
 
 			g.drawFittedText(text, rectInside, juce::Justification::centredLeft, 6);
 		}
+
 	}
 
 	void Oscilloscope::onGraphicsRendering(juce::Graphics & g)
