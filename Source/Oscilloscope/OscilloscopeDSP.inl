@@ -700,13 +700,18 @@ namespace Signalizer
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
-				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+
+				auto start = std::sqrt(filterEnv[0]);
+
+				for (std::size_t c = 0; c < numChannels; ++c)
+					start = std::max(start, std::sqrt(filterEnv[c]));
+
+				shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
 
 				// only update filters if this mode is on.
 				smoothEnvelopeState(ChannelData::Left) = filterEnv[0];
 				smoothEnvelopeState(ChannelData::Right) = filterEnv[1];
 
-				shared.autoGainEnvelope.store(currentEnvelope, std::memory_order_release);
 			}
 
 			// save audio data
@@ -737,24 +742,28 @@ namespace Signalizer
 
 			auto const vHalf = consts<V>::half;
 
-			if (state.channelMode <= OscChannels::OffsetForMono)
+			auto const numChannels = channelData.front.channels.size();
+
+			auto const channelMode = numChannels == 1 ? OscChannels::Left : state.channelMode;
+
+			auto const numSamples = channelData.front.channels.begin()->audioData.getSize();
+
+			auto stop = numSamples - (numSamples & (loopIncrement - 1));
+			if (stop <= 0)
+				stop = 0;
+
+			// since this runs in every frame, we need to scale the coefficient by how often this function runs
+			// (and the amount of samples)
+			double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+			double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
+
+			if (channelMode <= OscChannels::OffsetForMono)
 			{
 				auto && view = channelData.front.channels[0].audioData.createProxyView();
 
-				std::size_t numSamples = view.size();
-
 				const auto * leftBuffer = view.begin();
 
-				auto stop = numSamples - (numSamples & (loopIncrement - 1));
-				if (stop <= 0)
-					stop = 0;
-
-				// since this runs in every frame, we need to scale the coefficient by how often this function runs
-				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-				double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
-
-				if (state.channelMode == OscChannels::Left)
+				if (channelMode == OscChannels::Left)
 				{
 					for (std::size_t i = 0; i < stop; i += loopIncrement)
 					{
@@ -764,16 +773,10 @@ namespace Signalizer
 				}
 				else
 				{
-					if (channelData.front.channels.size() < 2)
-					{
-						shared.autoGainEnvelope.store(1, std::memory_order_release);
-						return;
-					}
-
 					auto && rightView = channelData.front.channels[1].audioData.createProxyView();
 					const auto * rightBuffer = rightView.begin();
 
-					switch (state.channelMode)
+					switch (channelMode)
 					{
 					case OscChannels::Right:
 
@@ -813,72 +816,87 @@ namespace Signalizer
 				smoothEnvelopeState(0) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
 				smoothEnvelopeState(1) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
 
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(smoothEnvelopeState(0)), std::sqrt(smoothEnvelopeState(1))), std::memory_order_release);
+				for (std::size_t c = 2; c < numChannels; ++c)
+				{
+					smoothEnvelopeState(c) = smoothEnvelopeState(1);
+				}
 
 			}
 			else
 			{
-				if (channelData.front.channels.size() < 2)
+				switch (channelMode)
 				{
-					shared.autoGainEnvelope.store(1, std::memory_order_release);
-					return;
-				}
-
-				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
-
-				std::size_t numSamples = views[0].size();
-
-				const auto * leftBuffer = views[0].begin();
-				const auto * rightBuffer = views[1].begin();
-
-				auto stop = numSamples - (numSamples & (loopIncrement - 1));
-				if (stop <= 0)
-					stop = 0;
-
-				// since this runs in every frame, we need to scale the coefficient by how often this function runs
-				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-				double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
-
-				switch (state.channelMode)
-				{
-				case OscChannels::Separate:
-					for (std::size_t i = 0; i < stop; i += loopIncrement)
+					case OscChannels::Separate:
 					{
-						auto const vLInput = load<V>(leftBuffer + i);
-						vLMax = max(vand(vLInput, vSign), vLMax);
-						auto const vRInput = load<V>(rightBuffer + i);
-						vRMax = max(vand(vRInput, vSign), vRMax);
+	
+						for (std::size_t c = 0; c < numChannels; ++c)
+						{
+							auto&& view = channelData.front.channels[c].audioData.createProxyView();
+							auto buffer = view.begin();
+
+							for (std::size_t i = 0; i < stop; i += loopIncrement)
+							{
+								auto const vInput = load<V>(buffer + i);
+								vLMax = max(vand(vInput, vSign), vLMax);
+							}
+
+							suitable_container<V> lmax = vLMax;
+							auto highestValue = *std::max_element(lmax.begin(), lmax.end());
+
+							smoothEnvelopeState(c) = std::max<float>(smoothEnvelopeState(c) * coeff, highestValue * highestValue);
+						}
+
+						break;
 					}
-					break;
-				case OscChannels::MidSide:
-					for (std::size_t i = 0; i < stop; i += loopIncrement)
+
+					case OscChannels::MidSide:
 					{
-						auto const vLInput = load<V>(leftBuffer + i);
-						auto const vRInput = load<V>(rightBuffer + i);
+						ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
 
-						auto const a = vLInput + vRInput;
-						auto const b = vLInput - vRInput;
+						const auto * leftBuffer = views[0].begin();
+						const auto * rightBuffer = views[1].begin();
 
-						vLMax = max(vand(a * vHalf, vSign), vLMax);
-						vRMax = max(vand(b * vHalf, vSign), vRMax);
+						for (std::size_t i = 0; i < stop; i += loopIncrement)
+						{
+							auto const vLInput = load<V>(leftBuffer + i);
+							auto const vRInput = load<V>(rightBuffer + i);
+
+							auto const a = vLInput + vRInput;
+							auto const b = vLInput - vRInput;
+
+							vLMax = max(vand(a * vHalf, vSign), vLMax);
+							vRMax = max(vand(b * vHalf, vSign), vRMax);
+						}
+
+						suitable_container<V> lmax = vLMax, rmax = vRMax;
+
+						double highestLeft = *std::max_element(lmax.begin(), lmax.end());
+						double highestRight = *std::max_element(rmax.begin(), rmax.end());
+
+						smoothEnvelopeState(ChannelData::Left) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
+						smoothEnvelopeState(ChannelData::Right) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
+
+						for (std::size_t c = 2; c < numChannels; ++c)
+						{
+							smoothEnvelopeState(c) = smoothEnvelopeState(1);
+						}
+
+						break;
 					}
-					break;
+
 				}
-
-				// TODO: remainder?
-
-				suitable_container<V> lmax = vLMax, rmax = vRMax;
-
-				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
-				double highestRight = *std::max_element(rmax.begin(), rmax.end());
-
-				smoothEnvelopeState(ChannelData::Left) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
-				smoothEnvelopeState(ChannelData::Right) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
-
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(smoothEnvelopeState(0)), std::sqrt(smoothEnvelopeState(1))), std::memory_order_release);
 
 			}
+
+
+			auto start = std::sqrt(smoothEnvelopeState(0));
+
+			for (std::size_t c = 0; c < numChannels; ++c)
+			{
+				start = std::max(start, std::sqrt(smoothEnvelopeState(c)));
+			}
+
+			shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
 		}
 };
 #endif
