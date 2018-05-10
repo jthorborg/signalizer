@@ -425,7 +425,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-		void Oscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer & target)
+		void Oscilloscope::audioProcessing(AFloat ** buffer, const std::size_t numChannels, const std::size_t numSamples, ChannelData::Buffer & target)
 		{
 			if (numSamples == 0 || numChannels == 0)
 				return;
@@ -505,6 +505,86 @@ namespace Signalizer
 
 			if (numChannels >= 2)
 			{
+
+				std::size_t offset = 0;
+
+				// process envelopes so we're not thrashing the icache
+				if (state.envelopeMode != EnvelopeModes::None)
+				{
+					switch (mode)
+					{
+					case OscChannels::Right: offset = 1;
+					case OscChannels::Left:
+					{
+						const auto channel = buffer[offset];
+
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto sample = cpl::Math::square(channel[n]);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
+
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
+
+						break;
+					}
+
+					case OscChannels::Mid:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
+							const auto sample = cpl::Math::square(mid);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
+
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
+
+						break;
+					case OscChannels::Side:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
+							const auto sample = cpl::Math::square(side);
+							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
+						}
+
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
+
+						break;
+
+					case OscChannels::Separate:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							for (std::size_t c = 0; c < numChannels; ++c)
+							{
+								const auto sample = cpl::Math::square(buffer[c][n]);
+								filterEnv[c] = sample + envelopeCoeff * (filterEnv[c] - sample);
+							} 
+						}
+
+						break;
+
+					case OscChannels::MidSide:
+						for (std::size_t n = 0; n < numSamples; ++n)
+						{
+							const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
+							const auto mid = 0.5 * cpl::Math::square(left + right), side = 0.5 * cpl::Math::square(left - right);
+
+							filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
+							filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
+						}
+
+						for (std::size_t c = 2; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Right];
+
+						break;
+					}
+
+				}
+
 				ChannelData::PixelType
 					firstColour(content->primaryColour.getAsJuceColour()),
 					secondColour(content->secondaryColour.getAsJuceColour());
@@ -525,122 +605,63 @@ namespace Signalizer
 					return ret;
 				};
 
+				typedef ChannelData::Crossover::BandArray SmoothState;
+				typedef unq_typeof(target.channels[fs::Left].colourData.createWriter()) ColourWriter;
+
+				cpl::variable_array<SmoothState> smoothStates(numChannels, [&](std::size_t i) { return channelData.filterStates.channels[i].smoothFilters; });
+				cpl::variable_array<ColourWriter> colourWriters(numChannels, [&](std::size_t i) { return target.channels[i].colourData.createWriter(); });
+				cpl::variable_array<ChannelData::Crossover*> networks(numChannels, [&](std::size_t i) { return &channelData.filterStates.channels[i].network; });
+
 				auto
-					leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters,
-					rightSmoothState = channelData.filterStates.channels[fs::Right].smoothFilters,
 					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
 					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
 
 				auto &&
-					lw = target.channels[fs::Left].colourData.createWriter(),
-					rw = target.channels[fs::Right].colourData.createWriter(),
 					mw = target.midSideColour[0].createWriter(),
 					sw = target.midSideColour[1].createWriter();
 
-				std::size_t offset = 0;
-
-				// process envelopes so we're not thrashing the icache
-				if (state.envelopeMode != EnvelopeModes::None)
-				{
-					switch (mode)
-					{
-					case OscChannels::Right: offset = 1;
-					case OscChannels::Left:
-					{
-						const auto channel = buffer[offset];
-
-						for (std::size_t n = 0; n < numSamples; ++n)
-						{
-							const auto sample = cpl::Math::square(channel[n]);
-							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						}
-
-						filterEnv[fs::Right] = filterEnv[fs::Left];
-
-						break;
-					}
-
-					case OscChannels::Mid:
-						for (std::size_t n = 0; n < numSamples; ++n)
-						{
-							const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
-							const auto sample = cpl::Math::square(mid);
-							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						}
-
-						filterEnv[fs::Right] = filterEnv[fs::Left];
-
-						break;
-					case OscChannels::Side:
-						for (std::size_t n = 0; n < numSamples; ++n)
-						{
-							const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
-							const auto sample = cpl::Math::square(side);
-							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
-						}
-
-						filterEnv[fs::Right] = filterEnv[fs::Left];
-
-						break;
-
-					case OscChannels::Separate:
-						for (std::size_t n = 0; n < numSamples; ++n)
-						{
-							const auto 
-								left = cpl::Math::square(buffer[fs::Left][n]),
-								right = cpl::Math::square(buffer[fs::Right][n]);
-
-							filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
-							filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
-						}
-
-						break;
-
-					case OscChannels::MidSide:
-						for (std::size_t n = 0; n < numSamples; ++n)
-						{
-							const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
-							const auto mid = 0.5 * cpl::Math::square(left + right), side = 0.5 * cpl::Math::square(left - right);
-
-							filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
-							filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
-						}
-
-						break;
-					}
-
-				}
 
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
-
-					auto & lN = channelData.filterStates.channels[fs::Left].network;
-					auto & rN = channelData.filterStates.channels[fs::Right].network;
 
 					const auto 
 						left = buffer[fs::Left][n],
 						right = buffer[fs::Right][n];
 
 					// split signal into bands:
-					auto leftBands = rN.process(left, channelData.networkCoeffs);
-					auto rightBands = lN.process(right, channelData.networkCoeffs);
+					auto leftBands = networks[0]->process(left, channelData.networkCoeffs);
+					auto rightBands = networks[1]->process(right, channelData.networkCoeffs);
 
-					filterStates(leftBands, leftSmoothState);
-					filterStates(rightBands, rightSmoothState);
+					filterStates(leftBands, smoothStates[0]);
+					filterStates(rightBands, smoothStates[1]);
 
 					// magnitude doesn't matter for these, as we normalize the data anyway -
 					filterStates(midSignal(leftBands, rightBands), midSmoothState);
 					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
 
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
-					rw.setHeadAndAdvance(accumulateColour(rightSmoothState, secondColour, blend));
+					for (std::size_t c = 2; c < numChannels; ++c)
+					{
+						auto bands = networks[c]->process(buffer[c][n], channelData.networkCoeffs);
+						filterStates(rightBands, smoothStates[c]);
+					}
+
 					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, blend));
 					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, blend));
 
+					for (std::size_t c = 0; c < numChannels; ++c)
+					{
+						auto colour = c & 0x1 ? secondColour : firstColour;
+						colourWriters[c].setHeadAndAdvance(accumulateColour(smoothStates[c], colour, blend));
+					}
+
 				}
 
-				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
-				channelData.filterStates.channels[fs::Right].smoothFilters = rightSmoothState;
+				for (std::size_t c = 0; c < numChannels; ++c)
+				{
+					channelData.filterStates.channels[c].smoothFilters = smoothStates[c];
+				}
+
+
 				channelData.filterStates.midSideSmoothsFilters[0] = midSmoothState;
 				channelData.filterStates.midSideSmoothsFilters[1] = sideSmoothState;
 
