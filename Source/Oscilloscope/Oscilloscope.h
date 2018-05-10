@@ -163,6 +163,8 @@
 			template<typename ISA>
 				void paint2DGraphics(juce::Graphics & g);
 
+			inline AFloat& smoothEnvelopeState(std::size_t i) { return channelData.filterStates.channels[i].envelope; }
+
 			bool checkAndInformInvalidCombinations();
 
 			void initPanelAndControls();
@@ -173,20 +175,6 @@
 			double getGain();
 
 			void setLastMousePos(const juce::Point<float> position) noexcept;
-
-			struct FilterStates
-			{
-				enum Entry
-				{
-					Slow = 0,
-					Left = 0,
-					Fast = 1,
-					Right = 1
-				};
-
-				AudioStream::DataType envelope[2];
-
-			} filters;
 
 			struct Flags
 			{

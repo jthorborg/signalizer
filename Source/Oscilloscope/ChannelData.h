@@ -45,6 +45,14 @@
 			typedef cpl::CLIFOStream<AFloat, 32> AudioBuffer;
 			typedef cpl::CLIFOStream<PixelType, 32> ColourBuffer;
 
+			enum Entry
+			{
+				Slow = 0,
+				Left = 0,
+				Fast = 1,
+				Right = 1
+			};
+
 			struct Channel
 			{
 				AudioBuffer audioData;
@@ -58,12 +66,10 @@
 					Crossover::BandArray smoothFilters{};
 					Crossover network;
 					juce::Colour defaultKey;
+					AFloat envelope;
 				};
 
 				std::vector<ChannelState> channels;
-
-				Crossover network;
-
 
 				Crossover::BandArray midSideSmoothsFilters[2];
 			};

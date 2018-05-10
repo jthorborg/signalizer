@@ -447,7 +447,11 @@ namespace Signalizer
 
 			// (division by zero is well-defined)
 			const auto envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate()));
-			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
+
+			cpl::variable_array<AFloat> filterEnv(numChannels);
+
+			for (std::size_t i = 0; i < numChannels; ++i)
+				filterEnv[i] = channelData.filterStates.channels[i].envelope;
 
 			auto colourArray = [](const auto & colourParam)
 			{
@@ -490,7 +494,7 @@ namespace Signalizer
 				return ret.lerp(key, blend);
 			};
 
-			using fs = FilterStates;
+			using fs = ChannelData;
 
 			auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -669,6 +673,7 @@ namespace Signalizer
 				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
 
 			}
+
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS)
 			{
@@ -677,8 +682,8 @@ namespace Signalizer
 				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
 				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0];
-				filters.envelope[1] = filterEnv[1];
+				smoothEnvelopeState(ChannelData::Left) = filterEnv[0];
+				smoothEnvelopeState(ChannelData::Right) = filterEnv[1];
 
 				shared.autoGainEnvelope.store(currentEnvelope, std::memory_order_release);
 			}
@@ -784,10 +789,10 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+				smoothEnvelopeState(0) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
+				smoothEnvelopeState(1) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
 
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
+				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(smoothEnvelopeState(0)), std::sqrt(smoothEnvelopeState(1))), std::memory_order_release);
 
 			}
 			else
@@ -847,10 +852,10 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+				smoothEnvelopeState(ChannelData::Left) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
+				smoothEnvelopeState(ChannelData::Right) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
 
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
+				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(smoothEnvelopeState(0)), std::sqrt(smoothEnvelopeState(1))), std::memory_order_release);
 
 			}
 		}

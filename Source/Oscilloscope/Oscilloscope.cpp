@@ -56,7 +56,6 @@ namespace Signalizer
 		, lastMousePos()
 		, editor(nullptr)
 		, state()
-		, filters()
 		, triggerState()
 		, medianPos()
 		, isMouseInside(false)
