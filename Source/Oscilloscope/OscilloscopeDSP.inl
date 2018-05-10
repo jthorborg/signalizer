@@ -36,6 +36,7 @@
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/simd.h>
+#include <cpl/lib/variable_array.h>
 
 namespace Signalizer
 {
@@ -328,9 +329,9 @@ namespace Signalizer
 
 
 	template<typename ISA, class Analyzer>
-	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.preprocessingTrigger);
+		Analyzer ana(numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.triggeringProcessor);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -385,7 +386,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void Oscilloscope::preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		const bool isPeakHolder = state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
 		const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
@@ -408,24 +409,18 @@ namespace Signalizer
 		// get channel names for legend display
 		channelNames = audioStream.getAsyncChannelNames();
 
-		// TODO: dynamically determine size
-		AFloat * localBuffers[2];
+		cpl::variable_array<float*> localBuffers(buffer, buffer + numChannels);
 
-		numChannels = std::min<std::size_t>(2, numChannels);
-
-		for (std::size_t c = 0; c < numChannels; ++c)
-			localBuffers[c] = buffer[c];
-
-		triggerState.preprocessingTrigger->update(audioStream.getASyncPlayhead().getSteadyClock());
-		preprocessAudio<ISA>(localBuffers, numChannels, numSamples);
+		triggerState.triggeringProcessor->update(audioStream.getASyncPlayhead().getSteadyClock());
+		preAnalyseAudio<ISA>(localBuffers.data(), numChannels, numSamples);
 
 		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
-			audioProcessing<ISA>(localBuffers, numChannels, numSamples, channelData.front);
+			audioProcessing<ISA>(localBuffers.data(), numChannels, numSamples, channelData.front);
 		}
 		else
 		{
-			triggerState.preprocessingTrigger->processMutating<ISA>(*this, localBuffers, numChannels, numSamples);
+			triggerState.triggeringProcessor->processMutating<ISA>(*this, localBuffers.data(), numChannels, numSamples);
 		}
 	}
 
@@ -587,7 +582,10 @@ namespace Signalizer
 					case OscChannels::Separate:
 						for (std::size_t n = 0; n < numSamples; ++n)
 						{
-							const auto left = cpl::Math::square(buffer[fs::Left][n]), right = cpl::Math::square(buffer[fs::Right][n]);
+							const auto 
+								left = cpl::Math::square(buffer[fs::Left][n]),
+								right = cpl::Math::square(buffer[fs::Right][n]);
+
 							filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
 							filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
 						}
@@ -615,7 +613,9 @@ namespace Signalizer
 					auto & lN = channelData.filterStates.channels[fs::Left].network;
 					auto & rN = channelData.filterStates.channels[fs::Right].network;
 
-					const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
+					const auto 
+						left = buffer[fs::Left][n],
+						right = buffer[fs::Right][n];
 
 					// split signal into bands:
 					auto leftBands = rN.process(left, channelData.networkCoeffs);

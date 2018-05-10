@@ -50,7 +50,7 @@
 
 	namespace Signalizer
 	{
-		class PreprocessingTrigger;
+		class TriggeringProcessor;
 
 		class Oscilloscope final
 			: public cpl::COpenGLView
@@ -58,7 +58,7 @@
 		{
 		public:
 
-			friend class PreprocessingTrigger;
+			friend class TriggeringProcessor;
 
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
@@ -149,10 +149,10 @@
 				void analyseAndSetupState();
 
 			template<typename ISA>
-			void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+			void preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA, class Analyzer>
-				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA>
 				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -279,7 +279,7 @@
 
 			struct TriggerData
 			{ 
-				std::unique_ptr<PreprocessingTrigger> preprocessingTrigger;
+				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
