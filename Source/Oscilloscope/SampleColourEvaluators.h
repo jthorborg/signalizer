@@ -54,124 +54,134 @@
 			ChannelData::PixelType defaultKey;
 		};
 
-		template<std::size_t ChannelIndex, std::size_t ColourIndex>
-			class Oscilloscope::SimpleChannelEvaluator : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
+		class Oscilloscope::DynamicChannelEvaluator : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
+		{
+		public:
+
+			DynamicChannelEvaluator(const EvaluatorParams& params)
+				: DefaultKey(params.data, params.colourIndex)
+				, audioView(params.data.front.channels.at(params.channelIndex).audioData.createProxyView())
+				, colourView(params.data.front.channels.at(params.channelIndex).colourData.createProxyView())
 			{
-			public:
 
-				SimpleChannelEvaluator(ChannelData & data)
-					: DefaultKey(data, ColourIndex)
-					, audioView(data.front.channels.at(ChannelIndex).audioData.createProxyView())
-					, colourView(data.front.channels.at(ChannelIndex).colourData.createProxyView())
-				{
+			}
 
-				}
+			inline bool isWellDefined() const noexcept
+			{
+				return audioView.size() > 0 && colourView.size() > 0;
+			}
 
-				inline bool isWellDefined() const noexcept
-				{
-					return audioView.size() > 0 && colourView.size() > 0;
-				}
+			void startFrom(cpl::ssize_t offset)
+			{
+				startFrom(offset, offset);
+			}
 
-				void startFrom(cpl::ssize_t offset)
-				{
-					startFrom(offset, offset);
-				}
+			void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
+			{
+				audioPointer = audioView.begin() + audioView.cursorPosition() + audioOffset;
 
-				void startFrom(cpl::ssize_t audioOffset, cpl::ssize_t colourOffset)
-				{
-					audioPointer = audioView.begin() + audioView.cursorPosition() + audioOffset;
+				while (audioPointer < audioView.begin())
+					audioPointer += audioView.size();
 
-					while (audioPointer < audioView.begin())
-						audioPointer += audioView.size();
+				while (audioPointer >= audioView.end())
+					audioPointer -= audioView.size();
 
-					while (audioPointer >= audioView.end())
-						audioPointer -= audioView.size();
+				colourPointer = colourView.begin() + colourView.cursorPosition() + colourOffset;
 
-					colourPointer = colourView.begin() + colourView.cursorPosition() + colourOffset;
+				while (colourPointer < colourView.begin())
+					colourPointer += colourView.size();
 
-					while (colourPointer < colourView.begin())
-						colourPointer += colourView.size();
+				while (colourPointer >= colourView.end())
+					colourPointer -= colourView.size();
 
-					while (colourPointer >= colourView.end())
-						colourPointer -= colourView.size();
+			}
 
-				}
+			inline void inc() noexcept
+			{
+				audioPointer++, colourPointer++;
 
-				inline void inc() noexcept
-				{
-					audioPointer++, colourPointer++;
+				if (audioPointer == audioView.end())
+					audioPointer -= audioView.size();
 
-					if (audioPointer == audioView.end())
-						audioPointer -= audioView.size();
+				if (colourPointer == colourView.end())
+					colourPointer -= colourView.size();
+			}
 
-					if (colourPointer == colourView.end())
-						colourPointer -= colourView.size();
-				}
+			inline std::pair<std::ptrdiff_t, std::ptrdiff_t> distance() const noexcept
+			{
+				return std::make_pair(
+					std::distance<AudioIt>(audioPointer, audioView.begin()),
+					std::distance<ColourIt>(colourPointer, colourView.begin())
+				);
+			}
 
-				inline std::pair<std::ptrdiff_t, std::ptrdiff_t> distance() const noexcept
-				{
-					return std::make_pair(
-						std::distance<AudioIt>(audioPointer, audioView.begin()),
-						std::distance<ColourIt>(colourPointer, colourView.begin())
-					);
-				}
+			inline std::pair<AudioT, ColourT> evaluate() const noexcept
+			{
+				return { *audioPointer, *colourPointer };
+			}
 
-				inline std::pair<AudioT, ColourT> evaluate() const noexcept
-				{
-					return { *audioPointer, *colourPointer };
-				}
+			AudioT evaluateSample() const noexcept
+			{
+				return *audioPointer;
+			}
 
-				AudioT evaluateSample() const noexcept
-				{
-					return *audioPointer;
-				}
+			ColourT evaluateColour() const noexcept
+			{
+				return *colourPointer;
+			}
 
-				ColourT evaluateColour() const noexcept
-				{
-					return *colourPointer;
-				}
+			AudioT evaluateSampleInc() noexcept
+			{
+				auto ret = *audioPointer++;
 
-				AudioT evaluateSampleInc() noexcept
-				{
-					auto ret = *audioPointer++;
+				if (audioPointer == audioView.end())
+					audioPointer -= audioView.size();
 
-					if (audioPointer == audioView.end())
-						audioPointer -= audioView.size();
+				return ret;
+			}
 
-					return ret;
-				}
+			ColourT evaluateColourInc() noexcept
+			{
+				auto ret = *colourPointer++;
 
-				ColourT evaluateColourInc() noexcept
-				{
-					auto ret = *colourPointer++;
+				if (colourPointer == colourView.end())
+					colourPointer -= colourView.size();
 
-					if (colourPointer == colourView.end())
-						colourPointer -= colourView.size();
+				return ret;
+			}
 
-					return ret;
-				}
+		private:
 
-			private:
+			juce::Colour defaultKey;
 
-				juce::Colour defaultKey;
+			ChannelData::AudioBuffer::ProxyView audioView;
+			ChannelData::ColourBuffer::ProxyView colourView;
 
-				ChannelData::AudioBuffer::ProxyView audioView;
-				ChannelData::ColourBuffer::ProxyView colourView;
+			AudioIt audioPointer {};
+			ColourIt colourPointer {};
+		};
 
-				AudioIt audioPointer {};
-				ColourIt colourPointer {};
-			};
+		template<std::size_t ChannelIndex, std::size_t ColourIndex>
+		class Oscilloscope::SimpleChannelEvaluator : public Oscilloscope::DynamicChannelEvaluator
+		{
+		public:
+			SimpleChannelEvaluator(const EvaluatorParams& params)
+				: Oscilloscope::DynamicChannelEvaluator({ params.data, ChannelIndex, ColourIndex })
+			{
+
+			}
+		};
 
 		template<std::size_t ChannelIndex, std::size_t ColourIndex, typename BinaryFunction>
 			class Oscilloscope::MidSideEvaluatorBase : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
 			{
 			public:
 
-				MidSideEvaluatorBase(ChannelData & data)
-					: DefaultKey(data, ColourIndex)
-					, audioViewLeft(data.front.channels.at(0).audioData.createProxyView())
-					, audioViewRight(data.front.channels.at(1).audioData.createProxyView())
-					, colourView(data.front.midSideColour[ChannelIndex].createProxyView())
+				MidSideEvaluatorBase(const EvaluatorParams& params)
+					: DefaultKey(params.data, ColourIndex)
+					, audioViewLeft(params.data.front.channels.at(0).audioData.createProxyView())
+					, audioViewRight(params.data.front.channels.at(1).audioData.createProxyView())
+					, colourView(params.data.front.midSideColour[ChannelIndex].createProxyView())
 				{
 
 				}

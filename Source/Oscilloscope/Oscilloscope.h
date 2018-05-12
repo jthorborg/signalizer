@@ -50,6 +50,16 @@
 
 	namespace Signalizer
 	{
+
+		struct EvaluatorParams
+		{
+			ChannelData& data;
+
+			std::size_t
+				channelIndex = 0,
+				colourIndex = 0;
+		};
+
 		class TriggeringProcessor;
 
 		class Oscilloscope final
@@ -126,7 +136,7 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename ISA, typename Eval>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params);
 
 			template<typename ISA>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
@@ -135,10 +145,10 @@
 				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
 
 			template<typename ISA, typename Eval>
-				void calculateFundamentalPeriod();
+				void calculateFundamentalPeriod(const EvaluatorParams& params);
 
 			template<typename ISA, typename Eval>
-				void calculateTriggeringOffset();
+				void calculateTriggeringOffset(const EvaluatorParams& params);
 
 			void resizeAudioStorage();
 
@@ -146,7 +156,7 @@
 				void runPeakFilter();
 
 			template<typename ISA, typename Eval>
-				void analyseAndSetupState();
+				void analyseAndSetupState(const EvaluatorParams& params);
 
 			template<typename ISA>
 			void preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -317,6 +327,8 @@
 
 			template<OscChannels channelConfiguration, std::size_t ColourIndice>
 				class SampleColourEvaluator;
+
+			class DynamicChannelEvaluator;
 
 			template<std::size_t ChannelIndex, std::size_t ColourIndice>
 				class SimpleChannelEvaluator;

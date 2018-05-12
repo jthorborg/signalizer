@@ -43,36 +43,45 @@ namespace Signalizer
 
 	struct VerticalScreenSplitter
 	{
-		VerticalScreenSplitter(juce::Rectangle<int> clipRectangle, cpl::OpenGLRendering::COpenGLStack & stack, bool doSeparate)
-			: stack(stack), width(clipRectangle.getWidth()), halfHeight(clipRectangle.getHeight() >> 1), separate(doSeparate)
+		VerticalScreenSplitter(juce::Rectangle<int> clipRectangle, cpl::OpenGLRendering::COpenGLStack & stack, int amountOfPasses, bool doSeparate)
+			: stack(stack)
+			, width(clipRectangle.getWidth())
+			, height(clipRectangle.getHeight())
+			, passesDone(0)
+			, numPasses(amountOfPasses)
+			, separate(doSeparate)
 		{
-
-		}
-
-		void firstPass()
-		{
-			if (separate)
+			if (doSeparate)
 			{
-				m.scale(1, 0.5f, 1);
-				m.translate(0, 1, 0);
+				m.scale(1, 1.0f / amountOfPasses, 1);
+				// center on upper rect, equiv. to (1 - 1 / amountOfPasses) / (1 / amountOfPasses)
+				m.translate(0, amountOfPasses - 1, 0);
 				stack.enable(GL_SCISSOR_TEST);
-				glScissor(0, halfHeight, width, halfHeight);
+				glScissor(0, cpl::Math::round<GLint>(GLfloat((numPasses - passesDone - 1) * height) / numPasses), width, height / numPasses);
+
 			}
+
 		}
 
-		void secondPass()
+		void nextPass()
 		{
 			if (separate)
-			{
+			{				
+				// one unit of vertical displacement is half a clipped region, so move two to center on next rect
 				m.translate(0, -2, 0);
-				glScissor(0, 0, width, halfHeight);
+				passesDone++;
+
+				glScissor(0, cpl::Math::round<GLint>(GLfloat((numPasses - passesDone - 1) * height) / numPasses), width, height / numPasses);
 			}
+
 		}
 
 		~VerticalScreenSplitter() { if (separate) stack.disable(GL_SCISSOR_TEST); }
+
 		cpl::OpenGLRendering::MatrixModification m;
-		cpl::OpenGLRendering::COpenGLStack & stack;
-		GLint width, halfHeight;
+		cpl::OpenGLRendering::COpenGLStack& stack;
+		GLint width, height;
+		GLint passesDone, numPasses;
 		bool separate;
 	};
 
@@ -298,48 +307,54 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				auto mode = state.channelMode;
+				const auto numChannels = channelData.front.channels.size();
 
-				if (mode > OscChannels::OffsetForMono && channelData.front.channels.size() < 2)
+				if (mode > OscChannels::OffsetForMono && numChannels < 2)
 					mode = OscChannels::Left;
 
-				if (channelData.front.channels.size() > 0 && channelData.filterStates.channels.size() > 0)
+				if (numChannels > 0 && channelData.filterStates.channels.size() > 0)
 				{
 					switch (mode)
 					{
 					default: case OscChannels::Left:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>({ channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Right:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack);
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>({ channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Mid:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Side:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack);
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>({ channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Separate:
 					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
-						w.firstPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
-						w.secondPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack);
+						const auto triggeringChannel = 0;
+
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggeringChannel});
+						
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, numChannels, !state.overlayChannels);
+
+						for (std::size_t i = 0; i < numChannels; ++i)
+						{
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, { channelData, i, i});
+							w.nextPass();
+						}
+
 						break;
 					}
 					case OscChannels::MidSide:
 					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						w.firstPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
-						w.secondPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, 2, !state.overlayChannels);
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
+						w.nextPass();
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack, { channelData });
 						break;
 					}
 					}
@@ -542,7 +557,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Evaluator>
-		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
+		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const EvaluatorParams& params)
 		{
 
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
@@ -632,7 +647,7 @@ namespace Signalizer
 				// scale to sample/pixels space
 				matrixMod.scale(sampleDisplacement, 1, 1);
 
-				Evaluator eval(channelData);
+				Evaluator eval(params);
 				if (!eval.isWellDefined())
 					return;
 
@@ -819,7 +834,7 @@ namespace Signalizer
 					samplePos += -unitSpacePos / inc * samplesPerPixel;
 					double currentSample = std::floor(samplePos);
 
-					Evaluator eval(channelData);
+					Evaluator eval(params);
 
 					if (!eval.isWellDefined())
 						return;

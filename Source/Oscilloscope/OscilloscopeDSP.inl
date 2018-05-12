@@ -42,10 +42,10 @@ namespace Signalizer
 {
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::analyseAndSetupState()
+	void Oscilloscope::analyseAndSetupState(const EvaluatorParams& params)
 	{
-		calculateFundamentalPeriod<ISA, Eval>();
-		calculateTriggeringOffset<ISA, Eval>();
+		calculateFundamentalPeriod<ISA, Eval>(params);
+		calculateTriggeringOffset<ISA, Eval>(params);
 
 		resizeAudioStorage();
 
@@ -60,7 +60,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::calculateFundamentalPeriod()
+	void Oscilloscope::calculateFundamentalPeriod(const EvaluatorParams& params)
 	{
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
@@ -80,7 +80,7 @@ namespace Signalizer
 		}
 		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
-			Eval eval(channelData);
+			Eval eval(params);
 
 			if (!eval.isWellDefined())
 				return;
@@ -228,7 +228,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::calculateTriggeringOffset()
+	void Oscilloscope::calculateTriggeringOffset(const EvaluatorParams& params)
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
@@ -252,7 +252,7 @@ namespace Signalizer
 		auto const TransformSize = OscilloscopeContent::LookaheadSize;
 #endif
 
-		Eval eval(channelData);
+		Eval eval(params);
 
 		if (!eval.isWellDefined())
 			return;
