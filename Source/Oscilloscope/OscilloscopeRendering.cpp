@@ -118,20 +118,23 @@ namespace Signalizer
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<ISA>(g, bounds);
 
+			auto window = bounds.withHeight(bounds.getHeight() / state.numChannels);
+
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
-				juce::Graphics::ScopedSaveState s(g);
+				for (std::size_t c = 0; c < state.numChannels; ++c)
+				{
+					juce::Graphics::ScopedSaveState s(g);
 
-				bounds.setHeight(bounds.getHeight() * 0.5f);
-				const auto rectBottom = bounds.withY(bounds.getY() + bounds.getHeight());
+					g.setColour(state.colourGraph);
+					g.drawLine(0, window.getY(), window.getWidth(), window.getY());
+					g.reduceClipRegion(window.toType<int>());
 
-				g.setColour(state.colourGraph);
-				g.drawLine(0, rectBottom.getY(), bounds.getWidth(), rectBottom.getY());
+					drawWireFrame<ISA>(g, window, gain);
 
-				drawWireFrame<ISA>(g, rectBottom, gain);
+					window = window.withY(window.getY() + window.getHeight());
 
-				g.reduceClipRegion(bounds.toType<int>());
-				drawWireFrame<ISA>(g, bounds, gain);
+				}
 
 			}
 			else
@@ -307,7 +310,7 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				auto mode = state.channelMode;
-				const auto numChannels = channelData.front.channels.size();
+				const auto numChannels = state.numChannels;
 
 				if (mode > OscChannels::OffsetForMono && numChannels < 2)
 					mode = OscChannels::Left;
@@ -338,7 +341,7 @@ namespace Signalizer
 
 						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggeringChannel});
 						
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, numChannels, !state.overlayChannels);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(state.numChannels), !state.overlayChannels);
 
 						for (std::size_t i = 0; i < numChannels; ++i)
 						{

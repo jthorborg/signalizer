@@ -217,6 +217,7 @@
 
 				double viewOffsets[4];
 				std::int64_t transportPosition;
+				std::size_t numChannels;
 				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary, colourTracker;
 
 				EnvelopeModes envelopeMode;
@@ -224,6 +225,8 @@
 				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
 				OscChannels channelMode;
+
+				std::vector<std::string> channelNames;
 
 			} state;
 
@@ -240,7 +243,6 @@
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			juce::Component * editor;
-			// unused.
 			std::vector<std::string> channelNames;
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec

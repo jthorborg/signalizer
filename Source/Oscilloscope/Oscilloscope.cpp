@@ -303,12 +303,14 @@ namespace Signalizer
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
+		state.numChannels = channelData.front.channels.size();
+		state.channelNames = channelNames;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
-		for (std::size_t c = 0; c < channelData.filterStates.channels.size(); ++c)
+		for (std::size_t c = 0; c < state.numChannels; ++c)
 		{
 			if (c == 0)
 				channelData.filterStates.channels[c].defaultKey = state.colourPrimary;
@@ -342,19 +344,6 @@ namespace Signalizer
 			firstRun = true;
 		}
 
-
-		/* if (firstRun || mtFlags.initiateWindowResize)
-		{
-
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
-			{
-				// only reset this flag if there's valid data, otherwise keep checking.
-				mtFlags.initiateWindowResize.cas();
-				auto value = content->windowSize.getTransformedValue();
-				//audioStream.setAudioHistorySize(value);
-			}
-		} */
 	}
 
 	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
