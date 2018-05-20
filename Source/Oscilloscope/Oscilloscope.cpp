@@ -130,12 +130,12 @@ namespace Signalizer
 
 		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 		{
-			auto halfHeight = 0.5 * (getHeight() - 1);
+			auto heightPerScope = (getHeight() - 1) / state.numChannels;
 			yp = event.position.y;
-			if (yp > halfHeight)
-				yp -= halfHeight;
+			while (yp > heightPerScope)
+				yp -= heightPerScope;
 
-			yp = yp / halfHeight;
+			yp = yp / heightPerScope;
 		}
 		else
 		{
@@ -163,7 +163,7 @@ namespace Signalizer
 			else
 			{
 				// TODO: fix to pow()
-				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
+				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 80);
 			}
 
 
