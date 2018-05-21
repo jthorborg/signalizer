@@ -585,10 +585,6 @@ namespace Signalizer
 
 				}
 
-				ChannelData::PixelType
-					firstColour(content->primaryColour.getAsJuceColour()),
-					secondColour(content->secondaryColour.getAsJuceColour());
-
 				auto sideSignal = [](const auto & left, const auto & right)
 				{
 					unq_typeof(left) ret;
@@ -611,6 +607,7 @@ namespace Signalizer
 				cpl::variable_array<SmoothState> smoothStates(numChannels, [&](std::size_t i) { return channelData.filterStates.channels[i].smoothFilters; });
 				cpl::variable_array<ColourWriter> colourWriters(numChannels, [&](std::size_t i) { return target.channels[i].colourData.createWriter(); });
 				cpl::variable_array<ChannelData::Crossover*> networks(numChannels, [&](std::size_t i) { return &channelData.filterStates.channels[i].network; });
+				cpl::variable_array<ChannelData::PixelType> colours(numChannels, [&](auto i) { return content->getColour(i).getAsJuceColour(); });
 
 				auto
 					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
@@ -645,13 +642,12 @@ namespace Signalizer
 						filterStates(rightBands, smoothStates[c]);
 					}
 
-					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, blend));
-					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, blend));
+					mw.setHeadAndAdvance(accumulateColour(midSmoothState, colours[0], blend));
+					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, colours[1], blend));
 
 					for (std::size_t c = 0; c < numChannels; ++c)
 					{
-						auto colour = c & 0x1 ? secondColour : firstColour;
-						colourWriters[c].setHeadAndAdvance(accumulateColour(smoothStates[c], colour, blend));
+						colourWriters[c].setHeadAndAdvance(accumulateColour(smoothStates[c], colours[c], blend));
 					}
 
 				}
@@ -668,8 +664,7 @@ namespace Signalizer
 			}
 			else if (numChannels == 1)
 			{
-				ChannelData::PixelType
-					firstColour(content->primaryColour.getAsJuceColour());
+				ChannelData::PixelType colour(content->getColour(0).getAsJuceColour());
 
 				filterEnv[1] = 0;
 				auto && lw = target.channels[fs::Left].colourData.createWriter();
@@ -688,7 +683,7 @@ namespace Signalizer
 					auto leftBands = channelData.filterStates.channels[fs::Left].network.process(left, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, colour, blend));
 				}
 
 				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;

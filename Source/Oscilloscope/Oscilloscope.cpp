@@ -290,8 +290,6 @@ namespace Signalizer
 		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 
-		state.colourPrimary = content->primaryColour.getAsJuceColour();
-		state.colourSecondary = content->secondaryColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.colourTracker = content->trackerColour.getAsJuceColour();
@@ -305,6 +303,7 @@ namespace Signalizer
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
 		state.numChannels = channelData.front.channels.size();
 		state.channelNames = channelNames;
+		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
@@ -312,10 +311,7 @@ namespace Signalizer
 
 		for (std::size_t c = 0; c < state.numChannels; ++c)
 		{
-			if (c == 0)
-				channelData.filterStates.channels[c].defaultKey = state.colourPrimary;
-			else
-				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
+			state.colours[c] = channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
 		}
 
 		switch (state.timeMode)

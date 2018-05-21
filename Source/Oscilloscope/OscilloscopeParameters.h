@@ -44,6 +44,7 @@
 
 			static constexpr std::size_t LookaheadSize = 8192;
 			static constexpr std::size_t InterpolationKernelSize = 10;
+			static constexpr std::size_t NumColourChannels = 16;
 
 			enum class TriggeringMode
 			{
@@ -412,13 +413,15 @@
 				, channelColouring("Colouring")
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 				, cursorTracker("CursorTrck", unityRange, boolFormatter)
+				, showLegend(&unityRange, &boolFormatter)
 				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
 				, triggerHysteresis("TrgHstrs", unityRange, pctFormatter)
 				, triggerThreshold("TrgThrhold", triggerThresholdRange, dbFormatter)
 
 				, colourBehaviour()
-				, primaryColour(colourBehaviour, "Prim.")
-				, secondaryColour(colourBehaviour, "Sec.")
+
+				, primaryColour(colourBehaviour, "Prim" )
+				, secondaryColour(colourBehaviour, "Sec" )
 				, graphColour(colourBehaviour, "Graph.")
 				, backgroundColour(colourBehaviour, "BackG.")
 				, lowColour(colourBehaviour, "Low.")
@@ -546,6 +549,14 @@
 				archive << frequencyColouringBlend;
 				archive << triggerHysteresis;
 				archive << triggerThreshold;
+
+				for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+				{
+					archive << *b;
+				}
+
+				
+				archive << showLegend;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -593,6 +604,27 @@
 				{
 					builder >> triggerHysteresis;
 					builder >> triggerThreshold;
+				}
+
+				if (version >= cpl::Version(0, 3, 3))
+				{
+					for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+					{
+						builder >> *b;
+					}
+
+					builder >> showLegend;
+				}
+			}
+
+			cpl::ColourValue& getColour(std::size_t index) noexcept
+			{
+				switch (index)
+				{
+				case 0: return primaryColour;
+				case 1: return secondaryColour;
+				default:
+					return extraColours[index - 2];
 				}
 			}
 
@@ -666,8 +698,8 @@
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				primaryColour,
-				graphColour,
 				secondaryColour,
+				graphColour,
 				backgroundColour,
 				lowColour, midColour, highColour,
 				trackerColour;
@@ -675,6 +707,12 @@
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
+
+			cpl::SelfcontainedValue<>
+				showLegend;
+
+			cpl::CompleteColour
+				extraColours[NumColourChannels - 2];
 
 		private:
 

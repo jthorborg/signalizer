@@ -47,8 +47,8 @@ namespace Signalizer
 			, kgain(&parentValue.inputGain)
 			, kprimitiveSize(&parentValue.primitiveSize)
 			, kenvelopeSmooth(&parentValue.envelopeWindow)
-			, kprimaryColour(&parentValue.primaryColour)
-			, ksecondaryColour(&parentValue.secondaryColour)
+			, kprimaryColour(&parentValue.getColour(0))
+			, ksecondaryColour(&parentValue.getColour(1))
 			, kgraphColour(&parentValue.graphColour)
 			, kbackgroundColour(&parentValue.backgroundColour)
 			, klowColour(&parentValue.lowColour)
@@ -74,6 +74,7 @@ namespace Signalizer
 			, kfreqColourBlend(&parentValue.frequencyColouringBlend)
 			, ktriggerHysteresis(&parentValue.triggerHysteresis)
 			, ktriggerThreshold(&parentValue.triggerThreshold)
+			, kshowLegend(&parentValue.showLegend)
 
 			, editorSerializer(
 				*this,
@@ -173,7 +174,8 @@ namespace Signalizer
 			koverlayChannels.setToggleable(true);
 			kcursorTracker.bSetTitle("Cursor tracker");
 			kcursorTracker.setToggleable(true);
-
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
 
 			// descriptions.
 			kwindow.bSetDescription("The size of the displayed time window.");
@@ -208,6 +210,7 @@ namespace Signalizer
 			ktrackerColour.bSetDescription("Colour of the cursor tracker");
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
+			kshowLegend.bSetDescription("Display a legend of the signals/colours");
 		}
 
 		void initUI()
@@ -224,6 +227,7 @@ namespace Signalizer
 				{
 					section->addControl(&koverlayChannels, 0);
 					section->addControl(&kcursorTracker, 1);
+					section->addControl(&kshowLegend, 2);
 					page->addSection(section, "Options");
 				}
 
@@ -339,6 +343,7 @@ namespace Signalizer
 			archive << kfreqColourBlend;
 			archive << ktriggerHysteresis;
 			archive << ktriggerThreshold;
+			archive << kshowLegend;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -389,6 +394,10 @@ namespace Signalizer
 				builder >> ktriggerThreshold;
 			}
 
+			if (version > cpl::Version(0, 3, 3))
+			{
+				builder >> kshowLegend;
+			}
 		}
 
 
@@ -425,7 +434,7 @@ namespace Signalizer
 			}
 		}
 
-		cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
+		cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker, kshowLegend;
 		cpl::CValueInputControl kcustomFrequency;
 		cpl::CValueKnobSlider
 			kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,

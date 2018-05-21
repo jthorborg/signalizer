@@ -218,7 +218,7 @@
 				double viewOffsets[4];
 				std::int64_t transportPosition;
 				std::size_t numChannels;
-				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary, colourTracker;
+				juce::Colour colourBackground, colourGraph, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourTracker;
 
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
