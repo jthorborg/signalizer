@@ -170,16 +170,22 @@ namespace Signalizer
 
 			auto fraction = (double)mouseY / (getHeight() - 1);
 
-			juce::Point<float> verticalMouseSection{ 0, (state.overlayChannels ? 1 : 0.5f) * getBounds().getHeight()};
+			juce::Point<float> verticalMouseSection{ 0.0f, static_cast<float>(getBounds().getHeight()) };
+
+			const auto normalizedSpace = 1.0 / state.numChannels;
 
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
-				if (fraction > 0.5)
-				{
-					verticalMouseSection = { getBounds().getHeight() * 0.5f, getBounds().getHeight() * 0.5f };
-					fraction -= 0.5;
-				}
-				fraction *= 2;
+				const auto position = fraction / normalizedSpace;
+				const auto rounded = static_cast<int>(position);
+
+				verticalMouseSection = { 
+					static_cast<float>(getBounds().getHeight() * rounded * normalizedSpace), 
+					static_cast<float>(getBounds().getHeight() * normalizedSpace)
+				};
+
+				fraction = std::fmod(fraction, normalizedSpace);
+				fraction *= state.numChannels;
 			}
 
 			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
