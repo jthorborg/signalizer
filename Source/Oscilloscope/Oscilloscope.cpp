@@ -99,6 +99,16 @@ namespace Signalizer
 		notifyDestruction();
 	}
 
+	std::size_t Oscilloscope::getEffectiveChannels() const noexcept
+	{
+		if (state.channelMode >= OscChannels::OffsetForMono)
+		{
+			return state.channelMode == OscChannels::Separate ? state.numChannels : 2;
+		}
+
+		return 1;
+	}
+
 	void Oscilloscope::initPanelAndControls()
 	{
 		// design
@@ -130,7 +140,7 @@ namespace Signalizer
 
 		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 		{
-			auto heightPerScope = (getHeight() - 1) / state.numChannels;
+			auto heightPerScope = (getHeight() - 1.0) / getEffectiveChannels();
 			yp = event.position.y;
 			while (yp > heightPerScope)
 				yp -= heightPerScope;
@@ -238,7 +248,7 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
-		auto verticalFactor = !state.overlayChannels && state.channelMode > OscChannels::OffsetForMono ? 2 : 1;
+		auto verticalFactor = getEffectiveChannels();
 
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));

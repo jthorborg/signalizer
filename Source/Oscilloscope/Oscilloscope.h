@@ -130,6 +130,7 @@
 				}
 			};
 
+			std::size_t getEffectiveChannels() const noexcept;
 
 			template<typename ISA>
 				void vectorGLRendering();

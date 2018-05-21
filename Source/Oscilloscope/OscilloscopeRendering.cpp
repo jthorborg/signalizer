@@ -118,11 +118,13 @@ namespace Signalizer
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<ISA>(g, bounds);
 
-			auto window = bounds.withHeight(bounds.getHeight() / state.numChannels);
-
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
-				for (std::size_t c = 0; c < state.numChannels; ++c)
+				const auto cappedChannels = getEffectiveChannels();
+
+				auto window = bounds.withHeight(bounds.getHeight() / cappedChannels);
+
+				for (std::size_t c = 0; c < cappedChannels; ++c)
 				{
 					juce::Graphics::ScopedSaveState s(g);
 
@@ -172,7 +174,9 @@ namespace Signalizer
 
 			juce::Point<float> verticalMouseSection{ 0.0f, static_cast<float>(getBounds().getHeight()) };
 
-			const auto normalizedSpace = 1.0 / state.numChannels;
+			const auto cappedChannels = getEffectiveChannels();
+
+			const auto normalizedSpace = 1.0 / cappedChannels;
 
 			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 			{
@@ -185,7 +189,7 @@ namespace Signalizer
 				};
 
 				fraction = std::fmod(fraction, normalizedSpace);
-				fraction *= state.numChannels;
+				fraction *= cappedChannels;
 			}
 
 			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
