@@ -430,6 +430,7 @@
 				, trackerColour(colourBehaviour, "Trckr.")
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
+				, triggeringChannel(0)
 
 			{
 				viewOffsets.emplace_back("ViewLeft", unityRange, basicFormatter);
@@ -555,8 +556,8 @@
 					archive << *b;
 				}
 
-				
 				archive << showLegend;
+				archive << triggeringChannel;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override
@@ -614,6 +615,7 @@
 					}
 
 					builder >> showLegend;
+					builder >> triggeringChannel;
 				}
 			}
 
@@ -713,6 +715,8 @@
 
 			cpl::CompleteColour
 				extraColours[NumColourChannels - 2];
+
+			std::atomic<std::size_t> triggeringChannel;
 
 		private:
 
