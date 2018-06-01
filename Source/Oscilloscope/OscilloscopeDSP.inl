@@ -404,7 +404,12 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		if (numSamples == 0 || numChannels == 0)
+			return;
+
 		cpl::CMutex scopedLock(bufferLock);
+
+		channelData.resizeChannels(numChannels);
 
 		// get channel names for legend display
 		channelNames = audioStream.getAsyncChannelNames();
@@ -427,20 +432,15 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::audioProcessing(AFloat ** buffer, const std::size_t numChannels, const std::size_t numSamples, ChannelData::Buffer & target)
 		{
-			if (numSamples == 0 || numChannels == 0)
-				return;
-
 			using namespace cpl::simd;
 			typedef AFloat T;
 
 			auto const sampleRate = audioStream.getAudioHistorySamplerate();
 
-			channelData.resizeChannels(numChannels);
 			channelData.tuneColourSmoothing(content->colourSmoothing.getTransformedValue(), sampleRate);
 			channelData.tuneCrossOver(300, 3000, sampleRate);
 
-
-			if (target.channels[0].audioData.getSize() < 1)
+			if (target.defaultChannel().audioData.getSize() < 1)
 				return;
 
 			auto colourSmoothPole = channelData.smoothFilterPole;

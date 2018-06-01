@@ -248,7 +248,7 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
-		auto verticalFactor = getEffectiveChannels();
+		auto verticalFactor = state.overlayChannels ? 1 : getEffectiveChannels();
 
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));
@@ -311,7 +311,7 @@ namespace Signalizer
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
-		state.numChannels = channelData.front.channels.size();
+		state.numChannels = channelData.numChannels();
 		state.channelNames = channelNames;
 		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 

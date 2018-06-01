@@ -76,7 +76,7 @@
 
 			struct Buffer
 			{
-				std::vector<Channel> channels{ 1 };
+				std::vector<Channel> channels{ 0};
 				ColourBuffer midSideColour[2];
 
 				Channel & defaultChannel()
@@ -106,23 +106,17 @@
 			{
 				for (auto buffer : { &back, &front })
 				{
-					auto & channels = buffer->channels;
+					auto& channelsForBuffer = buffer->channels;
 
-					if (newChannels > channels.size())
-					{
-						auto original = channels.size();
-						auto diff = newChannels - original;
+					bool alreadyHasData = channelsForBuffer.size() > 0;
 
-						while (diff--)
-						{
-							channels.emplace_back();
-							filterStates.channels.emplace_back();
-						}
+					channelsForBuffer.resize(newChannels);
 
-						if (original > 0)
-							buffer->resizeStorage(channels.back().audioData.getSize(), channels.back().audioData.getCapacity());
-					}
+					if (alreadyHasData)
+						buffer->resizeStorage(channelsForBuffer.front().audioData.getSize(), channelsForBuffer.front().audioData.getCapacity());
 				}
+
+				filterStates.channels.resize(std::max(filterStates.channels.size(), newChannels));
 
 			}
 
@@ -154,6 +148,9 @@
 			{
 				smoothFilterPole = cpl::dsp::SmoothedParameterState<AFloat, 1>::design(milliseconds, sampleRate);
 			}
+
+			std::size_t numChannels() const noexcept { return front.channels.size(); }
+			bool empty() const noexcept { return numChannels() > 0; }
 
 			Crossover::Coefficients networkCoeffs;
 			cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;
