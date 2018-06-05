@@ -150,7 +150,7 @@ namespace Signalizer
 		if (state.drawLegend && mouseCheck)
 		{
 			cpl::CMutex scopedLock(bufferLock);
-			PaintLegend(g, state.colourTracker, state.colourBackground, { 10, 10 }, channelNames, state.colours, channelNames.size());
+			PaintLegend(g, state.colourTracker, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
 		}
 
 		if (state.drawCursorTracker && mouseCheck)

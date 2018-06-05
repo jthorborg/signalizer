@@ -5,17 +5,17 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,3,2,0
-PRODUCTVERSION 0,3,2,0
+FILEVERSION 0,3,4,0
+PRODUCTVERSION 0,3,4,0
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN
     BLOCK "040904E4"
     BEGIN
       VALUE "FileDescription", "Real-time audio visualization plugin"
-      VALUE "FileVersion", "0.3.2"
+      VALUE "FileVersion", "0.3.4"
       VALUE "ProductName", "Signalizer"
-      VALUE "ProductVersion", "0.3.2"
+      VALUE "ProductVersion", "0.3.4"
     END
   END
   BLOCK "VarFileInfo"
