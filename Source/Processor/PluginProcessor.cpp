@@ -33,6 +33,7 @@
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
 #include <cpl/infrastructure/values/Values.h>
+#include <cpl/lib/variable_array.h>
 
 namespace Signalizer
 {
@@ -112,7 +113,7 @@ namespace Signalizer
 	{
 		AudioStream::AudioStreamInfo info = stream.getInfo();
 
-		info.anticipatedChannels = nChannels;
+		info.anticipatedChannels = nChannels * 2;
 		info.anticipatedSize = samplesPerBlock;
 		info.callAsyncListeners = true;
 		info.callRTListeners = true;
@@ -121,7 +122,7 @@ namespace Signalizer
 
 		stream.initializeInfo(info);
 		
-		for (int i = 0; i < nChannels; ++i)
+		for (int i = 0; i < nChannels * 2; ++i)
 		{
 			stream.enqueueChannelName(i, "Channel " + std::to_string(i));
 		}
@@ -139,13 +140,29 @@ namespace Signalizer
 			// woah, what?
 			CPL_BREAKIFDEBUGGED();
 		}
+
+		const std::size_t factor = 2;
+		const auto numChannels = buffer.getNumChannels();
+
+		cpl::variable_array<float*> buffers(numChannels * factor);
+
+		for (std::size_t i = 0; i < numChannels; ++i)
+		{
+			buffers[i] = buffer.getWritePointer(i);
+
+			for (std::size_t n = 0; n < factor; ++n)
+			{
+				buffers[i + n * numChannels] = buffers[i];
+			}
+		}
+
 		// stream will take it from here.
 
 
 		if(auto ph = getPlayHead())
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			stream.processIncomingRTAudio(buffers.data(), buffer.getNumChannels() * factor, buffer.getNumSamples(), *ph);
 		else
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+			stream.processIncomingRTAudio(buffers.data(), buffer.getNumChannels() * factor, buffer.getNumSamples(), AudioStream::Playhead::empty());
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't
