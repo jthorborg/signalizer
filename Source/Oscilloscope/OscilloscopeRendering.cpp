@@ -343,7 +343,8 @@ namespace Signalizer
 						break;
 					case OscChannels::Separate:
 					{
-						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, content->triggeringChannel.load(std::memory_order_acquire) });
+						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel });
 						
 						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(state.numChannels), !state.overlayChannels);
 

@@ -331,9 +331,13 @@ namespace Signalizer
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		if (numChannels < 1)
+			return;
+
 		Analyzer ana(numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.triggeringProcessor);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
+		auto triggeringChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
 
 		if (numChannels == 1)
 			mode = OscChannels::Left;
@@ -369,7 +373,7 @@ namespace Signalizer
 			case OscChannels::Separate:
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
-					ana.process(buffer[0][n]);
+					ana.process(buffer[triggeringChannel][n]);
 				}
 
 				break;

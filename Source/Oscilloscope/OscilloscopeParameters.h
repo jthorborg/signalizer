@@ -388,6 +388,7 @@
 				, customTriggerRange(5, 48000)
 				, colourSmoothRange(0.001, 1000)
 				, triggerThresholdRange(0, 4)
+				, triggerChannelRange(1, 16)
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
@@ -417,6 +418,7 @@
 				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
 				, triggerHysteresis("TrgHstrs", unityRange, pctFormatter)
 				, triggerThreshold("TrgThrhold", triggerThresholdRange, dbFormatter)
+				, triggeringChannel("TrgChannel", triggerChannelRange, intFormatter) // triggerChannelFormatter
 
 				, colourBehaviour()
 
@@ -430,7 +432,6 @@
 				, trackerColour(colourBehaviour, "Trckr.")
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
-				, triggeringChannel(0)
 
 			{
 				viewOffsets.emplace_back("ViewLeft", unityRange, basicFormatter);
@@ -469,7 +470,8 @@
 					&cursorTracker,
 					&frequencyColouringBlend,
 					&triggerHysteresis,
-					&triggerThreshold
+					&triggerThreshold,
+					&triggeringChannel
 				};
 
 				for (auto sparam : singleParameters)
@@ -648,6 +650,7 @@
 
 			cpl::BasicFormatter<double> basicFormatter;
 			cpl::BooleanRange<double> boolRange;
+			cpl::IntegerFormatter<double> intFormatter;
 
 			cpl::ExponentialRange<double> dbRange, colourSmoothRange;
 
@@ -659,6 +662,9 @@
 				reverseUnitRange,
 				customTriggerRange,
 				triggerThresholdRange;
+
+			cpl::IntegerLinearRange<double>
+				triggerChannelRange;
 
 			cpl::UnityRange<double> unityRange;
 
@@ -684,7 +690,8 @@
 				cursorTracker,
 				frequencyColouringBlend,
 				triggerHysteresis,
-				triggerThreshold;
+				triggerThreshold,
+				triggeringChannel;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
@@ -715,8 +722,6 @@
 
 			cpl::CompleteColour
 				extraColours[NumColourChannels - 2];
-
-			std::atomic<std::size_t> triggeringChannel;
 
 		private:
 

@@ -75,6 +75,7 @@ namespace Signalizer
 			, ktriggerHysteresis(&parentValue.triggerHysteresis)
 			, ktriggerThreshold(&parentValue.triggerThreshold)
 			, kshowLegend(&parentValue.showLegend)
+			, ktriggerChannel(&parentValue.triggeringChannel)
 
 			, editorSerializer(
 				*this,
@@ -159,6 +160,7 @@ namespace Signalizer
 			kfreqColourBlend.bSetTitle("Colour blend");
 			ktriggerHysteresis.bSetTitle("Hysteresis");
 			ktriggerThreshold.bSetTitle("Trigger thrshld");
+			ktriggerChannel.bSetTitle("Trigger channel");
 			// buttons n controls
 
 			kantiAlias.setSingleText("Antialias");
@@ -211,6 +213,7 @@ namespace Signalizer
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
 			kshowLegend.bSetDescription("Display a legend of the signals/colours");
+			ktriggerChannel.bSetDescription("Adjust the channel used for triggering when in separate channel mode");
 		}
 
 		void initUI()
@@ -255,6 +258,8 @@ namespace Signalizer
 
 					section->addControl(&kcustomFrequency, 0);
 					section->addControl(&ktriggerOnCustomFrequency, 1);
+
+					section->addControl(&ktriggerChannel, 0);
 
 					page->addSection(section, "Spatial");
 				}
@@ -344,6 +349,7 @@ namespace Signalizer
 			archive << ktriggerHysteresis;
 			archive << ktriggerThreshold;
 			archive << kshowLegend;
+			archive << ktriggerChannel;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -398,6 +404,11 @@ namespace Signalizer
 			{
 				builder >> kshowLegend;
 			}
+
+			if (version > cpl::Version(0, 3, 4))
+			{
+				builder >> ktriggerChannel;
+			}
 		}
 
 
@@ -438,7 +449,7 @@ namespace Signalizer
 		cpl::CValueInputControl kcustomFrequency;
 		cpl::CValueKnobSlider
 			kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
-			ktriggerHysteresis, ktriggerThreshold;
+			ktriggerHysteresis, ktriggerThreshold, ktriggerChannel;
 		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
