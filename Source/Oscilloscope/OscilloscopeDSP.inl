@@ -131,7 +131,8 @@ namespace Signalizer
 			const double hysteresis = content->triggerHysteresis.getTransformedValue();
 			const auto invHysteresis = 1 - hysteresis;
 
-			BinRecord max{ 1, std::max(threshold * TransformSize, std::abs(transformBuffer[1])), quadDelta(1) };
+			// Reduce to 1/4 (to slip through "vastly better case" + half transform size
+			BinRecord max{ 1, std::max(threshold * TransformSize / 6.0, std::abs(transformBuffer[1])), quadDelta(1) };
 
 			for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
 			{
