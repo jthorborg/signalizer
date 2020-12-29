@@ -57,9 +57,9 @@
 #elif defined(__GNUC__)
 #define copysign __builtin_copysign
 #endif
-static inline long int lround(double x) {
-    return (long)(x + copysign (0.5, x));
-}
+//static inline long int lround(double x) {
+//    return (long)(x + copysign (0.5, x));
+//}
 /* If this fails, we are in the presence of a mid 90's compiler, move along... */
 #endif
 
