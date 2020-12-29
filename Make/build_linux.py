@@ -1,5 +1,8 @@
 import io
-import ConfigParser
+try:
+	import configparser
+except:
+	import ConfigParser as configparser
 import os
 import sys
 import shutil as sh
@@ -11,7 +14,7 @@ def compiler_invoke(args):
 	return os.system("codeblocks ../Builds/CodeBlocks/Signalizer.cbp " + args + " --rebuild")
 
 # parse config
-config = ConfigParser.ConfigParser()
+config = configparser.ConfigParser()
 config.read("config.ini")
 
 parameters = []

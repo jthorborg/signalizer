@@ -12,12 +12,12 @@
 				<Option type="3" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-std=c++14" />
+					<Add option="-std=c++17" />
+					<Add option="-fPIC" />
 					<Add option="-g" />
 					<Add option="-O0" />
 					<Add option="-mstackrealign" />
 					<Add option="-flax-vector-conversions" />
-					<Add option="-fPIC" />
 					<Add option="-Wl,--no-undefined" />
 					<Add option="-D__MINGW__=1" />
 					<Add option="-D__MINGW_EXTENSION=" />
@@ -41,10 +41,10 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
-					<Add option="-std=c++14" />
+					<Add option="-std=c++17" />
+					<Add option="-fPIC" />
 					<Add option="-mstackrealign" />
 					<Add option="-flax-vector-conversions" />
-					<Add option="-fPIC" />
 					<Add option="-Wl,--no-undefined" />
 					<Add option="-D__MINGW__=1" />
 					<Add option="-D__MINGW_EXTENSION=" />
@@ -119,9 +119,15 @@
 		<Unit filename="../../Source/Vectorscope/VectorscopeRendering.cpp" />
 		<Unit filename="../../Source/version.h" />
 		<Extensions>
-			<envvars />
-			<code_completion />
-			<debugger />
+			<lib_finder>
+				<lib name="alsa" />
+				<lib name="freetype2" />
+				<lib name="x11" />
+				<lib name="xext" />
+				<lib name="xinerama" />
+				<lib name="gl" />
+				<lib name="glx" />
+			</lib_finder>
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>
