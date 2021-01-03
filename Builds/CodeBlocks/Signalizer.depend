@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1498401297 source:/home/branch/Desktop/repos/SDKs/cpl/CPLSource.cpp
+1540645949 source:/home/branch/Desktop/repos/SDKs/cpl/CPLSource.cpp
 	"MacroConstants.h"
 	"LibraryOptions.h"
 	"Common.h"
@@ -11,6 +11,7 @@
 	"CPresetManager.cpp"
 	"ffts/kiss_fft/tools/kiss_fft.c"
 	"ffts/kiss_fft/tools/kiss_fftr.c"
+	"CModule.cpp"
 	"Misc.cpp"
 	"stdext.cpp"
 	"CMutex.cpp"
@@ -23,31 +24,32 @@
 	"Protected.cpp"
 	"state/State.cpp"
 	"lib/md5/md5.cpp"
+	"process/Process.cpp"
+	"Exceptions.cpp"
 	"vf_lib/vf_gui/vf_FreeTypeFaces.cpp"
 	"FreeType/FreeTypeAmalgam.h"
 	"FreeType/FreeTypeAmalgam.cpp"
 	"CPLTests.cpp"
 
-1498407922 /home/branch/Desktop/repos/SDKs/cpl/MacroConstants.h
+1540647289 /home/branch/Desktop/repos/SDKs/cpl/MacroConstants.h
 	<cstdint>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/LibraryOptions.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/LibraryOptions.h
 	"MacroConstants.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/Common.h
-	"ProgramVersion.h"
-	<string>
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Common.h
+	"ProgramInfo.h"
 	<cstdint>
 	"LibraryOptions.h"
 	"../JuceLibraryCode/JuceHeader.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/ProgramVersion.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/ProgramVersion.h
 	<cstdint>
 	<cstdio>
 	<string>
-	"Mathext.h"
+	<algorithm>
 
-1498406391 /home/branch/Desktop/repos/SDKs/cpl/Mathext.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Mathext.h
 	<math.h>
 	"MacroConstants.h"
 	<vector>
@@ -56,7 +58,7 @@
 	<functional>
 	"stdext.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/Types.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/Types.h
 	<string>
 	<type_traits>
 	<cstdint>
@@ -67,7 +69,7 @@
 	<xmmintrin.h>
 	<emmintrin.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/PlatformSpecific.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/PlatformSpecific.h
 	"MacroConstants.h"
 	<windows.h>
 	<tchar.h>
@@ -80,6 +82,7 @@
 	<unistd.h>
 	<sys/time.h>
 	<fcntl.h>
+	<dirent.h>
 	<mach-o/dyld.h>
 	<mach/mach_time.h>
 	"MacSupport.h"
@@ -90,10 +93,10 @@
 	<cfenv>
 	<xmmintrin.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/MacSupport.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/MacSupport.h
 	<cstdlib>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/stdext.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/stdext.h
 	<cmath>
 	<functional>
 	<algorithm>
@@ -116,11 +119,11 @@
 	"modules/juce_opengl/juce_opengl.h"
 	"modules/juce_video/juce_video.h"
 
-1498401624 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/AppConfig.h
+1498431342 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/AppConfig.h
 	"../Source/version.h"
 	"../../Source/version.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/version.h
+1540645889 /home/branch/Desktop/repos/signalizer/Source/version.h
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_basics/juce_audio_basics.h
 	"../juce_core/juce_core.h"
@@ -701,12 +704,11 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/audio_io/juce_AudioDeviceManager.h
 
-1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/juce_audio_plugin_client.h
+1540645889 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/juce_audio_plugin_client.h
 	"../juce_gui_basics/juce_gui_basics.h"
 	"../juce_audio_basics/juce_audio_basics.h"
 	"../juce_audio_processors/juce_audio_processors.h"
 	"utility/juce_CheckSettingMacros.h"
-	<cpl/Protected.h>
 	"utility/juce_PluginHostType.h"
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/juce_gui_basics.h
@@ -1284,26 +1286,25 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_plugin_client/utility/juce_CheckSettingMacros.h
 
-1483324640 /home/branch/Desktop/repos/SDKs//cpl/Protected.h
+1540647732 /home/branch/Desktop/repos/SDKs//cpl/Protected.h
 	"LibraryOptions.h"
 	"PlatformSpecific.h"
-	"Misc.h"
 	<vector>
-	<exception>
 	<signal.h>
 	<thread>
-	"CMutex.h"
 	<map>
 	<sstream>
 	"Utility.h"
+	<memory>
+	"Exceptions.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/LibraryOptions.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/LibraryOptions.h
 	"MacroConstants.h"
 
-1498407922 /home/branch/Desktop/repos/SDKs//cpl/MacroConstants.h
+1540647289 /home/branch/Desktop/repos/SDKs//cpl/MacroConstants.h
 	<cstdint>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/PlatformSpecific.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/PlatformSpecific.h
 	"MacroConstants.h"
 	<windows.h>
 	<tchar.h>
@@ -1316,6 +1317,7 @@
 	<unistd.h>
 	<sys/time.h>
 	<fcntl.h>
+	<dirent.h>
 	<mach-o/dyld.h>
 	<mach/mach_time.h>
 	"MacSupport.h"
@@ -1326,17 +1328,22 @@
 	<cfenv>
 	<xmmintrin.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/MacSupport.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/MacSupport.h
 	<cstdlib>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/Misc.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Misc.h
 	<string>
-	"MacroConstants.h"
 	<sstream>
+	<typeinfo>
+	<cstring>
+	<system_error>
+	<filesystem>
+	"Common.h"
 	"PlatformSpecific.h"
 	"Types.h"
+	"Core.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/Types.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/Types.h
 	<string>
 	<type_traits>
 	<cstdint>
@@ -1347,34 +1354,32 @@
 	<xmmintrin.h>
 	<emmintrin.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/CMutex.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/CMutex.h
 	"MacroConstants.h"
 	<thread>
 	<atomic>
 
-1483326075 /home/branch/Desktop/repos/SDKs//cpl/Utility.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Utility.h
 	"MacroConstants.h"
-	"Common.h"
-	"Mathext.h"
 	<functional>
 	<set>
-	"stdext.h"
-	"Misc.h"
+	"Exceptions.h"
+	<cmath>
+	<type_traits>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/Common.h
-	"ProgramVersion.h"
-	<string>
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Common.h
+	"ProgramInfo.h"
 	<cstdint>
 	"LibraryOptions.h"
 	"../JuceLibraryCode/JuceHeader.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/ProgramVersion.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/ProgramVersion.h
 	<cstdint>
 	<cstdio>
 	<string>
-	"Mathext.h"
+	<algorithm>
 
-1498406391 /home/branch/Desktop/repos/SDKs//cpl/Mathext.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Mathext.h
 	<math.h>
 	"MacroConstants.h"
 	<vector>
@@ -1383,7 +1388,7 @@
 	<functional>
 	"stdext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/stdext.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/stdext.h
 	<cmath>
 	<functional>
 	<algorithm>
@@ -1557,21 +1562,22 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_video/capture/juce_CameraDevice.h
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_consts.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_consts.cpp
 	"simd_consts.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_consts.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_consts.h
 	"../Mathext.h"
 	<float.h>
 	"simd_traits.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_traits.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_traits.h
 	"../Types.h"
 
-1483372349 /home/branch/Desktop/repos/SDKs/cpl/Resources.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Resources.cpp
 	"Resources.h"
+	"Misc.h"
 
-1483372344 /home/branch/Desktop/repos/SDKs/cpl/Resources.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Resources.h
 	"Common.h"
 	<mutex>
 	<memory>
@@ -1579,26 +1585,30 @@
 	"Utility.h"
 	<map>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/CMutex.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CMutex.h
 	"MacroConstants.h"
 	<thread>
 	<atomic>
 
-1483326075 /home/branch/Desktop/repos/SDKs/cpl/Utility.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Utility.h
 	"MacroConstants.h"
-	"Common.h"
-	"Mathext.h"
 	<functional>
 	<set>
-	"stdext.h"
-	"Misc.h"
+	"Exceptions.h"
+	<cmath>
+	<type_traits>
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/Misc.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Misc.h
 	<string>
-	"MacroConstants.h"
 	<sstream>
+	<typeinfo>
+	<cstring>
+	<system_error>
+	<filesystem>
+	"Common.h"
 	"PlatformSpecific.h"
 	"Types.h"
+	"Core.h"
 
 1483323515 /home/branch/Desktop/repos/SDKs/cpl/gui/GUI.cpp
 	"GraphicComponents.cpp"
@@ -1610,18 +1620,18 @@
 	"widgets/Widgets.cpp"
 	"CCtrlEditSpace.cpp"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/GraphicComponents.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/GraphicComponents.cpp
 	"GraphicComponents.h"
 	"../Misc.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/GraphicComponents.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/GraphicComponents.h
 	"../Common.h"
 	<cstdint>
 	<string>
 	"CBaseControl.h"
 	"../CMutex.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/CBaseControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/CBaseControl.h
 	"../CMutex.h"
 	"../Common.h"
 	<memory>
@@ -1631,10 +1641,11 @@
 	"../Utility.h"
 	"DesignBase.h"
 	"../state/Serialization.h"
+	"../Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CToolTip.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CToolTip.h
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/DesignBase.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/DesignBase.h
 	"../Common.h"
 	<map>
 	<vector>
@@ -1652,30 +1663,31 @@
 	"Misc.h"
 	"ProgramVersion.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CBaseControl.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CBaseControl.cpp
 	"CBaseControl.h"
 	"CCtrlEditSpace.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CCtrlEditSpace.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CCtrlEditSpace.h
 	"CBaseControl.h"
 	"BuildingBlocks.h"
 	"Tools.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/BuildingBlocks.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/BuildingBlocks.h
 	"../Common.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/Tools.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/Tools.h
 	"../Common.h"
 	"../PlatformSpecific.h"
 	"../Misc.h"
 	"../CMutex.h"
 	<future>
 	<thread>
+	<set>
 
 1483364752 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.cpp
 	"CEditSpaceSpawner.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CEditSpaceSpawner.h
 	"../Common.h"
 	"../Utility.h"
 	"CBaseControl.h"
@@ -1685,7 +1697,7 @@
 	"../CMutex.h"
 	"DesignBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/DesignBase.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/DesignBase.cpp
 	"../LibraryOptions.h"
 	"../Common.h"
 	"DesignBase.h"
@@ -1693,23 +1705,23 @@
 	"../vf_lib/vf_gui/vf_FreeTypeFaces.h"
 	"../FreeType/FreeTypeAmalgam.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelSoftwareGraphics.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelSoftwareGraphics.h
 	"../Common.h"
 	"SubpixelRendering.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/rendering/SubpixelRendering.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/SubpixelRendering.h
 	<cstdint>
 	"../Types.h"
 	"DisplayOrientation.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientation.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientation.h
 	<cmath>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CToolTip.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CToolTip.cpp
 	"GraphicComponents.h"
 	"CViews.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/CViews.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/CViews.h
 	<set>
 	"../Common.h"
 	"CToolTip.h"
@@ -1720,32 +1732,31 @@
 	"Tools.h"
 	"../state/Serialization.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/rendering/OpenGLRendering.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/OpenGLRendering.h
 	"../Common.h"
 	"Graphics.h"
 	<vector>
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/rendering/Graphics.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/Graphics.h
 	<cstdint>
 	"../PlatformSpecific.h"
 
-1483324640 /home/branch/Desktop/repos/SDKs/cpl/Protected.h
+1540647732 /home/branch/Desktop/repos/SDKs/cpl/Protected.h
 	"LibraryOptions.h"
 	"PlatformSpecific.h"
-	"Misc.h"
 	<vector>
-	<exception>
 	<signal.h>
 	<thread>
-	"CMutex.h"
 	<map>
 	<sstream>
 	"Utility.h"
+	<memory>
+	"Exceptions.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/SafeSerializableObject.h
 	"CSerializer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/Controls.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/Controls.cpp
 	"CButton.cpp"
 	"CColourControl.cpp"
 	"CComboBox.cpp"
@@ -1758,14 +1769,14 @@
 	"CValueComboBox.cpp"
 	"CValueInputControl.cpp"
 
-1483292402 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CButton.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CButton.cpp
 	"CButton.h"
 
-1483292402 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CButton.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CButton.h
 	"ControlBase.h"
 	"ValueControl.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/ControlBase.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/ControlBase.h
 	"../../Common.h"
 	"../CBaseControl.h"
 	"../../infrastructure/values/Values.h"
@@ -1777,36 +1788,38 @@
 	"PowerFunctionValue.h"
 	"WindowDesignValue.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/ValueBase.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/ValueBase.h
 	"../parameters/CustomFormatters.h"
 	"../parameters/CustomTransforms.h"
 	"../parameters/ParameterSystem.h"
 	"../../gui/Tools.h"
 	"../../Misc.h"
 	"../../state/Serialization.h"
+	"../../stdext.h"
 	<set>
 	<array>
 	<string>
 	<vector>
 	<memory>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/CustomFormatters.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/CustomFormatters.h
 	<string>
 	<cpl/LexicalConversion.h>
 	<type_traits>
 	<stdio.h>
 	"CustomTransforms.h"
 
-1483198978 /home/branch/Desktop/repos/SDKs//cpl/LexicalConversion.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/LexicalConversion.h
 	"Common.h"
 	<sstream>
+	"lib/string_ref.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/CustomTransforms.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/CustomTransforms.h
 	<string>
 	<type_traits>
 	"../../Mathext.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/ParameterSystem.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/parameters/ParameterSystem.h
 	<atomic>
 	<string>
 	"../../ConcurrentServices.h"
@@ -1817,7 +1830,7 @@
 	"CustomTransforms.h"
 	"../../state/Serialization.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/ConcurrentServices.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/ConcurrentServices.h
 	"Common.h"
 	<thread>
 	"Utility.h"
@@ -1826,21 +1839,21 @@
 	<memory>
 	"Misc.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/ColourValue.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/ColourValue.h
 	"ValueBase.h"
 
-1483199001 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/TransformValue.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/TransformValue.h
 	"Values.h"
 	"../../rendering/Graphics.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/PowerFunctionValue.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/PowerFunctionValue.h
 	"ValueBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/WindowDesignValue.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/infrastructure/values/WindowDesignValue.h
 	"ValueBase.h"
 	"../../dsp/DSPWindows.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/dsp/DSPWindows.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/dsp/DSPWindows.h
 	"../Common.h"
 	"../Utility.h"
 	<vector>
@@ -1853,7 +1866,7 @@
 	<numeric>
 	"../lib/AlignedAllocator.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/dsp.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/dsp.h
 	"Mathext.h"
 	<vector>
 	<complex>
@@ -1862,7 +1875,7 @@
 	<complex>
 	"simd.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/simd.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd.h
 	"Types.h"
 	"simd/simd_traits.h"
 	"simd/simd_interface.h"
@@ -1871,7 +1884,7 @@
 	"simd/simd_cast.h"
 	"simd/simd_isa.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_interface.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_interface.h
 	"simd_traits.h"
 	"../system/SysStats.h"
 
@@ -1890,30 +1903,31 @@
 	<string>
 	"PlatformSpecific.h"
 
-1483198978 /home/branch/Desktop/repos/SDKs/cpl/LexicalConversion.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/LexicalConversion.h
 	"Common.h"
 	<sstream>
+	"lib/string_ref.h"
 
-1483364772 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_math.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_math.h
 	"simd_traits.h"
 	"simd_consts.h"
 	"simd_interface.h"
 	"simd_cast.h"
 
-1483900502 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_cast.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_cast.h
 	"../Types.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/octave/signal/octave_signal.h
 	"octave_signal_ultrawin.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/octave/signal/octave_signal_ultrawin.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/octave/signal/octave_signal_ultrawin.h
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/ffts.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/ffts.h
 	"ffts/dustfft.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/ffts/dustfft.h
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/lib/AlignedAllocator.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/lib/AlignedAllocator.h
 	<cstdlib>
 	<vector>
 	"../Misc.h"
@@ -1921,90 +1935,90 @@
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/SerializerModifiers.h
 	"CSerializer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/ValueControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/ValueControl.h
 	"ControlBase.h"
 	"../../Utility.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CColourControl.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CColourControl.cpp
 	"CColourControl.h"
 	"CKnobSliderEditor.h"
 	"../CCtrlEditSpace.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CColourControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CColourControl.h
 	"ControlBase.h"
 	"CKnobSlider.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSlider.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSlider.h
 	"ControlBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSliderEditor.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSliderEditor.h
 	"../CBaseControl.h"
 
-1483365033 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.cpp
 	"CComboBox.h"
 	"../../Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CComboBox.h
 	"ControlBase.h"
 	<string>
 	<vector>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CInputControl.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CInputControl.cpp
 	"CInputControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CInputControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CInputControl.h
 	"ControlBase.h"
 	<string>
 	<vector>
 	"../BuildingBlocks.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSlider.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSlider.cpp
 	"CKnobSlider.h"
 	"CKnobSliderEditor.h"
 	"../../simd/simd_consts.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueKnobSlider.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueKnobSlider.h
 	"CKnobSlider.h"
 	"ControlBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSliderEditor.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CKnobSliderEditor.cpp
 	"CKnobSliderEditor.h"
 	"CKnobSlider.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueControl.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueControl.cpp
 	"CValueControl.h"
 	"../../Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueControl.h
 	"CKnobSlider.h"
 	<vector>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueKnobSlider.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueKnobSlider.cpp
 	"CValueKnobSlider.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueComboBox.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueComboBox.cpp
 	"CValueComboBox.h"
 	"../../Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueComboBox.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueComboBox.h
 	"ControlBase.h"
 	"ValueControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/Widgets.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/Widgets.cpp
 	"CDSPWindowWidget.cpp"
 	"CPowerSlopeWidget.cpp"
 	"CPresetWidget.cpp"
 	"CTransformWidget.cpp"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CDSPWindowWidget.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CDSPWindowWidget.cpp
 	"CDSPWindowWidget.h"
 	"../../ffts.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CDSPWindowWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CDSPWindowWidget.h
 	"WidgetBase.h"
 	"../../dsp/DSPWindows.h"
 
-1483199537 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/WidgetBase.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/WidgetBase.h
 	"../../Common.h"
 	"../DesignBase.h"
 	"../../Misc.h"
@@ -2012,7 +2026,7 @@
 	"../WidgetContainers.h"
 	"../../LexicalConversion.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/Controls.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/Controls.h
 	"CKnobSlider.h"
 	"CColourControl.h"
 	"CValueControl.h"
@@ -2023,37 +2037,37 @@
 	"CValueComboBox.h"
 	"CValueInputControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/WidgetContainers.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/WidgetContainers.h
 	"../Common.h"
 	"CBaseControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPowerSlopeWidget.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPowerSlopeWidget.cpp
 	"CPowerSlopeWidget.h"
 	"../../LexicalConversion.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPowerSlopeWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPowerSlopeWidget.h
 	"WidgetBase.h"
 	"../../rendering/Graphics.h"
 
-1483292402 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPresetWidget.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPresetWidget.cpp
 	"CPresetWidget.h"
 	"../../CPresetManager.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPresetWidget.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CPresetWidget.h
 	"../../Common.h"
 	"../controls/ControlBase.h"
 	"../controls/Controls.h"
 	"WidgetBase.h"
 	"../../state/Serialization.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CPresetManager.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CPresetManager.h
 	"Common.h"
 	"state/CSerializer.h"
 	"CExclusiveFile.h"
 	<vector>
 	<string>
 
-1483324593 /home/branch/Desktop/repos/SDKs/cpl/CExclusiveFile.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/CExclusiveFile.h
 	"MacroConstants.h"
 	"Utility.h"
 	<cstring>
@@ -2067,16 +2081,16 @@
 	<unistd.h>
 	<fcntl.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CTransformWidget.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CTransformWidget.cpp
 	"CTransformWidget.h"
 	"../../Mathext.h"
 	"../../LexicalConversion.h"
 
-1483199052 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CTransformWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/CTransformWidget.h
 	"WidgetBase.h"
 	"../../rendering/Graphics.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/CCtrlEditSpace.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/CCtrlEditSpace.cpp
 	"CCtrlEditSpace.h"
 	"NewStuffAndLook.h"
 	"Tools.h"
@@ -2084,12 +2098,12 @@
 	<exception>
 	<typeinfo>
 
-1483364938 /home/branch/Desktop/repos/SDKs/cpl/gui/NewStuffAndLook.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/NewStuffAndLook.h
 	"GraphicComponents.h"
 	"../Resources.h"
 	<vector>
 
-1483325711 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelSoftwareGraphics.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelSoftwareGraphics.cpp
 	"CSubpixelSoftwareGraphics.h"
 	"SubpixelRendering.h"
 	"CSubpixelScanlineRenderer.h"
@@ -2097,17 +2111,17 @@
 	"CDisplaySetup.h"
 	<memory>
 
-1483323604 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelScanlineRenderer.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/CSubpixelScanlineRenderer.h
 	"../Common.h"
 	"SubpixelRendering.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/rendering/CDisplaySetup.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/CDisplaySetup.h
 	"../Common.h"
 	"SubpixelRendering.h"
 	<vector>
 	<memory>
 
-1483323872 /home/branch/Desktop/repos/SDKs/cpl/rendering/CDisplaySetup.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/CDisplaySetup.cpp
 	"CDisplaySetup.h"
 	"../MacroConstants.h"
 	"../gui/Tools.h"
@@ -2117,22 +2131,22 @@
 	"../PlatformSpecific.h"
 	"../MacSupport.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientationWindows.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientationWindows.cpp
 	"../MacroConstants.h"
 	<windows.h>
 
-1483323825 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientationLinux.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/rendering/DisplayOrientationLinux.cpp
 	"CSubpixelSoftwareGraphics.h"
 	"SubpixelRendering.h"
 	"CSubpixelScanlineRenderer.h"
 	"../stdext.h"
 
-1483894498 /home/branch/Desktop/repos/SDKs/cpl/CPresetManager.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/CPresetManager.cpp
 	"CPresetManager.h"
 	"Misc.h"
 	<vector>
 
-1483364884 /home/branch/Desktop/repos/SDKs/cpl/Misc.cpp
+1540647921 /home/branch/Desktop/repos/SDKs/cpl/Misc.cpp
 	"MacroConstants.h"
 	"Misc.h"
 	<ctime>
@@ -2145,21 +2159,24 @@
 	"CExclusiveFile.h"
 	<typeinfo>
 	<future>
-	<string.h>
+	"Exceptions.h"
+	"Core.h"
+	<queue>
 	<cstdlib>
 	<memory>
 	<cxxabi.h>
 
-1498403458 /home/branch/Desktop/repos/SDKs/cpl/CThread.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CThread.h
 	"PlatformSpecific.h"
 	<thread>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/stdext.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/stdext.cpp
+	<string>
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CMutex.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CMutex.cpp
 	"CMutex.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CExclusiveFile.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CExclusiveFile.cpp
 	"CExclusiveFile.h"
 	"MacroConstants.h"
 	"PlatformSpecific.h"
@@ -2174,10 +2191,10 @@
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/InstructionSet.cpp
 	"InstructionSet.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/CTimer.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CTimer.cpp
 	"CTimer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CTimer.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CTimer.h
 	"Utility.h"
 	"Misc.h"
 	"Mathext.h"
@@ -2188,7 +2205,7 @@
 	<atomic>
 	"system/SysStats.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/SigMathImp.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/SigMathImp.cpp
 
 1483146686 /home/branch/Desktop/repos/SDKs/cpl/octave/octave_all.cpp
 	"signal/octave_signal.cpp"
@@ -2202,15 +2219,16 @@
 	<cstdio>
 	"octave_signal_ultrawin.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/Protected.cpp
+1540648116 /home/branch/Desktop/repos/SDKs/cpl/Protected.cpp
 	"Protected.h"
 	"lib/StackBuffer.h"
 	<memory>
+	<sstream>
 	<dbghelp.h>
 	<execinfo.h>
 	<cxxabi.h>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/lib/StackBuffer.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/lib/StackBuffer.h
 	<cstdlib>
 	<vector>
 	"../Misc.h"
@@ -2220,7 +2238,7 @@
 	"Protected.h"
 	"gui/GUI.h"
 
-1483199322 /home/branch/Desktop/repos/SDKs/cpl/gui/GUI.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/GUI.h
 	"GraphicComponents.h"
 	"CViews.h"
 	"CEditSpaceSpawner.h"
@@ -2228,7 +2246,7 @@
 	"controls/Controls.h"
 	"widgets/Widgets.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/Widgets.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/gui/widgets/Widgets.h
 	"CPresetWidget.h"
 	"CDSPWindowWidget.h"
 	"CPowerSlopeWidget.h"
@@ -2248,15 +2266,16 @@
 	"ProgramVersion.h"
 	"lib/md5/md5.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/lib/md5/md5.h
+1506987287 /home/branch/Desktop/repos/SDKs/cpl/lib/md5/md5.h
 	<cstring>
+	<climits>
 	<iostream>
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/lib/md5/md5.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/lib/md5/md5.cpp
 	"md5.h"
 	<cstdio>
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CPLTests.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CPLTests.cpp
 	"CPLTests.h"
 	"CAudioStream.h"
 	<stdio.h>
@@ -2269,9 +2288,9 @@
 	<map>
 	"AtomicCompability.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/CPLTests.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CPLTests.h
 
-1498403265 /home/branch/Desktop/repos/SDKs/cpl/CAudioStream.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/CAudioStream.h
 	<thread>
 	"Utility.h"
 	<vector>
@@ -2286,12 +2305,12 @@
 	<numeric>
 	"Protected.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs/cpl/AtomicCompability.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/AtomicCompability.h
 	"MacroConstants.h"
 	<stdatomic.h>
 	<atomic>
 
-1483298981 /home/branch/Desktop/repos/SDKs/cpl/lib/BlockingLockFreeQueue.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/lib/BlockingLockFreeQueue.h
 	"readerwriterqueue/readerwriterqueue.h"
 	<vector>
 	"../CMutex.h"
@@ -2319,17 +2338,17 @@
 	<mach/mach.h>
 	<semaphore.h>
 
-1498408039 /home/branch/Desktop/repos/SDKs/cpl/lib/CLIFOStream.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/lib/CLIFOStream.h
 	"CDataBuffer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/lib/CDataBuffer.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/lib/CDataBuffer.h
 	"../MacroConstants.h"
 	<vector>
 	<cstdlib>
 	<type_traits>
 	<algorithm>
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/CProcessorTimer.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/CProcessorTimer.h
 	"Utility.h"
 	"Misc.h"
 	"Mathext.h"
@@ -2368,7 +2387,7 @@
 	<cpl/infrastructure/parameters/ParameterSystem.h>
 	"SignalizerDesign.h"
 
-1483199322 /home/branch/Desktop/repos/SDKs//cpl/gui/GUI.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/GUI.h
 	"GraphicComponents.h"
 	"CViews.h"
 	"CEditSpaceSpawner.h"
@@ -2376,14 +2395,14 @@
 	"controls/Controls.h"
 	"widgets/Widgets.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/GraphicComponents.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/GraphicComponents.h
 	"../Common.h"
 	<cstdint>
 	<string>
 	"CBaseControl.h"
 	"../CMutex.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/CBaseControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/CBaseControl.h
 	"../CMutex.h"
 	"../Common.h"
 	<memory>
@@ -2393,10 +2412,11 @@
 	"../Utility.h"
 	"DesignBase.h"
 	"../state/Serialization.h"
+	"../Mathext.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/CToolTip.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/CToolTip.h
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/DesignBase.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/DesignBase.h
 	"../Common.h"
 	<map>
 	<vector>
@@ -2414,7 +2434,7 @@
 	"Misc.h"
 	"ProgramVersion.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/CViews.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/CViews.h
 	<set>
 	"../Common.h"
 	"CToolTip.h"
@@ -2425,7 +2445,7 @@
 	"Tools.h"
 	"../state/Serialization.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/CEditSpaceSpawner.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/CEditSpaceSpawner.h
 	"../Common.h"
 	"../Utility.h"
 	"CBaseControl.h"
@@ -2435,35 +2455,36 @@
 	"../CMutex.h"
 	"DesignBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/Tools.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/Tools.h
 	"../Common.h"
 	"../PlatformSpecific.h"
 	"../Misc.h"
 	"../CMutex.h"
 	<future>
 	<thread>
+	<set>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/CCtrlEditSpace.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/CCtrlEditSpace.h
 	"CBaseControl.h"
 	"BuildingBlocks.h"
 	"Tools.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/BuildingBlocks.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/BuildingBlocks.h
 	"../Common.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/rendering/OpenGLRendering.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/rendering/OpenGLRendering.h
 	"../Common.h"
 	"Graphics.h"
 	<vector>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/rendering/Graphics.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/rendering/Graphics.h
 	<cstdint>
 	"../PlatformSpecific.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/SafeSerializableObject.h
 	"CSerializer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/Controls.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/Controls.h
 	"CKnobSlider.h"
 	"CColourControl.h"
 	"CValueControl.h"
@@ -2474,10 +2495,10 @@
 	"CValueComboBox.h"
 	"CValueInputControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CKnobSlider.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CKnobSlider.h
 	"ControlBase.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/ControlBase.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/ControlBase.h
 	"../../Common.h"
 	"../CBaseControl.h"
 	"../../infrastructure/values/Values.h"
@@ -2489,32 +2510,33 @@
 	"PowerFunctionValue.h"
 	"WindowDesignValue.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/ValueBase.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/ValueBase.h
 	"../parameters/CustomFormatters.h"
 	"../parameters/CustomTransforms.h"
 	"../parameters/ParameterSystem.h"
 	"../../gui/Tools.h"
 	"../../Misc.h"
 	"../../state/Serialization.h"
+	"../../stdext.h"
 	<set>
 	<array>
 	<string>
 	<vector>
 	<memory>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/CustomFormatters.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/CustomFormatters.h
 	<string>
 	<cpl/LexicalConversion.h>
 	<type_traits>
 	<stdio.h>
 	"CustomTransforms.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/CustomTransforms.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/CustomTransforms.h
 	<string>
 	<type_traits>
 	"../../Mathext.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/ParameterSystem.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/parameters/ParameterSystem.h
 	<atomic>
 	<string>
 	"../../ConcurrentServices.h"
@@ -2525,7 +2547,7 @@
 	"CustomTransforms.h"
 	"../../state/Serialization.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/ConcurrentServices.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/ConcurrentServices.h
 	"Common.h"
 	<thread>
 	"Utility.h"
@@ -2534,21 +2556,21 @@
 	<memory>
 	"Misc.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/ColourValue.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/ColourValue.h
 	"ValueBase.h"
 
-1483199001 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/TransformValue.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/TransformValue.h
 	"Values.h"
 	"../../rendering/Graphics.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/PowerFunctionValue.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/PowerFunctionValue.h
 	"ValueBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/WindowDesignValue.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/infrastructure/values/WindowDesignValue.h
 	"ValueBase.h"
 	"../../dsp/DSPWindows.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/dsp/DSPWindows.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/dsp/DSPWindows.h
 	"../Common.h"
 	"../Utility.h"
 	<vector>
@@ -2561,7 +2583,7 @@
 	<numeric>
 	"../lib/AlignedAllocator.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/dsp.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp.h
 	"Mathext.h"
 	<vector>
 	<complex>
@@ -2570,7 +2592,7 @@
 	<complex>
 	"simd.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/simd.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd.h
 	"Types.h"
 	"simd/simd_traits.h"
 	"simd/simd_interface.h"
@@ -2579,10 +2601,10 @@
 	"simd/simd_cast.h"
 	"simd/simd_isa.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_traits.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_traits.h
 	"../Types.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_interface.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_interface.h
 	"simd_traits.h"
 	"../system/SysStats.h"
 
@@ -2601,31 +2623,31 @@
 	<string>
 	"PlatformSpecific.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_consts.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_consts.h
 	"../Mathext.h"
 	<float.h>
 	"simd_traits.h"
 
-1483364772 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_math.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_math.h
 	"simd_traits.h"
 	"simd_consts.h"
 	"simd_interface.h"
 	"simd_cast.h"
 
-1483900502 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_cast.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_cast.h
 	"../Types.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/octave/signal/octave_signal.h
 	"octave_signal_ultrawin.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/octave/signal/octave_signal_ultrawin.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/octave/signal/octave_signal_ultrawin.h
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/ffts.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/ffts.h
 	"ffts/dustfft.h"
 
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/ffts/dustfft.h
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/lib/AlignedAllocator.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/lib/AlignedAllocator.h
 	<cstdlib>
 	<vector>
 	"../Misc.h"
@@ -2633,55 +2655,55 @@
 1483146686 /home/branch/Desktop/repos/SDKs//cpl/SerializerModifiers.h
 	"CSerializer.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CColourControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CColourControl.h
 	"ControlBase.h"
 	"CKnobSlider.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueControl.h
 	"CKnobSlider.h"
 	<vector>
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CComboBox.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CComboBox.h
 	"ControlBase.h"
 	<string>
 	<vector>
 
-1483292402 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CButton.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CButton.h
 	"ControlBase.h"
 	"ValueControl.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/ValueControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/ValueControl.h
 	"ControlBase.h"
 	"../../Utility.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CInputControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CInputControl.h
 	"ControlBase.h"
 	<string>
 	<vector>
 	"../BuildingBlocks.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueKnobSlider.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueKnobSlider.h
 	"CKnobSlider.h"
 	"ControlBase.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueComboBox.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueComboBox.h
 	"ControlBase.h"
 	"ValueControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/Widgets.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/Widgets.h
 	"CPresetWidget.h"
 	"CDSPWindowWidget.h"
 	"CPowerSlopeWidget.h"
 	"CTransformWidget.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CPresetWidget.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CPresetWidget.h
 	"../../Common.h"
 	"../controls/ControlBase.h"
 	"../controls/Controls.h"
 	"WidgetBase.h"
 	"../../state/Serialization.h"
 
-1483199537 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/WidgetBase.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/WidgetBase.h
 	"../../Common.h"
 	"../DesignBase.h"
 	"../../Misc.h"
@@ -2689,23 +2711,23 @@
 	"../WidgetContainers.h"
 	"../../LexicalConversion.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/WidgetContainers.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/WidgetContainers.h
 	"../Common.h"
 	"CBaseControl.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CDSPWindowWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CDSPWindowWidget.h
 	"WidgetBase.h"
 	"../../dsp/DSPWindows.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CPowerSlopeWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CPowerSlopeWidget.h
 	"WidgetBase.h"
 	"../../rendering/Graphics.h"
 
-1483199052 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CTransformWidget.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/gui/widgets/CTransformWidget.h
 	"WidgetBase.h"
 	"../../rendering/Graphics.h"
 
-1498403265 /home/branch/Desktop/repos/SDKs//cpl/CAudioStream.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/CAudioStream.h
 	<thread>
 	"Utility.h"
 	<vector>
@@ -2720,12 +2742,12 @@
 	<numeric>
 	"Protected.h"
 
-1483146686 /home/branch/Desktop/repos/SDKs//cpl/AtomicCompability.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/AtomicCompability.h
 	"MacroConstants.h"
 	<stdatomic.h>
 	<atomic>
 
-1483298981 /home/branch/Desktop/repos/SDKs//cpl/lib/BlockingLockFreeQueue.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/lib/BlockingLockFreeQueue.h
 	"readerwriterqueue/readerwriterqueue.h"
 	<vector>
 	"../CMutex.h"
@@ -2753,17 +2775,17 @@
 	<mach/mach.h>
 	<semaphore.h>
 
-1498408039 /home/branch/Desktop/repos/SDKs//cpl/lib/CLIFOStream.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/lib/CLIFOStream.h
 	"CDataBuffer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/lib/CDataBuffer.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/lib/CDataBuffer.h
 	"../MacroConstants.h"
 	<vector>
 	<cstdlib>
 	<type_traits>
 	<algorithm>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/CProcessorTimer.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/CProcessorTimer.h
 	"Utility.h"
 	"Misc.h"
 	"Mathext.h"
@@ -2783,12 +2805,12 @@
 	<map>
 	<ctime>
 
-1483364938 /home/branch/Desktop/repos/SDKs//cpl/gui/NewStuffAndLook.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/NewStuffAndLook.h
 	"GraphicComponents.h"
 	"../Resources.h"
 	<vector>
 
-1483372344 /home/branch/Desktop/repos/SDKs//cpl/Resources.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Resources.h
 	"Common.h"
 	<mutex>
 	<memory>
@@ -2800,7 +2822,7 @@
 	"CommonSignalizer.h"
 	"SignalizerDesign.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/rendering/OpenGLRasterizers.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/rendering/OpenGLRasterizers.h
 	"../Common.h"
 	"OpenGLRendering.h"
 
@@ -2845,7 +2867,7 @@
 	"CommonSignalizer.h"
 	"SpectrumParameters.h"
 
-1483365277 /home/branch/Desktop/repos/SDKs//cpl/dsp/CComplexResonator.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/CComplexResonator.h
 	"../CMutex.h"
 	"../simd.h"
 	"../LibraryOptions.h"
@@ -2855,7 +2877,7 @@
 	"../Utility.h"
 	"../lib/AlignedAllocator.h"
 
-1483326075 /home/branch/Desktop/repos/SDKs//cpl/rendering/COpenGLImage.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/rendering/COpenGLImage.h
 	"../Common.h"
 	"OpenGLRendering.h"
 	"../Mathext.h"
@@ -2867,7 +2889,7 @@
 	"Mathext.h"
 	"Utility.h"
 
-1483296460 /home/branch/Desktop/repos/SDKs//cpl/dsp/CPeakFilter.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/CPeakFilter.h
 	"../Mathext.h"
 	"../Utility.h"
 	<xmmintrin.h>
@@ -2877,7 +2899,7 @@
 	"Mathext.h"
 	"Utility.h"
 
-1483298978 /home/branch/Desktop/repos/SDKs//cpl/lib/LockFreeQueue.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/lib/LockFreeQueue.h
 	"readerwriterqueue/readerwriterqueue.h"
 	<vector>
 	"../CMutex.h"
@@ -2896,7 +2918,7 @@
 	<cpl/lib/LockFreeDataQueue.h>
 	<cpl/stdext.h>
 
-1483298989 /home/branch/Desktop/repos/SDKs//cpl/lib/LockFreeDataQueue.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/lib/LockFreeDataQueue.h
 	"readerwriterqueue/readerwriterqueue.h"
 	<vector>
 	"../CMutex.h"
@@ -2968,14 +2990,14 @@
 	<memory>
 	<cpl/Utility.h>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/CPresetManager.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/CPresetManager.h
 	"Common.h"
 	"state/CSerializer.h"
 	"CExclusiveFile.h"
 	<vector>
 	<string>
 
-1483324593 /home/branch/Desktop/repos/SDKs//cpl/CExclusiveFile.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/CExclusiveFile.h
 	"MacroConstants.h"
 	"Utility.h"
 	<cstring>
@@ -3234,7 +3256,7 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_ComSmartPtr.h
 
-1498401639 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_win32_HiddenMessageWindow.h
+1498431342 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_events/native/juce_win32_HiddenMessageWindow.h
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_devices/native/juce_win32_WASAPI.cpp
 
@@ -3517,7 +3539,7 @@
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/include/private/format.h
 	"../../../format.h"
 
-1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/lpc_flac.c
+1540648650 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_formats/codecs/flac/libFLAC/lpc_flac.c
 	<config.h>
 	<math.h>
 	"../assert.h"
@@ -4668,7 +4690,7 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_SystemStats.cpp
 
-1498401639 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Threads.cpp
+1498431342 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_win32_Threads.cpp
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_core/native/juce_linux_CommonFile.cpp
 
@@ -5752,7 +5774,7 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_mac_FileChooser.mm
 
-1498401639 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_Windowing.cpp
+1498431342 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_Windowing.cpp
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_gui_basics/native/juce_win32_DragAndDrop.cpp
 
@@ -6032,12 +6054,12 @@
 
 1498401538 /home/branch/Desktop/repos/signalizer/JuceLibraryCode/modules/juce_audio_processors/scanning/juce_PluginListComponent.cpp
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/state/Serialization.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/state/Serialization.h
 	"CSerializer.h"
 	"SafeSerializableObject.h"
 	"SerializerModifiers.h"
 
-1498403216 /home/branch/Desktop/repos/SDKs/cpl/state/CSerializer.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/state/CSerializer.h
 	<cstdint>
 	<string>
 	<map>
@@ -6045,25 +6067,27 @@
 	<memory>
 	<exception>
 	<stdexcept>
+	<atomic>
 	"../stdext.h"
 	"../PlatformSpecific.h"
 	"../Misc.h"
 	"../ProgramVersion.h"
+	"../Exceptions.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/state/SafeSerializableObject.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/state/SafeSerializableObject.h
 	"CSerializer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/state/SerializerModifiers.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/state/SerializerModifiers.h
 	"CSerializer.h"
 
-1498402637 /home/branch/Desktop/repos/SDKs/cpl/system/SysStats.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/system/SysStats.h
 	"../MacroConstants.h"
 	"InstructionSet.h"
 	<thread>
 	"../PlatformSpecific.h"
 	"../LexicalConversion.h"
 
-1498402672 /home/branch/Desktop/repos/SDKs/cpl/system/InstructionSet.h
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/system/InstructionSet.h
 	<cmath>
 	<vector>
 	<bitset>
@@ -6071,15 +6095,15 @@
 	<string>
 	"../PlatformSpecific.h"
 
-1498403164 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_isa.h
+1540647779 /home/branch/Desktop/repos/SDKs/cpl/simd/simd_isa.h
 	"../Types.h"
 	"simd_traits.h"
 	"simd_interface.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueInputControl.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueInputControl.cpp
 	"CValueInputControl.h"
 
-1498403080 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueInputControl.h
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/gui/controls/CValueInputControl.h
 	"ControlBase.h"
 	"ValueControl.h"
 	<string>
@@ -6089,19 +6113,19 @@
 1498401297 /home/branch/Desktop/repos/SDKs/cpl/system/System.cpp
 	"InstructionSet.cpp"
 
-1498401297 /home/branch/Desktop/repos/SDKs/cpl/system/InstructionSet.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/system/InstructionSet.cpp
 	"InstructionSet.h"
 
 1498401297 /home/branch/Desktop/repos/SDKs/cpl/state/State.cpp
 	"SafeSerializableObject.cpp"
 	"CSerializer.cpp"
 
-1498402739 /home/branch/Desktop/repos/SDKs/cpl/state/SafeSerializableObject.cpp
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/state/SafeSerializableObject.cpp
 	"SafeSerializableObject.h"
 	"../Protected.h"
 	"../gui/GUI.h"
 
-1498402760 /home/branch/Desktop/repos/SDKs/cpl/state/CSerializer.cpp
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/state/CSerializer.cpp
 	"CSerializer.h"
 	<cstdint>
 	<string>
@@ -6115,10 +6139,10 @@
 	"../ProgramVersion.h"
 	"../lib/md5/md5.h"
 
-1498401639 source:/home/branch/Desktop/repos/signalizer/Source/Common/SignalizerDesign.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Common/SignalizerDesign.cpp
 	"SignalizerDesign.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Common/SignalizerDesign.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Common/SignalizerDesign.h
 	<cpl/Common.h>
 	<string>
 	<vector>
@@ -6127,12 +6151,12 @@
 	<map>
 	<ctime>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/state/Serialization.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/state/Serialization.h
 	"CSerializer.h"
 	"SafeSerializableObject.h"
 	"SerializerModifiers.h"
 
-1498403216 /home/branch/Desktop/repos/SDKs//cpl/state/CSerializer.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/state/CSerializer.h
 	<cstdint>
 	<string>
 	<map>
@@ -6140,25 +6164,27 @@
 	<memory>
 	<exception>
 	<stdexcept>
+	<atomic>
 	"../stdext.h"
 	"../PlatformSpecific.h"
 	"../Misc.h"
 	"../ProgramVersion.h"
+	"../Exceptions.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/state/SafeSerializableObject.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/state/SafeSerializableObject.h
 	"CSerializer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/state/SerializerModifiers.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/state/SerializerModifiers.h
 	"CSerializer.h"
 
-1498402637 /home/branch/Desktop/repos/SDKs//cpl/system/SysStats.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/system/SysStats.h
 	"../MacroConstants.h"
 	"InstructionSet.h"
 	<thread>
 	"../PlatformSpecific.h"
 	"../LexicalConversion.h"
 
-1498402672 /home/branch/Desktop/repos/SDKs//cpl/system/InstructionSet.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/system/InstructionSet.h
 	<cmath>
 	<vector>
 	<bitset>
@@ -6166,29 +6192,30 @@
 	<string>
 	"../PlatformSpecific.h"
 
-1498403164 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_isa.h
+1540647779 /home/branch/Desktop/repos/SDKs//cpl/simd/simd_isa.h
 	"../Types.h"
 	"simd_traits.h"
 	"simd_interface.h"
 
-1498403080 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueInputControl.h
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/gui/controls/CValueInputControl.h
 	"ControlBase.h"
 	"ValueControl.h"
 	<string>
 	<vector>
 	"../BuildingBlocks.h"
 
-1498401639 source:/home/branch/Desktop/repos/signalizer/Source/Editor/MainEditor.cpp
+1540645889 source:/home/branch/Desktop/repos/signalizer/Source/Editor/MainEditor.cpp
 	"MainEditor.h"
-	"Processor/PluginProcessor.h"
-	"Vectorscope/Vectorscope.h"
-	"Oscilloscope/Oscilloscope.h"
-	"Spectrum/Spectrum.h"
+	"../Processor/PluginProcessor.h"
+	"../Vectorscope/Vectorscope.h"
+	"../Oscilloscope/Oscilloscope.h"
+	"../Spectrum/Spectrum.h"
 	<cpl/CPresetManager.h>
 	<cpl/LexicalConversion.h>
 	"version.h"
+	<cpl/Mathext.h>
 
-1498403502 /home/branch/Desktop/repos/signalizer/Source/Editor/MainEditor.h
+1540645889 /home/branch/Desktop/repos/signalizer/Source/Editor/MainEditor.h
 	"../Signalizer.h"
 	"../Common/SignalizerDesign.h"
 	"../Common/SentientViewState.h"
@@ -6198,12 +6225,12 @@
 	<stack>
 	<array>
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Signalizer.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Signalizer.h
 	"version.h"
 	"Common/CommonSignalizer.h"
 	"Common/SharedBehaviour.h"
 
-1498404234 /home/branch/Desktop/repos/signalizer/Source/Common/CommonSignalizer.h
+1540645889 /home/branch/Desktop/repos/signalizer/Source/Common/CommonSignalizer.h
 	<cpl/Common.h>
 	<cpl/gui/GUI.h>
 	<cpl/CAudioStream.h>
@@ -6211,24 +6238,24 @@
 	<cpl/infrastructure/parameters/ParameterSystem.h>
 	"SignalizerDesign.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Common/SharedBehaviour.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Common/SharedBehaviour.h
 	<atomic>
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Common/SentientViewState.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Common/SentientViewState.h
 	"CommonSignalizer.h"
 	<memory>
 	<cpl/Utility.h>
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Processor/PluginProcessor.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Processor/PluginProcessor.h
 	"Signalizer.h"
 	<cpl/Common.h>
 	<cpl/CAudioStream.h>
 	<cpl/state/Serialization.h>
 	<cpl/gui/CViews.h>
 	<cpl/gui/widgets/CPresetWidget.h>
-	"Editor/MainEditor.h"
+	"../Editor/MainEditor.h"
 
-1498403675 /home/branch/Desktop/repos/signalizer/Source/Vectorscope/Vectorscope.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Vectorscope/Vectorscope.h
 	"Signalizer.h"
 	<cpl/Utility.h>
 	<cpl/gui/controls/Controls.h>
@@ -6237,10 +6264,10 @@
 	<cpl/simd.h>
 	"VectorscopeParameters.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Vectorscope/VectorscopeParameters.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Vectorscope/VectorscopeParameters.h
 	"Signalizer.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/Oscilloscope.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/Oscilloscope.h
 	"Signalizer.h"
 	<cpl/Utility.h>
 	<cpl/gui/controls/Controls.h>
@@ -6252,40 +6279,41 @@
 	<utility>
 	"ChannelData.h"
 
-1498404549 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeParameters.h
+1540645889 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeParameters.h
 	"Signalizer.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/dsp/SmoothedParameterState.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/SmoothedParameterState.h
 	"../Mathext.h"
 
-1498408122 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/ChannelData.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/ChannelData.h
 	"Signalizer.h"
 	<cpl/simd.h>
 	<cpl/dsp/LinkwitzRileyNetwork.h>
 	<cpl/dsp/SmoothedParameterState.h>
 
-1498406750 /home/branch/Desktop/repos/SDKs//cpl/dsp/LinkwitzRileyNetwork.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/LinkwitzRileyNetwork.h
 	<array>
 	"filters/AC_SVF.h"
 	"filters/Allpass.h"
 	"../Mathext.h"
 
-1498406809 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/AC_SVF.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/AC_SVF.h
 	<cstdlib>
 	"FilterBasics.h"
 	"../../simd.h"
+	<array>
 
-1498404606 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/FilterBasics.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/FilterBasics.h
 	<cstdlib>
 	"../../simd.h"
 	"../../Misc.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/Allpass.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/dsp/filters/Allpass.h
 	<cstdlib>
 	"FilterBasics.h"
 	"../../simd.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Spectrum/Spectrum.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Spectrum/Spectrum.h
 	"Signalizer.h"
 	<cpl/Common.h>
 	<cpl/gui/GUI.h>
@@ -6302,27 +6330,27 @@
 	"SpectrumParameters.h"
 	<cpl/dsp/SmoothedParameterState.h>
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/special/AxisTools.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/special/AxisTools.h
 	<iterator>
 	"DBMeterAxis.h"
 	"FrequencyAxis.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/special/DBMeterAxis.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/special/DBMeterAxis.h
 	<vector>
 	"../Mathext.h"
 	"../Utility.h"
 
-1498401297 /home/branch/Desktop/repos/SDKs//cpl/special/FrequencyAxis.h
+1509324494 /home/branch/Desktop/repos/SDKs//cpl/special/FrequencyAxis.h
 	<cmath>
 	<vector>
 	<algorithm>
 	"../Mathext.h"
 	"../Utility.h"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumParameters.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumParameters.h
 	"Signalizer.h"
 
-1498408244 source:/home/branch/Desktop/repos/signalizer/Source/Oscilloscope/Oscilloscope.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Oscilloscope/Oscilloscope.cpp
 	"Oscilloscope.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -6333,7 +6361,7 @@
 	"OscilloscopeDSP.inl"
 	"StreamPreprocessing.h"
 
-1498408191 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeDSP.inl
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeDSP.inl
 	"Oscilloscope.h"
 	"StreamPreprocessing.h"
 	<cstdint>
@@ -6341,12 +6369,12 @@
 	<cpl/Mathext.h>
 	<cpl/simd.h>
 
-1498407885 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/StreamPreprocessing.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/StreamPreprocessing.h
 	"Signalizer.h"
 	"Oscilloscope.h"
 	<queue>
 
-1498408235 source:/home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeRendering.cpp
+1540645889 source:/home/branch/Desktop/repos/signalizer/Source/Oscilloscope/OscilloscopeRendering.cpp
 	"Oscilloscope.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -6357,19 +6385,19 @@
 	"SampleColourEvaluators.h"
 	"OscilloscopeDSP.inl"
 
-1498401639 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/SampleColourEvaluators.h
+1498431342 /home/branch/Desktop/repos/signalizer/Source/Oscilloscope/SampleColourEvaluators.h
 	"Oscilloscope.h"
 	<functional>
 
-1498401639 source:/home/branch/Desktop/repos/signalizer/Source/Processor/PluginProcessor.cpp
+1540645889 source:/home/branch/Desktop/repos/signalizer/Source/Processor/PluginProcessor.cpp
 	"PluginProcessor.h"
-	"Editor/MainEditor.h"
+	"../Editor/MainEditor.h"
 	<cpl/CPresetManager.h>
 	<cpl/Protected.h>
 	<cpl/Mathext.h>
 	<cpl/infrastructure/values/Values.h>
 
-1498401639 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/Spectrum.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/Spectrum.cpp
 	"Spectrum.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -6379,14 +6407,14 @@
 	<cpl/LexicalConversion.h>
 	<array>
 
-1498408375 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumDSP.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumDSP.cpp
 	"Spectrum.h"
 	<cpl/ffts.h>
 	<cpl/system/SysStats.h>
 	<cpl/lib/LockFreeDataQueue.h>
 	<cpl/stdext.h>
 
-1498401639 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumRendering.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Spectrum/SpectrumRendering.cpp
 	"Spectrum.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -6395,7 +6423,7 @@
 	<cpl/simd.h>
 	<array>
 
-1498408418 source:/home/branch/Desktop/repos/signalizer/Source/Vectorscope/Vectorscope.cpp
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Vectorscope/Vectorscope.cpp
 	"Vectorscope.h"
 	<cstdint>
 	<cpl/CMutex.h>
@@ -6404,4 +6432,136 @@
 	<cpl/simd.h>
 	<cpl/LexicalConversion.h>
 	"VectorscopeParameters.h"
+
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/Exceptions.h
+	<string>
+	<string_view>
+	<exception>
+	<stdexcept>
+	<string>
+	<cerrno>
+	"MacroConstants.h"
+	"ProgramInfo.h"
+	"Core.h"
+
+1540645949 /home/branch/Desktop/repos/SDKs//cpl/ProgramInfo.h
+	<string>
+	"ProgramVersion.h"
+
+1540647174 /home/branch/Desktop/repos/SDKs//cpl/Core.h
+	"MacroConstants.h"
+	"lib/string_ref.h"
+	<utility>
+	<cstdio>
+
+1540647069 /home/branch/Desktop/repos/SDKs//cpl/lib/string_ref.h
+	<string_view>
+	<string>
+
+1498431342 source:/home/branch/Desktop/repos/signalizer/Source/Vectorscope/VectorscopeRendering.cpp
+	"Vectorscope.h"
+	<cstdint>
+	<cpl/CMutex.h>
+	<cpl/Mathext.h>
+	<cpl/rendering/OpenGLRasterizers.h>
+	<cpl/simd.h>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/ProgramInfo.h
+	<string>
+	"ProgramVersion.h"
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Exceptions.h
+	<string>
+	<string_view>
+	<exception>
+	<stdexcept>
+	<string>
+	<cerrno>
+	"MacroConstants.h"
+	"ProgramInfo.h"
+	"Core.h"
+
+1540647174 /home/branch/Desktop/repos/SDKs/cpl/Core.h
+	"MacroConstants.h"
+	"lib/string_ref.h"
+	<utility>
+	<cstdio>
+
+1540647069 /home/branch/Desktop/repos/SDKs/cpl/lib/string_ref.h
+	<string_view>
+	<string>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/CModule.cpp
+	"CModule.h"
+	"MacroConstants.h"
+	<Windows.h>
+	<dlfcn.h>
+	<unistd.h>
+	<mach-o/dyld.h>
+	<mach/mach_time.h>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/CModule.h
+	<string>
+	<filesystem>
+	"Core.h"
+	<vector>
+
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/process/Process.cpp
+	"../Process.h"
+	"../MacroConstants.h"
+	"../Misc.h"
+	"ProcessWindows.cpp"
+	"ProcessUnix.cpp"
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Process.h
+	<ostream>
+	<istream>
+	<memory>
+	"MacroConstants.h"
+	"cpl/PlatformSpecific.h"
+	"process/Args.h"
+	"process/Env.h"
+	"process/ProcessUtil.h"
+	<functional>
+	<experimental/optional>
+	<optional>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/process/Args.h
+	<vector>
+	<string>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/process/Env.h
+	<vector>
+	<string>
+
+1509324494 /home/branch/Desktop/repos/SDKs/cpl/process/ProcessUtil.h
+	<ostream>
+	<istream>
+	<memory>
+	"../MacroConstants.h"
+	"../PlatformSpecific.h"
+	"../Misc.h"
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/process/ProcessWindows.cpp
+	<ostream>
+	<istream>
+	<memory>
+	<vector>
+	"../MacroConstants.h"
+	"../PlatformSpecific.h"
+	"../Misc.h"
+	"../Process.h"
+
+1540648238 /home/branch/Desktop/repos/SDKs/cpl/process/ProcessUnix.cpp
+	"../Process.h"
+	<signal.h>
+	<wait.h>
+	<system_error>
+	<mutex>
+
+1540645949 /home/branch/Desktop/repos/SDKs/cpl/Exceptions.cpp
+	"Exceptions.h"
+	"Misc.h"
+	"CExclusiveFile.h"
+	"PlatformSpecific.h"
 

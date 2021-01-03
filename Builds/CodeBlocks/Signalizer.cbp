@@ -12,13 +12,13 @@
 				<Option type="3" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-std=c++14" />
 					<Add option="-g" />
 					<Add option="-O0" />
 					<Add option="-mstackrealign" />
 					<Add option="-flax-vector-conversions" />
 					<Add option="-fPIC" />
 					<Add option="-Wl,--no-undefined" />
+					<Add option="-std=c++17" />
 					<Add option="-D__MINGW__=1" />
 					<Add option="-D__MINGW_EXTENSION=" />
 					<Add option="-DJUCER_CODEBLOCKS_20734A5D=1" />
@@ -41,11 +41,12 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
-					<Add option="-std=c++14" />
 					<Add option="-mstackrealign" />
 					<Add option="-flax-vector-conversions" />
 					<Add option="-fPIC" />
 					<Add option="-Wl,--no-undefined" />
+					<Add option="-std=c++17" />
+					<Add option="-lstdc++fs" />
 					<Add option="-D__MINGW__=1" />
 					<Add option="-D__MINGW_EXTENSION=" />
 					<Add option="-DJUCER_CODEBLOCKS_20734A5D=1" />
@@ -60,6 +61,8 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add library="GL" />
+					<Add library="libstdc++fs" />
 				</Linker>
 			</Target>
 		</Build>
@@ -68,6 +71,7 @@
 			<Add option="-Wno-strict-aliasing" />
 			<Add option="-Wno-strict-overflow" />
 			<Add option="-mno-sse2avx" />
+			<Add option="-std=c++17" />
 			<Add directory="/usr/include/freetype2" />
 			<Add directory="../../Source" />
 		</Compiler>
