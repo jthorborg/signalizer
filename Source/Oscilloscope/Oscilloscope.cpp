@@ -40,9 +40,6 @@
 
 namespace Signalizer
 {
-	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
-	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
-
 	const double Oscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double Oscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 

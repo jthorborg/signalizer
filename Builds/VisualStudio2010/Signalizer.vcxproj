@@ -67,16 +67,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -305,6 +305,7 @@
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp" />
+    <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeController.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeRendering.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\AAX\juce_AAX_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_basics\juce_audio_basics.cpp" />
@@ -340,9 +341,11 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp" />
     <ClCompile Include="..\..\Source\Processor\PluginProcessor.cpp" />
     <ClCompile Include="..\..\Source\Spectrum\Spectrum.cpp" />
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumController.cpp" />
     <ClCompile Include="..\..\Source\Spectrum\SpectrumDSP.cpp" />
     <ClCompile Include="..\..\Source\Spectrum\SpectrumRendering.cpp" />
     <ClCompile Include="..\..\Source\Vectorscope\Vectorscope.cpp" />
+    <ClCompile Include="..\..\Source\Vectorscope\VectorscopeController.cpp" />
     <ClCompile Include="..\..\Source\Vectorscope\VectorscopeRendering.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -470,6 +473,7 @@
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
+    <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h" />
     <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />

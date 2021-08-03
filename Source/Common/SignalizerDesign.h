@@ -63,9 +63,8 @@
 
 
 		class CContentPage
-		:
-			public StateEditor,
-			public cpl::CIconTabBar::CTabBarListener
+			: public StateEditor
+			, public cpl::CIconTabBar::CTabBarListener
 		{
 		public:
 

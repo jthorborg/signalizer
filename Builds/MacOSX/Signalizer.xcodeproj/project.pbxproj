@@ -11,6 +11,9 @@
 		0DAD76EC048AA5FA3B633999 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ABA13DCD1D115389BB8181C0 /* IOKit.framework */; };
 		0E7781C32FB5B6E02B0E6AC3 /* juce_VST3_Wrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 69B2E8707A043193C1D2A4C2 /* juce_VST3_Wrapper.cpp */; };
 		0FAAB335D814E91FEC26CEDE /* DiscRecording.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0806AE937F395D947FF8D260 /* DiscRecording.framework */; };
+		160404B31FDC7D06009EF75C /* SpectrumController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B21FDC7D06009EF75C /* SpectrumController.cpp */; };
+		160404B51FDC7D0E009EF75C /* VectorscopeController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B41FDC7D0E009EF75C /* VectorscopeController.cpp */; };
+		160404B71FDC7D16009EF75C /* OscilloscopeController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */; };
 		165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278E31A9B3675003E1953 /* CPLSource.cpp */; };
 		165278E61A9B36AD003E1953 /* MacSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = 165278E51A9B36AD003E1953 /* MacSupport.mm */; };
 		16C25EC21F003D3400C3E22C /* SignalizerDesign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EA21F003D3400C3E22C /* SignalizerDesign.cpp */; };
@@ -176,6 +179,10 @@
 		15AF55E274578337E88BC058 /* juce_CodeEditorComponent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_CodeEditorComponent.h; path = ../../JuceLibraryCode/modules/juce_gui_extra/code_editor/juce_CodeEditorComponent.h; sourceTree = SOURCE_ROOT; };
 		15CBEC2C3CF9D4191531EF7F /* juce_FlacAudioFormat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_FlacAudioFormat.h; path = ../../JuceLibraryCode/modules/juce_audio_formats/codecs/juce_FlacAudioFormat.h; sourceTree = SOURCE_ROOT; };
 		15F96C34B1227C76BDDCB5A6 /* juce_ToolbarButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ToolbarButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ToolbarButton.h; sourceTree = SOURCE_ROOT; };
+		160404B21FDC7D06009EF75C /* SpectrumController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SpectrumController.cpp; sourceTree = "<group>"; };
+		160404B41FDC7D0E009EF75C /* VectorscopeController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VectorscopeController.cpp; sourceTree = "<group>"; };
+		160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OscilloscopeController.cpp; sourceTree = "<group>"; };
+		160404B81FDC7D27009EF75C /* SignalizerConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalizerConfiguration.h; path = ../Config/SignalizerConfiguration.h; sourceTree = "<group>"; };
 		1650C16B3B86FBA8808D697A /* juce_AudioCDReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_AudioCDReader.h; path = ../../JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.h; sourceTree = SOURCE_ROOT; };
 		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../../SDKs/cpl/CPLSource.cpp; sourceTree = "<group>"; };
 		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../../SDKs/cpl/MacSupport.mm; sourceTree = "<group>"; };
@@ -1278,6 +1285,7 @@
 			children = (
 				16C25E9F1F003D3400C3E22C /* CommonSignalizer.h */,
 				16C25EA01F003D3400C3E22C /* SentientViewState.h */,
+				160404B81FDC7D27009EF75C /* SignalizerConfiguration.h */,
 				16C25EA11F003D3400C3E22C /* SharedBehaviour.h */,
 				16C25EA21F003D3400C3E22C /* SignalizerDesign.cpp */,
 				16C25EA31F003D3400C3E22C /* SignalizerDesign.h */,
@@ -1311,6 +1319,7 @@
 				16C25EAA1F003D3400C3E22C /* ChannelData.h */,
 				16C25EAB1F003D3400C3E22C /* Oscilloscope.cpp */,
 				16C25EAC1F003D3400C3E22C /* Oscilloscope.h */,
+				160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */,
 				16C25EAD1F003D3400C3E22C /* OscilloscopeDSP.inl */,
 				16C25EAE1F003D3400C3E22C /* OscilloscopeParameters.h */,
 				16C25EAF1F003D3400C3E22C /* OscilloscopeRendering.cpp */,
@@ -1336,6 +1345,7 @@
 			children = (
 				16C25EB71F003D3400C3E22C /* Spectrum.cpp */,
 				16C25EB81F003D3400C3E22C /* Spectrum.h */,
+				160404B21FDC7D06009EF75C /* SpectrumController.cpp */,
 				16C25EB91F003D3400C3E22C /* SpectrumDSP.cpp */,
 				16C25EBA1F003D3400C3E22C /* SpectrumParameters.h */,
 				16C25EBB1F003D3400C3E22C /* SpectrumRendering.cpp */,
@@ -1349,6 +1359,7 @@
 			children = (
 				16C25EBD1F003D3400C3E22C /* Vectorscope.cpp */,
 				16C25EBE1F003D3400C3E22C /* Vectorscope.h */,
+				160404B41FDC7D0E009EF75C /* VectorscopeController.cpp */,
 				16C25EBF1F003D3400C3E22C /* VectorscopeParameters.h */,
 				16C25EC01F003D3400C3E22C /* VectorscopeRendering.cpp */,
 			);
@@ -3136,6 +3147,7 @@
 			files = (
 				D9CA843EC25368BFE6682B74 /* AUBase.cpp in Sources */,
 				A30F8D1650A263B575A42DAB /* AUBuffer.cpp in Sources */,
+				160404B51FDC7D0E009EF75C /* VectorscopeController.cpp in Sources */,
 				44587E74A110174500BB87D1 /* AUCarbonViewBase.cpp in Sources */,
 				81F08C2B937F3CA8498F7A70 /* AUCarbonViewControl.cpp in Sources */,
 				16C25EC51F003D3400C3E22C /* Oscilloscope.cpp in Sources */,
@@ -3164,6 +3176,7 @@
 				16C25EC71F003D3400C3E22C /* OscilloscopeRendering.cpp in Sources */,
 				2BD287D1E7CA9D97721B8161 /* juce_AU_Wrapper.mm in Sources */,
 				16C25EC21F003D3400C3E22C /* SignalizerDesign.cpp in Sources */,
+				160404B31FDC7D06009EF75C /* SpectrumController.cpp in Sources */,
 				16C25EC91F003D3400C3E22C /* Spectrum.cpp in Sources */,
 				53EB393517095936C0E4D107 /* juce_audio_basics.mm in Sources */,
 				65BEDC90D0076C568CEBDC2A /* juce_audio_devices.mm in Sources */,
@@ -3190,6 +3203,7 @@
 				BA7D51760F34E93A8F8A18AE /* juce_video.mm in Sources */,
 				0E7781C32FB5B6E02B0E6AC3 /* juce_VST3_Wrapper.cpp in Sources */,
 				EE2AA1609ADB846CBDCFFBAA /* juce_VST3_Wrapper.mm in Sources */,
+				160404B71FDC7D16009EF75C /* OscilloscopeController.cpp in Sources */,
 				16C25ECC1F003D3400C3E22C /* Vectorscope.cpp in Sources */,
 				564D3D06972761A3EEBEB272 /* juce_VST_Wrapper.cpp in Sources */,
 				D9B723921CE9730FA25D94D6 /* juce_VST_Wrapper.mm in Sources */,
