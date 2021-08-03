@@ -36,15 +36,16 @@
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/simd.h>
+#include <cpl/lib/variable_array.h>
 
 namespace Signalizer
 {
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::analyseAndSetupState()
+	void Oscilloscope::analyseAndSetupState(const EvaluatorParams& params)
 	{
-		calculateFundamentalPeriod<ISA, Eval>();
-		calculateTriggeringOffset<ISA, Eval>();
+		calculateFundamentalPeriod<ISA, Eval>(params);
+		calculateTriggeringOffset<ISA, Eval>(params);
 
 		resizeAudioStorage();
 
@@ -59,7 +60,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::calculateFundamentalPeriod()
+	void Oscilloscope::calculateFundamentalPeriod(const EvaluatorParams& params)
 	{
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
@@ -79,7 +80,7 @@ namespace Signalizer
 		}
 		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
-			Eval eval(channelData);
+			Eval eval(params);
 
 			if (!eval.isWellDefined())
 				return;
@@ -130,7 +131,8 @@ namespace Signalizer
 			const double hysteresis = content->triggerHysteresis.getTransformedValue();
 			const auto invHysteresis = 1 - hysteresis;
 
-			BinRecord max{ 1, std::max(threshold * TransformSize, std::abs(transformBuffer[1])), quadDelta(1) };
+			// Reduce to 1/4 (to slip through "vastly better case" + half transform size
+			BinRecord max{ 1, std::max(threshold * TransformSize / 6.0, std::abs(transformBuffer[1])), quadDelta(1) };
 
 			for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
 			{
@@ -227,7 +229,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::calculateTriggeringOffset()
+	void Oscilloscope::calculateTriggeringOffset(const EvaluatorParams& params)
 	{
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
@@ -251,7 +253,7 @@ namespace Signalizer
 		auto const TransformSize = OscilloscopeContent::LookaheadSize;
 #endif
 
-		Eval eval(channelData);
+		Eval eval(params);
 
 		if (!eval.isWellDefined())
 			return;
@@ -328,11 +330,15 @@ namespace Signalizer
 
 
 	template<typename ISA, class Analyzer>
-	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		Analyzer ana(buffer, numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.preprocessingTrigger);
+		if (numChannels < 1)
+			return;
+
+		Analyzer ana(numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.triggeringProcessor);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
+		auto triggeringChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
 
 		if (numChannels == 1)
 			mode = OscChannels::Left;
@@ -368,7 +374,7 @@ namespace Signalizer
 			case OscChannels::Separate:
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
-					ana.process(buffer[0][n]);
+					ana.process(buffer[triggeringChannel][n]);
 				}
 
 				break;
@@ -385,7 +391,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void Oscilloscope::preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples)
+	void Oscilloscope::preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		const bool isPeakHolder = state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
 		const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
@@ -403,53 +409,54 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		if (numSamples == 0 || numChannels == 0)
+			return;
+
 		cpl::CMutex scopedLock(bufferLock);
 
-		// TODO: dynamically determine size
-		AFloat * localBuffers[2];
+		channelData.resizeChannels(numChannels);
 
-		numChannels = std::min<std::size_t>(2, numChannels);
+		// get channel names for legend display
+		channelNames = audioStream.getAsyncChannelNames();
 
-		for (std::size_t c = 0; c < numChannels; ++c)
-			localBuffers[c] = buffer[c];
+		cpl::variable_array<float*> localBuffers(buffer, buffer + numChannels);
 
-		triggerState.preprocessingTrigger->update(audioStream.getASyncPlayhead().getSteadyClock());
-		preprocessAudio<ISA>(localBuffers, numChannels, numSamples);
+		triggerState.triggeringProcessor->update(audioStream.getASyncPlayhead().getSteadyClock());
+		preAnalyseAudio<ISA>(localBuffers.data(), numChannels, numSamples);
 
 		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
-			audioProcessing<ISA>(localBuffers, numChannels, numSamples, channelData.front);
+			audioProcessing<ISA>(localBuffers.data(), numChannels, numSamples, channelData.front);
 		}
 		else
 		{
-			triggerState.preprocessingTrigger->processMutating<ISA>(*this, localBuffers, numChannels, numSamples);
+			triggerState.triggeringProcessor->processMutating<ISA>(*this, localBuffers.data(), numChannels, numSamples);
 		}
 	}
 
 	template<typename ISA>
-		void Oscilloscope::audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer & target)
+		void Oscilloscope::audioProcessing(AFloat ** buffer, const std::size_t numChannels, const std::size_t numSamples, ChannelData::Buffer & target)
 		{
-			if (numSamples == 0 || numChannels == 0)
-				return;
-
 			using namespace cpl::simd;
 			typedef AFloat T;
 
 			auto const sampleRate = audioStream.getAudioHistorySamplerate();
 
-			channelData.resizeChannels(numChannels);
 			channelData.tuneColourSmoothing(content->colourSmoothing.getTransformedValue(), sampleRate);
 			channelData.tuneCrossOver(300, 3000, sampleRate);
 
-
-			if (target.channels[0].audioData.getSize() < 1)
+			if (target.defaultChannel().audioData.getSize() < 1)
 				return;
 
 			auto colourSmoothPole = channelData.smoothFilterPole;
 
 			// (division by zero is well-defined)
 			const auto envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate()));
-			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
+
+			cpl::variable_array<AFloat> filterEnv(numChannels);
+
+			for (std::size_t i = 0; i < numChannels; ++i)
+				filterEnv[i] = channelData.filterStates.channels[i].envelope;
 
 			auto colourArray = [](const auto & colourParam)
 			{
@@ -492,7 +499,7 @@ namespace Signalizer
 				return ret.lerp(key, blend);
 			};
 
-			using fs = FilterStates;
+			using fs = ChannelData;
 
 			auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 
@@ -503,37 +510,6 @@ namespace Signalizer
 
 			if (numChannels >= 2)
 			{
-				ChannelData::PixelType
-					firstColour(content->primaryColour.getAsJuceColour()),
-					secondColour(content->secondaryColour.getAsJuceColour());
-
-				auto sideSignal = [](const auto & left, const auto & right)
-				{
-					unq_typeof(left) ret;
-					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-						ret[i] = left[i] - right[i];
-					return ret;
-				};
-
-				auto midSignal = [](const auto & left, const auto & right)
-				{
-					unq_typeof(left) ret;
-					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
-						ret[i] = left[i] + right[i];
-					return ret;
-				};
-
-				auto
-					leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters,
-					rightSmoothState = channelData.filterStates.channels[fs::Right].smoothFilters,
-					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
-					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
-
-				auto &&
-					lw = target.channels[fs::Left].colourData.createWriter(),
-					rw = target.channels[fs::Right].colourData.createWriter(),
-					mw = target.midSideColour[0].createWriter(),
-					sw = target.midSideColour[1].createWriter();
 
 				std::size_t offset = 0;
 
@@ -553,7 +529,8 @@ namespace Signalizer
 							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
 						}
 
-						filterEnv[fs::Right] = filterEnv[fs::Left];
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
 
 						break;
 					}
@@ -566,7 +543,8 @@ namespace Signalizer
 							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
 						}
 
-						filterEnv[fs::Right] = filterEnv[fs::Left];
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
 
 						break;
 					case OscChannels::Side:
@@ -577,16 +555,19 @@ namespace Signalizer
 							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
 						}
 
-						filterEnv[fs::Right] = filterEnv[fs::Left];
+						for (std::size_t c = 1; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Left];
 
 						break;
 
 					case OscChannels::Separate:
 						for (std::size_t n = 0; n < numSamples; ++n)
 						{
-							const auto left = cpl::Math::square(buffer[fs::Left][n]), right = cpl::Math::square(buffer[fs::Right][n]);
-							filterEnv[fs::Left] = left + envelopeCoeff * (filterEnv[fs::Left] - left);
-							filterEnv[fs::Right] = right + envelopeCoeff * (filterEnv[fs::Right] - right);
+							for (std::size_t c = 0; c < numChannels; ++c)
+							{
+								const auto sample = cpl::Math::square(buffer[c][n]);
+								filterEnv[c] = sample + envelopeCoeff * (filterEnv[c] - sample);
+							} 
 						}
 
 						break;
@@ -601,47 +582,94 @@ namespace Signalizer
 							filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
 						}
 
+						for (std::size_t c = 2; c < numChannels; ++c)
+							filterEnv[c] = filterEnv[fs::Right];
+
 						break;
 					}
 
 				}
 
+				auto sideSignal = [](const auto & left, const auto & right)
+				{
+					unq_typeof(left) ret;
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+						ret[i] = left[i] - right[i];
+					return ret;
+				};
+
+				auto midSignal = [](const auto & left, const auto & right)
+				{
+					unq_typeof(left) ret;
+					for (std::size_t i = 0; i < ChannelData::Bands; ++i)
+						ret[i] = left[i] + right[i];
+					return ret;
+				};
+
+				typedef ChannelData::Crossover::BandArray SmoothState;
+				typedef unq_typeof(target.channels[fs::Left].colourData.createWriter()) ColourWriter;
+
+				cpl::variable_array<SmoothState> smoothStates(numChannels, [&](std::size_t i) { return channelData.filterStates.channels[i].smoothFilters; });
+				cpl::variable_array<ColourWriter> colourWriters(numChannels, [&](std::size_t i) { return target.channels[i].colourData.createWriter(); });
+				cpl::variable_array<ChannelData::Crossover*> networks(numChannels, [&](std::size_t i) { return &channelData.filterStates.channels[i].network; });
+				cpl::variable_array<ChannelData::PixelType> colours(numChannels, [&](auto i) { return content->getColour(i).getAsJuceColour(); });
+
+				auto
+					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
+					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
+
+				auto &&
+					mw = target.midSideColour[0].createWriter(),
+					sw = target.midSideColour[1].createWriter();
+
+
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
 
-					auto & lN = channelData.filterStates.channels[fs::Left].network;
-					auto & rN = channelData.filterStates.channels[fs::Right].network;
-
-					const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
+					const auto 
+						left = buffer[fs::Left][n],
+						right = buffer[fs::Right][n];
 
 					// split signal into bands:
-					auto leftBands = rN.process(left, channelData.networkCoeffs);
-					auto rightBands = lN.process(right, channelData.networkCoeffs);
+					auto leftBands = networks[0]->process(left, channelData.networkCoeffs);
+					auto rightBands = networks[1]->process(right, channelData.networkCoeffs);
 
-					filterStates(leftBands, leftSmoothState);
-					filterStates(rightBands, rightSmoothState);
+					filterStates(leftBands, smoothStates[0]);
+					filterStates(rightBands, smoothStates[1]);
 
 					// magnitude doesn't matter for these, as we normalize the data anyway -
 					filterStates(midSignal(leftBands, rightBands), midSmoothState);
 					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
 
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
-					rw.setHeadAndAdvance(accumulateColour(rightSmoothState, secondColour, blend));
-					mw.setHeadAndAdvance(accumulateColour(midSmoothState, firstColour, blend));
-					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, secondColour, blend));
+					for (std::size_t c = 2; c < numChannels; ++c)
+					{
+						auto bands = networks[c]->process(buffer[c][n], channelData.networkCoeffs);
+						filterStates(rightBands, smoothStates[c]);
+					}
+
+					mw.setHeadAndAdvance(accumulateColour(midSmoothState, colours[0], blend));
+					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, colours[1], blend));
+
+					for (std::size_t c = 0; c < numChannels; ++c)
+					{
+						colourWriters[c].setHeadAndAdvance(accumulateColour(smoothStates[c], colours[c], blend));
+					}
 
 				}
 
-				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
-				channelData.filterStates.channels[fs::Right].smoothFilters = rightSmoothState;
+				for (std::size_t c = 0; c < numChannels; ++c)
+				{
+					channelData.filterStates.channels[c].smoothFilters = smoothStates[c];
+				}
+
+
 				channelData.filterStates.midSideSmoothsFilters[0] = midSmoothState;
 				channelData.filterStates.midSideSmoothsFilters[1] = sideSmoothState;
 
 			}
 			else if (numChannels == 1)
 			{
-				ChannelData::PixelType
-					firstColour(content->primaryColour.getAsJuceColour());
+				ChannelData::PixelType colour(content->getColour(0).getAsJuceColour());
 
 				filterEnv[1] = 0;
 				auto && lw = target.channels[fs::Left].colourData.createWriter();
@@ -660,24 +688,30 @@ namespace Signalizer
 					auto leftBands = channelData.filterStates.channels[fs::Left].network.process(left, channelData.networkCoeffs);
 
 					filterStates(leftBands, leftSmoothState);
-					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, firstColour, blend));
+					lw.setHeadAndAdvance(accumulateColour(leftSmoothState, colour, blend));
 				}
 
 				channelData.filterStates.channels[fs::Left].smoothFilters = leftSmoothState;
 
 			}
+
 			// store calculated envelope
 			if (state.envelopeMode == EnvelopeModes::RMS)
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
-				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
+
+				auto start = std::sqrt(filterEnv[0]);
+
+				for (std::size_t c = 0; c < numChannels; ++c)
+					start = std::max(start, std::sqrt(filterEnv[c]));
+
+				shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
 
 				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0];
-				filters.envelope[1] = filterEnv[1];
+				smoothEnvelopeState(ChannelData::Left) = filterEnv[0];
+				smoothEnvelopeState(ChannelData::Right) = filterEnv[1];
 
-				shared.autoGainEnvelope.store(currentEnvelope, std::memory_order_release);
 			}
 
 			// save audio data
@@ -708,24 +742,28 @@ namespace Signalizer
 
 			auto const vHalf = consts<V>::half;
 
-			if (state.channelMode <= OscChannels::OffsetForMono)
+			auto const numChannels = channelData.front.channels.size();
+
+			auto const channelMode = numChannels == 1 ? OscChannels::Left : state.channelMode;
+
+			auto const numSamples = channelData.front.channels.begin()->audioData.getSize();
+
+			auto stop = numSamples - (numSamples & (loopIncrement - 1));
+			if (stop <= 0)
+				stop = 0;
+
+			// since this runs in every frame, we need to scale the coefficient by how often this function runs
+			// (and the amount of samples)
+			double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+			double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
+
+			if (channelMode <= OscChannels::OffsetForMono)
 			{
 				auto && view = channelData.front.channels[0].audioData.createProxyView();
 
-				std::size_t numSamples = view.size();
-
 				const auto * leftBuffer = view.begin();
 
-				auto stop = numSamples - (numSamples & (loopIncrement - 1));
-				if (stop <= 0)
-					stop = 0;
-
-				// since this runs in every frame, we need to scale the coefficient by how often this function runs
-				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-				double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
-
-				if (state.channelMode == OscChannels::Left)
+				if (channelMode == OscChannels::Left)
 				{
 					for (std::size_t i = 0; i < stop; i += loopIncrement)
 					{
@@ -735,16 +773,10 @@ namespace Signalizer
 				}
 				else
 				{
-					if (channelData.front.channels.size() < 2)
-					{
-						shared.autoGainEnvelope.store(1, std::memory_order_release);
-						return;
-					}
-
 					auto && rightView = channelData.front.channels[1].audioData.createProxyView();
 					const auto * rightBuffer = rightView.begin();
 
-					switch (state.channelMode)
+					switch (channelMode)
 					{
 					case OscChannels::Right:
 
@@ -781,75 +813,90 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+				smoothEnvelopeState(0) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
+				smoothEnvelopeState(1) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
 
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
+				for (std::size_t c = 2; c < numChannels; ++c)
+				{
+					smoothEnvelopeState(c) = smoothEnvelopeState(1);
+				}
 
 			}
 			else
 			{
-				if (channelData.front.channels.size() < 2)
+				switch (channelMode)
 				{
-					shared.autoGainEnvelope.store(1, std::memory_order_release);
-					return;
-				}
-
-				ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
-
-				std::size_t numSamples = views[0].size();
-
-				const auto * leftBuffer = views[0].begin();
-				const auto * rightBuffer = views[1].begin();
-
-				auto stop = numSamples - (numSamples & (loopIncrement - 1));
-				if (stop <= 0)
-					stop = 0;
-
-				// since this runs in every frame, we need to scale the coefficient by how often this function runs
-				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-				double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
-
-				switch (state.channelMode)
-				{
-				case OscChannels::Separate:
-					for (std::size_t i = 0; i < stop; i += loopIncrement)
+					case OscChannels::Separate:
 					{
-						auto const vLInput = load<V>(leftBuffer + i);
-						vLMax = max(vand(vLInput, vSign), vLMax);
-						auto const vRInput = load<V>(rightBuffer + i);
-						vRMax = max(vand(vRInput, vSign), vRMax);
+	
+						for (std::size_t c = 0; c < numChannels; ++c)
+						{
+							auto&& view = channelData.front.channels[c].audioData.createProxyView();
+							auto buffer = view.begin();
+
+							for (std::size_t i = 0; i < stop; i += loopIncrement)
+							{
+								auto const vInput = load<V>(buffer + i);
+								vLMax = max(vand(vInput, vSign), vLMax);
+							}
+
+							suitable_container<V> lmax = vLMax;
+							auto highestValue = *std::max_element(lmax.begin(), lmax.end());
+
+							smoothEnvelopeState(c) = std::max<float>(smoothEnvelopeState(c) * coeff, highestValue * highestValue);
+						}
+
+						break;
 					}
-					break;
-				case OscChannels::MidSide:
-					for (std::size_t i = 0; i < stop; i += loopIncrement)
+
+					case OscChannels::MidSide:
 					{
-						auto const vLInput = load<V>(leftBuffer + i);
-						auto const vRInput = load<V>(rightBuffer + i);
+						ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
 
-						auto const a = vLInput + vRInput;
-						auto const b = vLInput - vRInput;
+						const auto * leftBuffer = views[0].begin();
+						const auto * rightBuffer = views[1].begin();
 
-						vLMax = max(vand(a * vHalf, vSign), vLMax);
-						vRMax = max(vand(b * vHalf, vSign), vRMax);
+						for (std::size_t i = 0; i < stop; i += loopIncrement)
+						{
+							auto const vLInput = load<V>(leftBuffer + i);
+							auto const vRInput = load<V>(rightBuffer + i);
+
+							auto const a = vLInput + vRInput;
+							auto const b = vLInput - vRInput;
+
+							vLMax = max(vand(a * vHalf, vSign), vLMax);
+							vRMax = max(vand(b * vHalf, vSign), vRMax);
+						}
+
+						suitable_container<V> lmax = vLMax, rmax = vRMax;
+
+						double highestLeft = *std::max_element(lmax.begin(), lmax.end());
+						double highestRight = *std::max_element(rmax.begin(), rmax.end());
+
+						smoothEnvelopeState(ChannelData::Left) = std::max(smoothEnvelopeState(0) * coeff, highestLeft  * highestLeft);
+						smoothEnvelopeState(ChannelData::Right) = std::max(smoothEnvelopeState(1) * coeff, highestRight * highestRight);
+
+						for (std::size_t c = 2; c < numChannels; ++c)
+						{
+							smoothEnvelopeState(c) = smoothEnvelopeState(1);
+						}
+
+						break;
 					}
-					break;
+
 				}
-
-				// TODO: remainder?
-
-				suitable_container<V> lmax = vLMax, rmax = vRMax;
-
-				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
-				double highestRight = *std::max_element(rmax.begin(), rmax.end());
-
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
-
-				shared.autoGainEnvelope.store(1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1])), std::memory_order_release);
 
 			}
+
+
+			auto start = std::sqrt(smoothEnvelopeState(0));
+
+			for (std::size_t c = 0; c < numChannels; ++c)
+			{
+				start = std::max(start, std::sqrt(smoothEnvelopeState(c)));
+			}
+
+			shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
 		}
 };
 #endif

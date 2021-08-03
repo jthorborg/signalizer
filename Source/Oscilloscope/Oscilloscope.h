@@ -38,6 +38,7 @@
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
 	#include "ChannelData.h"
+	#include <cpl/gui/CViews.h>
 
 	namespace cpl
 	{
@@ -49,7 +50,17 @@
 
 	namespace Signalizer
 	{
-		class PreprocessingTrigger;
+
+		struct EvaluatorParams
+		{
+			ChannelData& data;
+
+			std::size_t
+				channelIndex = 0,
+				colourIndex = 0;
+		};
+
+		class TriggeringProcessor;
 
 		class Oscilloscope final
 			: public cpl::COpenGLView
@@ -57,7 +68,7 @@
 		{
 		public:
 
-			friend class PreprocessingTrigger;
+			friend class TriggeringProcessor;
 
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
@@ -119,13 +130,14 @@
 				}
 			};
 
+			std::size_t getEffectiveChannels() const noexcept;
 
 			template<typename ISA>
 				void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename ISA, typename Eval>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params);
 
 			template<typename ISA>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
@@ -134,10 +146,10 @@
 				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
 
 			template<typename ISA, typename Eval>
-				void calculateFundamentalPeriod();
+				void calculateFundamentalPeriod(const EvaluatorParams& params);
 
 			template<typename ISA, typename Eval>
-				void calculateTriggeringOffset();
+				void calculateTriggeringOffset(const EvaluatorParams& params);
 
 			void resizeAudioStorage();
 
@@ -145,13 +157,13 @@
 				void runPeakFilter();
 
 			template<typename ISA, typename Eval>
-				void analyseAndSetupState();
+				void analyseAndSetupState(const EvaluatorParams& params);
 
 			template<typename ISA>
-			void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+			void preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA, class Analyzer>
-				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
+				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA>
 				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -161,6 +173,8 @@
 
 			template<typename ISA>
 				void paint2DGraphics(juce::Graphics & g);
+
+			inline AFloat& smoothEnvelopeState(std::size_t i) { return channelData.filterStates.channels[i].envelope; }
 
 			bool checkAndInformInvalidCombinations();
 
@@ -172,20 +186,6 @@
 			double getGain();
 
 			void setLastMousePos(const juce::Point<float> position) noexcept;
-
-			struct FilterStates
-			{
-				enum Entry
-				{
-					Slow = 0,
-					Left = 0,
-					Fast = 1,
-					Right = 1
-				};
-
-				AudioStream::DataType envelope[2];
-
-			} filters;
 
 			struct Flags
 			{
@@ -205,7 +205,7 @@
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended;
+				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended, drawLegend;
 				float primitiveSize;
 
 				double effectiveWindowSize;
@@ -218,13 +218,16 @@
 
 				double viewOffsets[4];
 				std::int64_t transportPosition;
-				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary, colourTracker;
+				std::size_t numChannels;
+				juce::Colour colourBackground, colourGraph, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourTracker;
 
 				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
 				OscChannels channelMode;
+
+				std::vector<std::string> channelNames;
 
 			} state;
 
@@ -241,7 +244,7 @@
 			AudioStream & audioStream;
 			//cpl::AudioBuffer audioStreamCopy;
 			juce::Component * editor;
-			// unused.
+			std::vector<std::string> channelNames;
 			std::unique_ptr<char> textbuf;
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
@@ -277,7 +280,7 @@
 
 			struct TriggerData
 			{ 
-				std::unique_ptr<PreprocessingTrigger> preprocessingTrigger;
+				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
@@ -327,6 +330,8 @@
 
 			template<OscChannels channelConfiguration, std::size_t ColourIndice>
 				class SampleColourEvaluator;
+
+			class DynamicChannelEvaluator;
 
 			template<std::size_t ChannelIndex, std::size_t ColourIndice>
 				class SimpleChannelEvaluator;

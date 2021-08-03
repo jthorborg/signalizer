@@ -56,7 +56,6 @@ namespace Signalizer
 		, lastMousePos()
 		, editor(nullptr)
 		, state()
-		, filters()
 		, triggerState()
 		, medianPos()
 		, isMouseInside(false)
@@ -66,7 +65,7 @@ namespace Signalizer
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
 
-		triggerState.preprocessingTrigger = std::make_unique<PreprocessingTrigger>();
+		triggerState.triggeringProcessor = std::make_unique<TriggeringProcessor>();
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
@@ -100,6 +99,16 @@ namespace Signalizer
 		notifyDestruction();
 	}
 
+	std::size_t Oscilloscope::getEffectiveChannels() const noexcept
+	{
+		if (state.channelMode >= OscChannels::OffsetForMono)
+		{
+			return state.channelMode == OscChannels::Separate ? state.numChannels : 2;
+		}
+
+		return 1;
+	}
+
 	void Oscilloscope::initPanelAndControls()
 	{
 		// design
@@ -131,12 +140,12 @@ namespace Signalizer
 
 		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
 		{
-			auto halfHeight = 0.5 * (getHeight() - 1);
+			auto heightPerScope = (getHeight() - 1.0) / getEffectiveChannels();
 			yp = event.position.y;
-			if (yp > halfHeight)
-				yp -= halfHeight;
+			while (yp > heightPerScope)
+				yp -= heightPerScope;
 
-			yp = yp / halfHeight;
+			yp = yp / heightPerScope;
 		}
 		else
 		{
@@ -164,7 +173,7 @@ namespace Signalizer
 			else
 			{
 				// TODO: fix to pow()
-				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
+				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 80);
 			}
 
 
@@ -239,7 +248,7 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
-		auto verticalFactor = !state.overlayChannels && state.channelMode > OscChannels::OffsetForMono ? 2 : 1;
+		auto verticalFactor = state.overlayChannels ? 1 : getEffectiveChannels();
 
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));
@@ -291,8 +300,6 @@ namespace Signalizer
 		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 
-		state.colourPrimary = content->primaryColour.getAsJuceColour();
-		state.colourSecondary = content->secondaryColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourGraph = content->graphColour.getAsJuceColour();
 		state.colourTracker = content->trackerColour.getAsJuceColour();
@@ -304,17 +311,17 @@ namespace Signalizer
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
+		state.numChannels = channelData.numChannels();
+		state.channelNames = channelNames;
+		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
-		for (std::size_t c = 0; c < channelData.filterStates.channels.size(); ++c)
+		for (std::size_t c = 0; c < state.numChannels; ++c)
 		{
-			if (c == 0)
-				channelData.filterStates.channels[c].defaultKey = state.colourPrimary;
-			else
-				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
+			state.colours[c] = channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
 		}
 
 		switch (state.timeMode)
@@ -334,7 +341,7 @@ namespace Signalizer
 			break;
 		}
 
-		triggerState.preprocessingTrigger->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
+		triggerState.triggeringProcessor->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 
 		bool firstRun = false;
 
@@ -343,19 +350,6 @@ namespace Signalizer
 			firstRun = true;
 		}
 
-
-		/* if (firstRun || mtFlags.initiateWindowResize)
-		{
-
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
-			{
-				// only reset this flag if there's valid data, otherwise keep checking.
-				mtFlags.initiateWindowResize.cas();
-				auto value = content->windowSize.getTransformedValue();
-				//audioStream.setAudioHistorySize(value);
-			}
-		} */
 	}
 
 	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)

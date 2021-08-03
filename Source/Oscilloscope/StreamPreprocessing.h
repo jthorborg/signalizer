@@ -37,7 +37,7 @@
 
 	namespace Signalizer
 	{
-		class PreprocessingTrigger
+		class TriggeringProcessor
 		{
 		public:
 
@@ -230,9 +230,8 @@
 		{
 		public:
 
-			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples, std::uint64_t steadyClock, PreprocessingTrigger & outsideState)
-				: buffer(buffer)
-				, numSamples(numSamples)
+			SignalStreamBaseProcessor(std::size_t numChannels, std::size_t numSamples, std::uint64_t steadyClock, TriggeringProcessor & outsideState)
+				: numSamples(numSamples)
 				, outsideState(outsideState)
 				, state(outsideState.state)
 				, numChannels(numChannels)
@@ -255,11 +254,10 @@
 
 		protected:
 
-			AFloat ** buffer;
-			std::size_t & numSamples;
+			std::size_t numSamples;
 			const std::uint64_t steadyClock;
 			std::uint64_t crossOrigin;
-			PreprocessingTrigger & outsideState;
+			TriggeringProcessor & outsideState;
 			std::queue<std::uint64_t> & peaks;
 			bool isPeakHolding;
 			const double threshold, hysteresis;

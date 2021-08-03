@@ -47,8 +47,8 @@ namespace Signalizer
 			, kgain(&parentValue.inputGain)
 			, kprimitiveSize(&parentValue.primitiveSize)
 			, kenvelopeSmooth(&parentValue.envelopeWindow)
-			, kprimaryColour(&parentValue.primaryColour)
-			, ksecondaryColour(&parentValue.secondaryColour)
+			, kprimaryColour(&parentValue.getColour(0))
+			, ksecondaryColour(&parentValue.getColour(1))
 			, kgraphColour(&parentValue.graphColour)
 			, kbackgroundColour(&parentValue.backgroundColour)
 			, klowColour(&parentValue.lowColour)
@@ -74,6 +74,8 @@ namespace Signalizer
 			, kfreqColourBlend(&parentValue.frequencyColouringBlend)
 			, ktriggerHysteresis(&parentValue.triggerHysteresis)
 			, ktriggerThreshold(&parentValue.triggerThreshold)
+			, kshowLegend(&parentValue.showLegend)
+			, ktriggerChannel(&parentValue.triggeringChannel)
 
 			, editorSerializer(
 				*this,
@@ -158,6 +160,7 @@ namespace Signalizer
 			kfreqColourBlend.bSetTitle("Colour blend");
 			ktriggerHysteresis.bSetTitle("Hysteresis");
 			ktriggerThreshold.bSetTitle("Trigger thrshld");
+			ktriggerChannel.bSetTitle("Trigger channel");
 			// buttons n controls
 
 			kantiAlias.setSingleText("Antialias");
@@ -173,7 +176,8 @@ namespace Signalizer
 			koverlayChannels.setToggleable(true);
 			kcursorTracker.bSetTitle("Cursor tracker");
 			kcursorTracker.setToggleable(true);
-
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
 
 			// descriptions.
 			kwindow.bSetDescription("The size of the displayed time window.");
@@ -208,6 +212,8 @@ namespace Signalizer
 			ktrackerColour.bSetDescription("Colour of the cursor tracker");
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
+			kshowLegend.bSetDescription("Display a legend of the signals/colours");
+			ktriggerChannel.bSetDescription("Adjust the channel used for triggering when in separate channel mode");
 		}
 
 		void initUI()
@@ -224,6 +230,7 @@ namespace Signalizer
 				{
 					section->addControl(&koverlayChannels, 0);
 					section->addControl(&kcursorTracker, 1);
+					section->addControl(&kshowLegend, 2);
 					page->addSection(section, "Options");
 				}
 
@@ -251,6 +258,8 @@ namespace Signalizer
 
 					section->addControl(&kcustomFrequency, 0);
 					section->addControl(&ktriggerOnCustomFrequency, 1);
+
+					section->addControl(&ktriggerChannel, 0);
 
 					page->addSection(section, "Spatial");
 				}
@@ -339,6 +348,8 @@ namespace Signalizer
 			archive << kfreqColourBlend;
 			archive << ktriggerHysteresis;
 			archive << ktriggerThreshold;
+			archive << kshowLegend;
+			archive << ktriggerChannel;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -389,6 +400,15 @@ namespace Signalizer
 				builder >> ktriggerThreshold;
 			}
 
+			if (version > cpl::Version(0, 3, 3))
+			{
+				builder >> kshowLegend;
+			}
+
+			if (version > cpl::Version(0, 3, 4))
+			{
+				builder >> ktriggerChannel;
+			}
 		}
 
 
@@ -425,11 +445,11 @@ namespace Signalizer
 			}
 		}
 
-		cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker;
+		cpl::CButton kantiAlias, kdiagnostics, kdotSamples, ktriggerOnCustomFrequency, koverlayChannels, kcursorTracker, kshowLegend;
 		cpl::CValueInputControl kcustomFrequency;
 		cpl::CValueKnobSlider
 			kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
-			ktriggerHysteresis, ktriggerThreshold;
+			ktriggerHysteresis, ktriggerThreshold, ktriggerChannel;
 		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
