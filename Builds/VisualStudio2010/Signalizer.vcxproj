@@ -67,16 +67,16 @@
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\External;$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\External;$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\External;$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(ProjectDir)..\..\..\SDKs;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\External;$(ProjectDir)..\..\..\SDKs\VST3 SDK;$(ProjectDir)..\..\Source;$(IncludePath);$(ProjectDir)..\..\Source\Config</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -954,6 +954,7 @@
     <None Include="..\..\..\SDKs\juce\modules\juce_opengl\juce_module_info" />
     <None Include="..\..\..\SDKs\juce\modules\juce_video\juce_module_info" />
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr" />
+    <None Include="..\..\prepare.py" />
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl" />
   </ItemGroup>
   <ItemGroup>

@@ -2695,6 +2695,9 @@
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </None>
+    <None Include="..\..\prepare.py">
+      <Filter>Signalizer</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc">
