@@ -49,7 +49,7 @@
 			, cpl::DestructionNotifier
 			, ParameterSet::AutomatedProcessor
 		{
-			friend class MainEditor;
+			//friend class MainEditor;
 
 		public:
 
@@ -104,6 +104,8 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
+			AudioStream& getPresentationStream() { return endpointStream; }
+
 		private:
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
@@ -112,7 +114,9 @@
 
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
-			AudioStream stream;
+			AudioStream endpointStream;
+			AudioStream realtimeStream;
+
 			int nChannels;
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;

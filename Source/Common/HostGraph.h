@@ -36,6 +36,7 @@
 	#include <cpl/state/Serialization.h>
 	#include <cpl/CAudioStream.h>
 	#include <mutex>
+	#include <shared_mutex>
 	#include <map>
 	#include <set>
 	#include "SignalizerConfiguration.h"
@@ -126,27 +127,45 @@
 		{
 		public:
 
-			MixGraphListener(AudioStream& hh, std::size_t bufferSize) : host(hh), bufferSize(bufferSize), structuralChange(false)
+			MixGraphListener(AudioStream& realtime, AudioStream& presentation, bool isFirst) 
+				: realtime(realtime)
+				, presentation(presentation)
+				, structuralChange(false)
+				, isFirst(isFirst)
 			{
-				connect(host);
-				self = graph[&hh].get();
-			}
-
-			void setBufferSize(std::size_t samples)
-			{
-				std::lock_guard<std::mutex> lock(mutex);
-				bufferSize = samples;
+				setExpectedBufferSize(realtime.getInfo().anticipatedSize);
+				auto link = std::make_unique<State>(*this, realtime);
+				self = link.get();
+				queue.emplace_back(std::make_pair(Command::Connect, 0));
+				connectionCommands.emplace_back(std::move(link));
 			}
 
 			void connect(AudioStream& stream)
 			{
-				// can deadlock with audio thread.
-				std::lock_guard<std::mutex> lock(mutex);
-				graph[&stream] = std::make_unique<State>(*this, bufferSize);
-				structuralChange = true;
+				// mix graph listener can't be destroyed while this is happening.
+				std::lock_guard<std::mutex> lock(connectDisconnectMutex);
+				// this will start calling back but only operate on itself, 
+				// since it hasn't been added to the graph yet
+				queue.emplace_back(std::make_pair(Command::Connect, connectionCommands.size()));
+				connectionCommands.emplace_back(std::make_unique<State>(*this, stream));
 			}
 
-			AudioStream& localStream() { return host; }
+			void disconnect(AudioStream& stream)
+			{
+				// mix graph listener can't be destroyed while this is happening.
+				std::lock_guard<std::mutex> lock(connectDisconnectMutex);
+				// it's fine source itself is already dead, we only operate on local copies.
+				queue.emplace_back(std::make_pair(Command::Disconnect, disconnectionCommands.size()));
+
+				disconnectionCommands.emplace_back(&stream);
+			}
+
+			void setExpectedBufferSize(std::size_t bufferSize)
+			{
+				maximumLatency.store(std::max<std::size_t>(128, bufferSize * 2), std::memory_order_release);
+			}
+
+			AudioStream& realtimeStream() { return realtime; }
 
 		private:
 
@@ -157,37 +176,32 @@
 				struct Channel
 				{
 					cpl::CLIFOStream<AFloat> buffer;
-					std::int16_t channelIndex;
+					std::int16_t channelIndex {};
 				};
 
 				std::vector<Channel> channelQueues;
-				std::size_t current{}, initialSize;
+				std::atomic_size_t current {};
 				std::int64_t globalPosition{};
+				std::int64_t endpoint{};
+				std::int64_t offset{};
 				MixGraphListener& parent;
+				AudioStream& source;
 
-				State(MixGraphListener& parent, std::size_t initialSize)
-					: parent(parent), initialSize(initialSize)
+				State(MixGraphListener& parent, AudioStream& source)
+					: parent(parent), source(source)
 				{
-					listenToSource(parent.host, false, 1000);
+					listenToSource(source, false, 1000);
 				}
 
+				virtual void onAsyncChangedProperties(const Stream& changedSource, const typename Stream::AudioStreamInfo& before)
+				{
+					parent.asyncPropertiesChanged(*this, changedSource);
+				}
 
 				virtual bool onAsyncAudio(const AudioStream& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override
 				{
-					globalPosition = source.getASyncPlayhead().getPositionInSamples();
-					if (channelQueues.size() != numChannels)
-					{
-						channelQueues.resize(numChannels);
-					}
-
-					for(auto & q : channelQueues)
-					{
-						const auto neededSize = current + numSamples;
-						if (q.buffer.getSize() < neededSize)
-							q.buffer.setStorageRequirements(neededSize, cpl::Math::nextPow2(neededSize), true);
-					}
-
-					return parent.onAsyncAudio(*this, buffer, numChannels, numSamples);
+					parent.onAsyncAudio(*this, buffer, numChannels, numSamples, source.getASyncPlayhead().getPositionInSamples());
+					return false;
 				}
 
 				~State()
@@ -196,7 +210,7 @@
 				}
 			};
 
-			void handleStructuralChange(std::size_t numSamples)
+			void handleStructuralChange(double sampleRate, std::size_t numSamples)
 			{
 				if (structuralChange)
 				{
@@ -209,6 +223,12 @@
 
 					matrix.resizeChannels(channels);
 
+					auto info = presentation.getInfo();
+					info.anticipatedChannels = channels;
+					info.sampleRate = sampleRate;
+
+					presentation.initializeInfo(info);
+
 					structuralChange = false;
 				}
 
@@ -218,54 +238,196 @@
 
 			void deliver(std::size_t numSamples)
 			{
-				handleStructuralChange(numSamples);
+				std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
+
+				handleStructuralChange(realtime.getInfo().sampleRate, numSamples);
 				std::size_t channels = 0;
+
+				const auto hostOrigin = self->endpoint;
+				const auto hostSamples = self->current.load(std::memory_order_acquire);
 
 				for (auto& g : graph)
 				{
 					auto& state = *g.second;
+					auto currentG = state.current.load(std::memory_order_acquire);
+
+					if (currentG != 0 && hostOrigin != 0)
+					{
+						const auto sampleDifference = static_cast<std::int64_t>(currentG) - static_cast<std::int64_t>(hostSamples);
+						const auto tlDifference = state.endpoint - hostOrigin;
+						auto difference = sampleDifference - tlDifference;
+						//difference -= state.offset;
+
+						if (difference != 0)
+						{
+							if (difference > 0)
+							{
+								// this dependency is ahead of the origin.
+								currentG -= std::min(currentG, static_cast<std::size_t>(difference));
+							}
+							else
+							{
+								currentG += static_cast<std::size_t>(-difference);
+							}
+
+							//state.globalPosition += difference;
+						}
+
+
+					}
+
+
 
 					for(std::size_t c = 0; c < state.channelQueues.size(); ++c, ++channels)
 					{
-						auto reader = g.second->channelQueues[c].buffer.createProxyView();
-						reader.offset(-static_cast<ssize_t>(state.current));
+						if (currentG >= numSamples || currentG != 0)
+						{
+							auto reader = g.second->channelQueues[c].buffer.createProxyView();
+							reader.offset(-static_cast<ssize_t>(currentG));
 
-						reader.copyFromHead(matrix[channels], numSamples);
+							reader.copyFromHead(matrix[channels], numSamples);
+						}
+						else
+						{
+							// nothing to deliver... zero it out.
+							matrix.clear(channels, 1);
+						}
+
 					}
+
+					currentG -= std::min(currentG, numSamples);
 					
-					state.current -= numSamples;
+					state.current.store(currentG, std::memory_order_release);
+				}
+
+				// TODO: Run this in place without async thread.
+				presentation.processIncomingRTAudio(matrix.data(), channels, numSamples, realtime.getASyncPlayhead());
+			}
+
+			void asyncPropertiesChanged(State& s, const AudioStream& source)
+			{
+				if (&source == &realtime)
+				{
+					setExpectedBufferSize(realtime.getInfo().anticipatedSize);
+					structuralChange = true;
 				}
 			}
 
-
-			bool onAsyncAudio(State& s, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
+			void onAsyncAudio(State& s, AFloat** buffer, std::size_t numChannels, std::size_t numSamples, std::int64_t globalPosition)
 			{
-				std::lock_guard<std::mutex> lock(mutex);
+				if (!isFirst)
+					return;
 
-				if (graph.size() == 1)
-					return true;
-				
-				for (std::size_t i = 0; i < numChannels; ++i)
+				const auto localMaxLatency = maximumLatency.load(std::memory_order_acquire);
+				const auto maxBufferSize = localMaxLatency * 8;
 				{
-					s
-						.channelQueues[i]
-						.buffer
-						.createWriter()
-						.copyIntoHead(buffer[i], numSamples);
+					std::shared_lock<std::shared_mutex> lock(dataMutex);
+
+					s.globalPosition = globalPosition;
+					s.endpoint = globalPosition + numSamples;
+					if (s.channelQueues.size() != numChannels)
+					{
+						s.channelQueues.resize(numChannels);
+						structuralChange = true;
+					}
+
+					for (auto& q : s.channelQueues)
+					{
+						// clamp to max of 16 * buffersize.
+						const auto neededSize = std::min(maxBufferSize, s.current + numSamples);
+						if (q.buffer.getSize() < neededSize)
+							q.buffer.setStorageRequirements(neededSize, cpl::Math::nextPow2(neededSize), true);
+					}
+
+					for (std::size_t i = 0; i < numChannels; ++i)
+					{
+						s
+							.channelQueues[i]
+							.buffer
+							.createWriter()
+							.copyIntoHead(buffer[i], numSamples);
+					}
+
+					const auto currentContained = s.current.load(std::memory_order_acquire) + numSamples;
+
+					s.current.store(std::min(currentContained, maxBufferSize), std::memory_order_release);
 				}
 
-				s.current += numSamples;
 
 				if (&s == self)
 				{
-					// eager delivery.
+					decltype(queue) localQueue;
+					decltype(connectionCommands) localNewConnections;
+					decltype(disconnectionCommands) localNewDisconnections;
 
-					auto min = s.current;
+					{
+						std::lock_guard<std::mutex> cdlock(connectDisconnectMutex);
+						std::swap(localQueue, queue);
+						std::swap(localNewConnections, connectionCommands);
+						std::swap(localNewDisconnections, disconnectionCommands);
+					}
+
+					// eager delivery. only "we" can alter the graph, so we don't need protection.
+
+					if(!localQueue.empty())
+						structuralChange = true;
+
+					for (auto command : localQueue)
+					{
+						if (command.first == Command::Connect)
+						{
+							auto source = &localNewConnections[command.second]->source;
+							graph[source] = std::move(localNewConnections[command.second]);
+						}
+						else
+						{
+							graph.erase(localNewDisconnections[command.second]);
+						}
+					}
+
+					if (graph.empty())
+						return;
+
+					const auto hostSamples = s.current.load(std::memory_order_acquire);
+					auto min = hostSamples;
+
+					if (min == 0)
+					{
+						CPL_RUNTIME_ASSERTION(numSamples == 0);
+						return;
+					}
 
 					for (auto& g : graph)
 					{
-						// issue
-						min = std::min(min, g.second->current);
+						const auto currentG = g.second->current.load(std::memory_order_acquire);
+
+						if (currentG != 0)
+						{
+							// we can keep progressing.
+							min = std::min(min, currentG);
+						}
+						else if (hostSamples > localMaxLatency)
+						{
+							// this link in the chain is still zero, but we are spilling over our max latency which is unexpected 
+							// even for a reverse dependency.
+							// is something on the way, at least?
+							// TODO: requires shared_ptr
+							if (g.second->source.getApproximateInFlightPackets() > 0)
+							{
+								// OK: we will get notified at a later stage.
+								return;
+							}
+							else
+							{
+								// ignore this dependency - it's not processing for some reason
+								continue;
+							}
+						}
+						else
+						{
+							// Not spilling over, but there's globally not > 0 samples so just early out.
+							return;
+						}
 					}
 
 					if (min > 0)
@@ -273,26 +435,35 @@
 						deliver(min);
 					}
 				}
-
-				return false;
 			}
 
 
 
-			std::size_t bufferSize{};
-			AudioStream& host;
+			std::size_t initialSampleCapacity {};
+			AudioStream& realtime;
+			AudioStream& presentation;
 			State* self;
-			std::mutex mutex;
+			std::shared_mutex dataMutex;
+			std::mutex connectDisconnectMutex;
+
+			enum class Command { Connect, Disconnect };
+
+			std::vector<std::pair<Command, std::size_t>> queue;
+			std::vector<std::unique_ptr<State>> connectionCommands;
+			std::vector<AudioStream*> disconnectionCommands;
+
 			AuxMatrix matrix;
 			std::map<const AudioStream*, std::unique_ptr<State>> graph;
-			bool structuralChange;
+			std::atomic_bool structuralChange;
+			std::atomic_size_t maximumLatency;
+			bool isFirst;
 		};
 
 		class HostGraph : public cpl::CSerializer::Serializable
 		{
 		public:
 
-			HostGraph(AudioStream& stream);
+			HostGraph(AudioStream& realtime, AudioStream& presentation);
 			~HostGraph();
 
 			std::shared_ptr<juce::Component> createEditor();

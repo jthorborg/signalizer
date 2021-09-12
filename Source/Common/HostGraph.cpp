@@ -36,10 +36,10 @@ namespace Signalizer
 
 	static int isTheFirst = 0;
 
-	HostGraph::HostGraph(AudioStream& s)
-		: mix(s, 3 * s.getInfo().anticipatedSize.load(std::memory_order_relaxed))
+	HostGraph::HostGraph(AudioStream& realtime, AudioStream& presentation)
+		: mix(realtime, presentation, isTheFirst++ < 2)
 	{
-		isFirst = isTheFirst++ < 2;
+		isFirst = isTheFirst < 3;
 		//isTheFirst = true;
 
 
@@ -149,17 +149,22 @@ namespace Signalizer
 		}
 
 		if (isFirst)
-			mix.connect(node->mix.localStream());
+			mix.connect(node->mix.realtimeStream());
 		
 	}
 
 	void HostGraph::onNodeDestroyed(HostGraph::HHandle n)
 	{
+		auto node = resolve(n);
+
 		// TODO: Scan and remove.
 		if (auto ed = editor.lock())
 		{
 			ed->triggerAsyncUpdate();
 		}
+
+		if (isFirst)
+			mix.disconnect(node->mix.realtimeStream());
 	}
 
 	void HostGraph::Editor::handleAsyncUpdate()

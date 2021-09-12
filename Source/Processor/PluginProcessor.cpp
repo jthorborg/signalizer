@@ -41,8 +41,9 @@ namespace Signalizer
 	extern std::string DefaultPresetName;
 
 	AudioProcessor::AudioProcessor()
-		: stream(16, true)
-		, graph(stream)
+		: endpointStream(16, true)
+		, realtimeStream(16, true)
+		, graph(realtimeStream, endpointStream)
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
@@ -54,7 +55,7 @@ namespace Signalizer
 		{
 			parameterMap.insert({
 				ParameterCreationList[i].first,
-				ParameterCreationList[i].second(parameterMap.numParams(), false, { stream, *this })
+				ParameterCreationList[i].second(parameterMap.numParams(), false, { endpointStream, *this })
 			});
 		}
 
@@ -84,8 +85,23 @@ namespace Signalizer
 		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
 		// TODO: convert them to be invariant.
 
+		AudioStream::AudioStreamInfo info = realtimeStream.getInfo();
+
+		info.anticipatedChannels = nChannels;
+		info.anticipatedSize = 512;
+		info.callAsyncListeners = true;
+		info.callRTListeners = false;
+		info.sampleRate = 48000;
+		info.storeAudioHistory = false;
+
+		realtimeStream.initializeInfo(info);
+
+		info.storeAudioHistory = true;
+
+		endpointStream.initializeInfo(info);
+
 		prepareToPlay(48000, 512);
-		stream.setAudioHistorySizeAndCapacity(48000, 48000);
+		endpointStream.setAudioHistorySizeAndCapacity(48000, 48000);
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -111,20 +127,20 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
-		AudioStream::AudioStreamInfo info = stream.getInfo();
+		AudioStream::AudioStreamInfo info = realtimeStream.getInfo();
 
 		info.anticipatedChannels = nChannels;
 		info.anticipatedSize = samplesPerBlock;
 		info.callAsyncListeners = true;
-		info.callRTListeners = true;
+		info.callRTListeners = false;
 		info.sampleRate = sampleRate;
-		info.storeAudioHistory = true;
+		info.storeAudioHistory = false;
 
-		stream.initializeInfo(info);
-		
+		realtimeStream.initializeInfo(info);
+
 		for (int i = 0; i < nChannels; ++i)
 		{
-			stream.enqueueChannelName(i, "Channel " + std::to_string(i));
+			endpointStream.enqueueChannelName(i, "Channel " + std::to_string(i));
 		}
 	}
 
@@ -144,9 +160,9 @@ namespace Signalizer
 
 
 		if(auto ph = getPlayHead())
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			realtimeStream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
 		else
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+			realtimeStream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't

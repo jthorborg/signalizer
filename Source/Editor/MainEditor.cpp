@@ -183,7 +183,7 @@ namespace Signalizer
 					localState,
 					[=, &localState]
 					{
-						return GenerateView(index, globalState, name, engine->stream, &localState);
+						return GenerateView(index, globalState, name, engine->getPresentationStream(), &localState);
 					}
 				);
 			}
@@ -470,7 +470,7 @@ namespace Signalizer
 		// freezing of displays
 		if (c == &kfreeze)
 		{
-			engine->stream.setSuspendedState(value > 0.5);
+			engine->getPresentationStream().setSuspendedState(value > 0.5);
 		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)
@@ -663,7 +663,8 @@ namespace Signalizer
 
 				void operator()()
 				{
-					auto currentSampleRate = handle->engine->stream.getInfo().sampleRate.load(std::memory_order_acquire);
+					auto& stream = handle->engine->getPresentationStream();
+					auto currentSampleRate = stream.getInfo().sampleRate.load(std::memory_order_acquire);
 					if (currentSampleRate > 0)
 					{
 						std::int64_t value;
@@ -672,7 +673,7 @@ namespace Signalizer
 						{
 							auto msCapacity = cpl::Math::round<std::size_t>(currentSampleRate * 0.001 * value);
 
-							handle->engine->stream.setAudioHistoryCapacity(msCapacity);
+							stream.setAudioHistoryCapacity(msCapacity);
 
 							if (contents.find_first_of("ms") == std::string::npos)
 							{
@@ -685,7 +686,7 @@ namespace Signalizer
 						else
 						{
 							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * handle->engine->stream.getAudioHistoryCapacity() / handle->engine->stream.getInfo().sampleRate);
+							auto msCapacity = cpl::Math::round<std::size_t>(1000 * stream.getAudioHistoryCapacity() / stream.getInfo().sampleRate);
 							if (cpl::lexicalConversion(msCapacity, result))
 								handle->kmaxHistorySize.setInputValueInternal(result + " ms");
 							else
