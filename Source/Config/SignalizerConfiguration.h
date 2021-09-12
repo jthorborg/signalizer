@@ -59,7 +59,7 @@
 
 
 		// TODO: Figure out why sizes around 256 causes buffer overruns
-		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
+		typedef cpl::CAudioStream<AFloat, 256> AudioStream;
 
 
 	};

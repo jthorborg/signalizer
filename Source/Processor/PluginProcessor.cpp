@@ -42,6 +42,7 @@ namespace Signalizer
 
 	AudioProcessor::AudioProcessor()
 		: stream(16, true)
+		, graph(stream)
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },

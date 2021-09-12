@@ -779,6 +779,14 @@
 			}
 		}
 
+		class GraphListener
+		{
+			virtual void onGraphAudio(const AudioStream& primarySource, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) = 0;
+
+			virtual ~GraphListener() {}
+		};
+
+
 	};
 	namespace std
 	{

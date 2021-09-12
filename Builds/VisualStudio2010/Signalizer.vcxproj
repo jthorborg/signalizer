@@ -302,6 +302,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp" />
+    <ClCompile Include="..\..\Source\Common\HostGraph.cpp" />
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp" />
@@ -350,6 +351,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Common\CommonSignalizer.h" />
+    <ClInclude Include="..\..\Source\Common\HostGraph.h" />
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />

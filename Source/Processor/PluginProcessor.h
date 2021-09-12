@@ -37,6 +37,7 @@
 	#include <cpl/gui/CViews.h>
 	#include <cpl/gui/widgets/CPresetWidget.h>
 	#include "../Editor/MainEditor.h"
+	#include "../Common/HostGraph.h"
 
 	namespace Signalizer
 	{
@@ -111,11 +112,12 @@
 
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
-			Signalizer::AudioStream stream;
+			AudioStream stream;
 			int nChannels;
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
+			HostGraph graph;
 		};
 	};
 #endif

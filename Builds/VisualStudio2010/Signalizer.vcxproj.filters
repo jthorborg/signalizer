@@ -834,6 +834,9 @@
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp">
       <Filter>Signalizer\Source\External</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Common\HostGraph.cpp">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">
@@ -2232,6 +2235,9 @@
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\HostGraph.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
   </ItemGroup>
