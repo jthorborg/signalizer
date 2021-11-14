@@ -184,8 +184,8 @@
 		160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OscilloscopeController.cpp; sourceTree = "<group>"; };
 		160404B81FDC7D27009EF75C /* SignalizerConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalizerConfiguration.h; path = ../Config/SignalizerConfiguration.h; sourceTree = "<group>"; };
 		1650C16B3B86FBA8808D697A /* juce_AudioCDReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_AudioCDReader.h; path = ../../JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.h; sourceTree = SOURCE_ROOT; };
-		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../../SDKs/cpl/CPLSource.cpp; sourceTree = "<group>"; };
-		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../../SDKs/cpl/MacSupport.mm; sourceTree = "<group>"; };
+		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../External/cpl/CPLSource.cpp; sourceTree = "<group>"; };
+		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../External/cpl/MacSupport.mm; sourceTree = "<group>"; };
 		16A08833959E1D0DBAB33CD7 /* juce_ShapeButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ShapeButton.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/buttons/juce_ShapeButton.h; sourceTree = SOURCE_ROOT; };
 		16C25E9F1F003D3400C3E22C /* CommonSignalizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonSignalizer.h; sourceTree = "<group>"; };
 		16C25EA01F003D3400C3E22C /* SentientViewState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SentientViewState.h; sourceTree = "<group>"; };
@@ -3247,7 +3247,7 @@
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/Utility",
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase",
 					"$(inherited)",
-					../../../SDKs,
+					../../External/,
 					../../../SDKs/vstsdk2.4,
 					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
@@ -3324,7 +3324,7 @@
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/Utility",
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase",
 					"$(inherited)",
-					../../../SDKs,
+					../../External/,
 					../../../SDKs/vstsdk2.4,
 					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
