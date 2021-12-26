@@ -62,6 +62,7 @@
 
 			//==============================================================================
 			void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+			void internalPrepareToPlay(int samplesPerBlock, double sampleRate);
 			void releaseResources() override ;
 
 			void processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages) override;
@@ -118,6 +119,7 @@
 			AudioStream endpointStream;
 			std::shared_ptr<AudioStream> realtimeStream;
 
+			bool hasEverBeenHostDeserialized{};
 			int nChannels;
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;

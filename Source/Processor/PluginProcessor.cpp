@@ -100,7 +100,7 @@ namespace Signalizer
 
 		endpointStream.initializeInfo(info);
 
-		prepareToPlay(48000, 512);
+		internalPrepareToPlay(48000, 512);
 		endpointStream.setAudioHistorySizeAndCapacity(48000, 48000);
 	}
 
@@ -126,6 +126,14 @@ namespace Signalizer
 
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+	{
+		internalPrepareToPlay(samplesPerBlock, sampleRate);
+
+		if (!hasEverBeenHostDeserialized)
+			graph.applyDefaultLayoutFromRuntime();
+	}
+
+	void AudioProcessor::internalPrepareToPlay(int samplesPerBlock, double sampleRate)
 	{
 		AudioStream::AudioStreamInfo info = realtimeStream->getInfo();
 
@@ -193,6 +201,9 @@ namespace Signalizer
 		serializer.getArchiver().setMasterVersion(cpl::programInfo.version);
 		serialize(serializer.getArchiver(), cpl::programInfo.version);
 
+		// serialize host graph independently
+		graph.serialize(serializer.getArchiver()["host-graph"], cpl::programInfo.version);
+
 		if (!serializer.isEmpty())
 		{
 			auto compiledData = serializer.compile(true);
@@ -218,12 +229,20 @@ namespace Signalizer
 
 		try
 		{
-			deserialize(serializer.getBuilder(), serializer.getBuilder().getLocalVersion());
+			auto& builder = serializer.getBuilder();
+			auto version = serializer.getBuilder().getLocalVersion();
+			deserialize(builder, version);
+
+			if (!builder["host-graph"].isEmpty())
+				graph.deserialize(builder["host-graph"], version);
+
 		}
 		catch (const std::exception & e)
 		{
 			cpl::Misc::MsgBox(std::string("Error serializing state information:\n") + e.what(), "Signalizer");
 		}
+
+		hasEverBeenHostDeserialized = true;
 	}
 
 	void AudioProcessor::deserialize(cpl::CSerializer & serializer, cpl::Version version)

@@ -81,7 +81,7 @@ namespace Signalizer
 
 	void HostGraph::deserialize(cpl::CSerializer::Builder& ar, cpl::Version version)
 	{		
-		TriggerModelUpdateOnExit { this };
+		TriggerModelUpdateOnExit exit{ this };
 		std::lock_guard<std::mutex> lock(staticMutex);
 
 		auto oldName = name;
@@ -175,7 +175,10 @@ namespace Signalizer
 			);
 
 			if (n == this)
-				m.hostIndex = static_cast<int>(m.nodes.size() - 1);
+			{
+				m.hostIndex = 0;
+				std::swap(m.nodes[m.nodes.size() - 1], m.nodes[0]);
+			}
 		}
 
 		return m;
@@ -201,6 +204,11 @@ namespace Signalizer
 		// to avoid concurrent mutation from deleted nodes
 		GraphLock lock(staticMutex);
 
+		return internalConnect(input, pair, lock);
+	}
+
+	bool HostGraph::internalConnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock)
+	{
 		bool known = topology.count(input);
 		auto& relation = topology[input];
 
@@ -229,6 +237,11 @@ namespace Signalizer
 		// to avoid concurrent mutation from deleted nodes
 		GraphLock lock(staticMutex);
 
+		return internalDisconnect(input, pair, lock);
+	}
+
+	bool HostGraph::internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock)
+	{
 		bool known = topology.count(input);
 		auto& relation = topology[input];
 
@@ -247,6 +260,28 @@ namespace Signalizer
 		}
 
 		return true;
+	}
+
+	void HostGraph::applyDefaultLayoutFromRuntime()
+	{
+		GraphLock g(staticMutex);
+
+		CPL_RUNTIME_ASSERTION(topology.size() == 0);
+
+		PinInt numChannels = static_cast<PinInt>(mix.realtime->getInfo().anticipatedChannels.load());
+
+		if (numChannels > 0)
+		{
+			TriggerModelUpdateOnExit exit { this };
+
+			const auto& ref = serializeReference(this, g);
+
+			for (PinInt i = 0; i < numChannels; ++i)
+			{
+				internalConnect(ref, { i, i }, g);
+			}
+		}
+
 	}
 
 
@@ -292,8 +327,6 @@ namespace Signalizer
 
 	void HostGraph::clearTopology(const GraphLock& g)
 	{
-		GraphLock lock(staticMutex);
-
 		for (auto& serialized : topology)
 			resetInstancedTopologyFor(serialized.first, g, true);
 
@@ -307,7 +340,7 @@ namespace Signalizer
 
 		auto serialized = serializeReference(other, g);
 
-		if (auto it = topology.find(serialized); it != topology.end() && it->second.liveReference != nullptr)
+		if (auto it = topology.find(serialized); it != topology.end() && it->second.liveReference == nullptr)
 		{
 			CPL_RUNTIME_ASSERTION(expectedNodesToResurrect > 0);
 
@@ -327,8 +360,6 @@ namespace Signalizer
 		{
 			if (it->second.liveReference != nullptr)
 			{
-				it->second.liveReference = nullptr;
-
 				// expect to see this node again
 				if(!eraseSerializedInfo)
 					expectedNodesToResurrect++;
@@ -338,6 +369,8 @@ namespace Signalizer
 					// TODO: What if this is a common quick create-destroy-create sequence?
 					submitDisconnect(it->second.liveReference, pair, g);
 				}
+
+				it->second.liveReference = nullptr;
 			}
 
 			if(eraseSerializedInfo)

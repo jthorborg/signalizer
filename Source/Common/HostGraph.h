@@ -69,20 +69,27 @@
 
 				friend inline bool operator == (const HostGraph::SerializedHandle& a, const HostGraph::SerializedHandle& b)
 				{
-					return !std::memcmp(a.Handle.getRawData(), b.Handle.getRawData(), 16);
+					return !std::memcmp(a.contents, b.contents, sizeof(contents));
 				}
 
 				friend inline bool operator < (const HostGraph::SerializedHandle& a, const HostGraph::SerializedHandle& b)
 				{
-					return std::memcmp(a.Handle.getRawData(), b.Handle.getRawData(), 16) < 0;
+					return std::memcmp(a.contents, b.contents, sizeof(contents)) < 0;
 				}
 
-				juce::String toString() { return Handle.toString(); }
+				juce::String toString() { return juce::Uuid(reinterpret_cast<const std::uint8_t*>(contents)).toString(); }
 
 			private:
 
-				SerializedHandle() { }
-				juce::Uuid Handle;
+				SerializedHandle() 
+				{ 
+					juce::Uuid handle;
+					std::memcpy(contents, handle.getRawData(), sizeof(contents));
+
+				}
+				std::byte contents[16];
+
+
 			};
 
 
@@ -128,6 +135,8 @@
 			bool connect(const SerializedHandle& input, DirectedPortPair pair);
 			bool disconnect(const SerializedHandle& input, DirectedPortPair pair);
 
+			void applyDefaultLayoutFromRuntime();
+
 		private:
 
 			enum class DetailChange
@@ -164,6 +173,8 @@
 			typedef std::map<SerializedHandle, Relation> Topology;
 
 			bool hasSerializedRepresentation() const;
+			bool internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
+			bool internalConnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
 			void submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			void submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			HHandle resolve(const SerializedHandle& h, const GraphLock&);
