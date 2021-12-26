@@ -53,8 +53,6 @@ namespace Signalizer
 
 		void reflectModel()
 		{
-			sourceDrag.reset();
-
 			auto& name = model.nodes[model.hostIndex].name;
 			parent.setName(name);
 
@@ -76,6 +74,11 @@ namespace Signalizer
 			static constexpr int pinSpacing = 15;
 			static constexpr int pinSize = 5;
 
+			static juce::Rectangle<float> expandPoint(juce::Point<float> pos)
+			{
+				return juce::Rectangle<float>().withCentre(pos).expanded(pinSize, pinSize);
+			}
+
 			template<typename Derived>
 			struct NodeBase
 			{
@@ -84,6 +87,8 @@ namespace Signalizer
 				{
 
 				}
+
+
 
 				juce::Rectangle<float> getRect()
 				{
@@ -97,7 +102,12 @@ namespace Signalizer
 
 				juce::Rectangle<float> getPinRect()
 				{
-					return juce::Rectangle<float>().withCentre(getPinPosition()).expanded(pinSize, pinSize);
+					return expandPoint(getPinPosition());
+				}
+
+				juce::Rectangle<float> getPinRectFor(PinInt p)
+				{
+					return expandPoint(static_cast<Derived*>(this)->getPinPositionFor(p));
 				}
 
 				PinInt getCurrentPin()
@@ -181,9 +191,14 @@ namespace Signalizer
 						.withSize(bounds.getWidth() / 3, height);
 				}
 
+				HostGraph::Model::NodeView& getView()
+				{
+					return model->nodes[index];
+				}
+
 				juce::Rectangle<float> getPinRect()
 				{
-					return juce::Rectangle<float>().withCentre(getPinPosition()).expanded(pinSize, pinSize);
+					return expandPoint(getPinPosition());
 				}
 
 				juce::Point<float> getPinPositionFor(PinInt port)
@@ -215,14 +230,17 @@ namespace Signalizer
 					return true;
 				}
 
-
 				auto getCurrentConnection(const Host& host)
 				{
 					checkBoundsOfConnection();
 
-					auto& connection = model->connections[model->nodes[index].connectionOffset + static_cast<std::size_t>(con)];
+					auto connection = model->connections[model->nodes[index].connectionOffset + static_cast<std::size_t>(con)];
 
-					return std::make_pair(getPinPositionFor(connection.Source), host.getPinPositionFor(connection.Destination));
+					return std::make_tuple(
+						getPinPositionFor(connection.Source), 
+						host.getPinPositionFor(connection.Destination),
+						connection
+					);
 				}
 
 				bool isPortConnected()
@@ -329,9 +347,9 @@ namespace Signalizer
 			return getBounds().toFloat().removeFromTop(offsetForGraph).translated(0, offsetForGraph);
 		}
 
-		void relayoutAllEdges()
+		template<typename Callable>
+		void forEachConnection(Callable c)
 		{
-			edges.resize(model.connections.size());
 			ImmediateLayout layout(model, graphRect());
 			ImmediateLayout::Node n;
 			auto host = layout.getHost();
@@ -342,9 +360,25 @@ namespace Signalizer
 				while (n.moveNextConnection())
 				{
 					auto current = n.getCurrentConnection(host);
-					layoutEdge(edges[edgeCounter++], current.first, current.second);
+					if(!c(std::get<0>(current), std::get<1>(current), std::make_pair(n.getView(), std::get<2>(current))))
+						return;
 				}
 			}
+		}
+
+		void relayoutAllEdges()
+		{
+			edges.resize(model.connections.size());
+
+			std::size_t edgeCounter{};
+
+			forEachConnection(
+				[&edgeCounter, this](auto sourcePos, auto destPos, auto pair)
+				{
+					layoutEdge(edges[edgeCounter++], sourcePos, destPos);
+					return true;
+				}
+			);
 		}
 
 		void paint(juce::Graphics& g) override
@@ -446,24 +480,44 @@ namespace Signalizer
 			if (e.mods.isLeftButtonDown())
 			{
 				ImmediateLayout layout(model, graphRect());
-				ImmediateLayout::Node n;
-
-				// Test if we're drawing a new edge
-				while (layout.moveNextNode(n))
 				{
-					while (n.moveNextPort())
-					{
-						juce::Rectangle<float> pinRect = n.getPinRect();
+					ImmediateLayout::Node n;
 
-						if (pinRect.contains(lastControlPosition))
+					// Test if we're drawing a new edge
+					while (layout.moveNextNode(n))
+					{
+						while (n.moveNextPort())
 						{
+							juce::Rectangle<float> pinRect = n.getPinRect();
+
+							if (!pinRect.contains(lastControlPosition))
+								continue;
+
 							lastControlPosition = n.getPinPosition();
 							sourceDrag.emplace(n.getHandle(), n.getCurrentPin());
 							return;
 						}
-
 					}
 				}
+
+
+				// Test if we're redragging an existing edge
+				forEachConnection(
+					[this](auto sourcePos, auto destPos, const auto& con)
+					{
+						if (ImmediateLayout::expandPoint(destPos).contains(lastControlPosition))
+						{
+							lastControlPosition = sourcePos;
+							// start dragging this edge, and disconnect the original connection
+							sourceDrag.emplace(con.first.node, con.second.Source);
+							layoutEdge(sourceDrag->edge, lastControlPosition, destPos);
+							graph.disconnect(con.first.node, con.second);
+							return false;
+						}
+
+						return true;
+					}
+				);
 			}
 		}
 

@@ -317,7 +317,7 @@ namespace Signalizer
 			{
 				source.channelQueues.erase(command.pair);
 
-				if (source.refCount--)
+				if (--source.refCount == 0)
 					graph.erase(it);
 			}
 		}
