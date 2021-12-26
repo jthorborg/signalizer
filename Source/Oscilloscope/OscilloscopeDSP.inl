@@ -671,7 +671,6 @@ namespace Signalizer
 			{
 				ChannelData::PixelType colour(content->getColour(0).getAsJuceColour());
 
-				filterEnv[1] = 0;
 				auto && lw = target.channels[fs::Left].colourData.createWriter();
 				auto leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters;
 
