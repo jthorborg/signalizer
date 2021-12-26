@@ -303,7 +303,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp" />
     <ClCompile Include="..\..\Source\Common\HostGraph.cpp" />
+    <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp" />
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
+    <ClCompile Include="..\..\Source\Editor\GraphEditor.cpp" />
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeController.cpp" />
@@ -352,10 +354,12 @@
   <ItemGroup>
     <ClInclude Include="..\..\Source\Common\CommonSignalizer.h" />
     <ClInclude Include="..\..\Source\Common\HostGraph.h" />
+    <ClInclude Include="..\..\Source\Common\MixGraphListener.h" />
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
     <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h" />
+    <ClInclude Include="..\..\Source\Editor\GraphEditor.h" />
     <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />

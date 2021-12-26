@@ -837,6 +837,12 @@
     <ClCompile Include="..\..\Source\Common\HostGraph.cpp">
       <Filter>Signalizer\Source\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Editor\GraphEditor.cpp">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">
@@ -2238,6 +2244,12 @@
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Common\HostGraph.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Editor\GraphEditor.h">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\MixGraphListener.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
   </ItemGroup>

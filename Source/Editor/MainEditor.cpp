@@ -36,6 +36,7 @@
 #include <cpl/LexicalConversion.h>
 #include "version.h"
 #include <cpl/Mathext.h>
+#include "GraphEditor.h"
 
 namespace cpl
 {
@@ -168,6 +169,7 @@ namespace Signalizer
 		, tabBarTimer()
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
+		, graphEditor(nullptr)
 	{
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve((std::size_t)ViewTypes::end);
@@ -652,6 +654,13 @@ namespace Signalizer
 		else if(c == &khelp)
 		{
 			showAboutBox();
+		}
+		else if (c == &kgraph)
+		{
+			if (!graphEditor)
+				graphEditor = new GraphEditor(this, engine->getHostGraph());
+			else
+				graphEditor->toFront(true);
 		}
 		else if (c == &kmaxHistorySize)
 		{
@@ -1311,6 +1320,9 @@ namespace Signalizer
 
 	MainEditor::~MainEditor()
 	{
+		if (graphEditor)
+			graphEditor->mainEditorDied();
+
 		suspendView(views[selTab]);
 		notifyDestruction();
 		exitFullscreen();
@@ -1372,6 +1384,8 @@ namespace Signalizer
 		khelp.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kkiosk.setBounds(leftBorder, top, buttonSizeW, buttonSize);
+		leftBorder -= elementSize - elementBorder;
+		kgraph.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 
 		tabs.setBounds
 		(
@@ -1519,6 +1533,11 @@ namespace Signalizer
 		khelp.bSetInternal(0);
 	}
 
+	void MainEditor::graphEditorDied()
+	{
+		graphEditor = nullptr;
+	}
+
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1527,6 +1546,7 @@ namespace Signalizer
 		krefreshRate.bAddFormatter(this);
 		kfreeze.bAddChangeListener(this);
 		kkiosk.bAddChangeListener(this);
+		kgraph.bAddChangeListener(this);
 		kidle.bAddChangeListener(this);
 		krenderEngine.bAddChangeListener(this);
 		krefreshRate.bAddChangeListener(this);
@@ -1548,6 +1568,7 @@ namespace Signalizer
 		ksettings.setImage("icons/svg/gears.svg");
 		khelp.setImage("icons/svg/help.svg");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
+		kgraph.setImage("icons/svg/share.svg");
 
 		//kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		//kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
@@ -1557,6 +1578,7 @@ namespace Signalizer
 		khideTabs.setToggleable(true);
 		kstopProcessingOnSuspend.setToggleable(true);
 		khideWidgets.setToggleable(true);
+		kgraph.setClickingTogglesState(false);
 
 		khideTabs.setSingleText("Auto-hide tabs");
 		krefreshRate.bSetTitle("Refresh Rate");
@@ -1590,6 +1612,7 @@ namespace Signalizer
 		addAndMakeVisible(kfreeze);
 		addAndMakeVisible(khelp);
 		addAndMakeVisible(kkiosk);
+		addAndMakeVisible(kgraph);
 		addAndMakeVisible(tabs);
 
 		tabs.setOrientation(tabs.Horizontal);
@@ -1612,6 +1635,7 @@ namespace Signalizer
 		krefreshRate.bSetDescription("How often the view is redrawn.");
 		khelp.bSetDescription("About this program");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
+		kgraph.bSetDescription("Open the graph editor to control multichannel routing");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");

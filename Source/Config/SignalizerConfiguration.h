@@ -61,6 +61,7 @@
 		// TODO: Figure out why sizes around 256 causes buffer overruns
 		typedef cpl::CAudioStream<AFloat, 256> AudioStream;
 
+		static constexpr int MaxInputChannels = 16;
 
 	};
 #endif

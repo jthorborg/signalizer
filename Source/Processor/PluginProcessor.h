@@ -38,6 +38,7 @@
 	#include <cpl/gui/widgets/CPresetWidget.h>
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
+	#include <memory>
 
 	namespace Signalizer
 	{
@@ -105,7 +106,7 @@
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
 			AudioStream& getPresentationStream() { return endpointStream; }
-
+			HostGraph& getHostGraph() { return graph; }
 		private:
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
@@ -115,7 +116,7 @@
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
 			AudioStream endpointStream;
-			AudioStream realtimeStream;
+			std::shared_ptr<AudioStream> realtimeStream;
 
 			int nChannels;
 			ParameterMap parameterMap;

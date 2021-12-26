@@ -42,7 +42,7 @@ namespace Signalizer
 
 	AudioProcessor::AudioProcessor()
 		: endpointStream(16, true)
-		, realtimeStream(16, true)
+		, realtimeStream(std::make_shared<AudioStream>(16, true))
 		, graph(realtimeStream, endpointStream)
 		, nChannels(2)
 		, dsoEditor(
@@ -85,7 +85,7 @@ namespace Signalizer
 		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
 		// TODO: convert them to be invariant.
 
-		AudioStream::AudioStreamInfo info = realtimeStream.getInfo();
+		AudioStream::AudioStreamInfo info = realtimeStream->getInfo();
 
 		info.anticipatedChannels = nChannels;
 		info.anticipatedSize = 512;
@@ -94,7 +94,7 @@ namespace Signalizer
 		info.sampleRate = 48000;
 		info.storeAudioHistory = false;
 
-		realtimeStream.initializeInfo(info);
+		realtimeStream->initializeInfo(info);
 
 		info.storeAudioHistory = true;
 
@@ -127,7 +127,7 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
-		AudioStream::AudioStreamInfo info = realtimeStream.getInfo();
+		AudioStream::AudioStreamInfo info = realtimeStream->getInfo();
 
 		info.anticipatedChannels = nChannels;
 		info.anticipatedSize = samplesPerBlock;
@@ -136,7 +136,7 @@ namespace Signalizer
 		info.sampleRate = sampleRate;
 		info.storeAudioHistory = false;
 
-		realtimeStream.initializeInfo(info);
+		realtimeStream->initializeInfo(info);
 
 		for (int i = 0; i < nChannels; ++i)
 		{
@@ -160,9 +160,9 @@ namespace Signalizer
 
 
 		if(auto ph = getPlayHead())
-			realtimeStream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			realtimeStream->processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
 		else
-			realtimeStream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+			realtimeStream->processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't

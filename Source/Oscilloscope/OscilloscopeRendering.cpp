@@ -153,7 +153,7 @@ namespace Signalizer
 			PaintLegend(g, state.colourTracker, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
 		}
 
-		if (state.drawCursorTracker && mouseCheck)
+		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
 		{
 			g.setColour(state.colourTracker);
 

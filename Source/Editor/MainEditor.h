@@ -40,10 +40,12 @@
 	#include <map>
 	#include <stack>
 	#include <array>
+	#include <memory>
 
 	namespace Signalizer
 	{
 		class AudioProcessor;
+		class GraphEditor;
 
 		class MainEditor
 		:
@@ -60,7 +62,6 @@
 			public		juce::ComponentListener,
 			private		cpl::GUIUtils::NestedMouseInterceptor::Listener
 		{
-
 		public:
 
 			static const int tabBarTimeout = 1000;
@@ -105,6 +106,7 @@
 
 			void showAboutBox();
 
+			void graphEditorDied();
 
 		protected:
 
@@ -149,8 +151,7 @@
 
 			struct NewChanges
 			{
-				std::atomic<int> swapInterval;
-				std::atomic<bool> repaintContinuously;
+				std::atomic<int> swapInterval = 1;
 			} newc;
 
 			void setTabBarVisibility(bool toggle);
@@ -180,7 +181,7 @@
 			// Constant UI
 			cpl::GUIUtils::NestedMouseInterceptor nestedMouseHook;
 			cpl::CTextTabBar<> tabs;
-			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk;
+			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk, kgraph;
 
 			// Editor controls
 			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend;
@@ -214,6 +215,7 @@
 			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
 			SharedBehaviour globalState;
+			GraphEditor* graphEditor;
 		};
 	};
 

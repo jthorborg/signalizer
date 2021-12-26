@@ -44,7 +44,7 @@
 
 			static constexpr std::size_t LookaheadSize = 8192;
 			static constexpr std::size_t InterpolationKernelSize = 10;
-			static constexpr std::size_t NumColourChannels = 16;
+			static constexpr std::size_t NumColourChannels = MaxInputChannels;
 
 			enum class TriggeringMode
 			{
@@ -623,6 +623,8 @@
 
 			cpl::ColourValue& getColour(std::size_t index) noexcept
 			{
+				index = std::clamp<std::size_t>(index, 0, NumColourChannels - 1);
+
 				switch (index)
 				{
 				case 0: return primaryColour;
