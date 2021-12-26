@@ -53,7 +53,8 @@ namespace Signalizer
 
 		void reflectModel()
 		{
-			dragIndex = -1;
+			sourceDrag.reset();
+
 			auto& name = model.nodes[model.hostIndex].name;
 			parent.setName(name);
 
@@ -61,6 +62,8 @@ namespace Signalizer
 			{
 				nameField.setInputValueInternal(name);
 			}
+
+			relayoutAllEdges();
 		}
 
 		static constexpr int textEditorHeight = 40;
@@ -303,7 +306,7 @@ namespace Signalizer
 
 			g.drawText(
 				n.currentName(),
-				rect.reduced(5),
+				rect.reduced(5).withTrimmedLeft(5),
 				juce::Justification::centredLeft
 			);
 
@@ -326,24 +329,48 @@ namespace Signalizer
 			return getBounds().toFloat().removeFromTop(offsetForGraph).translated(0, offsetForGraph);
 		}
 
+		void relayoutAllEdges()
+		{
+			edges.resize(model.connections.size());
+			ImmediateLayout layout(model, graphRect());
+			ImmediateLayout::Node n;
+			auto host = layout.getHost();
+			std::size_t edgeCounter{};
+
+			while (layout.moveNextNode(n))
+			{
+				while (n.moveNextConnection())
+				{
+					auto current = n.getCurrentConnection(host);
+					layoutEdge(edges[edgeCounter++], current.first, current.second);
+				}
+			}
+		}
+
 		void paint(juce::Graphics& g) override
 		{
 			g.fillAll(cpl::GetColour(cpl::ColourEntry::Normal));
 
-			juce::Colour base = cpl::GetColour(cpl::ColourEntry::Normal);
-			juce::Colour baseTextColour = cpl::GetColour(cpl::ColourEntry::ControlText);
-
+			const auto base = cpl::GetColour(cpl::ColourEntry::Normal);
+			const auto baseTextColour = cpl::GetColour(cpl::ColourEntry::ControlText);
+			const auto edgeColour = juce::Colours::violet;
 			ImmediateLayout layout(model, graphRect());
 
 			ImmediateLayout::Node n;
 
 			juce::PathStrokeType pst(3, juce::PathStrokeType::JointStyle::curved, juce::PathStrokeType::EndCapStyle::rounded);
 
-			g.setColour(juce::Colours::violet);
+			g.setColour(edgeColour);
 
 			for (auto& p : edges)
 			{
 				g.strokePath(p, pst);
+			}
+
+			if (sourceDrag.has_value())
+			{
+				g.setColour(edgeColour.brighter());
+				g.strokePath(sourceDrag->edge, pst);
 			}
 
 			while (layout.moveNextNode(n))
@@ -358,6 +385,7 @@ namespace Signalizer
 		{
 			nameField.setBounds(getBounds().withHeight(textEditorHeight));
 			filterField.setBounds(nameField.getBounds().withY(nameField.getBottom() + space));
+			relayoutAllEdges();
 		}
 
 		void mouseMove(const juce::MouseEvent& e) override
@@ -385,9 +413,9 @@ namespace Signalizer
 		{
 			pointOfInterest = {};
 
-			if (dragIndex != -1)
+			if (sourceDrag.has_value())
 			{
-				auto& edge = edges[dragIndex];
+				auto& edge = sourceDrag->edge;
 				auto position = e.position;
 
 				// Snap to close pins.
@@ -418,9 +446,9 @@ namespace Signalizer
 			if (e.mods.isLeftButtonDown())
 			{
 				ImmediateLayout layout(model, graphRect());
-
 				ImmediateLayout::Node n;
 
+				// Test if we're drawing a new edge
 				while (layout.moveNextNode(n))
 				{
 					while (n.moveNextPort())
@@ -430,9 +458,7 @@ namespace Signalizer
 						if (pinRect.contains(lastControlPosition))
 						{
 							lastControlPosition = n.getPinPosition();
-							dragIndex = static_cast<int>(edges.size());
-							edges.emplace_back(juce::Path());
-							sourceDrag = std::make_pair(n.getHandle(), n.getCurrentPin());
+							sourceDrag.emplace(n.getHandle(), n.getCurrentPin());
 							return;
 						}
 
@@ -444,9 +470,9 @@ namespace Signalizer
 		void mouseUp(const juce::MouseEvent& e) override
 		{
 			isMouseDown = false;
-			if (dragIndex != -1)
+			if (sourceDrag.has_value())
 			{
-				auto& edge = edges[dragIndex];
+				auto& edge = sourceDrag->edge;
 				auto position = e.position;
 
 				// Snap to close pins.
@@ -465,9 +491,8 @@ namespace Signalizer
 				}
 			}
 
-			sourceDrag;
+			sourceDrag.reset();
 			pointOfInterest = { };
-			dragIndex = -1;
 			lastControlPosition = e.position;
 
 			repaint();
@@ -475,8 +500,8 @@ namespace Signalizer
 
 		void connectionRequest(PinInt destination)
 		{
-			DBG("Forming connection between " << sourceDrag->first.toString() << "@" << sourceDrag->second << " and " << destination);
-			graph.connect(sourceDrag->first, { sourceDrag->second, destination });
+			CPL_RUNTIME_ASSERTION(sourceDrag.has_value());
+			graph.connect(sourceDrag->SourceNode, { sourceDrag->SourcePin, destination });
 		}
 
 		// Inherited via AsyncUpdater
@@ -493,9 +518,18 @@ namespace Signalizer
 		cpl::CInputControl nameField, filterField;
 		juce::Point<float> lastControlPosition, pointOfInterest;
 		std::vector<juce::Path> edges;
+		
+		struct DraggedEdge
+		{
+			DraggedEdge(const HostGraph::SerializedHandle& handle, PinInt source) : SourceNode(handle), SourcePin(source) {}
 
-		int dragIndex = -1;
-		std::optional<std::pair<HostGraph::SerializedHandle, PinInt>> sourceDrag;
+			HostGraph::SerializedHandle SourceNode;
+			PinInt SourcePin;
+
+			juce::Path edge;
+		};
+
+		std::optional<DraggedEdge> sourceDrag;
 		bool isMouseDown;
 
 		// Inherited via Listener
