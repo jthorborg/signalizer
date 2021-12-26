@@ -79,17 +79,26 @@ namespace Signalizer
 	{
 		if (structuralChange)
 		{
-			std::size_t channels = 0;
+			PinInt maxDestinationPort = -1;
 
 			for (auto& g : graph)
 			{
-				channels += g.second.channelQueues.size();
+				for (auto& entry : g.second.channelQueues)
+				{
+					maxDestinationPort = std::max(maxDestinationPort, entry.first.Destination);
+				}
 			}
 
-			matrix.resizeChannels(channels);
+			// from first-indexing to zero-based
+			maxDestinationPort++;
+
+			// round up to next multiple of two, so there's always pairs of channels
+			maxDestinationPort += maxDestinationPort % 2;
+
+			matrix.resizeChannels(maxDestinationPort);
 
 			auto info = presentation.getInfo();
-			info.anticipatedChannels = channels;
+			info.anticipatedChannels = maxDestinationPort;
 			info.sampleRate = sampleRate;
 
 			presentation.initializeInfo(info);
@@ -109,6 +118,9 @@ namespace Signalizer
 		// no channels to show
 		if (matrix.size() < 1)
 			return;
+
+		// clear the matrix for additive / empty slots - might not be needed?
+		matrix.clear();
 
 		const auto hostOrigin = self->endpoint;
 		const auto hostSamples = self->current.load(std::memory_order_acquire);
@@ -150,11 +162,12 @@ namespace Signalizer
 					auto reader = q.second.buffer.createProxyView();
 					reader.offset(-static_cast<ssize_t>(currentG));
 
+					// TODO: should be additive
 					reader.copyFromHead(matrix[q.first.Destination], numSamples);
 				}
 				else
 				{
-					// nothing to deliver... zero it out.
+					// nothing to deliver... zero it out. TODO don't?
 					matrix.clear(q.first.Destination, 1);
 				}
 			}
@@ -164,6 +177,7 @@ namespace Signalizer
 		}
 
 		// TODO: Run this in place without async thread.
+		// TODO: don't copy into a matrix, rig a provider from the read heads instead
 		presentation.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, realtime->getASyncPlayhead());
 	}
 

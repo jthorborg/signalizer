@@ -114,6 +114,11 @@
 				}
 			}
 
+			void clear()
+			{
+				std::memset(auxData.data(), 0, auxData.size() * sizeof(float));
+			}
+
 			void copyResample(const float* buffer, std::size_t index, std::size_t numSamples)
 			{
 				if (numSamples == bufferLength)
