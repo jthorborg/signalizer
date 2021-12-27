@@ -313,6 +313,7 @@ namespace Signalizer
 			if (it == graph.end())
 			{
 				CPL_RUNTIME_ASSERTION(command.isConnection);
+				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.get());
 				it = emplace(std::move(command.stream));
 			}
 

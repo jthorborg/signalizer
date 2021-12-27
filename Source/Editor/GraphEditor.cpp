@@ -32,19 +32,24 @@
 
 namespace Signalizer
 {
-	class Content : public juce::Component, public juce::AsyncUpdater, private cpl::CBaseControl::Listener
+	class Content 
+		: public juce::Component
+		, public juce::AsyncUpdater
+		, private cpl::CBaseControl::Listener
+		, private juce::TextEditor::Listener
+		, private juce::KeyListener
 	{
 	public:
 
 		Content(GraphEditor& parent, HostGraph& graph)
-			: graph(graph), parent(parent), nameField("Name"), filterField("Filter")
+			: graph(graph), parent(parent), nameField("Name"), filterField("Filter"), isMouseDown(false)
 		{
 			addAndMakeVisible(nameField);
 			addAndMakeVisible(filterField);
 
 			nameField.bAddChangeListener(this);
-			filterField.bAddChangeListener(this);
-			filterField.grabKeyboardFocus();
+			filterField.addListener(this);
+			filterField.addKeyListener(this);
 			model = graph.getModel();
 			reflectModel();
 		}
@@ -262,8 +267,8 @@ namespace Signalizer
 				int con;
 			};
 
-			ImmediateLayout(HostGraph::Model& model, juce::Rectangle<float> bounds) 
-				: model(model), index(-1), bounds(bounds)
+			ImmediateLayout(HostGraph::Model& model, juce::Rectangle<float> bounds, std::string& filter) 
+				: model(model), index(-1), bounds(bounds), filter(filter)
 			{
 			}
 
@@ -276,9 +281,15 @@ namespace Signalizer
 
 			bool moveNextNode(Node& result)
 			{
-				std::size_t current = static_cast<std::size_t>(++index);
-				if (current >= model.nodes.size())
-					return false;
+				std::size_t current;
+
+				do
+				{
+					current = static_cast<std::size_t>(++index);
+					if (current >= model.nodes.size())
+						return false;
+				} while (!filter.empty() && model.nodes[current].name.find(filter) == std::string::npos);
+
 
 				auto previousBottom = result.model ? result.getRect().getBottom() : bounds.getY();
 
@@ -291,6 +302,7 @@ namespace Signalizer
 			int index;
 			juce::Rectangle<float> bounds;
 			HostGraph::Model& model;
+			std::string& filter;
 		};
 
 		template<typename TNode>
@@ -302,9 +314,9 @@ namespace Signalizer
 			juce::Colour rectFill = base;
 			juce::Colour textColour = baseTextColour;
 
-			if (rect.withTrimmedRight(ImmediateLayout::pinSize).withTrimmedLeft(ImmediateLayout::pinSize).contains(lastControlPosition))
+			if (!sourceDrag.has_value() && rect.withTrimmedRight(ImmediateLayout::pinSize).withTrimmedLeft(ImmediateLayout::pinSize).contains(lastControlPosition))
 			{
-				rectFill = rectFill.contrasting(0.3f);
+				rectFill = rectFill.contrasting(isMouseDown ? 0.2f : 0.3f);
 				textColour = cpl::GetColour(cpl::ColourEntry::SelectedText);
 			}
 
@@ -312,7 +324,6 @@ namespace Signalizer
 
 
 			// highlight?
-
 
 			g.setColour(rectFill);
 			g.fillRoundedRectangle(rect, 5);
@@ -350,7 +361,7 @@ namespace Signalizer
 		template<typename Callable>
 		void forEachConnection(Callable c)
 		{
-			ImmediateLayout layout(model, graphRect());
+			ImmediateLayout layout(model, graphRect(), filter);
 			ImmediateLayout::Node n;
 			auto host = layout.getHost();
 			std::size_t edgeCounter{};
@@ -368,14 +379,12 @@ namespace Signalizer
 
 		void relayoutAllEdges()
 		{
-			edges.resize(model.connections.size());
-
-			std::size_t edgeCounter{};
-
+			edges.resize(0);
+			
 			forEachConnection(
-				[&edgeCounter, this](auto sourcePos, auto destPos, auto pair)
+				[this](auto sourcePos, auto destPos, auto pair)
 				{
-					layoutEdge(edges[edgeCounter++], sourcePos, destPos);
+					layoutEdge(edges.emplace_back(), sourcePos, destPos);
 					return true;
 				}
 			);
@@ -383,12 +392,14 @@ namespace Signalizer
 
 		void paint(juce::Graphics& g) override
 		{
+			std::call_once(focusGrab, [&] { filterField.grabKeyboardFocus(); });
+
 			g.fillAll(cpl::GetColour(cpl::ColourEntry::Normal));
 
 			const auto base = cpl::GetColour(cpl::ColourEntry::Normal);
 			const auto baseTextColour = cpl::GetColour(cpl::ColourEntry::ControlText);
 			const auto edgeColour = juce::Colours::violet;
-			ImmediateLayout layout(model, graphRect());
+			ImmediateLayout layout(model, graphRect(), filter);
 
 			ImmediateLayout::Node n;
 
@@ -453,7 +464,7 @@ namespace Signalizer
 				auto position = e.position;
 
 				// Snap to close pins.
-				ImmediateLayout layout(model, graphRect());
+				ImmediateLayout layout(model, graphRect(), filter);
 				auto n = layout.getHost();
 
 				while (n.moveNextPort())
@@ -479,8 +490,11 @@ namespace Signalizer
 
 			if (e.mods.isLeftButtonDown())
 			{
-				ImmediateLayout layout(model, graphRect());
+				repaint();
+
 				{
+					ImmediateLayout layout(model, graphRect(), filter);
+
 					ImmediateLayout::Node n;
 
 					// Test if we're drawing a new edge
@@ -499,7 +513,6 @@ namespace Signalizer
 						}
 					}
 				}
-
 
 				// Test if we're redragging an existing edge
 				forEachConnection(
@@ -521,6 +534,7 @@ namespace Signalizer
 			}
 		}
 
+
 		void mouseUp(const juce::MouseEvent& e) override
 		{
 			isMouseDown = false;
@@ -529,8 +543,8 @@ namespace Signalizer
 				auto& edge = sourceDrag->edge;
 				auto position = e.position;
 
-				// Snap to close pins.
-				ImmediateLayout layout(model, graphRect());
+				// Snap to close pins.				
+				ImmediateLayout layout(model, graphRect(), filter);
 				auto n = layout.getHost();
 
 				while (n.moveNextPort())
@@ -541,6 +555,39 @@ namespace Signalizer
 					{
 						connectionRequest(n.getCurrentPin());
 						break;
+					}
+				}
+			}
+			else
+			{
+				ImmediateLayout layout(model, graphRect(), filter);
+
+				// test if we're clicking the host
+				if (layout.getHost().getRect().contains(lastControlPosition))
+				{
+					// toggle all visible nodes
+					std::vector<HostGraph::SerializedHandle> refs;
+					ImmediateLayout::Node n;
+
+					while (layout.moveNextNode(n))
+					{
+						refs.emplace_back(n.getHandle());
+					}
+
+					graph.toggleSet(refs);
+				}
+				else
+				{
+					// test if we're clicking any nodes
+					ImmediateLayout::Node node;
+
+					while (layout.moveNextNode(node))
+					{
+						if (node.getRect().contains(lastControlPosition))
+						{
+							graph.toggleSet({ node.getHandle() });
+							break;
+						}
 					}
 				}
 			}
@@ -569,9 +616,12 @@ namespace Signalizer
 		HostGraph& graph;
 		HostGraph::Model model;
 		GraphEditor& parent;
-		cpl::CInputControl nameField, filterField;
+		cpl::CInputControl nameField;
+		juce::TextEditor filterField;
 		juce::Point<float> lastControlPosition, pointOfInterest;
 		std::vector<juce::Path> edges;
+		std::string filter;
+		std::once_flag focusGrab;
 		
 		struct DraggedEdge
 		{
@@ -598,7 +648,24 @@ namespace Signalizer
 				graph.setName(nameField.getInputValue());
 			}
 		}
-	};
+
+		virtual void textEditorTextChanged(juce::TextEditor& te) override
+		{
+			if (&te == &filterField)
+			{
+				filter = te.getText().toStdString();
+				repaint();
+				relayoutAllEdges();
+			}
+		}
+
+		// Inherited via KeyListener
+		virtual bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override
+		{
+			// TODO: intercept keystrokes from field to toggle on special combos
+			return false;
+		}
+};
 
 	GraphEditor::GraphEditor(MainEditor* editor, HostGraph& h)
 		: juce::DocumentWindow("Graph editor", juce::Colours::aliceblue, juce::DocumentWindow::TitleBarButtons::allButtons)

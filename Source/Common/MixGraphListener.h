@@ -193,17 +193,20 @@
 				State(MixGraphListener& parent, std::shared_ptr<AudioStream>& source)
 					: parent(parent), source(source), refCount(1)
 				{
+					// TODO: can deadlock - need to only try a bit, then bail out
 					listenToSource(*source.get(), false, 1000);
 				}
 
-				virtual void onAsyncChangedProperties(const Stream& changedSource, const typename Stream::AudioStreamInfo& before)
+				virtual void onAsyncChangedProperties(const Stream& as, const typename Stream::AudioStreamInfo& before)
 				{
-					parent.asyncPropertiesChanged(*this, changedSource);
+					CPL_RUNTIME_ASSERTION(&as == source.get());
+					parent.asyncPropertiesChanged(*this, as);
 				}
 
-				virtual bool onAsyncAudio(const AudioStream& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override
+				virtual bool onAsyncAudio(const AudioStream& as, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override
 				{
-					parent.onAsyncAudio(*this, buffer, numChannels, numSamples, source.getASyncPlayhead().getPositionInSamples());
+					CPL_RUNTIME_ASSERTION(&as == source.get());
+					parent.onAsyncAudio(*this, buffer, numChannels, numSamples, as.getASyncPlayhead().getPositionInSamples());
 					return false;
 				}
 

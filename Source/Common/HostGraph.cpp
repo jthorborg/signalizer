@@ -240,6 +240,78 @@ namespace Signalizer
 		return internalDisconnect(input, pair, lock);
 	}
 
+	bool HostGraph::toggleSet(const std::vector<SerializedHandle>& handles)
+	{
+		TriggerModelUpdateOnExit exit{ this };
+
+		// to avoid concurrent mutation from deleted nodes
+		GraphLock lock(staticMutex);
+
+		if (handles.empty())
+			return true;
+
+		bool isEverythingConnected = true;
+
+		// check whether everything is connected, and disconnect everything on the way
+		for (const auto& h : handles)
+		{
+			bool didDisconnections = resetInstancedTopologyFor(h, lock, true);
+			isEverythingConnected = isEverythingConnected && didDisconnections;
+		}
+
+		// if everything was connected, we've now disconnected everything
+		if (isEverythingConnected)
+			return true;
+
+		// otherwise, let's reconstruct a new set of topology 
+		const auto maxInputs = MaxInputChannels;
+		std::bitset<32> connectedPorts;
+		CPL_RUNTIME_ASSERTION(connectedPorts.size() > MaxInputChannels);
+
+		// compile list of free ports
+		for (const auto& rel : topology)
+		{
+			for (const auto& c : rel.second.inputs)
+			{
+				connectedPorts[c.Destination] = true;
+			}
+		}
+			
+		for (const auto& h : handles)
+		{
+			auto other = lookupForeign(h, lock);
+
+			if (!other)
+				return false;
+
+			auto numChannels = other->getNumChannels();
+
+			// search for an offset where we fit
+			for(std::size_t offset = 0; offset < connectedPorts.size(); offset += 2) // (stereo offsets)
+			{
+				bool locallyFound = true;
+				for (std::size_t z = 0; locallyFound && z < numChannels; ++z)
+				{
+					if (z + offset >= maxInputs || connectedPorts[z + offset])
+						locallyFound = false;
+				}
+
+				if (locallyFound)
+				{
+					for (PinInt i = 0; i < numChannels; ++i)
+					{
+						auto hostPin = static_cast<PinInt>(offset) + i;
+						connectedPorts[hostPin] = true;
+						internalConnect(h, { i, hostPin }, lock);
+					}
+					break;
+				}				
+			}
+		}
+
+		return true;
+	}
+
 	bool HostGraph::internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock)
 	{
 		bool known = topology.count(input);
@@ -285,6 +357,11 @@ namespace Signalizer
 	}
 
 
+	int HostGraph::getNumChannels() const
+	{
+		return mix.realtime->getInfo().anticipatedChannels.load(std::memory_order_acquire);
+	}
+
 	bool HostGraph::hasSerializedRepresentation() const
 	{
 		return nodeID.has_value();
@@ -304,25 +381,41 @@ namespace Signalizer
 		);
 	}
 
-	HostGraph::HHandle HostGraph::resolve(const SerializedHandle& h, const GraphLock&)
+	HostGraph::HHandle HostGraph::lookupForeign(const SerializedHandle& h, const GraphLock&)
+	{
+		for (auto g : staticSet)
+		{
+			if (g->nodeID.has_value() && *g->nodeID == h)
+			{
+				return g;
+			}
+		}
+
+		return nullptr;
+	}
+
+	HostGraph::HHandle HostGraph::resolve(const SerializedHandle& h, const GraphLock& g)
 	{
 		if (auto it = topology.find(h); it != topology.end())
 		{
 			if (it->second.liveReference == nullptr)
-			{
-				for (auto g : staticSet)
-				{
-					if (g->nodeID.has_value() && *g->nodeID == h)
-					{
-						it->second.liveReference = g;
-					}
-				}
-			}
+				it->second.liveReference = lookupForeign(h, g);
 
 			return it->second.liveReference;
 		}
 
 		return nullptr;
+	}
+
+
+	HostGraph::HHandle HostGraph::lookupPotentiallyForeign(const SerializedHandle& h, const GraphLock& g)
+	{
+		auto attempt = resolve(h, g);
+
+		if (attempt)
+			return attempt;
+
+		return lookupForeign(h, g);
 	}
 
 	void HostGraph::clearTopology(const GraphLock& g)

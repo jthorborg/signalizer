@@ -85,14 +85,10 @@
 				{ 
 					juce::Uuid handle;
 					std::memcpy(contents, handle.getRawData(), sizeof(contents));
-
 				}
+
 				std::byte contents[16];
-
-
 			};
-
-
 
 			struct Model
 			{
@@ -134,6 +130,7 @@
 
 			bool connect(const SerializedHandle& input, DirectedPortPair pair);
 			bool disconnect(const SerializedHandle& input, DirectedPortPair pair);
+			bool toggleSet(const std::vector<SerializedHandle>& handles);
 
 			void applyDefaultLayoutFromRuntime();
 
@@ -172,12 +169,16 @@
 			typedef std::pair<SerializedHandle, DirectedPortPair> SerializedEdge;
 			typedef std::map<SerializedHandle, Relation> Topology;
 
+			int getNumChannels() const;
 			bool hasSerializedRepresentation() const;
 			bool internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
 			bool internalConnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
 			void submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			void submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			HHandle resolve(const SerializedHandle& h, const GraphLock&);
+			HHandle lookupPotentiallyForeign(const SerializedHandle& h, const GraphLock&);
+			static HHandle lookupForeign(const SerializedHandle& h, const GraphLock&);
+
 			void clearTopology(const GraphLock&);
 			void tryRebuildTopology(HostGraph* other, const GraphLock&);
 			// returns true if anything happend
