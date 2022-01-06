@@ -18,7 +18,7 @@
 			<key>type</key>
 			<string>aufx</string>
 			<key>version</key>
-			<integer>12884901890</integer>
+			<integer>12884901892</integer>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
@@ -32,14 +32,14 @@
 	<key>CFBundlePackageType</key>
 	<string>TDMw</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.3.2</string>
+	<string>0.3.4</string>
 	<key>CFBundleSignature</key>
 	<string>PTul</string>
 	<key>CFBundleVersion</key>
-	<string>0.3.2</string>
+	<string>0.3.4</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (c) 2017 Janus Lynggaard Thorborg</string>
+	<string>Copyright (c) 2021 Janus Lynggaard Thorborg</string>
 </dict>
 </plist>
