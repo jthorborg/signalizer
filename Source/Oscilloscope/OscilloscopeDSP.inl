@@ -416,7 +416,7 @@ namespace Signalizer
 
 		channelData.resizeChannels(numChannels);
 
-		// get channel names for legend display
+		// get channel names for legend display -- TODO: acquire in change callback?
 		channelNames = audioStream.getAsyncChannelNames();
 
 		cpl::variable_array<float*> localBuffers(buffer, buffer + numChannels);

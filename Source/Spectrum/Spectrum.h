@@ -125,9 +125,6 @@
 			void freeze() override;
 			void unfreeze() override;
 			void resetState() override;
-			std::unique_ptr<juce::Component> createEditor();
-
-			bool isEditorOpen() const;
 
 			// interface
 
@@ -468,10 +465,7 @@
 
 				std::atomic<std::size_t> newWindowSize;
 				std::atomic<float> sampleRate;
-				/// <summary>
-				/// internal testing flag
-				/// </summary>
-				bool iAuxMode;
+
 
 				float alphaFloodFill;
 
@@ -578,18 +572,6 @@
 			std::atomic_bool isMouseInside;
 			double scallopLoss;
 			int lastPeak;
-			/*struct NewChanges
-			{
-				std::atomic<DisplayMode> displayMode;
-				std::atomic<std::size_t> windowSize;
-				std::atomic<cpl::iCtrlPrec_t> divLimit;
-				std::atomic<SpectrumChannels> configuration;
-				std::atomic<cpl::iCtrlPrec_t> stretch;
-				std::atomic<signed int> frequencyTrackingGraph;
-				std::atomic<float> primitiveSize;
-				std::atomic<float> alphaFloodFill;
-				std::atomic<double> referenceTuning;
-			} newc; */
 
 			struct CurrentMouse
 			{

@@ -121,8 +121,6 @@
 			void freeze() override;
 			void unfreeze() override;
 
-			// cbasecontrol overrides
-			bool isEditorOpen() const;
 			double getGain();
 
 		protected:

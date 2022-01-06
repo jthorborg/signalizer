@@ -88,7 +88,6 @@ namespace Signalizer
 		//setWindowSize(200);
 
 
-		state.iAuxMode = true;
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
 		sfbuf.sampleBufferSize = 200;

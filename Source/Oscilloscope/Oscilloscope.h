@@ -242,7 +242,7 @@
 			juce::MouseCursor displayCursor;
 			OscilloscopeContent * content;
 			AudioStream & audioStream;
-			//cpl::AudioBuffer audioStreamCopy;
+
 			juce::Component * editor;
 			std::vector<std::string> channelNames;
 			std::unique_ptr<char> textbuf;

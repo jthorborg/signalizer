@@ -411,7 +411,7 @@ namespace Signalizer
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
 				(
-					[&] (std::size_t sampleFrame, AudioStream::DataType & left, AudioStream::DataType & right)
+					[&] (std::size_t sampleFrame, AudioStream::DataType left, AudioStream::DataType right)
 					{
 						drawer.addVertex(right, left, sampleFrame * sampleFade - 1);
 					}
