@@ -233,7 +233,7 @@
 
 			struct SharedStateOptions
 			{
-				std::atomic<double> 
+				cpl::relaxed_atomic<double> 
 					autoGainEnvelope;
 			} shared;
 
@@ -249,11 +249,11 @@
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			long long lastFrameTick, renderCycles;
-			std::atomic_bool isMouseInside;
+			cpl::relaxed_atomic<bool> isMouseInside;
 			/// <summary>
 			/// Updates are not guaranteed to be in order
 			/// </summary>
-			std::pair<std::atomic<float>, std::atomic<float>> threadedMousePos;
+			std::pair<cpl::relaxed_atomic<float>, cpl::relaxed_atomic<float>> threadedMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 			const SharedBehaviour & globalBehaviour;

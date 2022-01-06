@@ -55,7 +55,7 @@ namespace Signalizer
 		}
 		else if (state.envelopeMode == EnvelopeModes::None)
 		{
-			shared.autoGainEnvelope.store(1, std::memory_order_release);
+			shared.autoGainEnvelope = 1;
 		}
 	}
 
@@ -705,7 +705,7 @@ namespace Signalizer
 				for (std::size_t c = 0; c < numChannels; ++c)
 					start = std::max(start, std::sqrt(filterEnv[c]));
 
-				shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
+				shared.autoGainEnvelope = 1.0 / start;
 
 				// only update filters if this mode is on.
 				smoothEnvelopeState(ChannelData::Left) = filterEnv[0];
@@ -895,7 +895,7 @@ namespace Signalizer
 				start = std::max(start, std::sqrt(smoothEnvelopeState(c)));
 			}
 
-			shared.autoGainEnvelope.store(1.0 / start, std::memory_order_release);
+			shared.autoGainEnvelope = 1.0 / start;
 		}
 };
 #endif

@@ -32,7 +32,7 @@
 
 	#include "Signalizer.h"
 	#include <cpl/Common.h>
-	#include <cpl/CAudioStream.h>
+	#include <cpl/AudioStream.h>
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/gui/widgets/CPresetWidget.h>

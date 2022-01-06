@@ -128,8 +128,8 @@ namespace Signalizer
 	void Oscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
 	{
 		lastMousePos = position;
-		threadedMousePos.first.store(position.x, std::memory_order_release);
-		threadedMousePos.second.store(position.y, std::memory_order_release);
+		threadedMousePos.first = position.x;
+		threadedMousePos.second = position.y;
 	}
 
 	void Oscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
@@ -274,12 +274,12 @@ namespace Signalizer
 
 	void Oscilloscope::mouseExit(const juce::MouseEvent & e)
 	{
-		isMouseInside.store(false, std::memory_order_relaxed);
+		isMouseInside = true;
 	}
 
 	void Oscilloscope::mouseEnter(const juce::MouseEvent & e)
 	{
-		isMouseInside.store(true, std::memory_order_relaxed);
+		isMouseInside = true;
 	}
 
 	void Oscilloscope::handleFlagUpdates()
@@ -289,7 +289,7 @@ namespace Signalizer
 		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
-		state.autoGain = shared.autoGainEnvelope.load(std::memory_order_relaxed);
+		state.autoGain = shared.autoGainEnvelope;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
@@ -354,7 +354,7 @@ namespace Signalizer
 
 	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
 			return false;
 
 		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, buffer, numChannels, numSamples);

@@ -57,8 +57,6 @@
 		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
 		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
 
-
-		// TODO: Figure out why sizes around 256 causes buffer overruns
 		typedef cpl::CAudioStream<AFloat, 256> AudioStream;
 
 		static constexpr int MaxInputChannels = 16;

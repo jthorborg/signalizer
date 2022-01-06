@@ -145,7 +145,7 @@ namespace Signalizer
 			}
 		}
 
-		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire) ? isMouseInside.load(std::memory_order_relaxed) : true;
+		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit ? isMouseInside : true;
 
 		if (state.drawLegend && mouseCheck)
 		{
@@ -157,7 +157,7 @@ namespace Signalizer
 		{
 			g.setColour(state.colourTracker);
 
-			const auto mouseX = threadedMousePos.first.load(std::memory_order_acquire), mouseY = threadedMousePos.second.load(std::memory_order_acquire);
+			const auto mouseX = threadedMousePos.first, mouseY = threadedMousePos.second;
 
 			double estimatedSize[2] = { 180, 70 };
 			double textOffset[2] = { 20, -estimatedSize[1] };

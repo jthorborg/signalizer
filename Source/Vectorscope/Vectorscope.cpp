@@ -366,7 +366,7 @@ namespace Signalizer
 
 	bool VectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
 			return false;
 
 		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);

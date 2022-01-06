@@ -415,7 +415,7 @@
 				/// <summary>
 				/// The current selected algorithm that will digest the audio data into the display.
 				/// </summary>
-				std::atomic<SpectrumContent::TransformAlgorithm> algo;
+				cpl::weak_atomic<SpectrumContent::TransformAlgorithm> algo;
 				/// <summary>
 				/// How the incoming data is interpreted, channel-wise.
 				/// </summary>
@@ -428,7 +428,7 @@
 				/// <summary>
 				/// Describes the lower and higher limit of the dynamic range of the display.
 				/// </summary>
-				std::atomic<double> dynRange[2];
+				cpl::relaxed_atomic<double> dynRange[2];
 
 				/// <summary>
 				/// colourOne & two = colours for the main line graphs.
@@ -461,10 +461,10 @@
 				/// <summary>
 				/// The window function applied to the input. Precomputed into windowKernel.
 				/// </summary>
-				std::atomic<cpl::dsp::WindowTypes> dspWindow;
+				cpl::weak_atomic<cpl::dsp::WindowTypes> dspWindow;
 
-				std::atomic<std::size_t> newWindowSize;
-				std::atomic<float> sampleRate;
+				cpl::weak_atomic<std::size_t> newWindowSize;
+				cpl::weak_atomic<float> sampleRate;
 
 
 				float alphaFloodFill;
@@ -568,14 +568,14 @@
 			long long lastFrameTick, renderCycles;
 			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
-			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
-			std::atomic_bool isMouseInside;
+			cpl::weak_atomic<bool> hasMainThreadInitializedAudioStreamDependenant;
+			cpl::relaxed_atomic<bool> isMouseInside;
 			double scallopLoss;
 			int lastPeak;
 
 			struct CurrentMouse
 			{
-				std::atomic<float>
+				cpl::relaxed_atomic<float>
 					x, y;
 			} cmouse;
 

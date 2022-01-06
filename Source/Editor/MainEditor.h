@@ -151,7 +151,7 @@
 
 			struct NewChanges
 			{
-				std::atomic<int> swapInterval = 1;
+				cpl::weak_atomic<int> swapInterval = 1;
 			} newc;
 
 			void setTabBarVisibility(bool toggle);

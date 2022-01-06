@@ -34,6 +34,7 @@
 	#include <cpl/Common.h>
 	#include <complex>
 	#include "SignalizerConfiguration.h"
+	#include <cpl/lib/weak_atomic.h>
 
 	namespace Signalizer
 	{
@@ -146,14 +147,15 @@
 
 			void serialize(cpl::CSerializer::Archiver & ar, cpl::Version v) override
 			{
-				ar << lastCapacity.load(std::memory_order_relaxed);
+				std::uint64_t val = lastCapacity;
+				ar << val;
 			}
 
 			void deserialize(cpl::CSerializer::Builder & ar, cpl::Version v) override
 			{
 				std::uint64_t val;
 				ar >> val;
-				lastCapacity.store(val, std::memory_order_relaxed);
+				lastCapacity = val;
 			}
 
 			~AudioHistoryTransformatter()
@@ -167,7 +169,7 @@
 			{
 				// TODO: what if oldCapacity == 0?
 				const auto oldFraction = param->getValueNormalized();
-				auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
+				auto oldCapacity = lastCapacity;
 				auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
 				if (oldCapacity == 0)
 					oldCapacity = beforeCapacity;
@@ -175,7 +177,7 @@
 				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
 
 				if (newCapacity > 0)
-					lastCapacity.store(newCapacity, std::memory_order_relaxed);
+					lastCapacity = newCapacity;
 
 				if(oldCapacity == 0 || newCapacity == 0)
 				{
@@ -276,7 +278,7 @@
 			/// Represents the last capacity change we were informated about,
 			/// and thus currently represents the magnitude scale of the fraction.
 			/// </summary>
-			std::atomic<std::uint64_t> lastCapacity;
+			cpl::relaxed_atomic<std::uint64_t> lastCapacity;
 		};
 
 		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);

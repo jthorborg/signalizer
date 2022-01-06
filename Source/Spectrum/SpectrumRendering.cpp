@@ -209,9 +209,9 @@ namespace Signalizer
 
 	void Spectrum::drawFrequencyTracking(juce::Graphics & g)
 	{
-		if (globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire))
+		if (globalBehaviour.hideWidgetsOnMouseExit)
 		{
-			if (!isMouseInside.load(std::memory_order_relaxed))
+			if (!isMouseInside)
 				return;
 		}
 
@@ -254,8 +254,8 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
-			mouseX = cmouse.x.load(std::memory_order_acquire);
-			mouseY = cmouse.y.load(std::memory_order_acquire);
+			mouseX = cmouse.x;
+			mouseY = cmouse.y;
 
 			// a possible concurrent bug
 			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints() - 1);
@@ -326,7 +326,7 @@ namespace Signalizer
 		auto interpolationError = 0.01;
 
 		// TODO: these special cases can be handled (on a rainy day)
-		if (state.configuration == SpectrumChannels::Complex || !(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
+		if (state.configuration == SpectrumChannels::Complex || !(state.algo == SpectrumContent::TransformAlgorithm::FFT && graphN == SpectrumContent::LineGraphs::Transform))
 		{
 
 			if (graphN == SpectrumContent::LineGraphs::Transform)
@@ -384,7 +384,7 @@ namespace Signalizer
 			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
 			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
 
-			if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
+			if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
 				if (state.binPolation != SpectrumContent::BinInterpolation::Lanczos)

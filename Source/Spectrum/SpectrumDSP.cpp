@@ -76,7 +76,7 @@ namespace Signalizer
 		std::size_t i = 0;
 
 
-		switch (state.dspWindow.load(std::memory_order_acquire))
+		switch (state.dspWindow.load())
 		{
 
 			case cpl::dsp::WindowTypes::Hann:
@@ -134,7 +134,7 @@ namespace Signalizer
 			// can't underflow
 			std::size_t offset = views[0].size() - size;
 
-			switch (state.algo.load(std::memory_order_acquire))
+			switch (state.algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -339,7 +339,7 @@ namespace Signalizer
 			// extra discarded samples in case the incoming buffer is larger than our own
 			std::size_t extraDiscardedSamples = views[0].size() - size;
 
-			switch (state.algo.load(std::memory_order_acquire))
+			switch (state.algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -582,7 +582,7 @@ namespace Signalizer
 	{
 		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
 
-		switch (state.algo.load(std::memory_order_acquire))
+		switch (state.algo)
 		{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -742,7 +742,7 @@ namespace Signalizer
 
 	void Spectrum::postProcessStdTransform()
 	{
-		if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
+		if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			postProcessTransform(getWorkingMemory<fftType>(), getNumFilters());
 		else
 			postProcessTransform(getWorkingMemory<fpoint>(), getNumFilters());
@@ -757,7 +757,7 @@ namespace Signalizer
 
 		std::size_t numFilters = getNumFilters();
 
-		switch (state.algo.load(std::memory_order_acquire))
+		switch (state.algo)
 		{
 		case SpectrumContent::TransformAlgorithm::FFT:
 		{
@@ -1440,7 +1440,7 @@ namespace Signalizer
 
 	bool Spectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
+		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
 			return false;
 
 		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);
@@ -1455,12 +1455,12 @@ namespace Signalizer
 
 		auto filters = mapToLinearSpace();
 
-		if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
+		if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + filters /* channels ? */));
 			sfbuf.frameQueue.pushElement<true>(&frame);
 		}
-		else if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
+		else if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(filters));
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
@@ -1484,7 +1484,7 @@ namespace Signalizer
 		// casts from std::complex<T> * to T * which is well-defined.
 
 		auto buf = (fpoint*)cpl::data(output);
-		cresonator.getWholeWindowedState<V>(state.dspWindow.load(std::memory_order_acquire), buf, numChannels, numResFilters);
+		cresonator.getWholeWindowedState<V>(state.dspWindow, buf, numChannels, numResFilters);
 
 		return numResFilters << (numChannels - 1);
 	}
@@ -1506,7 +1506,7 @@ namespace Signalizer
 					const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 					// do some resonation
-					if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
+					if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 					{
 						audioLock.acquire(audioResource);
 						fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
@@ -1519,7 +1519,7 @@ namespace Signalizer
 					{
 						audioLock.acquire(audioResource);
 						bool transformReady = true;
-						if (state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::FFT)
+						if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 						{
 							fpoint * offBuf[2] = { buffer[0], buffer[1]};
 							if (audioStream.getNumDeferredSamples() == 0)
@@ -1554,7 +1554,7 @@ namespace Signalizer
 
 				sfbuf.sampleCounter += numSamples;
 			}
-			else if(state.algo.load(std::memory_order_acquire) == SpectrumContent::TransformAlgorithm::RSNT)
+			else if(state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 			{
 				audioLock.acquire(audioResource);
 				resonatingDispatch<ISA>(buffer, numChannels, numSamples);
@@ -1653,7 +1653,7 @@ namespace Signalizer
 
 	float Spectrum::getSampleRate() const noexcept
 	{
-		return state.sampleRate.load(std::memory_order_acquire);
+		return state.sampleRate;
 	}
 
 	int Spectrum::getAxisPoints() const noexcept

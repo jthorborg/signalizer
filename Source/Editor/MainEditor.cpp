@@ -562,10 +562,7 @@ namespace Signalizer
 		}
 		else if (c == &kswapInterval)
 		{
-			newc.swapInterval.store(
-				cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames),
-				std::memory_order_release
-			);
+			newc.swapInterval = cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames);
 
 			mtFlags.swapIntervalChanged = true;
 		}
@@ -716,11 +713,11 @@ namespace Signalizer
 		}
 		else if (c == &kstopProcessingOnSuspend)
 		{
-			globalState.stopProcessingOnSuspend.store(kstopProcessingOnSuspend.bGetBoolState(), std::memory_order_release);
+			globalState.stopProcessingOnSuspend = kstopProcessingOnSuspend.bGetBoolState();
 		}
 		else if (c == &khideWidgets)
 		{
-			globalState.hideWidgetsOnMouseExit.store(khideWidgets.bGetBoolState(), std::memory_order_release);
+			globalState.hideWidgetsOnMouseExit = khideWidgets.bGetBoolState();
 		}
 		else
 		{
@@ -1490,8 +1487,8 @@ namespace Signalizer
 	{
 		if (mtFlags.swapIntervalChanged.cas())
 		{
-			oglc.setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
-			view->setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
+			oglc.setSwapInterval(newc.swapInterval);
+			view->setSwapInterval(newc.swapInterval);
 		}
 	}
 

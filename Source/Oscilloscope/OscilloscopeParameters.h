@@ -96,7 +96,7 @@
 				{
 					// TODO: what if oldCapacity == 0?
 					const auto oldFraction = this->param->getValueNormalized();
-					auto oldCapacity = this->lastCapacity.load(std::memory_order_relaxed);
+					auto oldCapacity = this->lastCapacity;
 					auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
 					if (oldCapacity == 0)
 						oldCapacity = beforeCapacity;
@@ -104,7 +104,7 @@
 					const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
 
 					if (newCapacity > 0)
-						this->lastCapacity.store(newCapacity, std::memory_order_relaxed);
+						this->lastCapacity = newCapacity;
 
 					if (oldCapacity == 0 || newCapacity == 0)
 					{
@@ -266,7 +266,7 @@
 					}
 				}
 
-				std::atomic<Scaling> scale;
+				cpl::weak_atomic<Scaling> scale;
 				std::size_t lookahead;
 				TimeMode timeMode;
 			};

@@ -77,7 +77,7 @@ namespace Signalizer
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
 		state.sampleRate = 0;
-		state.newWindowSize.store(cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue()), std::memory_order_release);
+		state.newWindowSize = cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue());
 
 		oldViewRect = state.viewRect;
 		oglImage.setFillColour(juce::Colours::black);
@@ -275,8 +275,8 @@ namespace Signalizer
 
 	void Spectrum::mouseMove(const juce::MouseEvent & event)
 	{
-		cmouse.x.store(event.position.x, std::memory_order_release);
-		cmouse.y.store(event.position.y, std::memory_order_release);
+		cmouse.x = event.position.x;
+		cmouse.y = event.position.y;
 
 		flags.mouseMove = true;
 	}
@@ -318,8 +318,8 @@ namespace Signalizer
 			flags.viewChanged = true;
 		}
 
-		cmouse.x.store(event.position.x, std::memory_order_release);
-		cmouse.y.store(event.position.y, std::memory_order_release);
+		cmouse.x = event.position.x;
+		cmouse.y = event.position.y;
 
 		flags.mouseMove = true;
 	}
@@ -336,12 +336,12 @@ namespace Signalizer
 
 	void Spectrum::mouseExit(const juce::MouseEvent & e)
 	{
-		isMouseInside.store(false, std::memory_order_relaxed);
+		isMouseInside = false;
 	}
 
 	void Spectrum::mouseEnter(const juce::MouseEvent & e)
 	{
-		isMouseInside.store(true, std::memory_order_relaxed);
+		isMouseInside = true;
 	}
 
 	void Spectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
@@ -350,7 +350,7 @@ namespace Signalizer
 		// TODO: create parameter indices and turn into switch statement
 		if (param == &content->windowSize.parameter)
 		{
-			state.newWindowSize.store(cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue()), std::memory_order_release);
+			state.newWindowSize  = cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue());
 			flags.initiateWindowResize = true;
 		}
 		if (param == &content->viewScaling.param.parameter || param == &content->viewLeft.parameter || param == &content->viewRight.parameter)
@@ -428,9 +428,9 @@ namespace Signalizer
 		}
 
 
-		state.algo.store(content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>(), std::memory_order_release);
+		state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
-		state.dspWindow.store(content->dspWin.getWindowType(), std::memory_order_release);
+		state.dspWindow = content->dspWin.getWindowType();
 		state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
@@ -444,7 +444,7 @@ namespace Signalizer
 			lineGraphs[i].filter.setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.algo.load(std::memory_order_relaxed) != SpectrumContent::TransformAlgorithm::FFT)
+		if (state.algo != SpectrumContent::TransformAlgorithm::FFT)
 		{
 			state.colourSpecs[0] = state.colourBackground;
 
@@ -475,7 +475,7 @@ namespace Signalizer
 		if (flags.audioStreamChanged.cas())
 		{
 			audioLock.acquire(audioResource);
-			state.sampleRate.store(static_cast<float>(audioStream.getAudioHistorySamplerate()), std::memory_order_release);
+			state.sampleRate = static_cast<float>(audioStream.getAudioHistorySamplerate());
 			flags.viewChanged = true;
 		}
 
@@ -516,7 +516,7 @@ namespace Signalizer
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				flags.initiateWindowResize.cas();
-				audioStream.setAudioHistorySize(state.newWindowSize.load(std::memory_order_acquire));
+				audioStream.setAudioHistorySize(state.newWindowSize);
 			}
 
 
@@ -759,7 +759,7 @@ namespace Signalizer
 
 	void Spectrum::setWindowSize(std::size_t size)
 	{
-		state.newWindowSize.store(getValidWindowSize(size), std::memory_order_release);
+		state.newWindowSize = getValidWindowSize(size);
 		flags.initiateWindowResize = true;
 	}
 
