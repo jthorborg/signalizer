@@ -35,7 +35,7 @@
 #ifndef SIGNALIZER_CONFIGURATION_SIGNALIZER_H
 	#define SIGNALIZER_CONFIGURATION_SIGNALIZER_H
 
-	#include <cpl/CAudioStream.h>
+	#include <cpl/AudioStream.h>
 	#include <cpl/infrastructure/parameters/ParameterSystem.h>
 	#include <cpl/infrastructure/values/Values.h>
 
@@ -57,7 +57,7 @@
 		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
 		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
 
-		typedef cpl::CAudioStream<AFloat, 256> AudioStream;
+		typedef cpl::AudioStream<AFloat, 256> AudioStream;
 
 		static constexpr int MaxInputChannels = 16;
 

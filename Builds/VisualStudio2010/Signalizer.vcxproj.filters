@@ -2252,6 +2252,9 @@
     <ClInclude Include="..\..\Source\Common\MixGraphListener.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

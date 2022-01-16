@@ -37,11 +37,22 @@ namespace Signalizer
 	static std::atomic_int globalVersion;
 
 
-	HostGraph::HostGraph(std::shared_ptr<AudioStream>& realtime, AudioStream& presentation)
-		: mix(realtime, presentation)
+	HostGraph::HostGraph(std::shared_ptr<AudioStream::Output>& realtime)
+		: mix(MixGraphListener::create(realtime))
 		, name("unnamed")
 	{
 		broadcastCreate(GraphLock(staticMutex));
+	}
+
+	std::shared_ptr<AudioStream::Output> HostGraph::getHostPresentation()
+	{
+		return mix->presentationOutput;
+	}
+
+	std::shared_ptr<const ConcurrentConfig> HostGraph::getConcurrentConfig()
+	{
+		// alias the config to the lifetime of the mix
+		return std::shared_ptr<const ConcurrentConfig>(mix, &mix->getConcurrentConfig());
 	}
 
 	HostGraph::~HostGraph()
@@ -169,7 +180,7 @@ namespace Signalizer
 					n->name,
 					static_cast<int>(offset),
 					static_cast<int>(m.connections.size() - offset),
-					static_cast<int>(n->mix.realtime->getInfo().anticipatedChannels.load()),
+					static_cast<int>(n->getNumChannels()),
 					n->version
 				}
 			);
@@ -340,7 +351,7 @@ namespace Signalizer
 
 		CPL_RUNTIME_ASSERTION(topology.size() == 0);
 
-		PinInt numChannels = static_cast<PinInt>(mix.realtime->getInfo().anticipatedChannels.load());
+		PinInt numChannels = getNumChannels();
 
 		if (numChannels > 0)
 		{
@@ -359,7 +370,8 @@ namespace Signalizer
 
 	int HostGraph::getNumChannels() const
 	{
-		return mix.realtime->getInfo().anticipatedChannels.load(std::memory_order_acquire);
+		return 2; // TODO: Fix
+		//return mix.realtime->getInfo().anticipatedChannels;
 	}
 
 	bool HostGraph::hasSerializedRepresentation() const
@@ -369,15 +381,15 @@ namespace Signalizer
 
 	void HostGraph::submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&)
 	{
-		mix.connect(
-			resolve(h)->mix.realtime, pair
+		mix->connect(
+			resolve(h)->mix->realtime, pair
 		);
 	}
 
 	void HostGraph::submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&)
 	{
-		mix.disconnect(
-			resolve(h)->mix.realtime, pair
+		mix->disconnect(
+			resolve(h)->mix->realtime, pair
 		);
 	}
 

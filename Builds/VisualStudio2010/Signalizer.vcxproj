@@ -353,6 +353,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Common\CommonSignalizer.h" />
+    <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h" />
     <ClInclude Include="..\..\Source\Common\HostGraph.h" />
     <ClInclude Include="..\..\Source\Common\MixGraphListener.h" />
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />

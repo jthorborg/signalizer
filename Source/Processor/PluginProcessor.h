@@ -62,7 +62,6 @@
 
 			//==============================================================================
 			void prepareToPlay(double sampleRate, int samplesPerBlock) override;
-			void internalPrepareToPlay(int samplesPerBlock, double sampleRate);
 			void releaseResources() override ;
 
 			void processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages) override;
@@ -106,9 +105,11 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
-			AudioStream& getPresentationStream() { return endpointStream; }
 			HostGraph& getHostGraph() { return graph; }
+
 		private:
+
+			AudioProcessor(AudioStream::IO&& io);
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
 			virtual void automatedBeginChangeGesture(int parameter) override;
@@ -116,8 +117,8 @@
 
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
-			AudioStream endpointStream;
-			std::shared_ptr<AudioStream> realtimeStream;
+
+			AudioStream::Input realtimeInput;
 
 			bool hasEverBeenHostDeserialized{};
 			int nChannels;

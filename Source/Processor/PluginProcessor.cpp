@@ -41,9 +41,14 @@ namespace Signalizer
 	extern std::string DefaultPresetName;
 
 	AudioProcessor::AudioProcessor()
-		: endpointStream(16, true)
-		, realtimeStream(std::make_shared<AudioStream>(16, true))
-		, graph(realtimeStream, endpointStream)
+		: AudioProcessor(AudioStream::create(true, 16))
+	{
+
+	}
+
+	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
+		: realtimeInput(std::move(std::get<0>(io)))
+		, graph(std::move(std::get<1>(io)))
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
@@ -55,7 +60,7 @@ namespace Signalizer
 		{
 			parameterMap.insert({
 				ParameterCreationList[i].first,
-				ParameterCreationList[i].second(parameterMap.numParams(), false, { endpointStream, *this })
+				ParameterCreationList[i].second(parameterMap.numParams(), { graph.getHostPresentation(), *this, graph.getConcurrentConfig() })
 			});
 		}
 
@@ -85,23 +90,14 @@ namespace Signalizer
 		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
 		// TODO: convert them to be invariant.
 
-		AudioStream::AudioStreamInfo info = realtimeStream->getInfo();
-
-		info.anticipatedChannels = nChannels;
-		info.anticipatedSize = 512;
-		info.callAsyncListeners = true;
-		info.callRTListeners = false;
-		info.sampleRate = 48000;
-		info.storeAudioHistory = false;
-
-		realtimeStream->initializeInfo(info);
-
-		info.storeAudioHistory = true;
-
-		endpointStream.initializeInfo(info);
-
-		internalPrepareToPlay(48000, 512);
-		endpointStream.setAudioHistorySizeAndCapacity(48000, 48000);
+		realtimeInput.initializeInfo(
+			[&](AudioStream::ProducerInfo& info) 
+			{
+				info.channels = nChannels;
+				info.anticipatedSize = 512;
+				info.sampleRate = 48000;
+			}
+		);
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -127,29 +123,17 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
-		internalPrepareToPlay(samplesPerBlock, sampleRate);
+		realtimeInput.initializeInfo(
+			[&](AudioStream::ProducerInfo& info)
+			{
+				info.channels = nChannels;
+				info.anticipatedSize = samplesPerBlock;
+				info.sampleRate = sampleRate;
+			}
+		);
 
 		if (!hasEverBeenHostDeserialized)
 			graph.applyDefaultLayoutFromRuntime();
-	}
-
-	void AudioProcessor::internalPrepareToPlay(int samplesPerBlock, double sampleRate)
-	{
-		AudioStream::AudioStreamInfo info = realtimeStream->getInfo();
-
-		info.anticipatedChannels = nChannels;
-		info.anticipatedSize = samplesPerBlock;
-		info.callAsyncListeners = true;
-		info.callRTListeners = false;
-		info.sampleRate = sampleRate;
-		info.storeAudioHistory = false;
-
-		realtimeStream->initializeInfo(info);
-
-		for (int i = 0; i < nChannels; ++i)
-		{
-			endpointStream.enqueueChannelName(i, "Channel " + std::to_string(i));
-		}
 	}
 
 	void AudioProcessor::releaseResources()
@@ -158,19 +142,16 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
-
 		if (nChannels != buffer.getNumChannels())
 		{
 			// woah, what?
 			CPL_BREAKIFDEBUGGED();
 		}
-		// stream will take it from here.
-
 
 		if(auto ph = getPlayHead())
-			realtimeStream->processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
 		else
-			realtimeStream->processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+			realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't

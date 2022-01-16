@@ -42,6 +42,8 @@
 	#include <vector>
 	#include <optional>
 	#include "SignalizerConfiguration.h"
+	#include <memory>
+	#include "ConcurrentConfig.h"
 
 	namespace Signalizer
 	{
@@ -147,29 +149,30 @@
 		};
 
 		
-		class MixGraphListener
+		class MixGraphListener : public AudioStream::Listener, private std::enable_shared_from_this<MixGraphListener>
 		{
 		public:
 			friend class HostGraph;
 
-			MixGraphListener(std::shared_ptr<AudioStream> realtimeStream, AudioStream& presentation);
+			static std::shared_ptr<MixGraphListener> create(std::shared_ptr<AudioStream::Output> realtimeStream);
 
-			void connect(std::shared_ptr<AudioStream>& stream, DirectedPortPair pair);
-			void disconnect(std::shared_ptr<AudioStream>& stream, DirectedPortPair pair);
-			void setExpectedBufferSize(std::size_t bufferSize);
+			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
+			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
+			const ConcurrentConfig& getConcurrentConfig() const noexcept;
 
 		private:
-			
+
+			MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output> realtimeStream, AudioStream::IO&& presentation);
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 
 			struct ConnectionCommand
 			{
-				std::shared_ptr<AudioStream> stream;
+				std::shared_ptr<AudioStream::Output> stream;
 				DirectedPortPair pair;
 				bool isConnection;
 			};
 
-			struct State : AudioStream::Listener
+			struct State
 			{
 				struct Channel
 				{
@@ -182,53 +185,31 @@
 				std::int64_t endpoint{};
 				std::int64_t offset{};
 				std::int32_t refCount;
-				MixGraphListener& parent;
-				// retain the source.
-				std::shared_ptr<AudioStream> source;
+				// retain the source. TODO: really?
+				std::shared_ptr<AudioStream::Output> source;
 
 				State(const State& other) = delete;
 				State(State&& other) = default;
 				State& operator = (State&& other) = default;
-
-				State(MixGraphListener& parent, std::shared_ptr<AudioStream>& source)
-					: parent(parent), source(source), refCount(1)
-				{
-					// TODO: can deadlock - need to only try a bit, then bail out
-					listenToSource(*source.get(), false, 1000);
-				}
-
-				virtual void onAsyncChangedProperties(const Stream& as, const typename Stream::AudioStreamInfo& before)
-				{
-					CPL_RUNTIME_ASSERTION(&as == source.get());
-					parent.asyncPropertiesChanged(*this, as);
-				}
-
-				virtual bool onAsyncAudio(const AudioStream& as, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override
-				{
-					CPL_RUNTIME_ASSERTION(&as == source.get());
-					parent.onAsyncAudio(*this, buffer, numChannels, numSamples, as.getASyncPlayhead().getPositionInSamples());
-					return false;
-				}
-
-				~State()
-				{
-					detachFromSource();
-				}
 			};
 
-			auto emplace(std::shared_ptr<AudioStream>& stream);
+			auto emplace(std::shared_ptr<AudioStream::Output>& stream);
 
-			void handleStructuralChange(double sampleRate, std::size_t numSamples);
-			void deliver(std::size_t numSamples);
-			void asyncPropertiesChanged(State& s, const AudioStream& source);
-			void onAsyncAudio(State& s, AFloat** buffer, std::size_t numChannels, std::size_t numSamples, std::int64_t globalPosition);
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override final;
+			void onStreamAudio(AudioStream::ListenerContext& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override final;
+			void onStreamDied(AudioStream::ListenerContext& dyingSource) override final;
+
+			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples);
+			void deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples);
 
 			void updateTopologyCommands();
+			void assignSelf();
 
-			std::map<const AudioStream*, State> graph;
+			std::map<AudioStream::Handle, State> graph;
 			std::size_t initialSampleCapacity {};
-			std::shared_ptr<AudioStream> realtime;
-			AudioStream& presentation;
+			std::shared_ptr<AudioStream::Output> realtime;
+			AudioStream::Input presentationInput;
+			std::shared_ptr<AudioStream::Output> presentationOutput;
 			State* self;
 			std::shared_mutex dataMutex;
 
@@ -238,7 +219,8 @@
 			AuxMatrix matrix;
 			std::atomic_bool structuralChange;
 			std::atomic_bool enabled;
-			std::atomic_size_t maximumLatency;
+			cpl::weak_atomic<std::size_t> maximumLatency;
+			ConcurrentConfig concurrentConfig;
 		};
 	}
 

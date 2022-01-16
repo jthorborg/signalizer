@@ -33,26 +33,69 @@
 namespace Signalizer
 {
 
-	auto MixGraphListener::emplace(std::shared_ptr<AudioStream>& stream)
+	auto MixGraphListener::emplace(std::shared_ptr<AudioStream::Output>& stream)
 	{
-		return graph.emplace(
-			std::piecewise_construct,
-			std::forward_as_tuple(stream.get()),
-			std::forward_as_tuple(*this, stream)
-		).first;
+		auto its = graph.emplace(stream->getHandle());
+		if (its.second)
+		{
+			its.first->second.source = stream;
+			stream->addListener(shared_from_this());
+		}
+		else
+		{
+			CPL_RUNTIME_ASSERTION(false && "Graph already contained stream?");
+		}
+
+		return its.first;
 	}
 
-	MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream> realtimeStream, AudioStream& presentation)
-		: realtime(std::move(realtimeStream))
-		, presentation(presentation)
-		, structuralChange(false)
-		, enabled(true)
+	void MixGraphListener::assignSelf()
 	{
-		setExpectedBufferSize(realtime->getInfo().anticipatedSize);
 		self = &emplace(realtime)->second;
 	}
 
-	void MixGraphListener::connect(std::shared_ptr<AudioStream>& other, DirectedPortPair pair)
+	const ConcurrentConfig& MixGraphListener::getConcurrentConfig() const noexcept
+	{
+		return concurrentConfig;
+	}
+
+
+	void MixGraphListener::onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo&)
+	{
+		if (changedSource.getHandle() == realtime->getHandle())
+		{
+			const auto& info = changedSource.getInfo();
+			maximumLatency = std::max<std::size_t>(128, info.anticipatedSize * 2);
+			structuralChange = true;
+			concurrentConfig.bpm = changedSource.getPlayhead().getBPM();
+			concurrentConfig.numChannels = info.channels;
+			concurrentConfig.sampleRate = info.sampleRate;
+		}
+	}
+
+	void MixGraphListener::onStreamDied(AudioStream::ListenerContext& dyingSource)
+	{
+	}
+
+	MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output> realtimeStream, AudioStream::IO&& presentation)
+		: realtime(std::move(realtimeStream))
+		, presentationInput(std::move(std::get<0>(presentation)))
+		, presentationOutput(std::move(std::get<1>(presentation)))
+		, structuralChange(false)
+		, enabled(true)
+	{
+	}
+
+	std::shared_ptr<MixGraphListener> MixGraphListener::create(std::shared_ptr<AudioStream::Output> realtimeStream)
+	{
+		auto io = AudioStream::create(false);
+
+		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(std::move(realtimeStream), std::move(io)));
+		mixGraph->assignSelf();
+		return mixGraph;
+	}
+
+	void MixGraphListener::connect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair)
 	{
 		// mix graph listener can't be destroyed while this is happening.
 		std::lock_guard<std::mutex> lock(connectDisconnectMutex);
@@ -61,7 +104,7 @@ namespace Signalizer
 		connectionCommands.emplace_back(ConnectionCommand{ other, pair, true });
 	}
 
-	void MixGraphListener::disconnect(std::shared_ptr<AudioStream>& other, DirectedPortPair pair)
+	void MixGraphListener::disconnect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair)
 	{
 		// mix graph listener can't be destroyed while this is happening.
 		std::lock_guard<std::mutex> lock(connectDisconnectMutex);
@@ -69,14 +112,10 @@ namespace Signalizer
 		connectionCommands.emplace_back(ConnectionCommand{ other, pair, false });
 	}
 
-	void MixGraphListener::setExpectedBufferSize(std::size_t bufferSize)
+	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
-		maximumLatency.store(std::max<std::size_t>(128, bufferSize * 2), std::memory_order_release);
-	}
+		auto& realInfo = ctx.getInfo();
 
-
-	void MixGraphListener::handleStructuralChange(double sampleRate, std::size_t numSamples)
-	{
 		if (structuralChange)
 		{
 			PinInt maxDestinationPort = -1;
@@ -97,11 +136,14 @@ namespace Signalizer
 
 			matrix.resizeChannels(maxDestinationPort);
 
-			auto info = presentation.getInfo();
-			info.anticipatedChannels = maxDestinationPort;
-			info.sampleRate = sampleRate;
+			presentationInput.initializeInfo(
+				[&](AudioStream::ProducerInfo & info)
+				{
+					info.channels = maxDestinationPort;
+					info.sampleRate = realInfo.sampleRate;
+				}
+			);
 
-			presentation.initializeInfo(info);
 
 			structuralChange = false;
 		}
@@ -109,11 +151,11 @@ namespace Signalizer
 		matrix.softBufferResize(numSamples);
 	}
 
-	void MixGraphListener::deliver(std::size_t numSamples)
+	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
 		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
-		handleStructuralChange(realtime->getInfo().sampleRate, numSamples);
+		handleStructuralChange(ctx, numSamples);
 
 		// no channels to show
 		if (matrix.size() < 1)
@@ -176,28 +218,22 @@ namespace Signalizer
 			state.current.store(currentG, std::memory_order_release);
 		}
 
-		// TODO: Run this in place without async thread.
 		// TODO: don't copy into a matrix, rig a provider from the read heads instead
-		presentation.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, realtime->getASyncPlayhead());
+		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, ctx.getPlayhead());
 	}
 
-	void MixGraphListener::asyncPropertiesChanged(State& s, const AudioStream& source)
+	void MixGraphListener::onStreamAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (&source == realtime.get())
-		{
-			setExpectedBufferSize(realtime->getInfo().anticipatedSize);
-			structuralChange = true;
-		}
-	}
-
-	void MixGraphListener::onAsyncAudio(State& s, AFloat** buffer, std::size_t numChannels, std::size_t numSamples, std::int64_t globalPosition)
-	{
-		const auto localMaxLatency = maximumLatency.load(std::memory_order_acquire);
+		const auto localMaxLatency = maximumLatency.load();
 		const auto maxBufferSize = localMaxLatency * 8;
+		const auto globalPosition = ctx.getPlayhead().getPositionInSamples();
+		const auto&& handle = ctx.getHandle();
 
 		if (enabled)
 		{
 			std::shared_lock<std::shared_mutex> lock(dataMutex);
+
+			auto& s = graph[handle];
 
 			s.globalPosition = globalPosition;
 			s.endpoint = globalPosition + numSamples;
@@ -216,29 +252,19 @@ namespace Signalizer
 					.copyIntoHead(buffer[q.first.Source], numSamples);
 			}
 
-			/*for (std::size_t i = 0; i < numChannels; ++i)
-			{
-				s
-					.channelQueues[i]
-					.buffer
-					.createWriter()
-					.copyIntoHead(buffer[i], numSamples);
-			} */
-
 			const auto currentContained = s.current.load(std::memory_order_acquire) + numSamples;
-
 			s.current.store(std::min(currentContained, maxBufferSize), std::memory_order_release);
 		}
 
 
-		if (&s == self)
+		if (handle == realtime->getHandle())
 		{
 			updateTopologyCommands();
 
 			if (!enabled || graph.empty())
 				return;
 
-			const auto hostSamples = s.current.load(std::memory_order_acquire);
+			const auto hostSamples = self->current.load(std::memory_order_acquire);
 			auto min = hostSamples;
 
 			if (min == 0)
@@ -282,7 +308,7 @@ namespace Signalizer
 
 			if (min > 0)
 			{
-				deliver(min);
+				deliver(ctx, min);
 			}
 		}
 	}
@@ -308,7 +334,7 @@ namespace Signalizer
 		for (auto& command : localNewToplogy)
 		{
 			const auto key = command.stream.get();
-			auto it = graph.find(key);
+			auto it = graph.find(key->getHandle());
 
 			if (it == graph.end())
 			{
@@ -337,4 +363,5 @@ namespace Signalizer
 			}
 		}
 	}
+
 }

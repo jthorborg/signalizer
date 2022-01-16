@@ -114,8 +114,9 @@
 				Version previousVersion{};
 			};
 
-
-			HostGraph(std::shared_ptr<AudioStream>& realtime, AudioStream& presentation);
+			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
+			std::shared_ptr<AudioStream::Output> getHostPresentation();
+			HostGraph(std::shared_ptr<AudioStream::Output>& realtime);
 			~HostGraph();
 
 			void addModelListener(std::weak_ptr<juce::AsyncUpdater> callback);
@@ -202,7 +203,7 @@
 			std::vector<HHandle> pinInputs;
 			Topology topology;
 			std::weak_ptr<juce::AsyncUpdater> modelChangedCallback;
-			MixGraphListener mix;
+			std::shared_ptr<MixGraphListener> mix;
 			std::size_t expectedNodesToResurrect = 0;
 			int version = 0;
 		};

@@ -35,6 +35,7 @@
 	#include <complex>
 	#include "SignalizerConfiguration.h"
 	#include <cpl/lib/weak_atomic.h>
+	#include "ConcurrentConfig.h"
 
 	namespace Signalizer
 	{
@@ -73,18 +74,20 @@
 		{
 		public:
 
-			SystemView(AudioStream & audioStream, ParameterSet::AutomatedProcessor & automatedProcessor)
-				: stream(audioStream), processor(automatedProcessor)
+			SystemView(std::shared_ptr<AudioStream::Output> audioStream, ParameterSet::AutomatedProcessor& automatedProcessor, std::shared_ptr<const ConcurrentConfig> config)
+				: stream(std::move(audioStream)), processor(automatedProcessor), config(std::move(config))
 			{
 
 			}
 
-			ParameterSet::AutomatedProcessor & getProcessor() noexcept { return processor; }
-			AudioStream & getAudioStream() noexcept { return stream; }
+			ParameterSet::AutomatedProcessor& getProcessor() noexcept { return processor; }
+			AudioStream::Output& getAudioStream() noexcept { return *stream; }
+			std::shared_ptr<const ConcurrentConfig>& getConcurrentConfig() noexcept { return config; }
 
 		private:
-			AudioStream & stream;
-			ParameterSet::AutomatedProcessor & processor;
+			std::shared_ptr<const ConcurrentConfig> config;
+			std::shared_ptr<AudioStream::Output> stream;
+			ParameterSet::AutomatedProcessor& processor;
 		};
 
 		struct ChoiceParameter
@@ -105,7 +108,6 @@
 			: public ParameterView::ParameterType::Transformer
 			, public ParameterView::ParameterType::Formatter
 			, public cpl::CSerializer::Serializable
-			, protected AudioStream::Listener
 		{
 		public:
 
@@ -123,8 +125,8 @@
 				Exponential
 			};
 
-			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Milliseconds)
-				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
+			AudioHistoryTransformatter(Mode mode = Milliseconds)
+				: param(nullptr), m(mode), lastCapacity(0)
 			{
 
 			}
@@ -141,8 +143,8 @@
 
 			void initialize(ParameterView & view)
 			{
+				// TODO: This can leave scope before us.
 				param = &view;
-				listenToSource(stream, true);
 			}
 
 			void serialize(cpl::CSerializer::Archiver & ar, cpl::Version v) override
@@ -158,28 +160,21 @@
 				lastCapacity = val;
 			}
 
-			~AudioHistoryTransformatter()
-			{
-				detachFromSource();
-			}
-
-		protected:
-
-			virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
+			void onStreamPropertiesChanged(const AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before)
 			{
 				// TODO: what if oldCapacity == 0?
 				const auto oldFraction = param->getValueNormalized();
 				auto oldCapacity = lastCapacity;
-				auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
+				auto beforeCapacity = before.audioHistoryCapacity;
 				if (oldCapacity == 0)
 					oldCapacity = beforeCapacity;
 
-				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
+				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity;
 
 				if (newCapacity > 0)
 					lastCapacity = newCapacity;
 
-				if(oldCapacity == 0 || newCapacity == 0)
+				if (oldCapacity == 0 || newCapacity == 0)
 				{
 					param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
@@ -191,6 +186,8 @@
 						param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
 			}
+			
+		protected:
 
 			virtual bool format(const ValueType & val, std::string & buf) override
 			{
@@ -198,7 +195,7 @@
 
 				if (m == Milliseconds)
 				{
-					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
+					sprintf_s(buffer, "%.2f ms", 1000 * val / sampleRate);
 				}
 				else
 				{
@@ -213,7 +210,6 @@
 			{
 				ValueType collectedValue;
 
-
 				if (cpl::lexicalConversion(buf, collectedValue))
 				{
 					bool notSamples = true;
@@ -224,7 +220,7 @@
 						{
 							collectedValue /= 1000;
 						}
-						collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+						collectedValue *= sampleRate;
 					}
 					else
 					{
@@ -232,7 +228,7 @@
 						if (m == Milliseconds && notSamples)
 						{
 							collectedValue /= 1000;
-							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+							collectedValue *= sampleRate;
 						}
 					}
 
@@ -242,12 +238,11 @@
 				}
 
 				return false;
-
 			}
 
 			virtual ValueType transform(ValueType val) const noexcept override
 			{
-				auto samples = std::round(val * stream.getAudioHistoryCapacity());
+				auto samples = std::round(val * lastCapacity);
 
 				/* if (m == Milliseconds)
 				{
@@ -268,20 +263,20 @@
 					val *= 1000;
 				} */
 
-				return val / stream.getAudioHistoryCapacity();
+				return val / lastCapacity;
 			}
 
-			ParameterView * param;
-			AudioStream & stream;
+			ParameterView* param;
 			Mode m;
 			/// <summary>
 			/// Represents the last capacity change we were informated about,
 			/// and thus currently represents the magnitude scale of the fraction.
 			/// </summary>
 			cpl::relaxed_atomic<std::uint64_t> lastCapacity;
+			cpl::relaxed_atomic<double> sampleRate;
 		};
 
-		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
+		typedef std::shared_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, SystemView& system);
 
 		enum class OscChannels
 		{
@@ -679,7 +674,7 @@
 
 		struct ParameterMap
 		{
-			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)
+			void insert(std::pair<std::string, std::shared_ptr<ProcessorState>> entry)
 			{
 				parameterSets.push_back(&entry.second->getParameterSet());
 				map.emplace_back(std::move(entry));
@@ -694,6 +689,7 @@
 				CPL_RUNTIME_EXCEPTION("Parameter index from host is out of bounds");
 			}
 
+			// TODO: Move these into private access?
 			ParameterSet * getSet(const std::string & s) noexcept
 			{
 				for (std::size_t i = 0; i < map.size(); ++i)
@@ -710,21 +706,20 @@
 				return parameterSets[i];
 			}
 
-			ProcessorState * getState(std::size_t i) noexcept
+			std::shared_ptr<ProcessorState>& getState(std::size_t i) noexcept
 			{
-				return map[i].second.get();
+				return map[i].second;
 			}
 
-
-			ProcessorState * getState(const std::string & s) noexcept
+			std::shared_ptr<ProcessorState>& getState(const std::string & s) noexcept
 			{
 				for (std::size_t i = 0; i < map.size(); ++i)
 				{
 					if (map[i].first == s)
-						return map[i].second.get();
+						return map[i].second;
 				}
 
-				return nullptr;
+				return {};
 			}
 
 			std::size_t numSetsAndState() const noexcept
@@ -743,7 +738,7 @@
 		private:
 
 			std::vector<ParameterSet *> parameterSets;
-			std::vector<std::pair<std::string, std::unique_ptr<ProcessorState>>> map;
+			std::vector<std::pair<std::string, std::shared_ptr<ProcessorState>>> map;
 		};
 
 		template<typename NameVector, typename ColourVector>
@@ -772,7 +767,6 @@
 
 			arrangement.draw(g);
 
-
 			for (std::size_t i = 0; i < count; ++i)
 			{
 				auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
@@ -780,16 +774,8 @@
 				g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 2.0f);
 			}
 		}
-
-		class GraphListener
-		{
-			virtual void onGraphAudio(const AudioStream& primarySource, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) = 0;
-
-			virtual ~GraphListener() {}
-		};
-
-
 	};
+
 	namespace std
 	{
 		template<typename T>
