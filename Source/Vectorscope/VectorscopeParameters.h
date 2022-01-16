@@ -21,7 +21,7 @@
  
 **************************************************************************************
  
-	file:VectorScope.h
+	file:VectorscopeParameters.h
 
 		Interface for the vectorscope view parameters
  
@@ -38,13 +38,13 @@
 		class VectorScopeContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
+			, public AudioStream::Listener
+			, public std::enable_shared_from_this<VectorScopeContent>
 		{
-		public:
 
-			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-				: systemView(system)
-				, parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Milliseconds)
+			VectorScopeContent(std::size_t offset, SystemView& system)
+				: parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
+				, audioHistoryTransformatter(audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
@@ -105,6 +105,16 @@
 				postParameterInitialization();
 			}
 
+		public:
+
+			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
+			{
+				std::shared_ptr<VectorScopeContent> ptr(new VectorScopeContent(parameterOffset, system));
+				system.getAudioStream().addListener(ptr);
+
+				return ptr;
+			}
+
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 
 			virtual ParameterSet & getParameterSet() override
@@ -157,7 +167,6 @@
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
-			SystemView systemView;
 			ParameterSet parameterSet;
 
 			cpl::UnitFormatter<double>
@@ -215,6 +224,12 @@
 			{
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
 			}
+
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override
+			{
+				audioHistoryTransformatter.onStreamPropertiesChanged(changedSource, before);
+			}
+
 		};
 	
 	};

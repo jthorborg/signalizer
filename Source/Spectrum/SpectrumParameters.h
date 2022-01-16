@@ -38,7 +38,11 @@
 		class SpectrumContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
+			, public AudioStream::Listener
+			, public std::enable_shared_from_this<SpectrumContent>
 		{
+			typedef AudioHistoryTransformatter<ParameterSet::ParameterView> AudioTransformatter;
+
 		public:
 
 			enum LineGraphs
@@ -75,11 +79,19 @@
 			// the maximum level of dbs to display
 			static constexpr double kMaxDbs = 24 * 4;
 
-			SpectrumContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-				: systemView(system)
-				, parameterSet("Spectrum", "SC.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Samples)
+			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
+			{
+				std::shared_ptr<SpectrumContent> ptr(new SpectrumContent(parameterOffset, system));
+				system.getAudioStream().addListener(ptr);
 
+				return ptr;
+			}
+
+		private:
+
+			SpectrumContent(std::size_t offset, SystemView& system)
+				: parameterSet("Spectrum", "SC.", system.getProcessor(), static_cast<int>(offset))
+				, audioHistoryTransformatter(AudioTransformatter::Samples)
 				, dynamicRange(kMinDbs, kMaxDbs)
 				, literalDBFormatter("dB")
 				, reverseUnitRange(1, 0)
@@ -205,6 +217,8 @@
 
 			}
 
+		public:
+
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 
 			virtual ParameterSet & getParameterSet() override
@@ -306,12 +320,10 @@
 				}
 			}
 
-			SystemView systemView;
 			ParameterSet parameterSet;
-			Signalizer::AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
+			AudioTransformatter audioHistoryTransformatter;
 
 			typedef cpl::ParameterValue<ParameterSet::ParameterView> Parameter;
-
 
 
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView> dspWin;
@@ -396,6 +408,11 @@
 			void postParameterInitialization()
 			{
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
+			}
+
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override
+			{
+				audioHistoryTransformatter.onStreamPropertiesChanged(changedSource, before);
 			}
 		};
 

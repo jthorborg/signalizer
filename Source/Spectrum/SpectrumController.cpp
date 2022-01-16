@@ -39,8 +39,8 @@ namespace Signalizer
 	{
 	public:
 
-		SpectrumController(SpectrumContent & parentValue)
-			: parent(parentValue)
+		SpectrumController(SpectrumContent& parentValue, std::shared_ptr<SpectrumContent>&& shared)
+			: parent(std::move(shared))
 			, kdspWin(&parentValue.dspWin)
 			, kslope(&parentValue.slope)
 					
@@ -118,14 +118,14 @@ namespace Signalizer
 
 		~SpectrumController()
 		{
-			parent.algorithm.param.removeListener(this);
-			parent.displayMode.param.removeListener(this);
+			parent->algorithm.param.removeListener(this);
+			parent->displayMode.param.removeListener(this);
 			notifyDestruction();
 		}
 
 		virtual void valueEntityChanged(ValueEntityListener * sender, cpl::ValueEntityBase * value) override
 		{
-			if (value == &parent.displayMode.param || value == &parent.algorithm.param)
+			if (value == &parent->displayMode.param || value == &parent->algorithm.param)
 			{
 				setTransformOptions();
 			}
@@ -133,8 +133,8 @@ namespace Signalizer
 
 		void setTransformOptions()
 		{
-			auto algo = cpl::enum_cast<SpectrumContent::TransformAlgorithm>(parent.algorithm.param.getTransformedValue());
-			auto dispMode = cpl::enum_cast<SpectrumContent::DisplayMode>(parent.displayMode.param.getTransformedValue());
+			auto algo = cpl::enum_cast<SpectrumContent::TransformAlgorithm>(parent->algorithm.param.getTransformedValue());
+			auto dispMode = cpl::enum_cast<SpectrumContent::DisplayMode>(parent->displayMode.param.getTransformedValue());
 
 			if (algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
@@ -168,8 +168,8 @@ namespace Signalizer
 
 		void initControls()
 		{
-			parent.algorithm.param.addListener(this);
-			parent.displayMode.param.addListener(this);
+			parent->algorithm.param.addListener(this);
+			parent->displayMode.param.addListener(this);
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
@@ -484,7 +484,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}
@@ -501,7 +501,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
@@ -545,7 +545,7 @@ namespace Signalizer
 		cpl::CPresetWidget presetManager;
 		cpl::CButton kdiagnostics, kfreeQ;
 
-		SpectrumContent & parent;
+		std::shared_ptr<SpectrumContent> parent;
 
 		SSOSurrogate<SpectrumController>
 			editorSerializer,
@@ -555,6 +555,6 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> SpectrumContent::createEditor()
 	{
-		return std::make_unique<SpectrumController>(*this);
+		return std::make_unique<SpectrumController>(*this, shared_from_this());
 	}
 }

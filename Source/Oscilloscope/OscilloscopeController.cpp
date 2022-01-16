@@ -39,8 +39,8 @@ namespace Signalizer
 	{
 	public:
 
-		OscilloscopeController(OscilloscopeContent & parentValue)
-			: parent(parentValue)
+		OscilloscopeController(OscilloscopeContent& parentValue, std::shared_ptr<OscilloscopeContent>&& shared)
+			: parent(std::move(shared))
 			, kantiAlias(&parentValue.antialias)
 			, kdiagnostics(&parentValue.diagnostics)
 			, kwindow(&parentValue.windowSize)
@@ -91,8 +91,8 @@ namespace Signalizer
 			initControls();
 			initUI();
 
-			parent.getParameterSet().addUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
-			parent.getParameterSet().addUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().addUIListener(parent->timeMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().addUIListener(parent->triggerMode.param.getParameterView().getHandle(), this);
 
 			enforceTriggeringModeCompability();
 		}
@@ -100,15 +100,15 @@ namespace Signalizer
 
 		void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 		{
-			if(parameter == &parent.timeMode.param.getParameterView())
+			if(parameter == &parent->timeMode.param.getParameterView())
 				enforceTriggeringModeCompability();
 		}
 
 		void enforceTriggeringModeCompability()
 		{
-			if (parent.timeMode.param.getAsTEnum<OscilloscopeContent::TimeMode>() == OscilloscopeContent::TimeMode::Cycles)
+			if (parent->timeMode.param.getAsTEnum<OscilloscopeContent::TimeMode>() == OscilloscopeContent::TimeMode::Cycles)
 			{
-				for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+				for (int i = 0; i < parent->triggerMode.tsf.getQuantization(); ++i)
 				{
 					ktriggerMode.setEnabledStateFor(i, i == cpl::enum_cast<int>(OscilloscopeContent::TimeMode::Cycles));
 				}
@@ -117,7 +117,7 @@ namespace Signalizer
 			}
 			else
 			{
-				for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+				for (int i = 0; i < parent->triggerMode.tsf.getQuantization(); ++i)
 				{
 					ktriggerMode.setEnabledStateFor(i, true);
 				}
@@ -129,8 +129,8 @@ namespace Signalizer
 
 		~OscilloscopeController()
 		{
-			parent.getParameterSet().removeUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
-			parent.getParameterSet().removeUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().removeUIListener(parent->timeMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().removeUIListener(parent->triggerMode.param.getParameterView().getHandle(), this);
 			notifyDestruction();
 		}
 
@@ -441,7 +441,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
@@ -455,8 +455,7 @@ namespace Signalizer
 		cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 		cpl::CPresetWidget kpresets;
 
-		OscilloscopeContent & parent;
-
+		std::shared_ptr<OscilloscopeContent> parent;
 		SSOSurrogate<OscilloscopeController>
 			editorSerializer,
 			valueSerializer;
@@ -464,7 +463,7 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> OscilloscopeContent::createEditor()
 	{
-		return std::make_unique<OscilloscopeController>(*this);
+		return std::make_unique<OscilloscopeController>(*this, shared_from_this());
 	}
 
 };

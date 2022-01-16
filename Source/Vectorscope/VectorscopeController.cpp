@@ -38,8 +38,8 @@ namespace Signalizer
 	{
 	public:
 
-		VectorScopeController(VectorScopeContent & parentValue)
-			: parent(parentValue)
+		VectorScopeController(VectorScopeContent& parentValue, std::shared_ptr<VectorScopeContent>&& shared)
+			: parent(std::move(shared))
 			, kantiAlias(&parentValue.antialias)
 			, kfadeOld(&parentValue.fadeOlderPoints)
 			, kdrawLines(&parentValue.interconnectSamples)
@@ -257,7 +257,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}
@@ -274,7 +274,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
@@ -285,7 +285,7 @@ namespace Signalizer
 		cpl::CValueComboBox kopMode, kenvelopeMode;
 		cpl::CPresetWidget kpresets;
 
-		VectorScopeContent & parent;
+		std::shared_ptr<VectorScopeContent> parent;
 
 		SSOSurrogate<VectorScopeController>
 			editorSerializer,
@@ -295,7 +295,7 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> VectorScopeContent::createEditor()
 	{
-		return std::make_unique<VectorScopeController>(*this);
+		return std::make_unique<VectorScopeController>(*this, shared_from_this());
 	}
 
 };
