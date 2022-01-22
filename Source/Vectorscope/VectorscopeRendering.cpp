@@ -57,7 +57,6 @@ namespace Signalizer
 
 	void VectorScope::paint2DGraphics(juce::Graphics & g)
 	{
-
 		auto cStart = cpl::Misc::ClockCounter();
 
 		if (content->diagnostics.getNormalizedValue() > 0.5)
@@ -67,14 +66,18 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed));
-			g.drawSingleLineText(textbuf.get(), 10, 20);
 
+			const auto perf = audioStream->getPerfMeasures();
+
+			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead
+			);
+
+			g.drawSingleLineText(textbuf, 10, 20);
 		}
 	}
 
@@ -138,7 +141,7 @@ namespace Signalizer
 			CPL_DEBUGCHECKGL();
             {
                 auto cStart = cpl::Misc::ClockCounter();
-                auto && lockedView = audioStream.getAudioBufferViews();
+                auto && lockedView = audioStream->getAudioBufferViews();
                 handleFlagUpdates();
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 {
@@ -152,13 +155,13 @@ namespace Signalizer
                     state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
                     // the peak filter has to run on the whole buffer each time.
-                    if (state.envelopeMode == EnvelopeModes::PeakDecay)
+                    if (processor->envelopeMode == EnvelopeModes::PeakDecay)
                     {
                         runPeakFilter<ISA>(lockedView);
                     }
-                    else if (state.envelopeMode == EnvelopeModes::None)
+                    else if (processor->envelopeMode == EnvelopeModes::None)
                     {
-                        state.envelopeGain = 1;
+						processor->envelopeGain = 1;
                     }
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
@@ -398,7 +401,7 @@ namespace Signalizer
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
-			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
+			const auto gain = static_cast<GLfloat>(processor->envelopeGain * state.userGain);
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
@@ -456,7 +459,7 @@ namespace Signalizer
 			typedef typename scalar_of<V>::type Ty;
 
 			cpl::OpenGLRendering::MatrixModification matrixMod;
-			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
+			const auto gain = static_cast<GLfloat>(processor->envelopeGain * state.userGain);
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
@@ -574,9 +577,6 @@ namespace Signalizer
 						sincos(angle, &vX, &vY);
 
 						drawer.addVertex(vX * length, vY * length, (currentSampleFade - remaindingSamples * fadePerSample));
-
-
-
 					}
 					// fractionally increase sample fade levels
 					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
@@ -710,6 +710,7 @@ namespace Signalizer
 			const float indicatorSize = 0.05f;
 
 			// remember, y / x
+			auto& filters = processor->filters;
 			float balanceQuick = std::atan(filters.balance[0][1] / filters.balance[0][0]) / (simd::consts<float>::pi * 0.5f);
 			if (!std::isnormal(balanceQuick))
 				balanceQuick = 0.5f;
@@ -775,6 +776,8 @@ namespace Signalizer
 
 			double currentEnvelope = 1;
 
+			// TODO: consider moving this inside the processor.
+
 			if (audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -785,7 +788,7 @@ namespace Signalizer
 				// (and the amount of samples)
 				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
 
-				double coeff = std::pow(state.envelopeCoeff, power);
+				double coeff = std::pow(processor->envelopeCoeff.load(), power);
 
 				// there is a number of optimisations we can do here, mostly that we actually don't care about
 				// timing, we are only interested in the current largest value in the set.
@@ -822,16 +825,15 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+				processor->filters.envelope[0] = std::max(processor->filters.envelope[0] * coeff, highestLeft  * highestLeft);
+				processor->filters.envelope[1] = std::max(processor->filters.envelope[1] * coeff, highestRight * highestRight);
 
-				currentEnvelope = 1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1]));
-
+				currentEnvelope = 1.0 / std::max(std::sqrt(processor->filters.envelope[0]), std::sqrt(processor->filters.envelope[1]));
 			}
 
 			if (std::isnormal(currentEnvelope))
 			{
-				state.envelopeGain = currentEnvelope;
+				processor->envelopeGain = currentEnvelope;
 			}
 		}
 };

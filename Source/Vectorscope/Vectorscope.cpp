@@ -49,32 +49,34 @@ namespace Signalizer
 	const double VectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	VectorScope::VectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
-		: COpenGLView(nameId)
-		, globalBehaviour(globalBehaviour)
-		, audioStream(data)
+	VectorScope::VectorScope(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		const cpl::string_ref nameId, 
+		std::shared_ptr<AudioStream::Output>& stream, 
+		std::shared_ptr<ProcessorState>& params
+	)
+		: COpenGLView(nameId.string())
 		, processorSpeed(0)
 		, lastFrameTick(0)
 		, lastMousePos()
 		, editor(nullptr)
 		, state()
-		, filters()
 		, oldWindowSize(-1)
+		, processor(std::make_shared<Processor>(globalBehaviour))
+		, config(config)
 	{
-		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
+		if (!(content = std::dynamic_pointer_cast<VectorScopeContent>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
 		}
 
-
 		mtFlags.firstRun = true;
-		state.secondStereoFilterSpeed = 0.25f;
-		state.envelopeGain = 1;
 		setOpaque(true);
-		textbuf = std::unique_ptr<char>(new char[300]);
+
 		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
-		listenToSource(audioStream);
+		stream->addListener(processor);
 		content->getParameterSet().addRTListener(this, true);
 	}
 
@@ -82,7 +84,7 @@ namespace Signalizer
 	{
 		//TODO: possibly unsynchronized. fix to have an internal size instead
 		oldWindowSize = content->windowSize.getTransformedValue();
-		state.isSuspended = true;
+		processor->isSuspended = true;
 	}
 
 	void VectorScope::resume()
@@ -92,7 +94,7 @@ namespace Signalizer
 			//TODO: possibly unsynchronized. fix to have an internal size instead
 			content->windowSize.setTransformedValue(oldWindowSize);
 		}
-		state.isSuspended = false;
+		processor->isSuspended = false;
 	}
 
 	juce::Component * VectorScope::getWindow()
@@ -102,7 +104,7 @@ namespace Signalizer
 
 	VectorScope::~VectorScope()
 	{
-		detachFromSource();
+		audioStream->removeListener(processor);
 		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
 	}
@@ -220,10 +222,10 @@ namespace Signalizer
 
 	void VectorScope::handleFlagUpdates()
 	{
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
-		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
+		processor->envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate));
+		processor->stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate));
 
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
@@ -250,21 +252,26 @@ namespace Signalizer
 
 		if (firstRun || mtFlags.initiateWindowResize)
 		{
-
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			// we will get notified asynchronously in onStreamPropertiesChanged.
+			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				mtFlags.initiateWindowResize.cas();
 				auto value = content->windowSize.getTransformedValue();
-				audioStream.setAudioHistorySize(value);
+
+				audioStream->modifyConsumerInfo(
+					[&](auto & info)
+					{
+						info.audioHistorySize = value;
+					}
+				);
 			}
 		}
 	}
 
 
 	template<typename ISA>
-		void VectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void VectorScope::Processor::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			typedef typename ISA::V V;
 			using namespace cpl::simd;
@@ -272,9 +279,12 @@ namespace Signalizer
 			if (numChannels != 2)
 				return;
 
-			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
-			T stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
+			T filterEnv[2] { filters.envelope[0], filters.envelope[1] };
+			T balance[2][2]{ { filters.balance[0][0], filters.balance[0][1] }, { filters.balance[1][0], filters.balance[1][1] } };
+			T phase[2] { filters.phase[0], filters.phase[1] };
 
+			const T stereoPoles[2] = { stereoCoeff, std::pow(stereoCoeff, secondStereoFilterSpeed) };
+			const T envelope = envelopeCoeff;
 			const T cosineRotation = (T)std::cos(M_PI * 135 / 180);
 			const T sineRotation = (T)std::sin(M_PI * 135 / 180);
 			const V vMatrixReal = set1<V>(cosineRotation);
@@ -324,58 +334,61 @@ namespace Signalizer
 					const auto rSquared = buffer[1][z] * buffer[1][z];
 
 					// average envelope
-					filterEnv[0] = lSquared + state.envelopeCoeff * (filterEnv[0] - lSquared);
-					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
+					filterEnv[0] = lSquared + envelope * (filterEnv[0] - lSquared);
+					filterEnv[1] = rSquared + envelope * (filterEnv[1] - rSquared);
 
 					// balance average source
 
 					using fs = FilterStates;
 
-					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
-					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
-					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
-					filters.balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Right] - rSquared);
+					balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (balance[fs::Slow][fs::Left]  - lSquared);
+					balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (balance[fs::Slow][fs::Right] - rSquared);
+					balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (balance[fs::Fast][fs::Left]  - lSquared);
+					balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (balance[fs::Fast][fs::Right] - rSquared);
 
 					// phase averaging
 					// see larger comment above.
 					outputPhases[i] = cos(outputPhases[i] * consts<T>::two);
-					filters.phase[0] = outputPhases[i] + stereoPoles[0] * (filters.phase[0] - outputPhases[i]);
-					filters.phase[1] = outputPhases[i] + stereoPoles[1] * (filters.phase[1] - outputPhases[i]);
+					phase[fs::Slow] = outputPhases[i] + stereoPoles[fs::Slow] * (phase[fs::Slow] - outputPhases[i]);
+					phase[fs::Fast] = outputPhases[i] + stereoPoles[fs::Fast] * (phase[fs::Fast] - outputPhases[i]);
 				}
 
-
 			}
+
 			// store calculated envelope
-			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
+			if (envelopeMode == EnvelopeModes::RMS && normalizeGain)
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
 				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
 				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0];
-				filters.envelope[1] = filterEnv[1];
-
+				for (std::size_t i = 0; i < 2; ++i)
+				{
+					filters.envelope[i] = filterEnv[i];
+					filters.phase[i] = phase[i];
+					for (std::size_t j = 0; j < 2; ++j)
+						filters.balance[i][j] = balance[i][j];
+				}
+				
 				if (std::isnormal(currentEnvelope))
 				{
-					state.envelopeGain = currentEnvelope;
+					envelopeGain = currentEnvelope;
 				}
 			}
-
 		}
 
-	bool VectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void VectorScope::Processor::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
-			return false;
+		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
+			return;
 
 		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);
-		return false;
 	}
 
-	void VectorScope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext&, const AudioStream::AudioStreamInfo & before)
 	{
-		mtFlags.audioWindowWasResized = true;
+		audioWindowWasResized = true;
 	}
 
 };

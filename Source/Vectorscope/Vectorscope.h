@@ -36,6 +36,7 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "VectorscopeParameters.h"
+	#include "../Common/ConcurrentConfig.h"
 
 	namespace cpl
 	{
@@ -91,7 +92,6 @@
 
 		class VectorScope final
 			: public cpl::COpenGLView
-			, private AudioStream::Listener
 			, private ParameterSet::RTListener
 		{
 
@@ -100,7 +100,14 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			VectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
+			VectorScope(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour, 
+				std::shared_ptr<const ConcurrentConfig>& config,
+				const cpl::string_ref nameId, 
+				std::shared_ptr<AudioStream::Output>& data, 
+				std::shared_ptr<ProcessorState>& params
+			);
+
 			virtual ~VectorScope();
 
 			// Component overrides
@@ -121,12 +128,10 @@
 			void freeze() override;
 			void unfreeze() override;
 
-			double getGain();
-
 		protected:
 
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
+
+
 			virtual void paint2DGraphics(juce::Graphics & g);
 			/// <summary>
 			/// Handles all set flags in mtFlags.
@@ -136,18 +141,71 @@
 
 		private:
 
+			struct FilterStates
+			{
+				enum Entry
+				{
+					Slow = 0,
+					Left = 0,
+					Fast = 1,
+					Right = 1
+				};
+
+				cpl::relaxed_atomic<AudioStream::DataType> envelope[2];
+				cpl::relaxed_atomic<AudioStream::DataType> balance[2][2];
+				cpl::relaxed_atomic<AudioStream::DataType> phase[2];
+
+			};
+
+			struct Processor : public AudioStream::Listener
+			{
+				FilterStates filters{};
+				cpl::relaxed_atomic<double> envelopeGain;
+				cpl::relaxed_atomic<float> 
+					stereoCoeff, 
+					envelopeCoeff, 
+					/// <summary>
+					/// A constant factor slower than the stereoCoeff
+					/// </summary>
+					secondStereoFilterSpeed;
+
+				cpl::relaxed_atomic<bool> isSuspended, normalizeGain;
+				cpl::relaxed_atomic<EnvelopeModes> envelopeMode;
+
+				/// <summary>
+				/// Set this if the audio buffer window size was changed from somewhere else.
+				/// </summary>
+				cpl::ABoolFlag audioWindowWasResized;
+				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+
+				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
+
+				template<typename ISA>
+				void audioProcessing(AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
+
+				Processor(std::shared_ptr<const SharedBehaviour>& behaviour)
+					: globalBehaviour(behaviour)
+					, secondStereoFilterSpeed(0.25f)
+					, envelopeGain(1)
+				{
+				}
+			};
+
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(Processor& v, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					v.audioProcessing<ISA>(buffer, numChannels, numSamples);
+				}
+			};
+
+
 			struct RenderingDispatcher
 			{
 				template<typename ISA> static void dispatch(VectorScope & v) { v.vectorGLRendering<ISA>(); }
 			};
 
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(VectorScope & v, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
-				{
-					v.audioProcessing<ISA>(buffer, numChannels, numSamples);
-				}
-			};
 
 			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
@@ -175,9 +233,6 @@
 			template<typename ISA>
 				void runPeakFilter(const AudioStream::AudioBufferAccess &);
 
-			template<typename ISA>
-				void audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples);
-
 			void initPanelAndControls();
 
 			// guis and whatnot
@@ -188,22 +243,6 @@
 			// vars
 			long long lastFrameTick, renderCycles;
 
-			struct FilterStates
-			{
-				enum Entry
-				{
-					Slow = 0,
-					Left = 0,
-					Fast = 1,
-					Right = 1
-				};
-
-				AudioStream::DataType envelope[2];
-				AudioStream::DataType balance[2][2];
-				AudioStream::DataType phase[2];
-
-			} filters;
-
 			struct Flags
 			{
 				cpl::ABoolFlag
@@ -212,42 +251,31 @@
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
 					/// The argument to the resizing is the state.newWindowSize
 					/// </summary>
-					initiateWindowResize,
-					/// <summary>
-					/// Set this if the audio buffer window size was changed from somewhere else.
-					/// </summary>
-					audioWindowWasResized;
+					initiateWindowResize;
 			} mtFlags;
 
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool isPolar, normalizeGain, isFrozen, fillPath, fadeHistory, antialias, diagnostics, isSuspended;
+				bool isPolar, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
 				float primitiveSize, rotation;
-				float stereoCoeff;
-				float envelopeCoeff;
-				/// <summary>
-				/// A constant factor slower than the stereoCoeff
-				/// </summary>
-				float secondStereoFilterSpeed;
 				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
-				cpl::ValueT envelopeGain, userGain;
-				EnvelopeModes envelopeMode;
+				cpl::ValueT userGain;
 			} state;
 
-			const SharedBehaviour & globalBehaviour;
-			VectorScopeContent * content;
-			AudioStream & audioStream;
-			//cpl::AudioBuffer audioStreamCopy;
+			std::shared_ptr<VectorScopeContent> content;
+			std::shared_ptr<const ConcurrentConfig> config;
+			std::shared_ptr<AudioStream::Output> audioStream;
+			std::shared_ptr<Processor> processor;
+
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
 			double oldWindowSize;
-			// unused.
-			std::unique_ptr<char> textbuf;
+
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-
+			char textbuf[300];
 		};
 
 	};
