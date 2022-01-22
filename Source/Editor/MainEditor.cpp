@@ -81,17 +81,11 @@ namespace Signalizer
 		//"Statistics"
 	};
 
-	template<typename T>
-	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-	{
-		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, system));
-	}
-
 	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
 	{
-		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
-		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &CreateState<OscilloscopeContent> },
-		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
+		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &VectorScopeContent::create },
+		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &OscilloscopeContent::create },
+		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &SpectrumContent::create }
 	};
 
 	template<typename... Args>
@@ -170,6 +164,8 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
+		, stream(e->getHostGraph().getHostPresentation())
+		, globalState(std::make_shared<SharedBehaviour>())
 	{
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve((std::size_t)ViewTypes::end);
@@ -178,14 +174,15 @@ namespace Signalizer
 			[&](ViewTypes index)
 			{
 				int i = cpl::enum_cast<int>(index);
-				auto & name = ViewIndexToMap[i];
-				auto & localState = *params->getState(i);
+				auto& name = ViewIndexToMap[i];
+				auto& localState = *params->getState(i);
 				views.emplace_back(
 					name,
 					localState,
 					[=, &localState]
 					{
-						return GenerateView(index, globalState, name, engine->getPresentationStream(), &localState);
+						auto& graph = engine->getHostGraph();
+						return GenerateView(index, globalState, name, graph.getHostPresentation(), graph.getConcurrentConfig(), &localState);
 					}
 				);
 			}
@@ -664,60 +661,64 @@ namespace Signalizer
 
 			struct RetryResizeCapacity
 			{
-				RetryResizeCapacity(MainEditor * h) : handle(h) {};
-				MainEditor * handle;
+				RetryResizeCapacity(MainEditor& h) : handle(h) {};
+				MainEditor& handle;
 
 				void operator()()
 				{
-					auto& stream = handle->engine->getPresentationStream();
-					auto currentSampleRate = stream.getInfo().sampleRate.load(std::memory_order_acquire);
+					auto currentSampleRate = handle.config->sampleRate;
 					if (currentSampleRate > 0)
 					{
 						std::int64_t value;
-						std::string contents = handle->kmaxHistorySize.getInputValue();
+						std::string contents = handle.kmaxHistorySize.getInputValue();
 						if (cpl::lexicalConversion(contents, value) && value >= 0)
 						{
 							auto msCapacity = cpl::Math::round<std::size_t>(currentSampleRate * 0.001 * value);
 
-							stream.setAudioHistoryCapacity(msCapacity);
+							handle.stream->modifyConsumerInfo(
+								[=](auto& config)
+								{
+									config.audioHistoryCapacity = msCapacity;
+								}
+							);
 
 							if (contents.find_first_of("ms") == std::string::npos)
 							{
 								contents.append(" ms");
-								handle->kmaxHistorySize.setInputValueInternal(contents);
+								handle.kmaxHistorySize.setInputValueInternal(contents);
 							}
 
-							handle->kmaxHistorySize.indicateSuccess();
+							handle.kmaxHistorySize.indicateSuccess();
 						}
 						else
 						{
 							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * stream.getAudioHistoryCapacity() / stream.getInfo().sampleRate);
+							auto msCapacity = cpl::Math::round<std::size_t>(1000 * handle.config->historyCapacity / handle.config->sampleRate);
 							if (cpl::lexicalConversion(msCapacity, result))
-								handle->kmaxHistorySize.setInputValueInternal(result + " ms");
+								handle.kmaxHistorySize.setInputValueInternal(result + " ms");
 							else
-								handle->kmaxHistorySize.setInputValueInternal("error");
-							handle->kmaxHistorySize.indicateError();
+								handle.kmaxHistorySize.setInputValueInternal("error");
+							handle.kmaxHistorySize.indicateError();
 						}
 					}
 					else
 					{
-						cpl::GUIUtils::FutureMainEvent(200, RetryResizeCapacity(handle), handle);
+						cpl::GUIUtils::FutureMainEvent(200, RetryResizeCapacity(handle), &handle);
 					}
 
 				}
 			};
 
-			RetryResizeCapacity(this)();
+			RetryResizeCapacity(*this)();
 
 		}
 		else if (c == &kstopProcessingOnSuspend)
 		{
-			globalState.stopProcessingOnSuspend = kstopProcessingOnSuspend.bGetBoolState();
+			globalState->stopProcessingOnSuspend = kstopProcessingOnSuspend.bGetBoolState();
 		}
 		else if (c == &khideWidgets)
 		{
-			globalState.hideWidgetsOnMouseExit = khideWidgets.bGetBoolState();
+			globalState->hideWidgetsOnMouseExit = khideWidgets.bGetBoolState();
 		}
 		else
 		{

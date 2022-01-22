@@ -719,7 +719,7 @@
 						return map[i].second;
 				}
 
-				return {};
+				CPL_UNREACHABLE();
 			}
 
 			std::size_t numSetsAndState() const noexcept

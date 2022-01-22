@@ -70,6 +70,8 @@ namespace Signalizer
 			concurrentConfig.bpm = changedSource.getPlayhead().getBPM();
 			concurrentConfig.numChannels = info.channels;
 			concurrentConfig.sampleRate = info.sampleRate;
+			concurrentConfig.historyCapacity = info.audioHistoryCapacity;
+			concurrentConfig.historySize = info.audioHistorySize;
 		}
 	}
 

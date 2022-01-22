@@ -39,6 +39,7 @@
 		struct ConcurrentConfig
 		{
 			cpl::relaxed_atomic<double> sampleRate;
+			cpl::relaxed_atomic<std::size_t> historySize, historyCapacity;
 			cpl::relaxed_atomic<double> bpm;
 			cpl::relaxed_atomic<unsigned> numChannels;
 		};
