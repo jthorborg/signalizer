@@ -166,7 +166,7 @@
 							{
 								collectedValue /= 1000;
 							}
-							collectedValue *= this->lastSamplerate;
+							collectedValue *= this->sampleRate;
 						}
 						else
 						{
@@ -174,7 +174,7 @@
 							if (this->m == Mode::Milliseconds && notSamples)
 							{
 								collectedValue /= 1000;
-								collectedValue *= this->lastSamplerate;
+								collectedValue *= this->sampleRate;
 							}
 						}
 
@@ -344,7 +344,7 @@
 			private:
 
 				double a4InHz;
-				const ConcurrentConfig& confg;
+				const ConcurrentConfig& config;
 			};
 
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)

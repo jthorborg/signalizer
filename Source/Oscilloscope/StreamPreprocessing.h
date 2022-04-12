@@ -76,7 +76,7 @@
 			}
 
 			template<typename ISA>
-			void processMutating(Oscilloscope & o, AFloat ** localPointers, std::size_t numChannels, std::size_t numSamples)
+			void processMutating(Oscilloscope::StreamState &o, const AudioStream::ListenerContext& ctx, AFloat** localPointers, std::size_t numChannels, std::size_t numSamples)
 			{
 				if (frontOrigin + bufferedSamples < steadyClock)
 				{
@@ -89,7 +89,7 @@
 
 				auto processIntoBackBuffer = [&](auto samples)
 				{
-					o.audioProcessing<ISA>(localPointers, numChannels, samples, o.channelData.back);
+					o.audioProcessing<ISA>(ctx.getInfo(), ctx.getPlayhead(), localPointers, numChannels, samples, o.channelData.back);
 					numSamples -= samples;
 					for (std::size_t c = 0; c < numChannels; ++c)
 						localPointers[c] += samples;

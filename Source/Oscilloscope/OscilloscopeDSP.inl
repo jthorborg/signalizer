@@ -42,18 +42,18 @@ namespace Signalizer
 {
 
 	template<typename ISA, typename Eval>
-	void Oscilloscope::analyseAndSetupState(const EvaluatorParams& params)
+	void Oscilloscope::analyseAndSetupState(const EvaluatorParams& params, Oscilloscope::StreamState& cs)
 	{
 		calculateFundamentalPeriod<ISA, Eval>(params);
 		calculateTriggeringOffset<ISA, Eval>(params);
 
-		resizeAudioStorage();
+		cs.channelData.resizeAudioStorage(cs.triggerMode, state.effectiveWindowSize, triggerState.cycleSamples, cs.historyCapacity);
 
-		if (state.envelopeMode == EnvelopeModes::PeakDecay)
+		if (cs.envelopeMode == EnvelopeModes::PeakDecay)
 		{
-			runPeakFilter<ISA>();
+			runPeakFilter<ISA>(cs.channelData);
 		}
-		else if (state.envelopeMode == EnvelopeModes::None)
+		else if (cs.envelopeMode == EnvelopeModes::None)
 		{
 			shared.autoGainEnvelope = 1;
 		}
@@ -308,34 +308,13 @@ namespace Signalizer
 
 	}
 
-	inline void Oscilloscope::resizeAudioStorage()
-	{
-		std::size_t requiredSampleBufferSize = 0;
-		// TODO: Add
-		// std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
-
-		if (state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
-		{
-			// buffer size = length of detected freq in samples + display window size + lookahead
-			requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize)), OscilloscopeContent::LookaheadSize);
-		}
-		else
-		{
-			//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
-			requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(state.effectiveWindowSize + 1));
-		}
-		channelData.front.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
-		channelData.back.resizeStorage(requiredSampleBufferSize, std::max(requiredSampleBufferSize, audioStream.getAudioHistoryCapacity()));
-	}
-
-
 	template<typename ISA, class Analyzer>
-	void Oscilloscope::executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Oscilloscope::StreamState::executeSamplingWindows(AudioStream::ListenerContext& ctx, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (numChannels < 1)
 			return;
 
-		Analyzer ana(numChannels, numSamples, audioStream.getASyncPlayhead().getSteadyClock(), *triggerState.triggeringProcessor);
+		Analyzer ana(numChannels, numSamples, ctx.getPlayhead().getSteadyClock(), *triggeringProcessor);
 
 		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
 		auto triggeringChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
@@ -391,59 +370,59 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void Oscilloscope::preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Oscilloscope::StreamState::preAnalyseAudio(AudioStream::ListenerContext& ctx, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		const bool isPeakHolder = state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
-		const bool isZeroCrossingPeakSampler = state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
+		const bool isPeakHolder = triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold;
+		const bool isZeroCrossingPeakSampler = triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing;
 
 		if (isZeroCrossingPeakSampler)
 		{
-			executeSamplingWindows<ISA, ZeroCrossingProcessor<ISA>>(buffer, numChannels, numSamples);
+			executeSamplingWindows<ISA, ZeroCrossingProcessor<ISA>>(ctx, buffer, numChannels, numSamples);
 		}
 		else if (isPeakHolder)
 		{
-			executeSamplingWindows<ISA, PeakHoldProcessor<ISA>>(buffer, numChannels, numSamples);
+			executeSamplingWindows<ISA, PeakHoldProcessor<ISA>>(ctx, buffer, numChannels, numSamples);
 		}
 	}
 
 	template<typename ISA>
-	void Oscilloscope::audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Oscilloscope::StreamState::audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (numSamples == 0 || numChannels == 0)
 			return;
 
-		cpl::CMutex scopedLock(bufferLock);
-
 		channelData.resizeChannels(numChannels);
-
-		// get channel names for legend display -- TODO: acquire in change callback?
-		channelNames = audioStream.getAsyncChannelNames();
 
 		cpl::variable_array<float*> localBuffers(buffer, buffer + numChannels);
 
-		triggerState.triggeringProcessor->update(audioStream.getASyncPlayhead().getSteadyClock());
+		triggeringProcessor->update(ctx.getPlayhead().getSteadyClock());
 		preAnalyseAudio<ISA>(localBuffers.data(), numChannels, numSamples);
 
-		if (state.triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && state.triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
+		if (triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
-			audioProcessing<ISA>(localBuffers.data(), numChannels, numSamples, channelData.front);
+			audioProcessing<ISA>(ctx.getInfo(), ctx.getPlayhead(), localBuffers.data(), numChannels, numSamples, channelData.front);
 		}
 		else
 		{
-			triggerState.triggeringProcessor->processMutating<ISA>(*this, localBuffers.data(), numChannels, numSamples);
+			triggeringProcessor->processMutating<ISA>(*this, ctx, localBuffers.data(), numChannels, numSamples);
 		}
 	}
 
 	template<typename ISA>
-		void Oscilloscope::audioProcessing(AFloat ** buffer, const std::size_t numChannels, const std::size_t numSamples, ChannelData::Buffer & target)
+		void Oscilloscope::StreamState::audioProcessing(
+			const AudioStream::Info& info, 
+			const AudioStream::Playhead& playhead, 
+			const AudioStream::DataType** buffer,
+			const std::size_t numChannels, 
+			const std::size_t numSamples, 
+			ChannelData::Buffer& target
+		)
 		{
 			using namespace cpl::simd;
 			typedef AFloat T;
 
-			auto const sampleRate = audioStream.getAudioHistorySamplerate();
-
-			channelData.tuneColourSmoothing(content->colourSmoothing.getTransformedValue(), sampleRate);
-			channelData.tuneCrossOver(300, 3000, sampleRate);
+			channelData.tuneColourSmoothing(content->colourSmoothing.getTransformedValue(), info.sampleRate);
+			channelData.tuneCrossOver(300, 3000, info.sampleRate);
 
 			if (target.defaultChannel().audioData.getSize() < 1)
 				return;
@@ -451,7 +430,7 @@ namespace Signalizer
 			auto colourSmoothPole = channelData.smoothFilterPole;
 
 			// (division by zero is well-defined)
-			const auto envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate()));
+			const auto envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * info.sampleRate));
 
 			cpl::variable_array<AFloat> filterEnv(numChannels);
 
@@ -501,7 +480,7 @@ namespace Signalizer
 
 			using fs = ChannelData;
 
-			auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
+			auto mode = channelMode;
 
 			if (numChannels == 1)
 				mode = OscChannels::Left;
@@ -695,7 +674,7 @@ namespace Signalizer
 			}
 
 			// store calculated envelope
-			if (state.envelopeMode == EnvelopeModes::RMS)
+			if (envelopeMode == EnvelopeModes::RMS)
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
@@ -708,8 +687,8 @@ namespace Signalizer
 				shared.autoGainEnvelope = 1.0 / start;
 
 				// only update filters if this mode is on.
-				smoothEnvelopeState(ChannelData::Left) = filterEnv[0];
-				smoothEnvelopeState(ChannelData::Right) = filterEnv[1];
+				channelData.filterStates.channels[ChannelData::Left].envelope = filterEnv[0];
+				channelData.filterStates.channels[ChannelData::Right].envelope = filterEnv[1];
 
 			}
 
@@ -717,12 +696,12 @@ namespace Signalizer
 			for(std::size_t c = 0; c < target.channels.size(); ++c)
 				target.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
 
-			state.transportPosition = audioStream.getASyncPlayhead().getPositionInSamples() + numSamples;
+			transportPosition = playhead.getPositionInSamples() + numSamples;
 
 		}
 
 	template<typename ISA>
-		void Oscilloscope::runPeakFilter()
+		void Oscilloscope::runPeakFilter(ChannelData& data)
 		{
 			// there is a number of optimisations we can do here, mostly that we actually don't care about
 			// timing, we are only interested in the current largest value in the set.
@@ -731,6 +710,8 @@ namespace Signalizer
 			using cpl::simd::load;
 
 			typedef typename ISA::V V;
+
+			auto smoothEnvelopeState = [&](std::size_t i) -> AFloat& { return data.filterStates.channels[i].envelope; };
 
 			V
 				vLMax = zero<V>(),
@@ -745,7 +726,7 @@ namespace Signalizer
 
 			auto const channelMode = numChannels == 1 ? OscChannels::Left : state.channelMode;
 
-			auto const numSamples = channelData.front.channels.begin()->audioData.getSize();
+			auto const numSamples = data.front.channels.begin()->audioData.getSize();
 
 			auto stop = numSamples - (numSamples & (loopIncrement - 1));
 			if (stop <= 0)
@@ -758,7 +739,7 @@ namespace Signalizer
 
 			if (channelMode <= OscChannels::OffsetForMono)
 			{
-				auto && view = channelData.front.channels[0].audioData.createProxyView();
+				auto && view = data.front.channels[0].audioData.createProxyView();
 
 				const auto * leftBuffer = view.begin();
 
@@ -772,7 +753,7 @@ namespace Signalizer
 				}
 				else
 				{
-					auto && rightView = channelData.front.channels[1].audioData.createProxyView();
+					auto && rightView = data.front.channels[1].audioData.createProxyView();
 					const auto * rightBuffer = rightView.begin();
 
 					switch (channelMode)
@@ -850,7 +831,7 @@ namespace Signalizer
 
 					case OscChannels::MidSide:
 					{
-						ChannelData::AudioBuffer::ProxyView views[2] = { channelData.front.channels[0].audioData.createProxyView(), channelData.front.channels[1].audioData.createProxyView() };
+						ChannelData::AudioBuffer::ProxyView views[2] = { data.front.channels[0].audioData.createProxyView(), data.front.channels[1].audioData.createProxyView() };
 
 						const auto * leftBuffer = views[0].begin();
 						const auto * rightBuffer = views[1].begin();

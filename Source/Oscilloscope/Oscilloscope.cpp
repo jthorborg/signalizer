@@ -47,45 +47,50 @@ namespace Signalizer
     constexpr std::size_t OscilloscopeContent::InterpolationKernelSize;
     
 
-	Oscilloscope::Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
-		: COpenGLView(nameId)
+	Oscilloscope::Oscilloscope(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		const cpl::string_ref nameId,
+		std::shared_ptr<AudioStream::Output>& stream,
+		std::shared_ptr<ProcessorState>& params
+	)
+		: COpenGLView(nameId.string())
 		, globalBehaviour(globalBehaviour)
-		, audioStream(data)
+		, audioStream(stream)
 		, processorSpeed(0)
 		, lastFrameTick(0)
 		, lastMousePos()
 		, editor(nullptr)
 		, state()
-		, triggerState()
 		, medianPos()
 		, isMouseInside(false)
+		, processor(std::make_shared<ProcessorShell>())
 	{
-		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
+		if (!(content = std::dynamic_pointer_cast<OscilloscopeContent>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
 		}
 
-		triggerState.triggeringProcessor = std::make_unique<TriggeringProcessor>();
+		processor->streamState.lock()->content = content;
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
 
 		mtFlags.firstRun = true;
 		setOpaque(true);
-		textbuf = std::unique_ptr<char>(new char[400]);
 		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
-		listenToSource(audioStream);
+		stream->addListener(processor);
 	}
 
 	void Oscilloscope::suspend()
 	{
-		state.isSuspended = true;
+		processor->isSuspended = true;
 	}
 
 	void Oscilloscope::resume()
 	{
-		state.isSuspended = false;
+		processor->isSuspended = false;
 	}
 
 	juce::Component * Oscilloscope::getWindow()
@@ -95,7 +100,7 @@ namespace Signalizer
 
 	Oscilloscope::~Oscilloscope()
 	{
-		detachFromSource();
+		audioStream->removeListener(processor);
 		notifyDestruction();
 	}
 
@@ -282,18 +287,18 @@ namespace Signalizer
 		isMouseInside = true;
 	}
 
-	void Oscilloscope::handleFlagUpdates()
+	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
 	{
 		const auto windowValue = content->windowSize.getTransformedValue();
 
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
 		state.autoGain = shared.autoGainEnvelope;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
-		state.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
+		cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
@@ -307,12 +312,12 @@ namespace Signalizer
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
-		state.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
+		cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
-		state.numChannels = channelData.numChannels();
-		state.channelNames = channelNames;
+		state.numChannels = cs.channelData.numChannels();
+
 		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
@@ -321,7 +326,7 @@ namespace Signalizer
 
 		for (std::size_t c = 0; c < state.numChannels; ++c)
 		{
-			state.colours[c] = channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
+			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
 		}
 
 		switch (state.timeMode)
@@ -341,24 +346,21 @@ namespace Signalizer
 			break;
 		}
 
-		triggerState.triggeringProcessor->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
-
-		bool firstRun = false;
-
-		if (mtFlags.firstRun.cas())
-		{
-			firstRun = true;
-		}
-
+		cs.triggeringProcessor->setSettings(cs.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 	}
 
-	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	inline void Oscilloscope::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
-			return false;
+		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
+			return;
 
-		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, buffer, numChannels, numSamples);
-		return false;
+		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
 	}
 
+	inline void Oscilloscope::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
+	{
+		auto& access = streamState.lock();
+		access->channelNames = source.getChannelNames();
+		access->historyCapacity = source.getInfo().audioHistoryCapacity;
+	}
 };

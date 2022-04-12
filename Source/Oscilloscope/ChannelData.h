@@ -102,6 +102,29 @@
 				}
 			};
 
+			void resizeAudioStorage(OscilloscopeContent::TriggeringMode triggerMode, double effectiveWindowSize, double cycleSamples, const std::int64_t audioHistoryCapacity)
+			{
+				std::int64_t requiredSampleBufferSize = 0;
+				// TODO: Add
+				// std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
+
+				if (triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+				{
+					// buffer size = length of detected freq in samples + display window size + lookahead
+					requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + cycleSamples + std::ceil(effectiveWindowSize)), OscilloscopeContent::LookaheadSize);
+				}
+				else
+				{
+					//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
+					requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(effectiveWindowSize + 1));
+				}
+
+				auto finalCapacity = static_cast<std::size_t>(std::max(requiredSampleBufferSize, audioHistoryCapacity));
+
+				front.resizeStorage(requiredSampleBufferSize, finalCapacity);
+				back.resizeStorage(requiredSampleBufferSize, finalCapacity);
+			}
+
 			void resizeChannels(std::size_t newChannels)
 			{
 				for (auto buffer : { &back, &front })

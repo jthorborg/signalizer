@@ -170,6 +170,7 @@ namespace Signalizer
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve((std::size_t)ViewTypes::end);
 
+		// TODO: Don't create immediately?
 		cpl::foreach_enum<ViewTypes>(
 			[&](ViewTypes index)
 			{

@@ -98,7 +98,10 @@ namespace Signalizer
 			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
 			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
+
+			char textbuf[1024];
+
+			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
 				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
 				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
@@ -107,7 +110,7 @@ namespace Signalizer
 				(double)triggerState.record.index,
 				triggerState.fundamental,
 				triggerState.sampleOffset);
-			g.drawSingleLineText(textbuf.get(), 10, 20);
+			g.drawSingleLineText(textbuf, 10, 20);
 
 		}
 
@@ -266,9 +269,9 @@ namespace Signalizer
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
-	bool Oscilloscope::checkAndInformInvalidCombinations()
+	bool Oscilloscope::checkAndInformInvalidCombinations(Oscilloscope::StreamState& cs)
 	{
-		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && cs.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
 		{
 			renderGraphics(
 				[&](juce::Graphics & g)
@@ -291,15 +294,17 @@ namespace Signalizer
             CPL_DEBUGCHECKGL();
             
 			{
-                cpl::CMutex lock(bufferLock);
-                
-                handleFlagUpdates();
+				auto cs = processor->streamState.lock();
+				auto& streamState = *cs;
+                handleFlagUpdates(streamState);
                 
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 
-                if (!checkAndInformInvalidCombinations())
+                if (!checkAndInformInvalidCombinations(streamState))
                     return;
                 
+				auto& channelData = streamState.channelData;
+
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
@@ -315,7 +320,7 @@ namespace Signalizer
 
 				CPL_DEBUGCHECKGL();
 
-				auto mode = state.channelMode;
+				auto mode = streamState.channelMode;
 				const auto numChannels = state.numChannels;
 
 				if (mode > OscChannels::OffsetForMono && numChannels < 2)
@@ -326,25 +331,25 @@ namespace Signalizer
 					switch (mode)
 					{
 					default: case OscChannels::Left:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>({ channelData });
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>({ channelData }, streamState);
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Right:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>({ channelData });
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>({ channelData }, streamState);
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Mid:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData });
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Side:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>({ channelData });
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>({ channelData }, streamState);
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack, { channelData });
 						break;
 					case OscChannels::Separate:
 					{
 						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
-						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel });
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState);
 						
 						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(state.numChannels), !state.overlayChannels);
 
@@ -359,7 +364,7 @@ namespace Signalizer
 					case OscChannels::MidSide:
 					{
 						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, 2, !state.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData });
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
 						w.nextPass();
 						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack, { channelData });

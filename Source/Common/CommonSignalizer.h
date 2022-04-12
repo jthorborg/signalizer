@@ -36,6 +36,7 @@
 	#include "SignalizerConfiguration.h"
 	#include <cpl/lib/weak_atomic.h>
 	#include "ConcurrentConfig.h"
+	#include <mutex>
 
 	namespace Signalizer
 	{
@@ -774,6 +775,56 @@
 				g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 2.0f);
 			}
 		}
+
+		template<typename T>
+		class CriticalSection
+		{
+		public:
+
+			class Access
+			{
+				friend class CriticalSection<T>;
+
+			public:
+				
+				T* operator -> () noexcept
+				{
+					return &data;
+				}
+
+				T& operator * () noexcept
+				{
+					return data;
+				}
+
+				Access(const Access& other) = delete;
+				Access& operator =(const Access& other) = delete;
+
+				Access(Access&& other) = default;
+				Access& operator =(Access&& other) = default;
+
+			private:
+
+				Access(CriticalSection<T>& data)
+					: data(data.data)
+					, lock(data.mutex)
+				{
+
+				}
+
+				T& data;
+				std::lock_guard<std::mutex> lock;
+			};
+
+			Access lock()
+			{
+				return { *this };
+			}
+
+		private:
+			T data;
+			std::mutex mutex;
+		};
 	};
 
 	namespace std
