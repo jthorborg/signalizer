@@ -36,7 +36,7 @@
 
 namespace Signalizer
 {
-	extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
+	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
 
@@ -56,11 +56,14 @@ namespace Signalizer
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
 	{
-		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
+
+		SystemView view { graph.getHostPresentation(), *this, graph.getConcurrentConfig() };
+
+		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
 			parameterMap.insert({
-				ParameterCreationList[i].first,
-				ParameterCreationList[i].second(parameterMap.numParams(), { graph.getHostPresentation(), *this, graph.getConcurrentConfig() })
+				ContentCreationList[i].first,
+				ContentCreationList[i].second(parameterMap.numParams(), view)
 			});
 		}
 

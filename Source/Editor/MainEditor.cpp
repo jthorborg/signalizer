@@ -29,9 +29,9 @@
 
 #include "MainEditor.h"
 #include "../Processor/PluginProcessor.h"
-#include "../Vectorscope/Vectorscope.h"
-#include "../Oscilloscope/Oscilloscope.h"
-#include "../Spectrum/Spectrum.h"
+#include "../Vectorscope/VectorscopeParameters.h"
+#include "../Oscilloscope/OscilloscopeParameters.h"
+#include "../Spectrum/SpectrumParameters.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"
@@ -65,40 +65,12 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	enum class ViewTypes
+	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
-		Vectorscope,
-		Oscilloscope,
-		Spectrum,
-		end
+		{ VectorScopeContent::name, &VectorScopeContent::create },
+		{ OscilloscopeContent::name, &OscilloscopeContent::create },
+		{ SpectrumContent::name, &SpectrumContent::create }
 	};
-
-	std::array<const char *, static_cast<std::size_t>(ViewTypes::end)> ViewIndexToMap =
-	{
-		"Vectorscope",
-		"Oscilloscope",
-		"Spectrum"
-		//"Statistics"
-	};
-
-	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
-	{
-		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &VectorScopeContent::create },
-		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &OscilloscopeContent::create },
-		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &SpectrumContent::create }
-	};
-
-	template<typename... Args>
-	std::unique_ptr<cpl::CSubView> GenerateView(ViewTypes type, Args&&... args)
-	{
-		switch (type)
-		{
-		case ViewTypes::Vectorscope: return std::make_unique<VectorScope>(args...);
-		case ViewTypes::Oscilloscope: return std::make_unique<Oscilloscope>(args...);
-		case ViewTypes::Spectrum: return std::make_unique<Spectrum>(args...);
-		}
-		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
-	}
 
 	enum class RenderTypes
 	{
@@ -168,26 +140,24 @@ namespace Signalizer
 		, globalState(std::make_shared<SharedBehaviour>())
 	{
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
-		views.reserve((std::size_t)ViewTypes::end);
+		views.reserve(ContentCreationList.size());
 
-		// TODO: Don't create immediately?
-		cpl::foreach_enum<ViewTypes>(
-			[&](ViewTypes index)
-			{
-				int i = cpl::enum_cast<int>(index);
-				auto& name = ViewIndexToMap[i];
-				auto& localState = *params->getState(i);
-				views.emplace_back(
-					name,
-					localState,
-					[=, &localState]
-					{
-						auto& graph = engine->getHostGraph();
-						return GenerateView(index, globalState, name, graph.getHostPresentation(), graph.getConcurrentConfig(), &localState);
-					}
-				);
-			}
-		);
+		for (int i = 0; i < ContentCreationList.size(); ++i)
+		{
+			auto localState = params->getState(i);
+			views.emplace_back(
+				localState,
+				[=]
+				{
+					auto& graph = engine->getHostGraph();
+					return localState->createView(
+						std::const_pointer_cast<const SharedBehaviour>(globalState),
+						graph.getConcurrentConfig(),
+						graph.getHostPresentation()
+					);
+				}
+			);
+		}
 
 		setOpaque(true);
 		setMinimumSize(50, 50);
@@ -954,7 +924,7 @@ namespace Signalizer
 
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
-		index = cpl::Math::confineTo(index, 0, (int)ViewTypes::end - 1);
+		index = cpl::Math::confineTo(index, 0, (int)ContentCreationList.size() - 1);
 		hasAnyTabBeenSelected = true;
 		// these lines disable the global editor if you switch view.
 		//if (ksettings.getToggleState())
@@ -1210,7 +1180,7 @@ namespace Signalizer
 			if (kkiosk.bGetValue() > 0.5)
 				firstKioskMode = true;
 
-			selTab = std::min(selTab, cpl::enum_cast<int32_t>(ViewTypes::end) - 1);
+			selTab = std::min(selTab, static_cast<int>(ContentCreationList.size()) - 1);
 
 			if(tabs.getSelectedTab() == selTab)
 			{
@@ -1615,8 +1585,8 @@ namespace Signalizer
 		addAndMakeVisible(tabs);
 
 		tabs.setOrientation(tabs.Horizontal);
-		for(auto & viewName : ViewIndexToMap)
-			tabs.addTab(viewName);
+		for(auto& content : ContentCreationList)
+			tabs.addTab(content.first);
 
 		// additions
 		addAndMakeVisible(rcc);

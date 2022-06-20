@@ -43,7 +43,7 @@
 		{
 
 			VectorScopeContent(std::size_t offset, SystemView& system)
-				: parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
+				: parameterSet(name, "VS.", system.getProcessor(), static_cast<int>(offset))
 				, audioHistoryTransformatter(audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
@@ -107,6 +107,8 @@
 
 		public:
 
+			static constexpr char* name = "Vectorscope";
+
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<VectorScopeContent> ptr(new VectorScopeContent(parameterOffset, system));
@@ -114,6 +116,14 @@
 
 				return ptr;
 			}
+
+			virtual const char* getName() override { return name; }
+			
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 

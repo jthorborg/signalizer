@@ -189,8 +189,20 @@
 				std::shared_ptr<AudioStream::Output> source;
 
 				State(const State& other) = delete;
-				State(State&& other) = default;
-				State& operator = (State&& other) = default;
+				State(State&& other) 
+					: channelQueues(std::move(other.channelQueues))
+					, current(other.current.load(std::memory_order_acquire))
+					, globalPosition(other.globalPosition)
+					, endpoint(other.endpoint)
+					, offset(other.offset)
+					, refCount(other.refCount)
+					, source(std::move(other.source))
+				{
+				
+				}
+				State& operator = (State&& other) = delete;
+
+				State() { }
 			};
 
 			auto emplace(std::shared_ptr<AudioStream::Output>& stream);

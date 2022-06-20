@@ -79,6 +79,8 @@
 			// the maximum level of dbs to display
 			static constexpr double kMaxDbs = 24 * 4;
 
+			static constexpr char* name = "Spectrum";
+
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<SpectrumContent> ptr(new SpectrumContent(parameterOffset, system));
@@ -90,7 +92,7 @@
 		private:
 
 			SpectrumContent(std::size_t offset, SystemView& system)
-				: parameterSet("Spectrum", "SC.", system.getProcessor(), static_cast<int>(offset))
+				: parameterSet(name, "SC.", system.getProcessor(), static_cast<int>(offset))
 				, audioHistoryTransformatter(AudioTransformatter::Samples)
 				, dynamicRange(kMinDbs, kMaxDbs)
 				, literalDBFormatter("dB")
@@ -218,6 +220,14 @@
 			}
 
 		public:
+
+			virtual const char* getName() override { return name; }
+
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 

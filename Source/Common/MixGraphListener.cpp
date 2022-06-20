@@ -35,7 +35,7 @@ namespace Signalizer
 
 	auto MixGraphListener::emplace(std::shared_ptr<AudioStream::Output>& stream)
 	{
-		auto its = graph.emplace(stream->getHandle());
+		auto its = graph.emplace(stream->getHandle(), State{});
 		if (its.second)
 		{
 			its.first->second.source = stream;

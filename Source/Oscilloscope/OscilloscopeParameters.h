@@ -347,6 +347,8 @@
 				const ConcurrentConfig& config;
 			};
 
+			static constexpr char* name = "Oscilloscope";
+
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<OscilloscopeContent> ptr(new OscilloscopeContent(parameterOffset, system));
@@ -359,7 +361,7 @@
 
 			OscilloscopeContent(std::size_t parameterOffset, SystemView& system)
 				: concurrentConfig(system.getConcurrentConfig())
-				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
+				, parameterSet(name, "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
 				, audioHistoryTransformatter(LookaheadSize, WindowSizeTransformatter<ParameterSet::ParameterView>::Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
@@ -493,6 +495,14 @@
 					audioHistoryTransformatter.setTimeModeFromUI(timeMode.param.getAsTEnum<TimeMode>());
 				}
 			}
+
+			virtual const char* getName() override { return name; }
+
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 

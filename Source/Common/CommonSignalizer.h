@@ -37,6 +37,12 @@
 	#include <cpl/lib/weak_atomic.h>
 	#include "ConcurrentConfig.h"
 	#include <mutex>
+	#include <cpl/AudioStream.h>
+
+	namespace cpl
+	{
+		class CSubView;
+	}
 
 	namespace Signalizer
 	{
@@ -58,6 +64,8 @@
 		class StateEditor;
 		class ProcessorState;
 		class SystemView;
+		class SharedBehaviour;
+		struct ConcurrentConfig;
 
 		class ProcessorState
 			: public cpl::SafeSerializableObject
@@ -65,10 +73,15 @@
 		public:
 
 			virtual std::unique_ptr<StateEditor> createEditor() = 0;
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) = 0;
+
 			virtual ParameterSet & getParameterSet() = 0;
-
+			virtual const char* getName() = 0;
 			virtual ~ProcessorState() {}
-
 		};
 
 		class SystemView
@@ -277,7 +290,7 @@
 			cpl::relaxed_atomic<double> sampleRate;
 		};
 
-		typedef std::shared_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, SystemView& system);
+		typedef std::shared_ptr<ProcessorState>(*ContentCreater)(std::size_t offset, SystemView& system);
 
 		enum class OscChannels
 		{

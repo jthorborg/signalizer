@@ -203,9 +203,12 @@
 				friend struct AudioDispatcher;
 			public:
 
+				StreamState();
+				~StreamState();
+
 				ChannelData channelData;
 				// TODO: Should go back to be in place
-				std::unique_ptr<TriggeringProcessor> triggeringProcessor = std::make_unique<TriggeringProcessor>();
+				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
 				std::shared_ptr<OscilloscopeContent> content;
 				std::vector<std::string> channelNames;
 				std::size_t triggeringChannel;
