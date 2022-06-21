@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "VectorscopeParameters.h"
+#include "Vectorscope.h"
 
 namespace Signalizer
 {
@@ -298,4 +299,12 @@ namespace Signalizer
 		return std::make_unique<VectorScopeController>(*this, shared_from_this());
 	}
 
+	std::unique_ptr<cpl::CSubView> VectorScopeContent::createView(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<VectorScope>(globalBehaviour, config, stream, shared_from_this());
+	}
 };

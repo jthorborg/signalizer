@@ -35,7 +35,6 @@
 	#include <cpl/gui/CViews.h>
 	#include <memory>
 	#include <cpl/simd.h>
-	#include "VectorscopeParameters.h"
 	#include "../Common/ConcurrentConfig.h"
 
 	namespace cpl
@@ -88,7 +87,7 @@
 				}
 			};
 
-
+		class VectorScopeContent;
 
 		class VectorScope final
 			: public cpl::COpenGLView
@@ -103,9 +102,8 @@
 			VectorScope(
 				std::shared_ptr<const SharedBehaviour>& globalBehaviour, 
 				std::shared_ptr<const ConcurrentConfig>& config,
-				const cpl::string_ref nameId, 
 				std::shared_ptr<AudioStream::Output>& data, 
-				std::shared_ptr<ProcessorState>& params
+				std::shared_ptr<VectorScopeContent>& params
 			);
 
 			virtual ~VectorScope();
@@ -275,7 +273,6 @@
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-			char textbuf[300];
 		};
 
 	};

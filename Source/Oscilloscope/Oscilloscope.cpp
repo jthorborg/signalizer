@@ -363,4 +363,13 @@ namespace Signalizer
 		access->channelNames = source.getChannelNames();
 		access->historyCapacity = source.getInfo().audioHistoryCapacity;
 	}
+
+	Oscilloscope::StreamState::StreamState()
+		: triggeringProcessor(std::make_unique<TriggeringProcessor>())
+	{
+
+	}
+	Oscilloscope::StreamState::~StreamState()
+	{
+	}
 };

@@ -52,11 +52,10 @@ namespace Signalizer
 	VectorScope::VectorScope(
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
-		const cpl::string_ref nameId, 
 		std::shared_ptr<AudioStream::Output>& stream, 
-		std::shared_ptr<ProcessorState>& params
+		std::shared_ptr<VectorScopeContent>& params
 	)
-		: COpenGLView(nameId.string())
+		: COpenGLView(params->getName())
 		, processorSpeed(0)
 		, lastFrameTick(0)
 		, lastMousePos()
@@ -65,12 +64,8 @@ namespace Signalizer
 		, oldWindowSize(-1)
 		, processor(std::make_shared<Processor>(globalBehaviour))
 		, config(config)
+		, content(params)
 	{
-		if (!(content = std::dynamic_pointer_cast<VectorScopeContent>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
-		}
-
 		mtFlags.firstRun = true;
 		setOpaque(true);
 

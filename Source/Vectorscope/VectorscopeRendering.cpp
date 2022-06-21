@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:CVectorScopeRendering.cpp
+	file:VectorScopeRendering.cpp
 
 		Implementation of all rendering code for the vector scope.
 
@@ -29,6 +29,7 @@
 
 
 #include "Vectorscope.h"
+#include "VectorscopeParameters.h"
 #include <cstdint>
 #include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
@@ -68,6 +69,8 @@ namespace Signalizer
 			g.setColour(juce::Colours::blue);
 
 			const auto perf = audioStream->getPerfMeasures();
+
+			char textbuf[4096];
 
 			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),

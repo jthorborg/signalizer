@@ -149,7 +149,7 @@
 		};
 
 		
-		class MixGraphListener : public AudioStream::Listener, private std::enable_shared_from_this<MixGraphListener>
+		class MixGraphListener : public AudioStream::Listener, public std::enable_shared_from_this<MixGraphListener>
 		{
 		public:
 			friend class HostGraph;
