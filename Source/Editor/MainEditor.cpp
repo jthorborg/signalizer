@@ -137,6 +137,7 @@ namespace Signalizer
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
 		, stream(e->getHostGraph().getHostPresentation())
+		, config(e->getHostGraph().getConcurrentConfig())
 		, globalState(std::make_shared<SharedBehaviour>())
 	{
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)

@@ -107,7 +107,7 @@
 
 		public:
 
-			static constexpr char* name = "Vectorscope";
+			static constexpr auto name = "Vectorscope";
 
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{

@@ -65,6 +65,7 @@ namespace Signalizer
 		, processor(std::make_shared<Processor>(globalBehaviour))
 		, config(config)
 		, content(params)
+		, audioStream(stream)
 	{
 		mtFlags.firstRun = true;
 		setOpaque(true);
