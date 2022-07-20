@@ -56,6 +56,7 @@ namespace Signalizer
 	void MixGraphListener::assignSelf()
 	{
 		self = &emplace(realtime)->second;
+		presentationOutput->addListener(shared_from_this());
 	}
 
 	const ConcurrentConfig& MixGraphListener::getConcurrentConfig() const noexcept
@@ -66,14 +67,18 @@ namespace Signalizer
 
 	void MixGraphListener::onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo&)
 	{
+		const auto& info = changedSource.getInfo();
+
 		if (changedSource.getHandle() == realtime->getHandle())
 		{
-			const auto& info = changedSource.getInfo();
 			maximumLatency = std::max<std::size_t>(128, info.anticipatedSize * 2);
 			structuralChange = true;
 			concurrentConfig.bpm = changedSource.getPlayhead().getBPM();
 			concurrentConfig.numChannels = info.channels;
 			concurrentConfig.sampleRate = info.sampleRate;
+		}
+		else if (changedSource.getHandle() == presentationOutput->getHandle())
+		{
 			concurrentConfig.historyCapacity = info.audioHistoryCapacity;
 			concurrentConfig.historySize = info.audioHistorySize;
 		}
@@ -89,6 +94,7 @@ namespace Signalizer
 		, presentationOutput(std::move(std::get<1>(presentation)))
 		, structuralChange(false)
 		, enabled(true)
+		, self(nullptr)
 	{
 	}
 
@@ -147,6 +153,15 @@ namespace Signalizer
 				{
 					info.channels = maxDestinationPort;
 					info.sampleRate = realInfo.sampleRate;
+					info.anticipatedSize = numSamples;
+				}
+			);
+
+			presentationOutput->modifyConsumerInfo(
+				[&](AudioStream::ConsumerInfo& info)
+				{
+					info.storeAudioHistory = true;
+					info.audioHistoryCapacity = 48000;
 				}
 			);
 
@@ -230,10 +245,16 @@ namespace Signalizer
 
 	void MixGraphListener::onStreamAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		const auto&& handle = ctx.getHandle();
+
+		// We listen to the presentation output to get synchronized callbacks for changes in the stream properties.
+		// We however also get callbacks for audio (that we emitted ourselves), which is a deadlock we shall ignore.
+		if (handle == presentationOutput->getHandle())
+			return;
+
 		const auto localMaxLatency = maximumLatency.load();
 		const auto maxBufferSize = localMaxLatency * 8;
 		const auto globalPosition = ctx.getPlayhead().getPositionInSamples();
-		const auto&& handle = ctx.getHandle();
 
 		if (enabled)
 		{
