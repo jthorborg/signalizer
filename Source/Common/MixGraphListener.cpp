@@ -161,7 +161,6 @@ namespace Signalizer
 				[&](AudioStream::ConsumerInfo& info)
 				{
 					info.storeAudioHistory = true;
-					info.audioHistoryCapacity = 48000;
 				}
 			);
 

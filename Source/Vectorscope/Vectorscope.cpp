@@ -61,7 +61,6 @@ namespace Signalizer
 		, lastMousePos()
 		, editor(nullptr)
 		, state()
-		, oldWindowSize(-1)
 		, processor(std::make_shared<Processor>(globalBehaviour))
 		, config(config)
 		, content(params)
@@ -78,18 +77,12 @@ namespace Signalizer
 
 	void VectorScope::suspend()
 	{
-		//TODO: possibly unsynchronized. fix to have an internal size instead
-		oldWindowSize = content->windowSize.getTransformedValue();
 		processor->isSuspended = true;
 	}
 
 	void VectorScope::resume()
 	{
-		if(oldWindowSize != -1)
-		{
-			//TODO: possibly unsynchronized. fix to have an internal size instead
-			content->windowSize.setTransformedValue(oldWindowSize);
-		}
+		mtFlags.initiateWindowResize = true;
 		processor->isSuspended = false;
 	}
 

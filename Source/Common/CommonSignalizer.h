@@ -140,7 +140,8 @@
 			};
 
 			AudioHistoryTransformatter(Mode mode = Milliseconds)
-				: param(nullptr), m(mode), lastCapacity(0)
+				: param(nullptr)
+				, m(mode)
 			{
 
 			}
@@ -183,7 +184,9 @@
 				if (oldCapacity == 0)
 					oldCapacity = beforeCapacity;
 
-				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity;
+				const auto& info = changedSource.getInfo();
+				const auto newCapacity = info.audioHistoryCapacity;
+				sampleRate = info.sampleRate;
 
 				if (newCapacity > 0)
 					lastCapacity = newCapacity;
@@ -256,6 +259,12 @@
 
 			virtual ValueType transform(ValueType val) const noexcept override
 			{
+				if (lastCapacity == 0)
+				{
+					// Don't really want to transform something if we don't know the capacity.
+					CPL_BREAKIFDEBUGGED();
+				}
+
 				auto samples = std::round(val * lastCapacity);
 
 				/* if (m == Milliseconds)
@@ -271,6 +280,12 @@
 
 			virtual ValueType normalize(ValueType val) const noexcept override
 			{
+				if (lastCapacity == 0)
+				{
+					// Don't really want to normalize something if we don't know the capacity.
+					CPL_BREAKIFDEBUGGED();
+				}
+
 				/* if (m == Milliseconds)
 				{
 					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);

@@ -268,7 +268,6 @@
 
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
-			double oldWindowSize;
 
 			unsigned long long processorSpeed; // clocks / sec
 			juce::Point<float> lastMousePos;
