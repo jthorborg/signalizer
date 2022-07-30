@@ -363,14 +363,8 @@ namespace Signalizer
 	void MainEditor::setRefreshRate(int rate)
 	{
 		refreshRate = cpl::Math::confineTo(rate, 10, 1000);
-		if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
-		{
-			juce::HighResolutionTimer::startTimer(refreshRate);
-		}
-		else
-		{
-			juce::Timer::startTimer(refreshRate);
-		}
+		startTimer(refreshRate);
+
 		if (hasCurrentView())
 			activeView().setApproximateRefreshRate(refreshRate);
 
@@ -382,8 +376,7 @@ namespace Signalizer
 
 	void MainEditor::suspend()
 	{
-		juce::HighResolutionTimer::stopTimer();
-		juce::Timer::stopTimer();
+		stopTimer();
 	}
 
 	// these handle cases where our component is being thrown off the kiosk mode by (possibly)
@@ -441,7 +434,8 @@ namespace Signalizer
 		// freezing of displays
 		if (c == &kfreeze)
 		{
-			engine->getPresentationStream().setSuspendedState(value > 0.5);
+			// DON*T COMMIT
+			//engine->getPresentationStream().setSuspendedState(value > 0.5);
 		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)
@@ -514,19 +508,6 @@ namespace Signalizer
 				{
 					exitFullscreen();
 				}
-			}
-		}
-		else if (c == &kstableFps)
-		{
-			if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
-			{
-				juce::Timer::stopTimer();
-				juce::HighResolutionTimer::startTimer(refreshRate);
-			}
-			else
-			{
-				juce::HighResolutionTimer::stopTimer();
-				juce::Timer::startTimer(refreshRate);
 			}
 		}
 		else if (c == &kswapInterval)
@@ -1296,9 +1277,7 @@ namespace Signalizer
 		suspendView(views[selTab]);
 		notifyDestruction();
 		exitFullscreen();
-		juce::Timer::stopTimer();
-		juce::HighResolutionTimer::stopTimer();
-
+		stopTimer();
 	}
 
 	void MainEditor::resizeEnd()
@@ -1392,8 +1371,6 @@ namespace Signalizer
 		{
 			activeView().getWindow()->setBounds(0, viewTopCoord, getWidth(), getHeight() - viewTopCoord);
 		}
-
-		//rightButtonOutlines.addRectangle(juce::Rectangle<float>(0.5f, 0.5f, getWidth() - 1.5f, editor ? editor->getBottom() : elementSize - 1.5f));
 	}
 
 
@@ -1419,24 +1396,6 @@ namespace Signalizer
 			}
 
 			if(!kvsync.bGetBoolState())
-				activeView().repaintMainContent();
-		}
-	}
-
-	void MainEditor::hiResTimerCallback()
-	{
-		if (hasCurrentView())
-		{
-			if (idleInBack)
-			{
-				const juce::MessageManagerLock mml;
-				if (!hasKeyboardFocus(true))
-					focusLost(FocusChangeType::focusChangedDirectly);
-				else if (unFocused)
-					focusGained(FocusChangeType::focusChangedDirectly);
-			}
-
-			if (!kvsync.bGetBoolState())
 				activeView().repaintMainContent();
 		}
 	}
@@ -1595,11 +1554,9 @@ namespace Signalizer
 		// TODO: reattach?
 		//currentView = &defaultView; // note: enables callbacks on value set in this function
 		addAndMakeVisible(defaultView);
-		krefreshRate.bSetValue(0.12);
-
 
 		// descriptions
-		kstableFps.bSetDescription("Stabilize frame rate using a high precision timer.");
+		kstableFps.bSetDescription("(deprecated - use vertical sync) Stabilize frame rate using a high precision timer.");
 		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
@@ -1616,12 +1573,6 @@ namespace Signalizer
 		khideTabs.bSetDescription("Auto-hides the top tabs and buttons when not used.");
 		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
-
-
-		// initial values that should be through handlers
-		// TODO: remove if changed to parameter
-		kmaxHistorySize.setInputValue("1000");
-
 
 		resized();
 	}

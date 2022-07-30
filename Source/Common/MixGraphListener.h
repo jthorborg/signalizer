@@ -184,7 +184,7 @@
 				std::int64_t globalPosition{};
 				std::int64_t endpoint{};
 				std::int64_t offset{};
-				std::int32_t refCount;
+				std::int32_t refCount {};
 				// retain the source. TODO: really?
 				std::shared_ptr<AudioStream::Output> source;
 

@@ -52,7 +52,6 @@
 		:
 			public		juce::AudioProcessorEditor,
 			private		juce::Timer,
-			private		juce::HighResolutionTimer,
 			protected	cpl::CBaseControl::Listener,
 			private		cpl::CBaseControl::ValueFormatter,
 			public		cpl::CTopView,
@@ -97,7 +96,6 @@
 
 			// timers
 			void timerCallback() override;
-			void hiResTimerCallback() override;
 
 			// functionality
 			void setRefreshRate(int rateInMs);
