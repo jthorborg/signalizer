@@ -43,10 +43,12 @@
 	#include <vector>
 	#include <optional>
 	#include "SignalizerConfiguration.h"
-	#include "MixGraphListener.h"
+	#include "CommonSignalizer.h"
 
 	namespace Signalizer
 	{
+
+		class MixGraphListener;
 
 		class HostGraph : public cpl::CSerializer::Serializable
 		{
@@ -114,9 +116,7 @@
 				Version previousVersion{};
 			};
 
-			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
-			std::shared_ptr<AudioStream::Output> getHostPresentation();
-			HostGraph(std::shared_ptr<AudioStream::Output>& realtime);
+			HostGraph();
 			~HostGraph();
 
 			void addModelListener(std::weak_ptr<juce::AsyncUpdater> callback);
@@ -133,6 +133,7 @@
 			bool disconnect(const SerializedHandle& input, DirectedPortPair pair);
 			bool toggleSet(const std::vector<SerializedHandle>& handles);
 
+			void setMixGraph(std::shared_ptr<MixGraphListener> listener);
 			void applyDefaultLayoutFromRuntime();
 
 		private:
@@ -181,7 +182,7 @@
 			static HHandle lookupForeign(const SerializedHandle& h, const GraphLock&);
 
 			void clearTopology(const GraphLock&);
-			void tryRebuildTopology(HostGraph* other, const GraphLock&);
+			void tryRebuildTopology(HostGraph* other, const GraphLock&, bool rebuildPreviouslySeen);
 			// returns true if anything happend
 			bool resetInstancedTopologyFor(const SerializedHandle& h, const GraphLock&, bool eraseSerializedInfo = false);
 

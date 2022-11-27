@@ -44,27 +44,10 @@
 	#include "SignalizerConfiguration.h"
 	#include <memory>
 	#include "ConcurrentConfig.h"
+	#include "CommonSignalizer.h"
 
 	namespace Signalizer
 	{
-		typedef std::make_signed<std::size_t>::type ssize_t;
-		
-		template<class T>
-		using vector_set = std::set<T>;
-
-		typedef std::int32_t PinInt;
-
-		struct DirectedPortPair
-		{
-			PinInt Source;
-			PinInt Destination;
-
-			inline friend bool operator < (DirectedPortPair a, DirectedPortPair b)
-			{
-				return std::tie(a.Destination, a.Source) < std::tie(b.Destination, b.Source);
-			}
-		};
-
 		// TODO: Refactor into CPL, share between ape and such.
 		class AuxMatrix
 		{
@@ -158,11 +141,19 @@
 
 			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
+			std::shared_ptr<AudioStream::Output>& getPresentationOutput();
+			/// <summary>
+			/// Requests a disconnection of everything and will eventually be garbage collected 
+			/// </summary>
+			void close();
 			const ConcurrentConfig& getConcurrentConfig() const noexcept;
+
+			~MixGraphListener();
 
 		private:
 
 			MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output> realtimeStream, AudioStream::IO&& presentation);
+
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 
 			struct ConnectionCommand

@@ -47,6 +47,7 @@
 	{
 		class AudioProcessor;
 		class GraphEditor;
+		class MixGraphListener;
 
 		class MainEditor
 		:
@@ -214,8 +215,7 @@
 			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
 			std::shared_ptr<SharedBehaviour> globalState;
-			std::shared_ptr<const ConcurrentConfig> config;
-			std::shared_ptr<AudioStream::Output> stream;
+			std::shared_ptr<MixGraphListener> mixGraph;
 			GraphEditor* graphEditor;
 		};
 	};

@@ -29,6 +29,7 @@
 
 #include "HostGraph.h"
 #include <atomic>
+#include "MixGraphListener.h"
 
 namespace Signalizer
 {
@@ -37,23 +38,12 @@ namespace Signalizer
 	static std::atomic_int globalVersion;
 
 
-	HostGraph::HostGraph(std::shared_ptr<AudioStream::Output>& realtime)
-		: mix(MixGraphListener::create(realtime))
-		, name("unnamed")
+	HostGraph::HostGraph()
+		: name("unnamed")
 	{
 		broadcastCreate(GraphLock(staticMutex));
 	}
 
-	std::shared_ptr<AudioStream::Output> HostGraph::getHostPresentation()
-	{
-		return mix->presentationOutput;
-	}
-
-	std::shared_ptr<const ConcurrentConfig> HostGraph::getConcurrentConfig()
-	{
-		// alias the config to the lifetime of the mix
-		return std::shared_ptr<const ConcurrentConfig>(mix, &mix->getConcurrentConfig());
-	}
 
 	HostGraph::~HostGraph()
 	{
@@ -119,7 +109,7 @@ namespace Signalizer
 		if (count || expectedNodesToResurrect)
 		{
 			for (auto h : staticSet)
-				tryRebuildTopology(resolve(h), lock);
+				tryRebuildTopology(resolve(h), lock, false);
 		}
 
 		/*
@@ -345,6 +335,24 @@ namespace Signalizer
 		return true;
 	}
 
+	void HostGraph::setMixGraph(std::shared_ptr<MixGraphListener> listener)
+	{
+		GraphLock lock(staticMutex);
+
+		mix = std::move(listener);
+
+		if (!mix)
+			return;
+
+		expectedNodesToResurrect = topology.size();
+
+		if (expectedNodesToResurrect)
+		{
+			for (auto h : staticSet)
+				tryRebuildTopology(resolve(h), lock, true);
+		}
+	}
+
 	void HostGraph::applyDefaultLayoutFromRuntime()
 	{
 		GraphLock g(staticMutex);
@@ -381,6 +389,9 @@ namespace Signalizer
 
 	void HostGraph::submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&)
 	{
+		if (!mix)
+			return;
+
 		mix->connect(
 			resolve(h)->mix->realtime, pair
 		);
@@ -388,6 +399,9 @@ namespace Signalizer
 
 	void HostGraph::submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&)
 	{
+		if (!mix)
+			return;
+
 		mix->disconnect(
 			resolve(h)->mix->realtime, pair
 		);
@@ -438,14 +452,14 @@ namespace Signalizer
 		topology.clear();
 	}
 
-	void HostGraph::tryRebuildTopology(HostGraph* other, const GraphLock& g)
+	void HostGraph::tryRebuildTopology(HostGraph* other, const GraphLock& g, bool rebuildPreviouslySeen)
 	{
 		CPL_RUNTIME_ASSERTION(other);
 		CPL_RUNTIME_ASSERTION(other->hasSerializedRepresentation());
 
 		auto serialized = serializeReference(other, g);
 
-		if (auto it = topology.find(serialized); it != topology.end() && it->second.liveReference == nullptr)
+		if (auto it = topology.find(serialized); it != topology.end() && (rebuildPreviouslySeen || it->second.liveReference == nullptr))
 		{
 			CPL_RUNTIME_ASSERTION(expectedNodesToResurrect > 0);
 
@@ -466,6 +480,7 @@ namespace Signalizer
 			if (it->second.liveReference != nullptr)
 			{
 				// expect to see this node again
+				// TODO ^: What if we're calling this twice? do we expect this node twice?
 				if(!eraseSerializedInfo)
 					expectedNodesToResurrect++;
 
@@ -538,7 +553,7 @@ namespace Signalizer
 		if (!node->hasSerializedRepresentation())
 			return;
 
-		tryRebuildTopology(node, g);
+		tryRebuildTopology(node, g, false);
 	}
 
 	void HostGraph::onDetailChange(HostGraph::HHandle n, HostGraph::DetailChange change, const GraphLock& g)
@@ -551,7 +566,7 @@ namespace Signalizer
 		if (change != DetailChange::Reidentified || expectedNodesToResurrect == 0 || !node->hasSerializedRepresentation())
 			return;
 
-		tryRebuildTopology(node, g);
+		tryRebuildTopology(node, g, false);
 	}
 
 	void HostGraph::onNodeDestroyed(HostGraph::HHandle n, const GraphLock& g)

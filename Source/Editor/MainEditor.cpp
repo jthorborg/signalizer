@@ -30,8 +30,9 @@
 #include "MainEditor.h"
 #include "../Processor/PluginProcessor.h"
 #include "../Vectorscope/VectorscopeParameters.h"
-#include "../Oscilloscope/OscilloscopeParameters.h"
+//#include "../Oscilloscope/OscilloscopeParameters.h"
 #include "../Spectrum/SpectrumParameters.h"
+#include "../Common/MixGraphListener.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"
@@ -68,8 +69,8 @@ namespace Signalizer
 	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
 		{ VectorScopeContent::name, &VectorScopeContent::create },
-		{ OscilloscopeContent::name, &OscilloscopeContent::create },
-		{ SpectrumContent::name, &SpectrumContent::create }
+		//{ OscilloscopeContent::name, &OscilloscopeContent::create },
+		//{ SpectrumContent::name, &SpectrumContent::create }
 	};
 
 	enum class RenderTypes
@@ -136,10 +137,11 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, stream(e->getHostGraph().getHostPresentation())
-		, config(e->getHostGraph().getConcurrentConfig())
+		, mixGraph(MixGraphListener::create(e->getRealtimeOutput()))
 		, globalState(std::make_shared<SharedBehaviour>())
 	{
+		e->getHostGraph().setMixGraph(mixGraph);
+
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve(ContentCreationList.size());
 
@@ -153,8 +155,9 @@ namespace Signalizer
 					auto& graph = engine->getHostGraph();
 					return localState->createView(
 						std::const_pointer_cast<const SharedBehaviour>(globalState),
-						graph.getConcurrentConfig(),
-						graph.getHostPresentation()
+						// alias the config to the lifetime of the mix
+						std::shared_ptr<const ConcurrentConfig>(mixGraph, &mixGraph->getConcurrentConfig()),
+						mixGraph->getPresentationOutput()
 					);
 				}
 			);
@@ -167,6 +170,20 @@ namespace Signalizer
 		oglc.setComponentPaintingEnabled(false);
 
 		nestedMouseHook.hook(this, this, true);
+	}
+
+	MainEditor::~MainEditor()
+	{
+		if (graphEditor)
+			graphEditor->mainEditorDied();
+
+		suspendView(views[selTab]);
+		notifyDestruction();
+		exitFullscreen();
+		stopTimer();
+
+		mixGraph->close();
+		engine->getHostGraph().setMixGraph(nullptr);
 	}
 
 
@@ -619,16 +636,17 @@ namespace Signalizer
 
 				void operator()()
 				{
-					auto currentSampleRate = handle.config->sampleRate;
-					if (currentSampleRate > 0)
+					const auto& config = handle.mixGraph->getConcurrentConfig();
+
+					if (config.sampleRate > 0)
 					{
 						std::int64_t value;
 						std::string contents = handle.kmaxHistorySize.getInputValue();
 						if (cpl::lexicalConversion(contents, value) && value >= 0)
 						{
-							auto msCapacity = cpl::Math::round<std::size_t>(currentSampleRate * 0.001 * value);
+							auto msCapacity = cpl::Math::round<std::size_t>(config.sampleRate * 0.001 * value);
 
-							handle.stream->modifyConsumerInfo(
+							handle.mixGraph->getPresentationOutput()->modifyConsumerInfo(
 								[=](auto& config)
 								{
 									config.audioHistoryCapacity = msCapacity;
@@ -646,7 +664,7 @@ namespace Signalizer
 						else
 						{
 							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * handle.config->historyCapacity / handle.config->sampleRate);
+							auto msCapacity = cpl::Math::round<std::size_t>(1000 * config.historyCapacity / config.sampleRate);
 							if (cpl::lexicalConversion(msCapacity, result))
 								handle.kmaxHistorySize.setInputValueInternal(result + " ms");
 							else
@@ -1267,17 +1285,6 @@ namespace Signalizer
 			}
 		}
 		return false;
-	}
-
-	MainEditor::~MainEditor()
-	{
-		if (graphEditor)
-			graphEditor->mainEditorDied();
-
-		suspendView(views[selTab]);
-		notifyDestruction();
-		exitFullscreen();
-		stopTimer();
 	}
 
 	void MainEditor::resizeEnd()

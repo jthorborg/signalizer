@@ -29,6 +29,7 @@
 
 #include "MixGraphListener.h"
 #include <atomic>
+#include <memory>
 
 namespace Signalizer
 {
@@ -53,11 +54,32 @@ namespace Signalizer
 		return its.first;
 	}
 
+	void MixGraphListener::close()
+	{
+		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
+
+		// there might be further processing, but from now on we're in a dead state.
+		enabled = false;
+
+		for (auto& g : graph)
+		{
+			g.second.source->removeListener(shared_from_this());
+		}
+
+		graph.clear();
+	}
+
 	void MixGraphListener::assignSelf()
 	{
 		self = &emplace(realtime)->second;
 		presentationOutput->addListener(shared_from_this());
 	}
+
+	std::shared_ptr<AudioStream::Output>& MixGraphListener::getPresentationOutput()
+	{
+		return presentationOutput;
+	}
+
 
 	const ConcurrentConfig& MixGraphListener::getConcurrentConfig() const noexcept
 	{
@@ -96,6 +118,16 @@ namespace Signalizer
 		, enabled(true)
 		, self(nullptr)
 	{
+	}
+
+	MixGraphListener::~MixGraphListener()
+	{
+		// solely here as a checkpoint.
+		if (graph.size() != 0)
+		{
+			CPL_DEBUGOUT("Releasing mix graph listener that hasn't been cleaned up (but it isn't really a problem)");
+			CPL_BREAKIFDEBUGGED();
+		}
 	}
 
 	std::shared_ptr<MixGraphListener> MixGraphListener::create(std::shared_ptr<AudioStream::Output> realtimeStream)
@@ -153,7 +185,7 @@ namespace Signalizer
 				{
 					info.channels = maxDestinationPort;
 					info.sampleRate = realInfo.sampleRate;
-					info.anticipatedSize = numSamples;
+					info.anticipatedSize = static_cast<std::uint32_t>(numSamples);
 				}
 			);
 

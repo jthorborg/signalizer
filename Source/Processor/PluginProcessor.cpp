@@ -48,7 +48,7 @@ namespace Signalizer
 
 	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
 		: realtimeInput(std::move(std::get<0>(io)))
-		, graph(std::move(std::get<1>(io)))
+		, realtimeOutput(std::move(std::get<1>(io)))
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
@@ -57,7 +57,7 @@ namespace Signalizer
 		)
 	{
 
-		SystemView view { graph.getHostPresentation(), *this, graph.getConcurrentConfig() };
+		SystemView view { realtimeOutput, *this};
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
@@ -151,10 +151,13 @@ namespace Signalizer
 			CPL_BREAKIFDEBUGGED();
 		}
 
-		if(auto ph = getPlayHead())
-			realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
-		else
-			realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+		if (realtimeInput.isAnyoneListening())
+		{
+			if (auto ph = getPlayHead())
+				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			else
+				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+		}
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't

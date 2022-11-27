@@ -46,6 +46,24 @@
 
 	namespace Signalizer
 	{
+		typedef std::make_signed<std::size_t>::type ssize_t;
+
+		template<class T>
+		using vector_set = std::set<T>;
+
+		typedef std::int32_t PinInt;
+
+		struct DirectedPortPair
+		{
+			PinInt Source;
+			PinInt Destination;
+
+			inline friend bool operator < (DirectedPortPair a, DirectedPortPair b)
+			{
+				return std::tie(a.Destination, a.Source) < std::tie(b.Destination, b.Source);
+			}
+		};
+
 		enum class EnvelopeModes : int
 		{
 			None,
@@ -88,18 +106,16 @@
 		{
 		public:
 
-			SystemView(std::shared_ptr<AudioStream::Output> audioStream, ParameterSet::AutomatedProcessor& automatedProcessor, std::shared_ptr<const ConcurrentConfig> config)
-				: stream(std::move(audioStream)), processor(automatedProcessor), config(std::move(config))
+			SystemView(std::shared_ptr<AudioStream::Output> audioStream, ParameterSet::AutomatedProcessor& automatedProcessor)
+				: stream(std::move(audioStream)), processor(automatedProcessor)
 			{
 
 			}
 
 			ParameterSet::AutomatedProcessor& getProcessor() noexcept { return processor; }
 			AudioStream::Output& getAudioStream() noexcept { return *stream; }
-			std::shared_ptr<const ConcurrentConfig>& getConcurrentConfig() noexcept { return config; }
 
 		private:
-			std::shared_ptr<const ConcurrentConfig> config;
 			std::shared_ptr<AudioStream::Output> stream;
 			ParameterSet::AutomatedProcessor& processor;
 		};

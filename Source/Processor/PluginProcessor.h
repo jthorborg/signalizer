@@ -106,6 +106,7 @@
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
 			HostGraph& getHostGraph() { return graph; }
+			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 
 		private:
 
@@ -119,6 +120,7 @@
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
 
 			AudioStream::Input realtimeInput;
+			std::shared_ptr<AudioStream::Output> realtimeOutput;
 
 			bool hasEverBeenHostDeserialized{};
 			int nChannels;
