@@ -447,7 +447,7 @@ namespace Signalizer
 	void HostGraph::clearTopology(const GraphLock& g)
 	{
 		for (auto& serialized : topology)
-			resetInstancedTopologyFor(serialized.first, g, true);
+			resetInstancedTopologyFor(serialized.first, g, false);
 
 		topology.clear();
 	}

@@ -194,10 +194,14 @@
 				}
 				State& operator = (State&& other) = delete;
 
-				State() { }
+				static State empty() { return {}; }
+
+			private:
+				State() {}
 			};
 
 			auto emplace(std::shared_ptr<AudioStream::Output>& stream);
+			void remove(std::map<AudioStream::Handle, State>::iterator position);
 
 			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override final;
 			void onStreamAudio(AudioStream::ListenerContext& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override final;

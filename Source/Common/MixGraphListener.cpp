@@ -40,7 +40,7 @@ namespace Signalizer
 		auto its = graph.emplace(
 			std::piecewise_construct,
 			std::forward_as_tuple(stream->getHandle()),
-			std::forward_as_tuple( State{})
+			std::forward_as_tuple( State::empty())
 		);
 		if (its.second)
 		{
@@ -54,6 +54,17 @@ namespace Signalizer
 
 		return its.first;
 	}
+
+	void MixGraphListener::remove(std::map<AudioStream::Handle, State>::iterator position)
+	{
+		CPL_RUNTIME_ASSERTION(position->second.refCount == 0);
+		CPL_RUNTIME_ASSERTION(position->second.source.get() != nullptr);
+
+		position->second.source->removeListener(shared_from_this());
+
+		graph.erase(position);
+	}
+
 
 	void MixGraphListener::close()
 	{
@@ -73,6 +84,8 @@ namespace Signalizer
 	void MixGraphListener::assignSelf()
 	{
 		self = &emplace(realtime)->second;
+		// always keep ourselves alive.
+		self->refCount++;
 		presentationOutput->addListener(shared_from_this());
 	}
 
@@ -288,7 +301,12 @@ namespace Signalizer
 		{
 			std::shared_lock<std::shared_mutex> lock(dataMutex);
 
-			auto& s = graph[handle];
+			// certain conditions can cause callbacks to temporarily appear, even though we deregistrered from this source and no longer know it.
+			auto it = graph.find(handle);
+			if (it == graph.end())
+				return;
+
+			auto& s = it->second;
 
 			s.globalPosition = globalPosition;
 			s.endpoint = globalPosition + numSamples;
@@ -394,6 +412,7 @@ namespace Signalizer
 			if (it == graph.end())
 			{
 				CPL_RUNTIME_ASSERTION(command.isConnection);
+				CPL_RUNTIME_ASSERTION(command.stream.get() != nullptr);
 				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.get());
 				it = emplace(std::move(command.stream));
 			}
@@ -414,7 +433,7 @@ namespace Signalizer
 				source.channelQueues.erase(command.pair);
 
 				if (--source.refCount == 0)
-					graph.erase(it);
+					remove(it);
 			}
 		}
 	}

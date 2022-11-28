@@ -226,6 +226,7 @@ namespace Signalizer
 			auto version = serializer.getBuilder().getLocalVersion();
 			deserialize(builder, version);
 
+			// the host graph is serialized independently, so it doesn't appear as part of presets.
 			if (!builder["host-graph"].isEmpty())
 				graph.deserialize(builder["host-graph"], version);
 
