@@ -30,6 +30,7 @@
 #include "MixGraphListener.h"
 #include <atomic>
 #include <memory>
+#include "../Processor/PluginProcessor.h"
 
 namespace Signalizer
 {
@@ -80,13 +81,6 @@ namespace Signalizer
 		return presentationOutput;
 	}
 
-
-	const ConcurrentConfig& MixGraphListener::getConcurrentConfig() const noexcept
-	{
-		return concurrentConfig;
-	}
-
-
 	void MixGraphListener::onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo&)
 	{
 		const auto& info = changedSource.getInfo();
@@ -110,14 +104,25 @@ namespace Signalizer
 	{
 	}
 
-	MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output> realtimeStream, AudioStream::IO&& presentation)
-		: realtime(std::move(realtimeStream))
+	MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation)
+		: realtime(p.getRealtimeOutput())
 		, presentationInput(std::move(std::get<0>(presentation)))
 		, presentationOutput(std::move(std::get<1>(presentation)))
 		, structuralChange(false)
 		, enabled(true)
 		, self(nullptr)
+		, concurrentConfig(*p.config)
 	{
+		presentationOutput->modifyConsumerInfo(
+			[&](auto&& info)
+			{
+				// Here we restore initial parameters recovered from serialized storage in the engine,
+				// previously (< 0.3.5) this was only recovered once the editor appears.
+				info.storeAudioHistory = true;
+				info.audioHistorySize = concurrentConfig.historySize;
+				info.audioHistoryCapacity = concurrentConfig.historyCapacity;
+			}
+		);
 	}
 
 	MixGraphListener::~MixGraphListener()
@@ -130,11 +135,11 @@ namespace Signalizer
 		}
 	}
 
-	std::shared_ptr<MixGraphListener> MixGraphListener::create(std::shared_ptr<AudioStream::Output> realtimeStream)
+	std::shared_ptr<MixGraphListener> MixGraphListener::create(AudioProcessor& p)
 	{
 		auto io = AudioStream::create(false);
 
-		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(std::move(realtimeStream), std::move(io)));
+		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(p, std::move(io)));
 		mixGraph->assignSelf();
 		return mixGraph;
 	}
@@ -188,14 +193,6 @@ namespace Signalizer
 					info.anticipatedSize = static_cast<std::uint32_t>(numSamples);
 				}
 			);
-
-			presentationOutput->modifyConsumerInfo(
-				[&](AudioStream::ConsumerInfo& info)
-				{
-					info.storeAudioHistory = true;
-				}
-			);
-
 
 			structuralChange = false;
 		}

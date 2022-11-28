@@ -633,6 +633,7 @@
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
 			LinearHzFormatter<ParameterSet::ParameterView> customTriggerFormatter;
+			// TODO: if life time of parameters are extended, make this a weak pointer?
 			ParameterSet parameterSet;
 
 			cpl::UnitFormatter<double>

@@ -80,11 +80,10 @@
 		};
 
 		class StateEditor;
-		class ProcessorState;
 		class SystemView;
 		class SharedBehaviour;
 		struct ConcurrentConfig;
-
+		
 		class ProcessorState
 			: public cpl::SafeSerializableObject
 		{
@@ -97,26 +96,50 @@
 				std::shared_ptr<AudioStream::Output>& stream
 			) = 0;
 
-			virtual ParameterSet & getParameterSet() = 0;
+			virtual ParameterSet& getParameterSet() = 0;
 			virtual const char* getName() = 0;
+			virtual void onPresentationStreamCreated(std::shared_ptr<AudioStream::Output>& output) {}
+
 			virtual ~ProcessorState() {}
+		};
+
+		template<typename Derived>
+		class ProcessorStreamState
+			: public ProcessorState
+			, public AudioStream::Listener
+		{
+		public:
+
+			void onPresentationStreamCreated(std::shared_ptr<AudioStream::Output>& output) override
+			{ 
+				auto base = static_cast<Derived*>(this)->shared_from_this();
+
+				if (auto old = previousOutput.lock())
+					old->removeListener(base);
+
+				output->addListener(base);
+			}
+
+		protected:
+			std::weak_ptr<AudioStream::Output> previousOutput;
 		};
 
 		class SystemView
 		{
 		public:
 
-			SystemView(std::shared_ptr<AudioStream::Output> audioStream, ParameterSet::AutomatedProcessor& automatedProcessor)
-				: stream(std::move(audioStream)), processor(automatedProcessor)
+			SystemView(std::shared_ptr<const ConcurrentConfig>& config, ParameterSet::AutomatedProcessor& automatedProcessor)
+				: config(config), processor(automatedProcessor)
 			{
 
 			}
 
 			ParameterSet::AutomatedProcessor& getProcessor() noexcept { return processor; }
-			AudioStream::Output& getAudioStream() noexcept { return *stream; }
+			std::shared_ptr<const ConcurrentConfig>& getConcurrentConfig() noexcept { return config; }
 
 		private:
-			std::shared_ptr<AudioStream::Output> stream;
+
+			std::shared_ptr<const ConcurrentConfig> config;			
 			ParameterSet::AutomatedProcessor& processor;
 		};
 
@@ -155,9 +178,11 @@
 				Exponential
 			};
 
-			AudioHistoryTransformatter(Mode mode = Milliseconds)
+			AudioHistoryTransformatter(std::shared_ptr<const ConcurrentConfig>& config, Mode mode = Milliseconds)
 				: param(nullptr)
 				, m(mode)
+				, lastCapacity(config->historyCapacity)
+				, sampleRate(config->sampleRate)
 			{
 
 			}

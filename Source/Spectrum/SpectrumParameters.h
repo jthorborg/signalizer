@@ -84,7 +84,6 @@
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<SpectrumContent> ptr(new SpectrumContent(parameterOffset, system));
-				system.getAudioStream().addListener(ptr);
 
 				return ptr;
 			}
@@ -93,7 +92,7 @@
 
 			SpectrumContent(std::size_t offset, SystemView& system)
 				: parameterSet(name, "SC.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(AudioTransformatter::Samples)
+				, audioHistoryTransformatter(system.getConcurrentConfig(), AudioTransformatter::Samples)
 				, dynamicRange(kMinDbs, kMaxDbs)
 				, literalDBFormatter("dB")
 				, reverseUnitRange(1, 0)

@@ -48,6 +48,8 @@
 
 	namespace Signalizer
 	{
+		class AudioProcessor;
+
 		// TODO: Refactor into CPL, share between ape and such.
 		class AuxMatrix
 		{
@@ -137,7 +139,7 @@
 		public:
 			friend class HostGraph;
 
-			static std::shared_ptr<MixGraphListener> create(std::shared_ptr<AudioStream::Output> realtimeStream);
+			static std::shared_ptr<MixGraphListener> create(AudioProcessor& processor);
 
 			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
@@ -146,13 +148,12 @@
 			/// Requests a disconnection of everything and will eventually be garbage collected 
 			/// </summary>
 			void close();
-			const ConcurrentConfig& getConcurrentConfig() const noexcept;
 
 			~MixGraphListener();
 
 		private:
 
-			MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output> realtimeStream, AudioStream::IO&& presentation);
+			MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
 
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 
@@ -223,7 +224,8 @@
 			std::atomic_bool structuralChange;
 			std::atomic_bool enabled;
 			cpl::weak_atomic<std::size_t> maximumLatency;
-			ConcurrentConfig concurrentConfig;
+			// TODO: should be shared?
+			ConcurrentConfig& concurrentConfig;
 		};
 	}
 

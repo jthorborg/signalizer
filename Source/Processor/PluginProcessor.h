@@ -39,6 +39,7 @@
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
 	#include <memory>
+	#include "../Common/ConcurrentConfig.h"
 
 	namespace Signalizer
 	{
@@ -50,7 +51,7 @@
 			, cpl::DestructionNotifier
 			, ParameterSet::AutomatedProcessor
 		{
-			//friend class MainEditor;
+			friend class MixGraphListener;
 
 		public:
 
@@ -107,6 +108,7 @@
 
 			HostGraph& getHostGraph() { return graph; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
+			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
 
 		private:
 
@@ -119,6 +121,7 @@
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
 
+			std::shared_ptr<ConcurrentConfig> config;
 			AudioStream::Input realtimeInput;
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
 

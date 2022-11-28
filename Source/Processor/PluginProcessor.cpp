@@ -46,8 +46,14 @@ namespace Signalizer
 
 	}
 
+	std::shared_ptr<const ConcurrentConfig> AudioProcessor::getConcurrentConfig()
+	{
+		return std::const_pointer_cast<const ConcurrentConfig>(config);
+	}
+
 	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
-		: realtimeInput(std::move(std::get<0>(io)))
+		: config(std::make_shared<ConcurrentConfig>())
+		, realtimeInput(std::move(std::get<0>(io)))
 		, realtimeOutput(std::move(std::get<1>(io)))
 		, nChannels(2)
 		, dsoEditor(
@@ -57,7 +63,7 @@ namespace Signalizer
 		)
 	{
 
-		SystemView view { realtimeOutput, *this};
+		SystemView view { getConcurrentConfig(), *this};
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
@@ -281,7 +287,7 @@ namespace Signalizer
 			}
 		}
 
-		auto & parameterStates = serializer.getContent("Parameters");
+		auto& parameterStates = serializer.getContent("Parameters");
 		if (!parameterStates.isEmpty())
 		{
 			for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
@@ -290,6 +296,12 @@ namespace Signalizer
 				if (!serializedParameterState.isEmpty())
 					serializedParameterState >> *parameterMap.getState(i);
 			}
+		}
+
+		auto& engineState = serializer.getContent("Engine");
+		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::programInfo.version)
+		{
+			engineState >> config->historyCapacity;
 		}
 
 	}
@@ -341,7 +353,7 @@ namespace Signalizer
 
 		}
 
-		auto & parameterState = serializer.getContent("Parameters");
+		auto& parameterState = serializer.getContent("Parameters");
 		parameterState.clear();
 		parameterState.setMasterVersion(cpl::programInfo.version);
 
@@ -349,8 +361,13 @@ namespace Signalizer
 		{
 			parameterState.getContent(parameterMap.getSet(i)->getName()) << *parameterMap.getState(i);
 		}
-	}
 
+		auto& engineState = serializer.getContent("Engine");
+		engineState.clear();
+		engineState.setMasterVersion(cpl::programInfo.version);
+
+		engineState << config->historyCapacity;
+	}
 
 	//==============================================================================
 	const juce::String AudioProcessor::getName() const

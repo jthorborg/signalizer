@@ -137,7 +137,7 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, mixGraph(MixGraphListener::create(e->getRealtimeOutput()))
+		, mixGraph(MixGraphListener::create(*e))
 		, globalState(std::make_shared<SharedBehaviour>())
 	{
 		e->getHostGraph().setMixGraph(mixGraph);
@@ -148,6 +148,9 @@ namespace Signalizer
 		for (int i = 0; i < ContentCreationList.size(); ++i)
 		{
 			auto localState = params->getState(i);
+
+			localState->onPresentationStreamCreated(mixGraph->getPresentationOutput());
+
 			views.emplace_back(
 				localState,
 				[=]
@@ -155,8 +158,7 @@ namespace Signalizer
 					auto& graph = engine->getHostGraph();
 					return localState->createView(
 						std::const_pointer_cast<const SharedBehaviour>(globalState),
-						// alias the config to the lifetime of the mix
-						std::shared_ptr<const ConcurrentConfig>(mixGraph, &mixGraph->getConcurrentConfig()),
+						engine->getConcurrentConfig(),
 						mixGraph->getPresentationOutput()
 					);
 				}
@@ -636,20 +638,20 @@ namespace Signalizer
 
 				void operator()()
 				{
-					const auto& config = handle.mixGraph->getConcurrentConfig();
+					auto config = handle.engine->getConcurrentConfig();
 
-					if (config.sampleRate > 0)
+					if (config->sampleRate > 0)
 					{
 						std::int64_t value;
 						std::string contents = handle.kmaxHistorySize.getInputValue();
 						if (cpl::lexicalConversion(contents, value) && value >= 0)
 						{
-							auto msCapacity = cpl::Math::round<std::size_t>(config.sampleRate * 0.001 * value);
+							auto samplesCapacity = cpl::Math::round<std::size_t>(config->sampleRate * 0.001 * value);
 
 							handle.mixGraph->getPresentationOutput()->modifyConsumerInfo(
 								[=](auto& config)
 								{
-									config.audioHistoryCapacity = msCapacity;
+									config.audioHistoryCapacity = samplesCapacity;
 								}
 							);
 
@@ -664,7 +666,7 @@ namespace Signalizer
 						else
 						{
 							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * config.historyCapacity / config.sampleRate);
+							auto msCapacity = cpl::Math::round<std::size_t>(1000 * config->historyCapacity / config->sampleRate);
 							if (cpl::lexicalConversion(msCapacity, result))
 								handle.kmaxHistorySize.setInputValueInternal(result + " ms");
 							else
@@ -1080,15 +1082,7 @@ namespace Signalizer
 			data.getContent("Serialized Editors").getContent(views[i].getName()) = views[i].getEditorDSO().getState();
 		}
 
-		std::int64_t historySize;
-		std::string contents = kmaxHistorySize.getInputValue();
-		if (cpl::lexicalConversion(contents, historySize))
-			data << std::max(0ll, (long long)historySize);
-		else
-			data << 1000ll;
-
 		data << khideTabs;
-
 		data << khideWidgets << kstopProcessingOnSuspend;
 	}
 
@@ -1205,10 +1199,20 @@ namespace Signalizer
 
 		if (version >= cpl::Version(0, 2, 8))
 		{
-			std::int64_t historySize;
-			data >> historySize;
-			if (historySize > 0)
-				kmaxHistorySize.setInputValue(std::to_string(historySize));
+			// before version 0.3.5, history size was serialized as a part of the editor, leading to a problem
+			// where parameters wouldn't have sensible state before the editor was opened.
+			// After this version, this information is automatically recovered from the engine in the mix graph.
+			if (version < cpl::Version(0, 3, 5))
+			{
+				std::int64_t historySize;
+				data >> historySize;			
+				
+				if (historySize > 0)
+				{
+					// TODO: needed?
+					kmaxHistorySize.setInputValue(std::to_string(historySize));
+				}
+			}
 
 			data >> khideTabs;
 		}
@@ -1531,6 +1535,11 @@ namespace Signalizer
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
 		kantialias.setValues(AntialisingStringLevels);
+
+
+		auto config = *engine->getConcurrentConfig();
+		auto historySizeMs = (std::int64_t)std::round(1000 * config.historyCapacity / config.sampleRate);
+		kmaxHistorySize.setInputValueInternal(std::to_string(historySizeMs));
 
 		// initiate colours
 		for (unsigned i = 0; i < colourControls.size(); ++i)

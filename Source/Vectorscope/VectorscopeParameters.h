@@ -37,14 +37,13 @@
 
 		class VectorScopeContent final
 			: public cpl::Parameters::UserContent
-			, public ProcessorState
-			, public AudioStream::Listener
+			, public ProcessorStreamState<VectorScopeContent>
 			, public std::enable_shared_from_this<VectorScopeContent>
 		{
 
 			VectorScopeContent(std::size_t offset, SystemView& system)
 				: parameterSet(name, "VS.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(audioHistoryTransformatter.Milliseconds)
+				, audioHistoryTransformatter(system.getConcurrentConfig(), audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
@@ -67,7 +66,6 @@
 				, interconnectSamples("Interconnect", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
-
 
 				, colourBehaviour()
 				, drawingColour(colourBehaviour, "Draw.")
@@ -112,8 +110,6 @@
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<VectorScopeContent> ptr(new VectorScopeContent(parameterOffset, system));
-				system.getAudioStream().addListener(ptr);
-
 				return ptr;
 			}
 
