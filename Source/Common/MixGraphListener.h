@@ -139,19 +139,42 @@
 		public:
 			friend class HostGraph;
 
-			static std::shared_ptr<MixGraphListener> create(AudioProcessor& processor);
+			/// <summary>
+			/// While in scope, keeps a mix graph alive pumping from inputs specified from a host graph into a presentation output.
+			/// </summary>
+			class Handle
+			{
+				friend class MixGraphListener;
+				friend class HostGraph;
+				std::shared_ptr<MixGraphListener> listener;
+
+				Handle(std::shared_ptr<MixGraphListener> ret) : listener(std::move(ret)) {}
+
+			public:
+
+				Handle() = default;
+				Handle(Handle&&) = default;
+				Handle& operator = (Handle&&) = default;
+
+				~Handle()
+				{
+					if (listener)
+						listener->close();
+				}
+			};
+
+
+			static std::pair<Handle, std::shared_ptr<AudioStream::Output>> create(AudioProcessor& processor);
 
 			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
-			std::shared_ptr<AudioStream::Output>& getPresentationOutput();
-			/// <summary>
-			/// Requests a disconnection of everything and will eventually be garbage collected 
-			/// </summary>
-			void close();
+
 
 			~MixGraphListener();
 
 		private:
+
+			void close();
 
 			MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
 
@@ -177,11 +200,11 @@
 				std::int64_t endpoint{};
 				std::int64_t offset{};
 				std::int32_t refCount {};
-				// retain the source. TODO: really?
-				std::shared_ptr<AudioStream::Output> source;
+
+				std::weak_ptr<AudioStream::Output> source;
 
 				State(const State& other) = delete;
-				State(State&& other) 
+				State(State&& other) noexcept
 					: channelQueues(std::move(other.channelQueues))
 					, current(other.current.load(std::memory_order_acquire))
 					, globalPosition(other.globalPosition)
@@ -213,11 +236,13 @@
 			void updateTopologyCommands();
 			void assignSelf();
 
+			int id;
 			std::map<AudioStream::Handle, State> graph;
 			std::size_t initialSampleCapacity {};
 			std::shared_ptr<AudioStream::Output> realtime;
 			AudioStream::Input presentationInput;
-			std::shared_ptr<AudioStream::Output> presentationOutput;
+			AudioStream::Handle presentationOutput;
+			std::weak_ptr<AudioStream::Output> weakPresentationOutput;
 			State* self;
 			std::shared_mutex dataMutex;
 

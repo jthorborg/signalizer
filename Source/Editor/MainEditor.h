@@ -42,12 +42,12 @@
 	#include <stack>
 	#include <array>
 	#include <memory>
+	#include "../Common/MixGraphListener.h"
 
 	namespace Signalizer
 	{
 		class AudioProcessor;
 		class GraphEditor;
-		class MixGraphListener;
 
 		class MainEditor
 		:
@@ -215,7 +215,8 @@
 			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
 			std::shared_ptr<SharedBehaviour> globalState;
-			std::shared_ptr<MixGraphListener> mixGraph;
+			MixGraphListener::Handle mixGraph;
+			std::shared_ptr<AudioStream::Output> presentationOutput;
 			GraphEditor* graphEditor;
 		};
 	};

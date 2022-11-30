@@ -44,6 +44,7 @@
 	#include <optional>
 	#include "SignalizerConfiguration.h"
 	#include "CommonSignalizer.h"
+	#include "MixGraphListener.h"
 
 	namespace Signalizer
 	{
@@ -116,7 +117,7 @@
 				Version previousVersion{};
 			};
 
-			HostGraph();
+			HostGraph(std::shared_ptr<AudioStream::Output> realtimeOutput);
 			~HostGraph();
 
 			void addModelListener(std::weak_ptr<juce::AsyncUpdater> callback);
@@ -133,7 +134,7 @@
 			bool disconnect(const SerializedHandle& input, DirectedPortPair pair);
 			bool toggleSet(const std::vector<SerializedHandle>& handles);
 
-			void setMixGraph(std::shared_ptr<MixGraphListener> listener);
+			void setMixGraph(MixGraphListener::Handle& handle);
 			void applyDefaultLayoutFromRuntime();
 
 		private:
@@ -204,6 +205,7 @@
 			std::vector<HHandle> pinInputs;
 			Topology topology;
 			std::weak_ptr<juce::AsyncUpdater> modelChangedCallback;
+			std::shared_ptr<AudioStream::Output> realtime;
 			std::shared_ptr<MixGraphListener> mix;
 			std::size_t expectedNodesToResurrect = 0;
 			int version = 0;

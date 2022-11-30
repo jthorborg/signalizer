@@ -34,6 +34,7 @@
 
 namespace Signalizer
 {
+	static std::atomic_int mgCounter;
 
 	auto MixGraphListener::emplace(std::shared_ptr<AudioStream::Output>& stream)
 	{
@@ -58,9 +59,10 @@ namespace Signalizer
 	void MixGraphListener::remove(std::map<AudioStream::Handle, State>::iterator position)
 	{
 		CPL_RUNTIME_ASSERTION(position->second.refCount == 0);
-		CPL_RUNTIME_ASSERTION(position->second.source.get() != nullptr);
-
-		position->second.source->removeListener(shared_from_this());
+		if (auto sh = position->second.source.lock())
+		{
+			sh->removeListener(shared_from_this());
+		}
 
 		graph.erase(position);
 	}
@@ -75,8 +77,12 @@ namespace Signalizer
 
 		for (auto& g : graph)
 		{
-			g.second.source->removeListener(shared_from_this());
+			if (auto sh = g.second.source.lock())
+				sh->removeListener(shared_from_this());
 		}
+
+		if (auto sh = weakPresentationOutput.lock())
+			sh->removeListener(shared_from_this());
 
 		graph.clear();
 	}
@@ -86,12 +92,9 @@ namespace Signalizer
 		self = &emplace(realtime)->second;
 		// always keep ourselves alive.
 		self->refCount++;
-		presentationOutput->addListener(shared_from_this());
-	}
 
-	std::shared_ptr<AudioStream::Output>& MixGraphListener::getPresentationOutput()
-	{
-		return presentationOutput;
+		if(auto sh = weakPresentationOutput.lock())
+			sh->addListener(shared_from_this());
 	}
 
 	void MixGraphListener::onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo&)
@@ -106,7 +109,7 @@ namespace Signalizer
 			concurrentConfig.numChannels = info.channels;
 			concurrentConfig.sampleRate = info.sampleRate;
 		}
-		else if (changedSource.getHandle() == presentationOutput->getHandle())
+		else if (changedSource.getHandle() == presentationOutput)
 		{
 			concurrentConfig.historyCapacity = info.audioHistoryCapacity;
 			concurrentConfig.historySize = info.audioHistorySize;
@@ -120,13 +123,17 @@ namespace Signalizer
 	MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation)
 		: realtime(p.getRealtimeOutput())
 		, presentationInput(std::move(std::get<0>(presentation)))
-		, presentationOutput(std::move(std::get<1>(presentation)))
+		, weakPresentationOutput(std::get<1>(presentation))
+		, presentationOutput(std::get<1>(presentation)->getHandle())
 		, structuralChange(false)
 		, enabled(true)
 		, self(nullptr)
 		, concurrentConfig(*p.config)
+		, id(mgCounter.fetch_add(1))
 	{
-		presentationOutput->modifyConsumerInfo(
+		auto& output = std::get<1>(presentation);
+
+		output->modifyConsumerInfo(
 			[&](auto&& info)
 			{
 				// Here we restore initial parameters recovered from serialized storage in the engine,
@@ -148,13 +155,13 @@ namespace Signalizer
 		}
 	}
 
-	std::shared_ptr<MixGraphListener> MixGraphListener::create(AudioProcessor& p)
+	std::pair<MixGraphListener::Handle, std::shared_ptr<AudioStream::Output>> MixGraphListener::create(AudioProcessor& p)
 	{
 		auto io = AudioStream::create(false);
-
+		auto presentationOutput = std::get<1>(io);
 		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(p, std::move(io)));
 		mixGraph->assignSelf();
-		return mixGraph;
+		return { Handle(mixGraph), presentationOutput };
 	}
 
 	void MixGraphListener::connect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair)
@@ -290,7 +297,7 @@ namespace Signalizer
 
 		// We listen to the presentation output to get synchronized callbacks for changes in the stream properties.
 		// We however also get callbacks for audio (that we emitted ourselves), which is a deadlock we shall ignore.
-		if (handle == presentationOutput->getHandle())
+		if (handle == presentationOutput)
 			return;
 
 		const auto localMaxLatency = maximumLatency.load();
@@ -361,14 +368,15 @@ namespace Signalizer
 					// this link in the chain is still zero, but we are spilling over our max latency which is unexpected 
 					// even for a reverse dependency.
 					// is something on the way, at least?
-					if (g.second.source->getApproximateInFlightPackets() > 0)
+
+					if(auto sh = g.second.source.lock(); sh->getApproximateInFlightPackets() > 0)
 					{
 						// OK: we will get notified at a later stage.
 						return;
 					}
 					else
 					{
-						// ignore this dependency - it's not processing for some reason
+						// ignore this dependency - it's not processing for some reason or deleted itself
 						continue;
 					}
 				}
@@ -413,7 +421,7 @@ namespace Signalizer
 			{
 				CPL_RUNTIME_ASSERTION(command.isConnection);
 				CPL_RUNTIME_ASSERTION(command.stream.get() != nullptr);
-				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.get());
+				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.lock().get());
 				it = emplace(std::move(command.stream));
 			}
 

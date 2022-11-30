@@ -137,9 +137,9 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, mixGraph(MixGraphListener::create(*e))
 		, globalState(std::make_shared<SharedBehaviour>())
 	{
+		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
 		e->getHostGraph().setMixGraph(mixGraph);
 
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
@@ -149,7 +149,7 @@ namespace Signalizer
 		{
 			auto localState = params->getState(i);
 
-			localState->onPresentationStreamCreated(mixGraph->getPresentationOutput());
+			localState->onPresentationStreamCreated(presentationOutput);
 
 			views.emplace_back(
 				localState,
@@ -159,7 +159,7 @@ namespace Signalizer
 					return localState->createView(
 						std::const_pointer_cast<const SharedBehaviour>(globalState),
 						engine->getConcurrentConfig(),
-						mixGraph->getPresentationOutput()
+						presentationOutput
 					);
 				}
 			);
@@ -184,8 +184,7 @@ namespace Signalizer
 		exitFullscreen();
 		stopTimer();
 
-		mixGraph->close();
-		engine->getHostGraph().setMixGraph(nullptr);
+		engine->getHostGraph().setMixGraph(MixGraphListener::Handle{});
 	}
 
 
@@ -648,7 +647,7 @@ namespace Signalizer
 						{
 							auto samplesCapacity = cpl::Math::round<std::size_t>(config->sampleRate * 0.001 * value);
 
-							handle.mixGraph->getPresentationOutput()->modifyConsumerInfo(
+							handle.presentationOutput->modifyConsumerInfo(
 								[=](auto& config)
 								{
 									config.audioHistoryCapacity = samplesCapacity;

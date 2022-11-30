@@ -336,11 +336,11 @@ namespace Signalizer
 		return true;
 	}
 
-	void HostGraph::setMixGraph(std::shared_ptr<MixGraphListener> listener)
+	void HostGraph::setMixGraph(MixGraphListener::Handle& handle)
 	{
 		GraphLock lock(staticMutex);
 
-		mix = std::move(listener);
+		mix = handle.listener;
 
 		if (!mix)
 			return;
