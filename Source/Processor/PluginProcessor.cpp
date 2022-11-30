@@ -54,7 +54,8 @@ namespace Signalizer
 	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
 		: config(std::make_shared<ConcurrentConfig>())
 		, realtimeInput(std::move(std::get<0>(io)))
-		, realtimeOutput(std::move(std::get<1>(io)))
+		, realtimeOutput(std::get<1>(io))
+		, graph(std::get<1>(io))
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },

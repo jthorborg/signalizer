@@ -38,8 +38,9 @@ namespace Signalizer
 	static std::atomic_int globalVersion;
 
 
-	HostGraph::HostGraph()
+	HostGraph::HostGraph(std::shared_ptr<AudioStream::Output> realtimeOutput)
 		: name("unnamed")
+		, realtime(std::move(realtimeOutput))
 	{
 		broadcastCreate(GraphLock(staticMutex));
 	}
@@ -393,7 +394,7 @@ namespace Signalizer
 			return;
 
 		mix->connect(
-			resolve(h)->mix->realtime, pair
+			resolve(h)->realtime, pair
 		);
 	}
 
@@ -403,7 +404,7 @@ namespace Signalizer
 			return;
 
 		mix->disconnect(
-			resolve(h)->mix->realtime, pair
+			resolve(h)->realtime, pair
 		);
 	}
 
