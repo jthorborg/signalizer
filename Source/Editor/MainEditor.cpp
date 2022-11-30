@@ -629,60 +629,41 @@ namespace Signalizer
 		}
 		else if (c == &kmaxHistorySize)
 		{
+			auto config = engine->getConcurrentConfig();
 
-			struct RetryResizeCapacity
+			CPL_RUNTIME_ASSERTION(config->sampleRate > 0);
+
+			std::int64_t value;
+			std::string contents = kmaxHistorySize.getInputValue();
+			if (cpl::lexicalConversion(contents, value) && value >= 0)
 			{
-				RetryResizeCapacity(MainEditor& h) : handle(h) {};
-				MainEditor& handle;
+				auto samplesCapacity = cpl::Math::round<std::size_t>(config->sampleRate * 0.001 * value);
 
-				void operator()()
+				presentationOutput->modifyConsumerInfo(
+					[=](auto& config)
+					{
+						config.audioHistoryCapacity = samplesCapacity;
+					}
+				);
+
+				if (contents.find_first_of("ms") == std::string::npos)
 				{
-					auto config = handle.engine->getConcurrentConfig();
-
-					if (config->sampleRate > 0)
-					{
-						std::int64_t value;
-						std::string contents = handle.kmaxHistorySize.getInputValue();
-						if (cpl::lexicalConversion(contents, value) && value >= 0)
-						{
-							auto samplesCapacity = cpl::Math::round<std::size_t>(config->sampleRate * 0.001 * value);
-
-							handle.presentationOutput->modifyConsumerInfo(
-								[=](auto& config)
-								{
-									config.audioHistoryCapacity = samplesCapacity;
-								}
-							);
-
-							if (contents.find_first_of("ms") == std::string::npos)
-							{
-								contents.append(" ms");
-								handle.kmaxHistorySize.setInputValueInternal(contents);
-							}
-
-							handle.kmaxHistorySize.indicateSuccess();
-						}
-						else
-						{
-							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * config->historyCapacity / config->sampleRate);
-							if (cpl::lexicalConversion(msCapacity, result))
-								handle.kmaxHistorySize.setInputValueInternal(result + " ms");
-							else
-								handle.kmaxHistorySize.setInputValueInternal("error");
-							handle.kmaxHistorySize.indicateError();
-						}
-					}
-					else
-					{
-						cpl::GUIUtils::FutureMainEvent(200, RetryResizeCapacity(handle), &handle);
-					}
-
+					contents.append(" ms");
+					kmaxHistorySize.setInputValueInternal(contents);
 				}
-			};
 
-			RetryResizeCapacity(*this)();
-
+				kmaxHistorySize.indicateSuccess();
+			}
+			else
+			{
+				std::string result;
+				auto msCapacity = cpl::Math::round<std::size_t>(1000 * config->historyCapacity / config->sampleRate);
+				if (cpl::lexicalConversion(msCapacity, result))
+					kmaxHistorySize.setInputValueInternal(result + " ms");
+				else
+					kmaxHistorySize.setInputValueInternal("error");
+				kmaxHistorySize.indicateError();
+			}
 		}
 		else if (c == &kstopProcessingOnSuspend)
 		{
