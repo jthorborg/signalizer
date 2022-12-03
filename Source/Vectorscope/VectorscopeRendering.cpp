@@ -170,17 +170,23 @@ namespace Signalizer
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
                     openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
+					auto numChannels = lockedView.getNumChannels();
+
                     // draw actual stereoscopic plot
-                    if (lockedView.getNumChannels() >= 2)
+                    if (numChannels >= 2)
                     {
-                        if (state.isPolar)
-                        {
-                            drawPolarPlot<ISA>(openGLStack, lockedView);
-                        }
-                        else // is Lissajous
-                        {
-                            drawRectPlot<ISA>(openGLStack, lockedView);
-                        }
+						for (std::size_t c = 0; c < numChannels; c += 2)
+						{
+							if (state.isPolar)
+							{
+								drawPolarPlot<ISA>(openGLStack, lockedView, c);
+							}
+							else // is Lissajous
+							{
+								drawRectPlot<ISA>(openGLStack, lockedView, c);
+							}
+						}
+
                     }
                     CPL_DEBUGCHECKGL();
 
@@ -396,9 +402,13 @@ namespace Signalizer
 			}
 		}
 
+	juce::Colour rotateFor(juce::Colour base, std::size_t offset, std::size_t size)
+	{
+		return base.withRotatedHue(offset / float(size));
+	}
 
 	template<typename ISA>
-		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -412,7 +422,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				drawer.addColour(state.colourDraw);
+				drawer.addColour(rotateFor(state.colourDraw, offset, audio.getNumChannels()));
 
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
@@ -420,7 +430,8 @@ namespace Signalizer
 					[&] (std::size_t sampleFrame, AudioStream::DataType left, AudioStream::DataType right)
 					{
 						drawer.addVertex(right, left, sampleFrame * sampleFade - 1);
-					}
+					},
+					offset
 				);
 
 			}
@@ -428,7 +439,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				auto jcolour = state.colourDraw;
+				auto jcolour = rotateFor(state.colourDraw, offset, audio.getNumChannels());
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
 				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
 
@@ -442,7 +453,8 @@ namespace Signalizer
 						fade = sampleFrame * sampleFade;
 						drawer.addColour(fade * red, fade * green, fade * blue, alpha);
 						drawer.addVertex(right, left, fade - 1);
-					}
+					},
+					offset
 				);
 
 			}
@@ -452,10 +464,10 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset)
 		{
 			typedef typename ISA::V V;
-			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+			AudioStream::AudioBufferView views[2] = { audio.getView(0 + offset), audio.getView(1 + offset) };
 
 			using namespace cpl::simd;
 			using cpl::simd::abs;
@@ -481,10 +493,12 @@ namespace Signalizer
 			auto const fadePerSample = (Ty)1.0 / numSamples;
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
+			const auto colour = rotateFor(state.colourDraw, offset, audio.getNumChannels());
+
 			const float
-				red = state.colourDraw.getFloatRed(),
-				green = state.colourDraw.getFloatGreen(),
-				blue = state.colourDraw.getFloatBlue();
+				red = colour.getFloatRed(),
+				green = colour.getFloatGreen(),
+				blue = colour.getFloatBlue();
 
 			for (int i = 0; i < vectorLength; ++i)
 			{
