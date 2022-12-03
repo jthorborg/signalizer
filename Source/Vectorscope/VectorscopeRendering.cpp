@@ -58,22 +58,20 @@ namespace Signalizer
 
 	void VectorScope::paint2DGraphics(juce::Graphics & g)
 	{
-		auto cStart = cpl::Misc::ClockCounter();
-
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
 
 			const auto perf = audioStream->getPerfMeasures();
 
 			char textbuf[4096];
 
+			double averageFps, averageCpu;
+
+			computeAverageStats(averageFps, averageCpu);
+
 			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
+				getWidth(), getHeight(), averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * perf.producerUsage,
 				100 * perf.producerOverhead,
 				100 * perf.consumerUsage,
@@ -84,25 +82,7 @@ namespace Signalizer
 		}
 	}
 
-	void VectorScope::onGraphicsRendering(juce::Graphics & g)
-	{
 
-		// do software rendering
-		if(!isOpenGL())
-		{
-			g.fillAll(state.colourBackground.withAlpha(1.0f));
-			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
-			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
-
-			// post fps anyway
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-
-		}
-
-
-	}
 
 	void VectorScope::initOpenGL()
 	{
@@ -201,15 +181,12 @@ namespace Signalizer
                     // draw 2d stuff (like stereo meters)
                     drawStereoMeters<ISA>(openGLStack, lockedView);
                     CPL_DEBUGCHECKGL();
-                    renderCycles = cpl::Misc::ClockCounter() - cStart;
                 }
             }
+
 			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-
+			postFrame();
 		}
 
 
@@ -803,7 +780,7 @@ namespace Signalizer
 
 				// since this runs in every frame, we need to scale the coefficient by how often this function runs
 				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+				double power = numSamples * openGLDeltaTime();
 
 				double coeff = std::pow(processor->envelopeCoeff.load(), power);
 

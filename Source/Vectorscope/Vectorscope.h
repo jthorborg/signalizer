@@ -108,7 +108,6 @@
 			virtual ~VectorScope();
 
 			// Component overrides
-			void onGraphicsRendering(juce::Graphics & g) override;
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
@@ -124,8 +123,6 @@
 			void unfreeze() override;
 
 		protected:
-
-
 
 			virtual void paint2DGraphics(juce::Graphics & g);
 			/// <summary>
@@ -231,12 +228,6 @@
 
 			void initPanelAndControls();
 
-			// guis and whatnot
-			cpl::CBoxFilter<double, 60> avgFps;
-
-			// vars
-			long long lastFrameTick, renderCycles;
-
 			struct Flags
 			{
 				cpl::ABoolFlag
@@ -265,7 +256,6 @@
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;
 
-			unsigned long long processorSpeed; // clocks / sec
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 		};
 

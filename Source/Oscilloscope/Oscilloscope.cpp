@@ -57,13 +57,9 @@ namespace Signalizer
 		: COpenGLView(nameId.string())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
-		, processorSpeed(0)
-		, lastFrameTick(0)
-		, lastMousePos()
 		, editor(nullptr)
 		, state()
 		, medianPos()
-		, isMouseInside(false)
 		, processor(std::make_shared<ProcessorShell>())
 	{
 		if (!(content = std::dynamic_pointer_cast<OscilloscopeContent>(params)))

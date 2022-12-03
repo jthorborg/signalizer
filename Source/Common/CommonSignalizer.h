@@ -39,6 +39,7 @@
 	#include <mutex>
 	#include <cpl/AudioStream.h>
 	#include <cpl/gui/CViews.h>
+	#include <chrono>
 
 	namespace cpl
 	{
@@ -129,7 +130,11 @@
 		{
 		protected:
 
-			GraphicsWindow(std::string name) : COpenGLView(std::move(name)) {}
+			GraphicsWindow(std::string name) 
+				: COpenGLView(std::move(name)) 
+			{
+			
+			}
 
 			struct CurrentMouse
 			{
@@ -151,6 +156,12 @@
 			cpl::relaxed_atomic<bool> isMouseInside;
 			juce::MouseCursor displayCursor;
 
+			// guis and whatnot
+			cpl::CBoxFilter<double, 60> avgDelta;
+			cpl::CBoxFilter<double, 60> avgFrame;
+
+
+			// Mouse overrides
 			void mouseMove(const juce::MouseEvent& event) override
 			{
 				// TODO: implement beginChangeGesture()
@@ -179,6 +190,42 @@
 				isMouseInside = true;
 			}
 
+			// Graphics overrides
+			void onGraphicsRendering(juce::Graphics& g) override
+			{
+				// do software rendering
+				if (!isOpenGL())
+				{
+					g.fillAll(juce::Colours::black);
+					g.setColour(juce::Colours::white);
+					g.drawText("Enable OpenGL in settings to use the " + CView::getName(), getLocalBounds(), juce::Justification::centred);
+				}
+			}
+
+			void postFrame()
+			{
+				avgDelta.setNext(openGlEndToEndTime());
+				avgFrame.setNext(openGLFrameTime());
+			}
+
+			double getAverageFrameTime()
+			{
+				return avgFrame.getAverage();
+			}
+
+			double getAverageDelta()
+			{
+				return avgDelta.getAverage();
+			}
+
+			void computeAverageStats(double& fps, double& usagePercent)
+			{
+				const auto frame = avgFrame.getAverage();
+				const auto delta = avgDelta.getAverage();
+
+				usagePercent = 100 * (frame / delta);
+				fps = 1.0 / delta;
+			}
 		};
 
 		class SystemView

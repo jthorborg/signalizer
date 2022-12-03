@@ -85,13 +85,8 @@
 
 		protected:
 			
-			// Component overrides
-			void onGraphicsRendering(juce::Graphics & g) override;
-
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void initOpenGL() override;
-			void closeOpenGL() override;
 			// View overrides
 			juce::Component * getWindow() override;
 			void suspend() override;
@@ -294,14 +289,12 @@
 
 
 			using VO = OscilloscopeContent::ViewOffsets;
-			cpl::CBoxFilter<double, 60> avgFps;
 			std::shared_ptr<OscilloscopeContent> content;
 			std::shared_ptr<AudioStream::Output> audioStream;
 
 			juce::Component * editor;
 			std::vector<std::string> channelNames;
 			unsigned long long processorSpeed; // clocks / sec
-			long long lastFrameTick, renderCycles;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;

@@ -56,8 +56,6 @@ namespace Signalizer
 		std::shared_ptr<VectorScopeContent>& params
 	)
 		: GraphicsWindow(params->getName())
-		, processorSpeed(0)
-		, lastFrameTick(0)
 		, editor(nullptr)
 		, state()
 		, processor(std::make_shared<Processor>(globalBehaviour))
@@ -68,7 +66,6 @@ namespace Signalizer
 		mtFlags.firstRun = true;
 		setOpaque(true);
 
-		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		stream->addListener(processor);
 		content->getParameterSet().addRTListener(this, true);

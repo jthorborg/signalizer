@@ -238,32 +238,6 @@ namespace Signalizer
 
 	}
 
-	void Oscilloscope::onGraphicsRendering(juce::Graphics & g)
-	{
-		// do software rendering
-		if(!isOpenGL())
-		{
-			g.fillAll(state.colourBackground.withAlpha(1.0f));
-			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
-			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
-
-			// post fps anyway
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-		}
-	}
-
-	void Oscilloscope::initOpenGL()
-	{
-
-	}
-
-	void Oscilloscope::closeOpenGL()
-	{
-
-	}
-
 	void Oscilloscope::onOpenGLRendering()
 	{
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);

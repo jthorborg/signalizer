@@ -115,7 +115,6 @@
 
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void onGraphicsRendering(juce::Graphics & g) override;
 			void initOpenGL() override;
 			void closeOpenGL() override;
 
@@ -555,15 +554,11 @@
 			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::special::FrequencyAxis frequencyGraph, complexFrequencyGraph;
 			cpl::special::DBMeterAxis dbGraph;
-			cpl::CBoxFilter<double, 60> avgFps;
 
 			// non-state variables
 			SpectrumContent * content;
-			unsigned long long processorSpeed; // clocks / sec
 			double audioThreadUsage;
-			double laggedFPS;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-			long long lastFrameTick, renderCycles;
 			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
 			cpl::weak_atomic<bool> hasMainThreadInitializedAudioStreamDependenant;

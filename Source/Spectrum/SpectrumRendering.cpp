@@ -74,22 +74,6 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::onGraphicsRendering(juce::Graphics & g)
-	{
-		// do software rendering
-		if (!isOpenGL())
-		{
-			g.fillAll(state.colourBackground.withAlpha(1.0f));
-			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
-			g.drawText("Enable OpenGL in settings to use the spectrum", getLocalBounds(), juce::Justification::centred);
-
-			// post fps anyway
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-		}
-	}
-
 	void Spectrum::paint2DGraphics(juce::Graphics & g)
 	{
 		auto cStart = cpl::Misc::ClockCounter();

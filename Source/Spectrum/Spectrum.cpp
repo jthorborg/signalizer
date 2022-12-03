@@ -43,8 +43,6 @@ namespace Signalizer
 		: COpenGLView(nameId)
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
-		, processorSpeed(0)
-		, lastFrameTick(0)
 		, lastMousePos()
 		, state()
 		, framePixelPosition()
@@ -71,7 +69,6 @@ namespace Signalizer
 
 		content->getParameterSet().addRTListener(this, true);
 
-        processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		flags.firstChange = true;
 
