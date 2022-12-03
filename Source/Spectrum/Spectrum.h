@@ -552,7 +552,6 @@
 			/// visual objects
 			/// </summary>
 			const SharedBehaviour & globalBehaviour;
-			juce::MouseCursor displayCursor;
 			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::special::FrequencyAxis frequencyGraph, complexFrequencyGraph;
 			cpl::special::DBMeterAxis dbGraph;
@@ -563,21 +562,13 @@
 			unsigned long long processorSpeed; // clocks / sec
 			double audioThreadUsage;
 			double laggedFPS;
-			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			long long lastFrameTick, renderCycles;
 			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
 			cpl::weak_atomic<bool> hasMainThreadInitializedAudioStreamDependenant;
-			cpl::relaxed_atomic<bool> isMouseInside;
 			double scallopLoss;
 			int lastPeak;
-
-			struct CurrentMouse
-			{
-				cpl::relaxed_atomic<float>
-					x, y;
-			} cmouse;
 
 			/// <summary>
 			/// see cpl::dsp::windowScale

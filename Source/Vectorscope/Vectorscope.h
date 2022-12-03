@@ -32,7 +32,6 @@
 
 	#include "Signalizer.h"
 	#include <cpl/Utility.h>
-	#include <cpl/gui/CViews.h>
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "../Common/ConcurrentConfig.h"
@@ -90,7 +89,7 @@
 		class VectorScopeContent;
 
 		class VectorScope final
-			: public cpl::COpenGLView
+			: public GraphicsWindow
 			, private ParameterSet::RTListener
 		{
 
@@ -113,8 +112,6 @@
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
 			void initOpenGL() override;
@@ -237,8 +234,6 @@
 			// guis and whatnot
 			cpl::CBoxFilter<double, 60> avgFps;
 
-			juce::MouseCursor displayCursor;
-
 			// vars
 			long long lastFrameTick, renderCycles;
 
@@ -271,7 +266,6 @@
 			juce::Component * editor;
 
 			unsigned long long processorSpeed; // clocks / sec
-			juce::Point<float> lastMousePos;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 		};
 

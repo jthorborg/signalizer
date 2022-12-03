@@ -295,20 +295,13 @@
 
 			using VO = OscilloscopeContent::ViewOffsets;
 			cpl::CBoxFilter<double, 60> avgFps;
-			juce::MouseCursor displayCursor;
 			std::shared_ptr<OscilloscopeContent> content;
 			std::shared_ptr<AudioStream::Output> audioStream;
 
 			juce::Component * editor;
 			std::vector<std::string> channelNames;
 			unsigned long long processorSpeed; // clocks / sec
-			juce::Point<float> lastMousePos;
 			long long lastFrameTick, renderCycles;
-			cpl::relaxed_atomic<bool> isMouseInside;
-			/// <summary>
-			/// Updates are not guaranteed to be in order
-			/// </summary>
-			std::pair<cpl::relaxed_atomic<float>, cpl::relaxed_atomic<float>> threadedMousePos;
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;

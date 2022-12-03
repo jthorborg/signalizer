@@ -55,10 +55,9 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream, 
 		std::shared_ptr<VectorScopeContent>& params
 	)
-		: COpenGLView(params->getName())
+		: GraphicsWindow(params->getName())
 		, processorSpeed(0)
 		, lastFrameTick(0)
-		, lastMousePos()
 		, editor(nullptr)
 		, state()
 		, processor(std::make_shared<Processor>(globalBehaviour))
@@ -160,7 +159,7 @@ namespace Signalizer
 	{
 		auto & tsX = content->transform;
 		auto factor = float(getWidth()) / getHeight();
-		auto deltaDifference = event.position - lastMousePos;
+		auto deltaDifference = event.position - currentMouse.getPoint();
 		if (event.mods.isCtrlDown())
 		{
 			auto yvalue = tsX.getValueIndex(tsX.Rotation, tsX.Y).getTransformedValue();
@@ -185,19 +184,9 @@ namespace Signalizer
 			tsX.getValueIndex(tsX.Position, tsX.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
 		}
 
-		lastMousePos = event.position;
+		GraphicsWindow::mouseDrag(event);
 	}
 
-	void VectorScope::mouseUp(const juce::MouseEvent& event)
-	{
-		// TODO: implement beginChangeGesture()
-	}
-
-	void VectorScope::mouseDown(const juce::MouseEvent& event)
-	{
-		// TODO: implement endChangeGesture()
-		lastMousePos = event.position;
-	}
 
 	void VectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{

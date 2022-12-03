@@ -38,6 +38,7 @@
 	#include "ConcurrentConfig.h"
 	#include <mutex>
 	#include <cpl/AudioStream.h>
+	#include <cpl/gui/CViews.h>
 
 	namespace cpl
 	{
@@ -122,6 +123,62 @@
 
 		protected:
 			std::weak_ptr<AudioStream::Output> previousOutput;
+		};
+
+		class GraphicsWindow : public cpl::COpenGLView
+		{
+		protected:
+
+			GraphicsWindow(std::string name) : COpenGLView(std::move(name)) {}
+
+			struct CurrentMouse
+			{
+				void setFromPoint(juce::Point<float> mousePosition)
+				{
+					x = mousePosition.x;
+					y = mousePosition.y;
+				}
+
+				juce::Point<float> getPoint()
+				{
+					return juce::Point<float>(x, y);
+				}
+
+				cpl::relaxed_atomic<float>
+					x, y;
+			} originMouse, currentMouse;
+
+			cpl::relaxed_atomic<bool> isMouseInside;
+			juce::MouseCursor displayCursor;
+
+			void mouseMove(const juce::MouseEvent& event) override
+			{
+				// TODO: implement beginChangeGesture()
+				currentMouse.setFromPoint(event.position);
+			}
+
+			void mouseDrag(const juce::MouseEvent& event) override
+			{
+				// TODO: implement beginChangeGesture()
+				currentMouse.setFromPoint(event.position);
+			}
+
+			void mouseDown(const juce::MouseEvent& event) override
+			{
+				// TODO: implement endChangeGesture()
+				originMouse.setFromPoint(event.position);
+			}
+
+			void mouseExit(const juce::MouseEvent& e)  override
+			{
+				isMouseInside = false;
+			}
+
+			void mouseEnter(const juce::MouseEvent& e) override
+			{
+				isMouseInside = true;
+			}
+
 		};
 
 		class SystemView

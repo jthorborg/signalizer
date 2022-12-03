@@ -273,14 +273,6 @@ namespace Signalizer
 
 	}
 
-	void Spectrum::mouseMove(const juce::MouseEvent & event)
-	{
-		cmouse.x = event.position.x;
-		cmouse.y = event.position.y;
-
-		flags.mouseMove = true;
-	}
-
 	void Spectrum::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		if (event.mods.testFlags(juce::ModifierKeys::leftButtonModifier))
@@ -318,31 +310,9 @@ namespace Signalizer
 			flags.viewChanged = true;
 		}
 
-		cmouse.x = event.position.x;
-		cmouse.y = event.position.y;
-
 		flags.mouseMove = true;
 	}
 
-	void Spectrum::mouseUp(const juce::MouseEvent& event)
-	{
-
-	}
-
-	void Spectrum::mouseDown(const juce::MouseEvent& event)
-	{
-		lastMousePos = event.position;
-	}
-
-	void Spectrum::mouseExit(const juce::MouseEvent & e)
-	{
-		isMouseInside = false;
-	}
-
-	void Spectrum::mouseEnter(const juce::MouseEvent & e)
-	{
-		isMouseInside = true;
-	}
 
 	void Spectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{

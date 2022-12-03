@@ -133,8 +133,7 @@ namespace Signalizer
 	void Oscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
 	{
 		lastMousePos = position;
-		threadedMousePos.first = position.x;
-		threadedMousePos.second = position.y;
+		cmouse.setCurrentFromPoint(position);
 	}
 
 	void Oscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
@@ -262,10 +261,7 @@ namespace Signalizer
 
 		setLastMousePos(event.position);
 	}
-	void Oscilloscope::mouseUp(const juce::MouseEvent& event)
-	{
-		// TODO: implement beginChangeGesture()
-	}
+
 	void Oscilloscope::mouseDown(const juce::MouseEvent& event)
 	{
 		// TODO: implement endChangeGesture()
@@ -275,16 +271,6 @@ namespace Signalizer
 	void Oscilloscope::mouseMove(const juce::MouseEvent & event)
 	{
 		setLastMousePos(event.position);
-	}
-
-	void Oscilloscope::mouseExit(const juce::MouseEvent & e)
-	{
-		isMouseInside = true;
-	}
-
-	void Oscilloscope::mouseEnter(const juce::MouseEvent & e)
-	{
-		isMouseInside = true;
 	}
 
 	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
