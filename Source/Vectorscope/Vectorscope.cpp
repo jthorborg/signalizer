@@ -126,20 +126,18 @@ namespace Signalizer
 		}
 		else /* zoom graph */
 		{
-			auto & matrix = content->transform;
-			//matrix.scale.x += amount;
-			//matrix.scale.y += amount;
-			auto Z = matrix.getValueIndex(matrix.Scale, matrix.Z).getTransformedValue();
+			auto & tsX = content->transform;
+			auto Z = tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue();
 			auto actualAmount = (1 + amount / 5) * Z;
 			auto deltaIncrease = (actualAmount - Z) / Z;
-			matrix.getValueIndex(matrix.Scale, matrix.Z).setTransformedValue(actualAmount);
+			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(actualAmount);
 
-			matrix.getValueIndex(matrix.Scale, matrix.X).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.X).getTransformedValue() * (1 + deltaIncrease)
+			tsX.getValueIndex(tsX.Scale, tsX.X).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * (1 + deltaIncrease)
 			);
 
-			matrix.getValueIndex(matrix.Scale, matrix.Y).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
+			tsX.getValueIndex(tsX.Scale, tsX.Y).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * (1 + deltaIncrease)
 			);
 		}
 
@@ -152,39 +150,39 @@ namespace Signalizer
 			// reset all zooming, offsets etc. when doubleclicking left
 			// TODO: reset to preset
 			content->inputGain.setTransformedValue(1);
-			auto & matrix = content->transform;
-			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
-			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
+			auto & tsX = content->transform;
+			tsX.getValueIndex(tsX.Position, tsX.X).setTransformedValue(0);
+			tsX.getValueIndex(tsX.Position, tsX.Y).setTransformedValue(0);
 		}
 	}
 
 	void VectorScope::mouseDrag(const juce::MouseEvent& event)
 	{
-		auto & matrix = content->transform;
+		auto & tsX = content->transform;
 		auto factor = float(getWidth()) / getHeight();
 		auto deltaDifference = event.position - lastMousePos;
 		if (event.mods.isCtrlDown())
 		{
-			auto yvalue = matrix.getValueIndex(matrix.Rotation, matrix.Y).getTransformedValue();
+			auto yvalue = tsX.getValueIndex(tsX.Rotation, tsX.Y).getTransformedValue();
 			auto newValue = std::fmod(deltaDifference.x * 0.3f + yvalue, 360.f);
 			while (newValue < 0)
 				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.Y).setTransformedValue(newValue);
+			tsX.getValueIndex(tsX.Rotation, tsX.Y).setTransformedValue(newValue);
 
-			auto xvalue = matrix.getValueIndex(matrix.Rotation, matrix.X).getTransformedValue();
+			auto xvalue = tsX.getValueIndex(tsX.Rotation, tsX.X).getTransformedValue();
 			newValue = std::fmod(deltaDifference.y * 0.3f + xvalue, 360.f);
 			while (newValue < 0)
 				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.X).setTransformedValue(newValue);
+			tsX.getValueIndex(tsX.Rotation, tsX.X).setTransformedValue(newValue);
 		}
 		else
 		{
 
-			auto xvalue = matrix.getValueIndex(matrix.Position, matrix.X).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
+			auto xvalue = tsX.getValueIndex(tsX.Position, tsX.X).getTransformedValue();
+			tsX.getValueIndex(tsX.Position, tsX.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
 
-			auto yvalue = matrix.getValueIndex(matrix.Position, matrix.Y).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
+			auto yvalue = tsX.getValueIndex(tsX.Position, tsX.Y).getTransformedValue();
+			tsX.getValueIndex(tsX.Position, tsX.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
 		}
 
 		lastMousePos = event.position;
