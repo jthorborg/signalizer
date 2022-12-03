@@ -393,9 +393,9 @@ namespace Signalizer
 		if (!mix)
 			return;
 
-		mix->connect(
-			resolve(h)->realtime, pair
-		);
+		auto& other = *resolve(h);
+
+		mix->connect(other.realtime, pair, other.name);
 	}
 
 	void HostGraph::submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&)
@@ -403,8 +403,10 @@ namespace Signalizer
 		if (!mix)
 			return;
 
+		auto& other = *resolve(h);
+
 		mix->disconnect(
-			resolve(h)->realtime, pair
+			other.realtime, pair
 		);
 	}
 

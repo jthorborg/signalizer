@@ -166,7 +166,7 @@
 
 			static std::pair<Handle, std::shared_ptr<AudioStream::Output>> create(AudioProcessor& processor);
 
-			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
+			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair, const std::string& name);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
 
 
@@ -183,6 +183,7 @@
 			struct ConnectionCommand
 			{
 				std::shared_ptr<AudioStream::Output> stream;
+				std::string name;
 				DirectedPortPair pair;
 				bool isConnection;
 			};
@@ -192,6 +193,7 @@
 				struct Channel
 				{
 					cpl::CLIFOStream<AFloat> buffer;
+					std::string originName;
 				};
 
 				std::map<DirectedPortPair, Channel> channelQueues;

@@ -164,13 +164,13 @@ namespace Signalizer
 		return { Handle(mixGraph), presentationOutput };
 	}
 
-	void MixGraphListener::connect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair)
+	void MixGraphListener::connect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair, const std::string& name)
 	{
 		// mix graph listener can't be destroyed while this is happening.
 		std::lock_guard<std::mutex> lock(connectDisconnectMutex);
-		// this will start calling back but only operate on itself, 
-		// since it hasn't been added to the graph yet
-		connectionCommands.emplace_back(ConnectionCommand{ other, pair, true });
+		auto portName = name + "[" + std::to_string(pair.Source) + "]";
+
+		connectionCommands.emplace_back(ConnectionCommand{ other, std::move(portName), pair, true});
 	}
 
 	void MixGraphListener::disconnect(std::shared_ptr<AudioStream::Output>& other, DirectedPortPair pair)
@@ -178,7 +178,7 @@ namespace Signalizer
 		// mix graph listener can't be destroyed while this is happening.
 		std::lock_guard<std::mutex> lock(connectDisconnectMutex);
 		// it's fine source itself is already dead, we only operate on local copies.
-		connectionCommands.emplace_back(ConnectionCommand{ other, pair, false });
+		connectionCommands.emplace_back(ConnectionCommand{ other, {}, pair, false });
 	}
 
 	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples)
@@ -188,12 +188,16 @@ namespace Signalizer
 		if (structuralChange)
 		{
 			PinInt maxDestinationPort = -1;
-
+			std::int64_t setPorts = 0;
 			for (auto& g : graph)
 			{
 				for (auto& entry : g.second.channelQueues)
 				{
 					maxDestinationPort = std::max(maxDestinationPort, entry.first.Destination);
+					setPorts |= 1ll << (std::int64_t)entry.first.Destination;
+
+					auto nameCopy = entry.second.originName;
+					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy));
 				}
 			}
 
@@ -213,6 +217,16 @@ namespace Signalizer
 					info.anticipatedSize = static_cast<std::uint32_t>(numSamples);
 				}
 			);
+
+
+			for (std::int64_t i = 0; i < maxDestinationPort; ++i)
+			{
+				if ((setPorts & (1ll << i)) == 0)
+				{
+					presentationInput.enqueueChannelName(i, "nothing");
+				}
+			}
+
 
 			structuralChange = false;
 		}
@@ -431,7 +445,8 @@ namespace Signalizer
 			{
 				source.refCount++;
 
-				source.channelQueues[command.pair]; // just ensure it exists.
+				// also ensures it exists.
+				source.channelQueues[command.pair].originName = std::move(command.name); 
 
 				// TODO: Pauses other channels from this source (and everything)
 				source.current = 0;

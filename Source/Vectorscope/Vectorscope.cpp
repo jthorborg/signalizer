@@ -263,7 +263,7 @@ namespace Signalizer
 			typedef typename ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
-			if (numChannels != 2)
+			if (numChannels < 2)
 				return;
 
 			T filterEnv[2] { filters.envelope[0], filters.envelope[1] };
@@ -373,9 +373,10 @@ namespace Signalizer
 		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);
 	}
 
-	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext&, const AudioStream::AudioStreamInfo & before)
+	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
 		audioWindowWasResized = true;
+		*channelNames.lock() = ctx.getChannelNames();
 	}
 
 };

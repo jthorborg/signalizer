@@ -157,6 +157,7 @@
 
 			struct Processor : public AudioStream::Listener
 			{
+				Signalizer::CriticalSection<std::vector<std::string>> channelNames;
 				FilterStates filters{};
 				cpl::relaxed_atomic<double> envelopeGain;
 				cpl::relaxed_atomic<float> 
@@ -214,10 +215,10 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename ISA>
-				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t);
 
 			template<typename ISA>
-				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &);
+				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t);
 
 			template<typename ISA>
 				void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);
