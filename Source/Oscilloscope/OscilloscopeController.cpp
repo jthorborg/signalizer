@@ -212,7 +212,7 @@ namespace Signalizer
 			ktrackerColour.bSetDescription("Colour of the cursor tracker");
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
-			kshowLegend.bSetDescription("Display a legend of the signals/colours");
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
 			ktriggerChannel.bSetDescription("Adjust the channel used for triggering when in separate channel mode");
 		}
 
@@ -220,12 +220,6 @@ namespace Signalizer
 		{
 			if (auto page = addPage("Settings", "icons/svg/gear.svg"))
 			{
-				/* if (auto section = new Signalizer::CContentPage::MatrixSection())
-				{
-					section->addControl(&ktransform, 0);
-					page->addSection(section, "Transform");
-				} */
-
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
 				{
 					section->addControl(&koverlayChannels, 0);

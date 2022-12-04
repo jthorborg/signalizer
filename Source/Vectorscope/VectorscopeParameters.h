@@ -66,6 +66,7 @@
 				, interconnectSamples("Interconnect", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
+				, showLegend("Legend", boolRange, boolFormatter)
 
 				, colourBehaviour()
 				, waveformColour(colourBehaviour, "Draw.")
@@ -73,9 +74,11 @@
 				, backgroundColour(colourBehaviour, "BackG.")
 				, wireframeColour(colourBehaviour, "Skelt.")
 				, meterColour(colourBehaviour, "Meter.")
+				, widgetColour(colourBehaviour, "Widget.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
+				, scalePolarModeToFill(&boolRange, &boolFormatter)
 			{
 				operationalMode.fmt.setValues({ "Lissajous", "Polar" });
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
@@ -98,9 +101,15 @@
 				parameterSet.registerParameterBundle(&meterColour, meterColour.getBundleName());
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
+				// v. 0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+				parameterSet.registerParameterBundle(&widgetColour, widgetColour.getBundleName());
+
 				parameterSet.seal();
 
 				postParameterInitialization();
+
+				scalePolarModeToFill.setNormalizedValue(1.0);
 			}
 
 		public:
@@ -148,6 +157,8 @@
 				archive << operationalMode.param;
 				archive << stereoWindow;
 				archive << meterColour;
+				archive << scalePolarModeToFill;
+				archive << showLegend;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -170,6 +181,17 @@
 				builder >> operationalMode.param;
 				builder >> stereoWindow;
 				builder >> meterColour;
+
+				if (v >= cpl::Version(0, 3, 6))
+				{
+					builder >> scalePolarModeToFill;
+					builder >> showLegend;
+					builder >> widgetColour;
+				}
+				else
+				{
+					scalePolarModeToFill.setNormalizedValue(0);
+				}
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
@@ -205,7 +227,8 @@
 				fadeOlderPoints,
 				interconnectSamples,
 				diagnostics,
-				primitiveSize;
+				primitiveSize,
+				showLegend;
 
 			ChoiceParameter
 				autoGain,
@@ -218,11 +241,14 @@
 				axisColour,
 				backgroundColour,
 				wireframeColour,
-				meterColour;
+				meterColour,
+				widgetColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
+
+			cpl::SelfcontainedValue<> scalePolarModeToFill;
 
 		private:
 

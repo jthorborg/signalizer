@@ -358,6 +358,7 @@ namespace Signalizer
 					section->addControl(&kreferenceTuning, 1);
 					section->addControl(&ktrackerSmoothing, 0);
 					section->addControl(&kdiagnostics, 1);
+					section->addControl(&kshowLegend, 0);
 					page->addSection(section);
 				}
 			}
@@ -406,6 +407,7 @@ namespace Signalizer
 			archive << kreferenceTuning;
 			archive << ktrackerSmoothing;
 			archive << ktrackerColour;
+			archive << kshowLegend;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -469,6 +471,11 @@ namespace Signalizer
 			if (version >= cpl::Version(0, 3, 1))
 			{
 				builder >> ktrackerSmoothing >> ktrackerColour;
+			}
+
+			if (version >= cpl::Version(0, 3, 6))
+			{
+				builder >> kshowLegend;
 			}
 		}
 
@@ -543,7 +550,7 @@ namespace Signalizer
 		std::vector<std::unique_ptr<cpl::CValueKnobSlider>> kspecRatios;
 
 		cpl::CPresetWidget presetManager;
-		cpl::CButton kdiagnostics, kfreeQ;
+		cpl::CButton kdiagnostics, kfreeQ, kshowLegend;
 
 		std::shared_ptr<SpectrumContent> parent;
 

@@ -62,6 +62,7 @@ namespace Signalizer
 		, config(config)
 		, content(params)
 		, audioStream(stream)
+		, globalBehaviour(globalBehaviour)
 	{
 		mtFlags.firstRun = true;
 		setOpaque(true);

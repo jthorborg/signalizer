@@ -59,7 +59,9 @@ namespace Signalizer
 			, ktransform(&parentValue.transform)
 			, kopMode(&parentValue.operationalMode.param)
 			, kenvelopeMode(&parentValue.autoGain.param)
+			, kshowLegend(&parentValue.showLegend)
 			, kpresets(&valueSerializer, "vectorscope")
+			, kwidgetColour(&parentValue.widgetColour)
 			, editorSerializer(
 				*this,
 				[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -95,6 +97,7 @@ namespace Signalizer
 			kmeterColour.bSetTitle("Meter colour");
 			kenvelopeSmooth.bSetTitle("Env. window");
 			kstereoSmooth.bSetTitle("Stereo window");
+			kwidgetColour.bSetTitle("Widget colour");
 
 			// buttons n controls
 			kantiAlias.setSingleText("Antialias");
@@ -106,6 +109,8 @@ namespace Signalizer
 			kdiagnostics.setSingleText("Diagnostics");
 			kdiagnostics.setToggleable(true);
 			kenvelopeMode.bSetTitle("Auto-gain mode");
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
 
 			// design
 			kopMode.bSetTitle("Operational mode");
@@ -131,7 +136,8 @@ namespace Signalizer
 			kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 			kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
 			kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
-
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends)");
 		}
 
 		void initUI()
@@ -158,7 +164,6 @@ namespace Signalizer
 
 
 					page->addSection(section, "Utility");
-					//
 				}
 			}
 
@@ -169,7 +174,7 @@ namespace Signalizer
 					section->addControl(&kantiAlias, 0);
 					section->addControl(&kfadeOld, 1);
 					section->addControl(&kdrawLines, 2);
-					section->addControl(&kdiagnostics, 3);
+					section->addControl(&kshowLegend, 3);
 					page->addSection(section, "Options");
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -179,6 +184,7 @@ namespace Signalizer
 					section->addControl(&kbackgroundColour, 0);
 					section->addControl(&kwireframeColour, 0);
 					section->addControl(&kmeterColour, 1);
+					section->addControl(&kwidgetColour, 1);
 					section->addControl(&kprimitiveSize, 1);
 					page->addSection(section, "Look");
 				}
@@ -190,6 +196,12 @@ namespace Signalizer
 				{
 					section->addControl(&kpresets, 0);
 					page->addSection(section, "Presets");
+				}
+
+				if (auto section = new Signalizer::CContentPage::MatrixSection())
+				{
+					section->addControl(&kdiagnostics, 0);
+					page->addSection(section, "Options");
 				}
 			}
 		}
@@ -216,6 +228,8 @@ namespace Signalizer
 			archive << kopMode;
 			archive << kstereoSmooth;
 			archive << kmeterColour;
+			archive << kshowLegend;
+			archive << kwidgetColour;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -244,6 +258,12 @@ namespace Signalizer
 			builder >> kopMode;
 			builder >> kstereoSmooth;
 			builder >> kmeterColour;
+			
+			if (version > cpl::Version(0, 3, 6))
+			{
+				builder >> kshowLegend;
+				builder >> kwidgetColour;
+			}
 		}
 
 		// entrypoints for completely storing values and settings in independant blobs (the preset widget)
@@ -279,9 +299,9 @@ namespace Signalizer
 			}
 		}
 
-		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
+		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kshowLegend;
 		cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
-		cpl::CColourControl kwaveformColour, kaxisColour, kbackgroundColour, kwireframeColour, kmeterColour;
+		cpl::CColourControl kwaveformColour, kaxisColour, kbackgroundColour, kwireframeColour, kmeterColour, kwidgetColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kopMode, kenvelopeMode;
 		cpl::CPresetWidget kpresets;

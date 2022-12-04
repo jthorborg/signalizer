@@ -251,6 +251,7 @@
 			std::shared_ptr<const ConcurrentConfig> config;
 			std::shared_ptr<AudioStream::Output> audioStream;
 			std::shared_ptr<Processor> processor;
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;
 
 			cpl::Utility::LazyPointer<QuarterCircleLut<GLfloat, 128>> circleData;
 			juce::Component * editor;

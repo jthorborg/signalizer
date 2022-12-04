@@ -399,7 +399,7 @@
 				, channelColouring("Colouring")
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 				, cursorTracker("CursorTrck", unityRange, boolFormatter)
-				, showLegend(&unityRange, &boolFormatter)
+				, showLegend("Show legend", boolRange, boolFormatter)
 				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
 				, triggerHysteresis("TrgHstrs", unityRange, pctFormatter)
 				, triggerThreshold("TrgThrhold", triggerThresholdRange, dbFormatter)
@@ -475,6 +475,9 @@
 				}
 
 				parameterSet.registerParameterBundle(&transform, "3D.");
+
+				// v. 0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
 
 				parameterSet.seal();
 				postParameterInitialization();
@@ -690,7 +693,8 @@
 				frequencyColouringBlend,
 				triggerHysteresis,
 				triggerThreshold,
-				triggeringChannel;
+				triggeringChannel,
+				showLegend;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
@@ -715,9 +719,6 @@
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
-
-			cpl::SelfcontainedValue<>
-				showLegend;
 
 			cpl::CompleteColour
 				extraColours[NumColourChannels - 2];

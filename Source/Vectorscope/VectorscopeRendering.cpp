@@ -84,15 +84,20 @@ namespace Signalizer
 
 		}
 
-		PaintLegend(
-			g,
-			state.colourWire,
-			state.colourBackground,
-			{ 10, paintDiag ? 35.f : 10.f },
-			*processor->channelNames.lock(),
-			ColourRotation(state.colourWaveform, numChannels, true),
-			numChannels
-		);
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+
+		if (/*state.drawLegend && */ mouseCheck)
+		{
+			PaintLegend(
+				g,
+				state.colourWire,
+				state.colourBackground,
+				{ 10, paintDiag ? 35.f : 10.f },
+				*processor->channelNames.lock(),
+				ColourRotation(state.colourWaveform, numChannels, true),
+				numChannels
+			);
+		}
 	}
 
 
@@ -715,7 +720,6 @@ namespace Signalizer
 			const float stereoY = -0.85f;
 			const float stereoLength = 1.7f;
 			const float sideSize = 0.05f;
-			//const float stereoSideSize = sideSize * heightToWidthFactor;
 			const float indicatorSize = 0.05f;
 
 			// remember, y / x
@@ -731,7 +735,6 @@ namespace Signalizer
 			const float stereoSlow = filters.phase[1] * 0.5f + 0.5f;
 
 			// this undoes the squashing due to variable aspect ratios.
-			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
 			OpenGLRendering::RectangleDrawer2D<> rect(openGLStack);
 
 			// draw slow balance

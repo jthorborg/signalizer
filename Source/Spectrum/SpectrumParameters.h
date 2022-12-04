@@ -129,6 +129,7 @@
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, freeQ("FreeQ", boolRange, boolFormatter)
 				, trackerSmoothing("TrckSmth", trackerSmoothRange, msFormatter)
+				, showLegend("Legend", boolRange, boolFormatter)
 
 				, colourBehaviour()
 
@@ -212,6 +213,9 @@
 					regBundle(lines[i].colourTwo, lines[i].colourTwo.getBundleName());
 				}
 
+				// v.0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+
 				parameterSet.seal();
 
 				postParameterInitialization();
@@ -278,6 +282,8 @@
 				archive << audioHistoryTransformatter;
 
 				archive << trackerSmoothing << trackerColour;
+
+				archive << showLegend;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -327,6 +333,11 @@
 				{
 					builder >> trackerSmoothing >> trackerColour;
 				}
+
+				if (v >= cpl::Version(0, 3, 6))
+				{
+					builder >> showLegend;
+				}
 			}
 
 			ParameterSet parameterSet;
@@ -373,7 +384,8 @@
 				freeQ,
 				diagnostics,
 				specRatios[numSpectrumColours],
-				trackerSmoothing;
+				trackerSmoothing,
+				showLegend;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				gridColour,
