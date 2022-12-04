@@ -86,11 +86,11 @@ namespace Signalizer
 
 		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
 
-		if (/*state.drawLegend && */ mouseCheck)
+		if (state.drawLegend && mouseCheck)
 		{
 			PaintLegend(
 				g,
-				state.colourWire,
+				state.colourWidget,
 				state.colourBackground,
 				{ 10, paintDiag ? 35.f : 10.f },
 				*processor->channelNames.lock(),
@@ -270,7 +270,7 @@ namespace Signalizer
 				auto jcolour = state.colourAxis;
 				float nadd = 1.0f - circleScaleFactor;
 				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
-				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
+				float ycoord = (state.scalePolar ? consts::half : consts::sqrt_half_two) * circleScaleFactor + nadd;
 
 				// render texture text at coordinates.
 				{
@@ -291,16 +291,32 @@ namespace Signalizer
 			}
 		}
 
+		struct Conditional01To11HeightTransform
+		{
+			Conditional01To11HeightTransform(bool doApply)
+			{
+				if (doApply)
+				{
+					m->scale(1, 2, 1);
+					m->translate(0, -0.5f, 0);
+				}
+			}
+
+			cpl::OpenGLRendering::MatrixModification& additional() { return m.reference(); }
+
+			cpl::Utility::LazyStackPointer<cpl::OpenGLRendering::MatrixModification> m;
+		};
 
 	template<typename ISA>
 		void VectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
-			using consts = cpl::simd::consts<float>;
 			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+			Conditional01To11HeightTransform m(state.scalePolar && state.isPolar);
+			cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
+
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
 				drawer.addColour(state.colourWire);
 				int nlines = 14;
 				auto rel = 1.0f / nlines;
@@ -332,61 +348,97 @@ namespace Signalizer
 			}
 			else
 			{
-				// draw two half circles
-				auto lut = circleData.get();
+				typedef typename ISA::V V;
 
-				int numInt = lut->tableSize;
-				float advance = 1.0f / (numInt - 1);
+				using namespace cpl::simd;
+				using cpl::simd::abs;
+				typedef typename scalar_of<V>::type Ty;
+				constexpr ssize_t lanes = elements_of<V>::value;
+
+				const auto angularResolution = static_cast<int>(4 * std::sqrt(getWidth() * getHeight()) / 75.0);
+
+				const auto step = (consts<Ty>::pi_half) / (angularResolution);
+
+				suitable_container<V> phases, sines, cosines;
+				drawer.addColour(state.colourWire);
+
+				Ty oldX = 1, oldY = 0;
+
+				int i = 1;
+
+				auto emitXY = [&](float newX, float newY)
 				{
-					cpl::OpenGLRendering::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
-					drawer.addColour(state.colourWire);
+					drawer.addVertex(oldX, oldY, 0);
+					drawer.addVertex(newX, newY, 0);
+					drawer.addVertex(oldX, oldY, -1);
+					drawer.addVertex(newX, newY, -1);
 
-					float oldY = 0.0f;
-					for (int i = 1; i < numInt; ++i)
+					// left part
+					drawer.addVertex(-oldX, oldY, 0);
+					drawer.addVertex(-newX, newY, 0);
+					drawer.addVertex(-oldX, oldY, -1);
+					drawer.addVertex(-newX, newY, -1);
+
+					oldX = newX;
+					oldY = newY;
+				};
+
+				for (; i < angularResolution && i + lanes < angularResolution; i += lanes)
+				{
+					auto baseAngle = i * step;
+
+					for (std::size_t c = 0; c < lanes; ++c)
 					{
-						auto fraction = advance * i;
-						auto yCoordinate = lut->linearLookup(fraction);
-						auto leftX = -1.0f + fraction;
-						auto rightX = 1.0f - fraction;
-						// left part
-						drawer.addVertex(leftX - advance, oldY, 0);
-						drawer.addVertex(leftX, yCoordinate, 0);
-						drawer.addVertex(leftX - advance, oldY, -1);
-						drawer.addVertex(leftX, yCoordinate, -1);
-
-						// right part
-						drawer.addVertex(rightX + advance, oldY, 0);
-						drawer.addVertex(rightX, yCoordinate, 0);
-						drawer.addVertex(rightX + advance, oldY, -1);
-						drawer.addVertex(rightX, yCoordinate, -1);
-						//drawer.addVertex(1 - fraction, yCoordinate, 0);
-
-						oldY = yCoordinate;
+						phases[c] = baseAngle + step * c;
 					}
 
-					// add front and back horizontal lines.
-					drawer.addVertex(-1.0f, 0.0f, 0.0f);
-					drawer.addVertex(1.0f, 0.0f, 0.0f);
-					drawer.addVertex(-1.0f, 0.0f, -1.0f);
-					drawer.addVertex(1.0f, 0.0f, -1.0f);
+					V vSines, vCosines;
 
-					// add critical diagonal phase lines.
-					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
-					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
+					sincos(phases.toType(), &vSines, &vCosines);
 
-					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);
-					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);;
+					sines = vSines;
+					cosines = vCosines;
+
+					for (std::size_t c = 0; c < lanes; ++c)
+					{
+						emitXY(cosines[c], sines[c]);
+					}
 				}
+
+				// scalar loop
+				for (; i < angularResolution; i++)
+				{
+					Ty sine, cosine;
+
+					sincos(i * step, &sine, &cosine);
+					emitXY(cosine, sine);
+				}
+
+				// connect half circles to final coordinates
+				emitXY(0, 1); 
+
+				// add front and back horizontal lines.
+				drawer.addVertex(-1.0f, 0.0f, 0.0f);
+				drawer.addVertex(1.0f, 0.0f, 0.0f);
+				drawer.addVertex(-1.0f, 0.0f, -1.0f);
+				drawer.addVertex(1.0f, 0.0f, -1.0f);
+
+				const auto sqrtHalfTwo = consts<float>::sqrt_half_two;
+
+				// add critical diagonal phase lines.
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(sqrtHalfTwo, sqrtHalfTwo, 0.0f);
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(-sqrtHalfTwo, sqrtHalfTwo, 0.0f);
+
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(sqrtHalfTwo, sqrtHalfTwo, -1.0f);
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(-sqrtHalfTwo, sqrtHalfTwo, -1.0f);
 			}
 
-
-			// Draw basic graph
+			// Draw basic axis
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<16> drawer(openGLStack, GL_LINES);
 				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
 				drawer.addColour(state.colourAxis);
 				// front x, y axii
@@ -465,13 +517,14 @@ namespace Signalizer
 			using cpl::simd::abs;
 			typedef typename scalar_of<V>::type Ty;
 
-			cpl::OpenGLRendering::MatrixModification matrixMod;
+			Conditional01To11HeightTransform m(state.scalePolar);
+
 			const auto gain = static_cast<GLfloat>(processor->envelopeGain * state.userGain);
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
-			ssize_t vectorLength = elements_of<V>::value;
-			matrixMod.scale(gain, gain, 1);
+			constexpr ssize_t vectorLength = elements_of<V>::value;
+			m.additional().scale(gain, gain, 1);
 			suitable_container<V> outX, outY, outFade;
 
 			// simd consts
@@ -559,7 +612,7 @@ namespace Signalizer
 						vSampleFade += vIncrementalFade;
 
 					}
-					//continue;
+
 					// deal with remainder, scalar route
 					ssize_t remaindingSamples = 0;
 					auto currentSampleFade = outFade[vectorLength - 1];

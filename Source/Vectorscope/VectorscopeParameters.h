@@ -67,6 +67,7 @@
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
 				, showLegend("Legend", boolRange, boolFormatter)
+				, scalePolarModeToFill("PolarScale", boolRange, boolFormatter)
 
 				, colourBehaviour()
 				, waveformColour(colourBehaviour, "Draw.")
@@ -78,7 +79,6 @@
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
-				, scalePolarModeToFill(&boolRange, &boolFormatter)
 			{
 				operationalMode.fmt.setValues({ "Lissajous", "Polar" });
 				autoGain.fmt.setValues({ "None", "RMS", "Peak decay" });
@@ -103,13 +103,12 @@
 
 				// v. 0.3.6
 				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+				parameterSet.registerSingleParameter(scalePolarModeToFill.generateUpdateRegistrator());
 				parameterSet.registerParameterBundle(&widgetColour, widgetColour.getBundleName());
 
 				parameterSet.seal();
 
 				postParameterInitialization();
-
-				scalePolarModeToFill.setNormalizedValue(1.0);
 			}
 
 		public:
@@ -159,6 +158,7 @@
 				archive << meterColour;
 				archive << scalePolarModeToFill;
 				archive << showLegend;
+				archive << widgetColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -187,10 +187,6 @@
 					builder >> scalePolarModeToFill;
 					builder >> showLegend;
 					builder >> widgetColour;
-				}
-				else
-				{
-					scalePolarModeToFill.setNormalizedValue(0);
 				}
 			}
 
@@ -228,7 +224,8 @@
 				interconnectSamples,
 				diagnostics,
 				primitiveSize,
-				showLegend;
+				showLegend,
+				scalePolarModeToFill;
 
 			ChoiceParameter
 				autoGain,
@@ -247,8 +244,6 @@
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
-
-			cpl::SelfcontainedValue<> scalePolarModeToFill;
 
 		private:
 

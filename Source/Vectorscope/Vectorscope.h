@@ -241,9 +241,9 @@
 			// contains non-atomic structures
 			struct StateOptions
 			{
-				bool isPolar, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
+				bool isPolar, isFrozen, fillPath, fadeHistory, antialias, diagnostics, drawLegend, scalePolar;
 				float primitiveSize, rotation;
-				juce::Colour colourBackground, colourWire, colourAxis, colourWaveform, colourMeter;
+				juce::Colour colourBackground, colourWire, colourAxis, colourWaveform, colourMeter, colourWidget;
 				cpl::ValueT userGain;
 			} state;
 

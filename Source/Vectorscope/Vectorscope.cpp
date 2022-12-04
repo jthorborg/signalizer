@@ -209,12 +209,15 @@ namespace Signalizer
 		state.rotation = content->waveZRotation.getNormalizedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.userGain = content->inputGain.getTransformedValue();
+		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
+		state.scalePolar = content->scalePolarModeToFill.getTransformedValue() > 0.5;
 
 		state.colourWaveform = content->waveformColour.getAsJuceColour();
 		state.colourWire = content->wireframeColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourMeter = content->meterColour.getAsJuceColour();
 		state.colourAxis = content->axisColour.getAsJuceColour();
+		state.colourWidget = content->widgetColour.getAsJuceColour();
 
 
 		bool firstRun = false;
@@ -259,12 +262,10 @@ namespace Signalizer
 
 			const T stereoPoles[2] = { stereoCoeff, std::pow(stereoCoeff, secondStereoFilterSpeed) };
 			const T envelope = envelopeCoeff;
-			const T cosineRotation = (T)std::cos(M_PI * 135 / 180);
-			const T sineRotation = (T)std::sin(M_PI * 135 / 180);
-			const V vMatrixReal = set1<V>(cosineRotation);
-			const V vMatrixImag = set1<V>(sineRotation);
+			const V vMatrixReal = consts<V>::sqrt_half_two_minus;
+			const V vMatrixImag = consts<V>::sqrt_half_two;
 
-			const V vDummyAngle = set1<V>((T)(M_PI * 0.25));
+			const V vDummyAngle = consts<V>::pi_quarter;
 			const V vZero = zero<V>();
 
 			auto const loopIncrement = elements_of<V>::value;
@@ -291,13 +292,10 @@ namespace Signalizer
 				const V vRadians = atan(vY / vX);
 				const V vPhaseAngle = vselect(vDummyAngle, vRadians, vZeroAxes);
 
-				outputPhases = vPhaseAngle;
 				// the phase angle is discontinuous around PI, so we take the cosine
 				// to avoid the discontinuity and give a small smoothing
-				// for some arcane fucking reason, the phase response of this function IN THIS CONTEXT is wrong
-				// testing reveals no problems, it just doesn't work right here. Uncomment if you find a fix.
-#pragma message cwarn("Errornous cosine output here.")
-				//outputPhases = cos(outputPhases * set1<V>(2));
+
+				outputPhases = cos(vPhaseAngle * consts<V>::two);
 
 				// scalar code segment for recursive IIR filters..
 				for (std::size_t i = 0; i < loopIncrement; ++i)
@@ -321,8 +319,6 @@ namespace Signalizer
 					balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (balance[fs::Fast][fs::Right] - rSquared);
 
 					// phase averaging
-					// see larger comment above.
-					outputPhases[i] = cos(outputPhases[i] * consts<T>::two);
 					phase[fs::Slow] = outputPhases[i] + stereoPoles[fs::Slow] * (phase[fs::Slow] - outputPhases[i]);
 					phase[fs::Fast] = outputPhases[i] + stereoPoles[fs::Fast] * (phase[fs::Fast] - outputPhases[i]);
 				}

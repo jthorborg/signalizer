@@ -62,6 +62,7 @@ namespace Signalizer
 			, kshowLegend(&parentValue.showLegend)
 			, kpresets(&valueSerializer, "vectorscope")
 			, kwidgetColour(&parentValue.widgetColour)
+			, kscalePolar(&parentValue.scalePolarModeToFill)
 			, editorSerializer(
 				*this,
 				[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -111,6 +112,8 @@ namespace Signalizer
 			kenvelopeMode.bSetTitle("Auto-gain mode");
 			kshowLegend.bSetTitle("Show legend");
 			kshowLegend.setToggleable(true);
+			kscalePolar.bSetTitle("Scale polar");
+			kscalePolar.setToggleable(true);
 
 			// design
 			kopMode.bSetTitle("Operational mode");
@@ -136,8 +139,9 @@ namespace Signalizer
 			kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 			kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
 			kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
-			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
-			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends)");
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours.");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends).");
+			kscalePolar.bSetDescription("Scale the height of the polar mode to fill the screen.");
 		}
 
 		void initUI()
@@ -201,6 +205,7 @@ namespace Signalizer
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
 				{
 					section->addControl(&kdiagnostics, 0);
+					section->addControl(&kscalePolar, 1);
 					page->addSection(section, "Options");
 				}
 			}
@@ -230,6 +235,7 @@ namespace Signalizer
 			archive << kmeterColour;
 			archive << kshowLegend;
 			archive << kwidgetColour;
+			archive << kscalePolar;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -263,6 +269,7 @@ namespace Signalizer
 			{
 				builder >> kshowLegend;
 				builder >> kwidgetColour;
+				builder >> kscalePolar;
 			}
 		}
 
@@ -299,7 +306,7 @@ namespace Signalizer
 			}
 		}
 
-		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kshowLegend;
+		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kshowLegend, kscalePolar;
 		cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
 		cpl::CColourControl kwaveformColour, kaxisColour, kbackgroundColour, kwireframeColour, kmeterColour, kwidgetColour;
 		cpl::CTransformWidget ktransform;
