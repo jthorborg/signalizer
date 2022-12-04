@@ -153,12 +153,12 @@ namespace Signalizer
 		if (state.drawLegend && mouseCheck)
 		{
 			cpl::CMutex scopedLock(bufferLock);
-			PaintLegend(g, state.colourTracker, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
+			PaintLegend(g, state.colourWidget, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
 		}
 
 		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
 		{
-			g.setColour(state.colourTracker);
+			g.setColour(state.colourWidget);
 
 			const auto mouseX = threadedMousePos.first, mouseY = threadedMousePos.second;
 
@@ -210,7 +210,7 @@ namespace Signalizer
 			g.fillRoundedRectangle(rect, 2);
 
 			// reset colour
-			g.setColour(state.colourTracker);
+			g.setColour(state.colourWidget);
 			g.drawRoundedRectangle(rect, 2, 0.7f);
 
 			auto const horizontalFraction = cpl::Math::UnityScale::linear((double)mouseX / (getWidth() - 1), state.viewOffsets[VO::Left], state.viewOffsets[VO::Right]);

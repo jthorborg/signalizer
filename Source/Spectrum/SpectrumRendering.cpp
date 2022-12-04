@@ -204,10 +204,10 @@ namespace Signalizer
 		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
 
-		if(state.colourTracker.getAlpha() == 0)
+		if(state.colourWidget.getAlpha() == 0)
 			return;
 
-		g.setColour(state.colourTracker);
+		g.setColour(state.colourWidget);
 
 		double
 			mouseFrequency = 0,
@@ -570,7 +570,7 @@ namespace Signalizer
 
 
 		// reset colour
-		g.setColour(state.colourTracker);
+		g.setColour(state.colourWidget);
 		g.drawRoundedRectangle(rect, 2, 0.7f);
 
 		g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText * 0.9f, 0));

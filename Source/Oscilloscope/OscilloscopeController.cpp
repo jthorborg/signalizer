@@ -70,7 +70,7 @@ namespace Signalizer
 			, kchannelColouring(&parentValue.channelColouring.param)
 			, kcolourSmoothingTime(&parentValue.colourSmoothing)
 			, kcursorTracker(&parentValue.cursorTracker)
-			, ktrackerColour(&parentValue.trackerColour)
+			, kwidgetColour(&parentValue.widgetColour)
 			, kfreqColourBlend(&parentValue.frequencyColouringBlend)
 			, ktriggerHysteresis(&parentValue.triggerHysteresis)
 			, ktriggerThreshold(&parentValue.triggerThreshold)
@@ -156,7 +156,7 @@ namespace Signalizer
 			kcustomFrequency.bSetTitle("Custom trigger");
 			kchannelColouring.bSetTitle("Channel colouring");
 			kcolourSmoothingTime.bSetTitle("Colour smoothing");
-			ktrackerColour.bSetTitle("Tracker colour");
+			kwidgetColour.bSetTitle("Widget colour");
 			kfreqColourBlend.bSetTitle("Colour blend");
 			ktriggerHysteresis.bSetTitle("Hysteresis");
 			ktriggerThreshold.bSetTitle("Trigger thrshld");
@@ -209,7 +209,7 @@ namespace Signalizer
 			koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
 			kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 			kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
-			ktrackerColour.bSetDescription("Colour of the cursor tracker");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends and trackers)");
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
 			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
@@ -275,7 +275,7 @@ namespace Signalizer
 
 					section->addControl(&kgraphColour, 0);
 					section->addControl(&kbackgroundColour, 1);
-					section->addControl(&ktrackerColour, 0);
+					section->addControl(&kwidgetColour, 0);
 
 					page->addSection(section, "Look");
 				}
@@ -338,7 +338,7 @@ namespace Signalizer
 			archive << ksecondaryColour;
 			archive << kcolourSmoothingTime;
 			archive << kcursorTracker;
-			archive << ktrackerColour;
+			archive << kwidgetColour;
 			archive << kfreqColourBlend;
 			archive << ktriggerHysteresis;
 			archive << ktriggerThreshold;
@@ -384,7 +384,7 @@ namespace Signalizer
 			if (version > cpl::Version(0, 3, 1))
 			{
 				builder >> kcursorTracker;
-				builder >> ktrackerColour;
+				builder >> kwidgetColour;
 				builder >> kfreqColourBlend;
 			}
 
@@ -444,7 +444,7 @@ namespace Signalizer
 		cpl::CValueKnobSlider
 			kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
 			ktriggerHysteresis, ktriggerThreshold, ktriggerChannel;
-		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
+		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, kwidgetColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 		cpl::CPresetWidget kpresets;

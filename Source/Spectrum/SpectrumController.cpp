@@ -50,7 +50,7 @@ namespace Signalizer
 			, kdisplayMode(&parentValue.displayMode.param)
 			, kbinInterpolation(&parentValue.binInterpolation.param)
 			, kfrequencyTracker(&parentValue.frequencyTracker.param)
-			, ktrackerColour(&parentValue.trackerColour)
+			, kwidgetColour(&parentValue.widgetColour)
 			, ktrackerSmoothing(&parentValue.trackerSmoothing)
 
 			, klowDbs(&parentValue.lowDbs)
@@ -203,7 +203,7 @@ namespace Signalizer
 			kpctForDivision.bSetTitle("Grid div. space");
 			kblobSize.bSetTitle("Update speed");
 			ktrackerSmoothing.bSetTitle("Tracker smooth");
-			ktrackerColour.bSetTitle("Tracker colour");
+			kwidgetColour.bSetTitle("Widget colour");
 
 			// ------ descriptions -----
 			kviewScaling.bSetDescription("Set the scale of the frequency-axis of the coordinate system.");
@@ -228,7 +228,7 @@ namespace Signalizer
 			kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
 			kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
 			ktrackerSmoothing.bSetDescription("Eliminates small fluctuations and holds analysis values in the frequency tracker for a longer time");
-			ktrackerColour.bSetDescription("Colour of the frequency tracker");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends and trackers)");
 
 			klines[SpectrumContent::LineGraphs::LineMain]->colourOne.bSetDescription("The colour of the first channel of the main graph.");
 			klines[SpectrumContent::LineGraphs::LineMain]->colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -317,7 +317,7 @@ namespace Signalizer
 				{
 					section->addControl(&kgridColour, 0);
 					section->addControl(&kbackgroundColour, 1);
-					section->addControl(&ktrackerColour, 0);
+					section->addControl(&kwidgetColour, 0);
 					page->addSection(section);
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -406,7 +406,7 @@ namespace Signalizer
 			archive << kslope;
 			archive << kreferenceTuning;
 			archive << ktrackerSmoothing;
-			archive << ktrackerColour;
+			archive << kwidgetColour;
 			archive << kshowLegend;
 		}
 
@@ -470,7 +470,7 @@ namespace Signalizer
 
 			if (version >= cpl::Version(0, 3, 1))
 			{
-				builder >> ktrackerSmoothing >> ktrackerColour;
+				builder >> ktrackerSmoothing >> kwidgetColour;
 			}
 
 			if (version >= cpl::Version(0, 3, 6))
@@ -535,7 +535,7 @@ namespace Signalizer
 			kreferenceTuning,
 			ktrackerSmoothing;
 
-		cpl::CColourControl kgridColour, kbackgroundColour, ktrackerColour;
+		cpl::CColourControl kgridColour, kbackgroundColour, kwidgetColour;
 
 		struct LineControl
 		{

@@ -289,7 +289,7 @@ namespace Signalizer
 
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourAxis = content->graphColour.getAsJuceColour();
-		state.colourTracker = content->trackerColour.getAsJuceColour();
+		state.colourWidget = content->widgetColour.getAsJuceColour();
 
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;

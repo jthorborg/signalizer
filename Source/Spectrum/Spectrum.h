@@ -433,7 +433,7 @@
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourGrid, colourBackground, colourTracker, colourOne[SpectrumContent::LineGraphs::LineEnd], colourTwo[SpectrumContent::LineGraphs::LineEnd];
+				juce::Colour colourGrid, colourBackground, colourWidget, colourOne[SpectrumContent::LineGraphs::LineEnd], colourTwo[SpectrumContent::LineGraphs::LineEnd];
 
 				/// <summary>
 				/// Colours for spectrum

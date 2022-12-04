@@ -136,7 +136,7 @@
 				// TODO: Figure out automatic way to initialize N array in constructor
 				, gridColour(colourBehaviour, "Grid.")
 				, backgroundColour(colourBehaviour, "Bck.")
-				, trackerColour(colourBehaviour, "Trck.")
+				, widgetColour(colourBehaviour, "Widg.")
 				, specColours { { colourBehaviour , "Grdnt1."}, { colourBehaviour , "Grdnt2." }, { colourBehaviour , "Grdnt3." }, { colourBehaviour , "Grdnt4." }, { colourBehaviour , "Grdnt5." } }
 
 				, specRatios{
@@ -201,7 +201,7 @@
 				regBundle(slope, "Slope.");
 				regBundle(gridColour, gridColour.getBundleName());
 				regBundle(backgroundColour, backgroundColour.getBundleName());
-				regBundle(trackerColour, trackerColour.getBundleName());
+				regBundle(widgetColour, widgetColour.getBundleName());
 
 				for (std::size_t i = 0; i < std::extent<decltype(specColours)>::value; ++i)
 					regBundle(specColours[i], specColours[i].getBundleName());
@@ -281,7 +281,7 @@
 				archive << referenceTuning;
 				archive << audioHistoryTransformatter;
 
-				archive << trackerSmoothing << trackerColour;
+				archive << trackerSmoothing << widgetColour;
 
 				archive << showLegend;
 			}
@@ -331,7 +331,7 @@
 
 				if (v >= cpl::Version(0, 3, 1))
 				{
-					builder >> trackerSmoothing >> trackerColour;
+					builder >> trackerSmoothing >> widgetColour;
 				}
 
 				if (v >= cpl::Version(0, 3, 6))
@@ -391,7 +391,7 @@
 				gridColour,
 				backgroundColour,
 				specColours[numSpectrumColours],
-				trackerColour;
+				widgetColour;
 
 			struct LineControl
 			{

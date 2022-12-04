@@ -74,7 +74,7 @@
 				, backgroundColour(colourBehaviour, "BackG.")
 				, wireframeColour(colourBehaviour, "Skelt.")
 				, meterColour(colourBehaviour, "Meter.")
-				, widgetColour(colourBehaviour, "Widget.")
+				, widgetColour(colourBehaviour, "Widg.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)

@@ -414,7 +414,7 @@
 				, lowColour(colourBehaviour, "Low.")
 				, midColour(colourBehaviour, "Mid.")
 				, highColour(colourBehaviour, "High.")
-				, trackerColour(colourBehaviour, "Trckr.")
+				, widgetColour(colourBehaviour, "Widg.")
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 
@@ -469,7 +469,7 @@
 					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
-				for (auto cparam : { &primaryColour, &secondaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &trackerColour })
+				for (auto cparam : { &primaryColour, &secondaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &widgetColour })
 				{
 					parameterSet.registerParameterBundle(cparam, cparam->getBundleName());
 				}
@@ -546,7 +546,7 @@
 				archive << secondaryColour;
 				archive << colourSmoothing;
 				archive << cursorTracker;
-				archive << trackerColour;
+				archive << widgetColour;
 				archive << frequencyColouringBlend;
 				archive << triggerHysteresis;
 				archive << triggerThreshold;
@@ -597,7 +597,7 @@
 				if (version >= cpl::Version(0, 3, 1))
 				{
 					builder >> cursorTracker;
-					builder >> trackerColour;
+					builder >> widgetColour;
 					builder >> frequencyColouringBlend;
 				}
 
@@ -714,7 +714,7 @@
 				graphColour,
 				backgroundColour,
 				lowColour, midColour, highColour,
-				trackerColour;
+				widgetColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
