@@ -769,11 +769,11 @@ namespace Signalizer
 			auto pieceColour = state.colourBackground.contrasting().withMultipliedBrightness(state.colourMeter.getPerceivedBrightness() * 0.5f);
 			rect.setColour(pieceColour);
 			// draw contrasting center piece for balance
-			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 0.125f, balanceX, indicatorSize * 0.125f, sideSize);
+			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 1/16.f, balanceX, indicatorSize * 0.125f, sideSize);
 			rect.fill();
 
 			// draw contrasting center piece for stereo
-			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
+			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 1 / 16.f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
 			rect.fill();
 		}
 
