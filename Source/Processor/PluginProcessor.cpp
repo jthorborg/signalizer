@@ -142,8 +142,11 @@ namespace Signalizer
 			}
 		);
 
-		if (!hasEverBeenHostDeserialized)
+		if (!hasAnyLayoutBeenApplied)
+		{
+			hasAnyLayoutBeenApplied = true;
 			graph.applyDefaultLayoutFromRuntime();
+		}
 	}
 
 	void AudioProcessor::releaseResources()
@@ -237,7 +240,7 @@ namespace Signalizer
 			cpl::Misc::MsgBox(std::string("Error serializing state information:\n") + e.what(), "Signalizer");
 		}
 
-		hasEverBeenHostDeserialized = true;
+		hasAnyLayoutBeenApplied = true;
 	}
 
 	void AudioProcessor::deserialize(cpl::CSerializer & serializer, cpl::Version version)

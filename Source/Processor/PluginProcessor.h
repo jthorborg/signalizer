@@ -125,7 +125,7 @@
 			AudioStream::Input realtimeInput;
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
 
-			bool hasEverBeenHostDeserialized{};
+			bool hasAnyLayoutBeenApplied{};
 			int nChannels;
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;

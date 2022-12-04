@@ -332,7 +332,7 @@ namespace Signalizer
 				// is negligible
 				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
-				// only update filters if this mode is on.
+				// only envelope filters if this mode is on.
 				for (std::size_t i = 0; i < 2; ++i)
 				{
 					filters.envelope[i] = filterEnv[i];
@@ -344,6 +344,16 @@ namespace Signalizer
 				if (std::isnormal(currentEnvelope))
 				{
 					envelopeGain = currentEnvelope;
+				}
+			}
+			else
+			{
+				// only envelope filters if this mode is on.
+				for (std::size_t i = 0; i < 2; ++i)
+				{
+					filters.phase[i] = phase[i];
+					for (std::size_t j = 0; j < 2; ++j)
+						filters.balance[i][j] = balance[i][j];
 				}
 			}
 		}

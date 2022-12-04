@@ -841,8 +841,6 @@ namespace Signalizer
 
 			double currentEnvelope = 1;
 
-			// TODO: consider moving this inside the processor.
-
 			if (audio.getNumChannels() >= 2)
 			{
 				AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
