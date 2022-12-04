@@ -68,10 +68,10 @@
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
 
 				, colourBehaviour()
-				, drawingColour(colourBehaviour, "Draw.")
-				, graphColour(colourBehaviour, "Graph.")
+				, waveformColour(colourBehaviour, "Draw.")
+				, axisColour(colourBehaviour, "Graph.")
 				, backgroundColour(colourBehaviour, "BackG.")
-				, skeletonColour(colourBehaviour, "Skelt.")
+				, wireframeColour(colourBehaviour, "Skelt.")
 				, meterColour(colourBehaviour, "Meter.")
 
 				, tsfBehaviour()
@@ -91,10 +91,10 @@
 					parameterSet.registerSingleParameter(sparam->generateUpdateRegistrator());
 				}
 
-				parameterSet.registerParameterBundle(&drawingColour, drawingColour.getBundleName());
-				parameterSet.registerParameterBundle(&graphColour, graphColour.getBundleName());
+				parameterSet.registerParameterBundle(&waveformColour, waveformColour.getBundleName());
+				parameterSet.registerParameterBundle(&axisColour, axisColour.getBundleName());
 				parameterSet.registerParameterBundle(&backgroundColour, backgroundColour.getBundleName());
-				parameterSet.registerParameterBundle(&skeletonColour, skeletonColour.getBundleName());
+				parameterSet.registerParameterBundle(&wireframeColour, wireframeColour.getBundleName());
 				parameterSet.registerParameterBundle(&meterColour, meterColour.getBundleName());
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
@@ -137,11 +137,11 @@
 				archive << fadeOlderPoints;
 				archive << diagnostics;
 				archive << interconnectSamples;
-				archive << graphColour;
+				archive << axisColour;
 				archive << backgroundColour;
-				archive << drawingColour;
+				archive << waveformColour;
 				archive << transform;
-				archive << skeletonColour;
+				archive << wireframeColour;
 				archive << primitiveSize;
 				archive << autoGain.param;
 				archive << envelopeWindow;
@@ -159,11 +159,11 @@
 				builder >> fadeOlderPoints;
 				builder >> diagnostics;
 				builder >> interconnectSamples;
-				builder >> graphColour;
+				builder >> axisColour;
 				builder >> backgroundColour;
-				builder >> drawingColour;
+				builder >> waveformColour;
 				builder >> transform;
-				builder >> skeletonColour;
+				builder >> wireframeColour;
 				builder >> primitiveSize;
 				builder >> autoGain.param;
 				builder >> envelopeWindow;
@@ -214,10 +214,10 @@
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
-				drawingColour,
-				graphColour,
+				waveformColour,
+				axisColour,
 				backgroundColour,
-				skeletonColour,
+				wireframeColour,
 				meterColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;

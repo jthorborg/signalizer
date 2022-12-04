@@ -116,7 +116,7 @@ namespace Signalizer
 
 		auto bounds = getLocalBounds().toFloat();
 
-		if (state.colourGraph.getAlpha() != 0)
+		if (state.colourAxis.getAlpha() != 0)
 		{
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<ISA>(g, bounds);
@@ -131,7 +131,7 @@ namespace Signalizer
 				{
 					juce::Graphics::ScopedSaveState s(g);
 
-					g.setColour(state.colourGraph);
+					g.setColour(state.colourAxis);
 					g.drawLine(0, window.getY(), window.getWidth(), window.getY());
 					g.reduceClipRegion(window.toType<int>());
 
@@ -379,7 +379,7 @@ namespace Signalizer
 			// quantize to multiples of 3
 			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * (1 - content->pctForDivision.getNormalizedValue()) * minSpacing) - 1;
 
-			g.setColour(state.colourGraph);
+			g.setColour(state.colourAxis);
 
 			const auto offset = gain;
 			char textBuf[200];
@@ -472,7 +472,7 @@ namespace Signalizer
 			}
 
 
-			g.setColour(state.colourGraph);
+			g.setColour(state.colourAxis);
 
 			auto transformView = [&](auto x) {
 				return (x - state.viewOffsets[VO::Left]) / horizontalDelta;

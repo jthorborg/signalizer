@@ -138,7 +138,7 @@
 
 				double viewOffsets[4];
 				std::size_t numChannels;
-				juce::Colour colourBackground, colourGraph, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourTracker;
+				juce::Colour colourBackground, colourAxis, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourTracker;
 
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TimeMode timeMode;

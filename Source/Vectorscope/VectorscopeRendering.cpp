@@ -90,7 +90,7 @@ namespace Signalizer
 			state.colourBackground,
 			{ 10, paintDiag ? 35.f : 10.f },
 			*processor->channelNames.lock(),
-			ColourRotation(state.colourDraw, numChannels, true),
+			ColourRotation(state.colourWaveform, numChannels, true),
 			numChannels
 		);
 	}
@@ -244,7 +244,7 @@ namespace Signalizer
 				xcoords = vsines * vscale * vheightToWidthFactor + vadd;
 				ycoords = vcosines * vscale + vadd;
 
-				auto jcolour = state.colourGraph;
+				auto jcolour = state.colourAxis;
 				// render texture text at coordinates.
 				for (int i = 0; i < 4; ++i)
 				{
@@ -262,7 +262,7 @@ namespace Signalizer
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
 
-				auto jcolour = state.colourGraph;
+				auto jcolour = state.colourAxis;
 				float nadd = 1.0f - circleScaleFactor;
 				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
 				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
@@ -383,7 +383,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<16> drawer(openGLStack, GL_LINES);
 				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
-				drawer.addColour(state.colourGraph);
+				drawer.addColour(state.colourAxis);
 				// front x, y axii
 				drawer.addVertex(-1.0f, 0.0f, 0.0f);
 				drawer.addVertex(1.0f, 0.0f, 0.0f);
@@ -403,7 +403,7 @@ namespace Signalizer
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
-			ColourRotation rotation(state.colourDraw, audio.getNumChannels(), true);
+			ColourRotation rotation(state.colourWaveform, audio.getNumChannels(), true);
 
 			if (!state.fadeHistory)
 			{
@@ -480,7 +480,7 @@ namespace Signalizer
 			auto const fadePerSample = (Ty)1.0 / numSamples;
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
-			ColourRotation rotation(state.colourDraw, audio.getNumChannels(), true);
+			ColourRotation rotation(state.colourWaveform, audio.getNumChannels(), true);
 
 			const auto colour = rotation[offset];
 
@@ -702,6 +702,9 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
+			if (state.colourMeter.getBrightness() == 0)
+				return;
+
 			using namespace cpl;
 			OpenGLRendering::MatrixModification m;
 			m.loadIdentityMatrix();

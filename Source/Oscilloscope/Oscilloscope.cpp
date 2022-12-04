@@ -288,7 +288,7 @@ namespace Signalizer
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
-		state.colourGraph = content->graphColour.getAsJuceColour();
+		state.colourAxis = content->graphColour.getAsJuceColour();
 		state.colourTracker = content->trackerColour.getAsJuceColour();
 
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());

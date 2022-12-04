@@ -51,10 +51,10 @@ namespace Signalizer
 			, kprimitiveSize(&parentValue.primitiveSize)
 			, kenvelopeSmooth(&parentValue.envelopeWindow)
 			, kstereoSmooth(&parentValue.stereoWindow)
-			, kdrawingColour(&parentValue.drawingColour)
-			, kgraphColour(&parentValue.graphColour)
+			, kwaveformColour(&parentValue.waveformColour)
+			, kaxisColour(&parentValue.axisColour)
 			, kbackgroundColour(&parentValue.backgroundColour)
-			, kskeletonColour(&parentValue.skeletonColour)
+			, kwireframeColour(&parentValue.wireframeColour)
 			, kmeterColour(&parentValue.meterColour)
 			, ktransform(&parentValue.transform)
 			, kopMode(&parentValue.operationalMode.param)
@@ -87,10 +87,10 @@ namespace Signalizer
 			kwindow.bSetTitle("Window size");
 			krotation.bSetTitle("Wave Z-rotation");
 			kgain.bSetTitle("Input gain");
-			kgraphColour.bSetTitle("Graph colour");
+			kaxisColour.bSetTitle("Axis colour");
 			kbackgroundColour.bSetTitle("Backg. colour");
-			kdrawingColour.bSetTitle("Drawing colour");
-			kskeletonColour.bSetTitle("Skeleton colour");
+			kwaveformColour.bSetTitle("Audio colour");
+			kwireframeColour.bSetTitle("Wireframe colour");
 			kprimitiveSize.bSetTitle("Primitive size");
 			kmeterColour.bSetTitle("Meter colour");
 			kenvelopeSmooth.bSetTitle("Env. window");
@@ -120,11 +120,11 @@ namespace Signalizer
 			kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
 			kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
 			kdrawLines.bSetDescription("If set, interconnect samples linearly.");
-			kdrawingColour.bSetDescription("The main colour to paint with.");
-			kgraphColour.bSetDescription("The colour of the graph.");
+			kwaveformColour.bSetDescription("The main colour of the waveform audio.");
+			kaxisColour.bSetDescription("The colour of the axis lines of the graph.");
 			kbackgroundColour.bSetDescription("The background colour of the view.");
 			kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
-			kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
+			kwireframeColour.bSetDescription("The colour of the wireframe attached to the graph.");
 			kmeterColour.bSetDescription("The colour of the stereo meters (balance and phase)");
 			kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 			kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
@@ -174,10 +174,10 @@ namespace Signalizer
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
 				{
-					section->addControl(&kdrawingColour, 0);
-					section->addControl(&kgraphColour, 0);
+					section->addControl(&kwaveformColour, 0);
+					section->addControl(&kaxisColour, 0);
 					section->addControl(&kbackgroundColour, 0);
-					section->addControl(&kskeletonColour, 0);
+					section->addControl(&kwireframeColour, 0);
 					section->addControl(&kmeterColour, 1);
 					section->addControl(&kprimitiveSize, 1);
 					page->addSection(section, "Look");
@@ -205,11 +205,11 @@ namespace Signalizer
 			archive << kfadeOld;
 			archive << kdiagnostics;
 			archive << kdrawLines;
-			archive << kgraphColour;
+			archive << kaxisColour;
 			archive << kbackgroundColour;
-			archive << kdrawingColour;
+			archive << kwaveformColour;
 			archive << ktransform;
-			archive << kskeletonColour;
+			archive << kwireframeColour;
 			archive << kprimitiveSize;
 			archive << kenvelopeMode;
 			archive << kenvelopeSmooth;
@@ -233,11 +233,11 @@ namespace Signalizer
 			builder >> kfadeOld;
 			builder >> kdiagnostics;
 			builder >> kdrawLines;
-			builder >> kgraphColour;
+			builder >> kaxisColour;
 			builder >> kbackgroundColour;
-			builder >> kdrawingColour;
+			builder >> kwaveformColour;
 			builder >> ktransform;
-			builder >> kskeletonColour;
+			builder >> kwireframeColour;
 			builder >> kprimitiveSize;
 			builder >> kenvelopeMode;
 			builder >> kenvelopeSmooth;
@@ -281,7 +281,7 @@ namespace Signalizer
 
 		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
 		cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
-		cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
+		cpl::CColourControl kwaveformColour, kaxisColour, kbackgroundColour, kwireframeColour, kmeterColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kopMode, kenvelopeMode;
 		cpl::CPresetWidget kpresets;

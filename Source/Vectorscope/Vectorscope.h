@@ -243,7 +243,7 @@
 			{
 				bool isPolar, isFrozen, fillPath, fadeHistory, antialias, diagnostics;
 				float primitiveSize, rotation;
-				juce::Colour colourBackground, colourWire, colourGraph, colourDraw, colourMeter;
+				juce::Colour colourBackground, colourWire, colourAxis, colourWaveform, colourMeter;
 				cpl::ValueT userGain;
 			} state;
 

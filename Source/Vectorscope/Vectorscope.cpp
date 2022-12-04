@@ -209,11 +209,11 @@ namespace Signalizer
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.userGain = content->inputGain.getTransformedValue();
 
-		state.colourDraw = content->drawingColour.getAsJuceColour();
-		state.colourWire = content->skeletonColour.getAsJuceColour();
+		state.colourWaveform = content->waveformColour.getAsJuceColour();
+		state.colourWire = content->wireframeColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourMeter = content->meterColour.getAsJuceColour();
-		state.colourGraph = content->graphColour.getAsJuceColour();
+		state.colourAxis = content->axisColour.getAsJuceColour();
 
 
 		bool firstRun = false;
