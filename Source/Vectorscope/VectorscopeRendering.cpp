@@ -42,7 +42,6 @@ namespace Signalizer
 
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
 
-	static const float quarterPISinCos = 0.707106781186547f;
 	static const float circleScaleFactor = 1.1f;
 
 	enum Textures
@@ -56,9 +55,10 @@ namespace Signalizer
 		Center
 	};
 
-	void VectorScope::paint2DGraphics(juce::Graphics & g)
+	void VectorScope::paint2DGraphics(juce::Graphics & g, std::size_t numChannels)
 	{
-		if (content->diagnostics.getNormalizedValue() > 0.5)
+		bool paintDiag = content->diagnostics.getNormalizedValue() > 0.5;
+		if (paintDiag)
 		{
 			g.setColour(juce::Colours::blue);
 
@@ -70,8 +70,10 @@ namespace Signalizer
 
 			computeAverageStats(averageFps, averageCpu);
 
-			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
-				getWidth(), getHeight(), averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
+			auto scale = oglc->getRenderingScale();
+
+			sprintf(textbuf, "%dx%d (%.2f): %.1f fps - %.1f%% cpu, deltaT = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+				getWidth(), getHeight(), scale, averageFps, averageCpu, openGLDeltaTime(),
 				100 * perf.producerUsage,
 				100 * perf.producerOverhead,
 				100 * perf.consumerUsage,
@@ -79,7 +81,18 @@ namespace Signalizer
 			);
 
 			g.drawSingleLineText(textbuf, 10, 20);
+
 		}
+
+		PaintLegend(
+			g,
+			state.colourWire,
+			state.colourBackground,
+			{ 10, paintDiag ? 35.f : 10.f },
+			*processor->channelNames.lock(),
+			ColourRotation(state.colourDraw, numChannels, true),
+			numChannels
+		);
 	}
 
 
@@ -120,13 +133,13 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::vectorGLRendering()
 		{
-
+			std::size_t numChannels;
 			CPL_DEBUGCHECKGL();
             {
-                auto cStart = cpl::Misc::ClockCounter();
                 auto && lockedView = audioStream->getAudioBufferViews();
                 handleFlagUpdates();
                 juce::OpenGLHelpers::clear(state.colourBackground);
+
                 {
                     cpl::OpenGLRendering::COpenGLStack openGLStack;
                     // set up openGL
@@ -150,7 +163,7 @@ namespace Signalizer
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
                     openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-					auto numChannels = lockedView.getNumChannels();
+					numChannels = lockedView.getNumChannels();
 
                     // draw actual stereoscopic plot
                     if (numChannels >= 2)
@@ -184,7 +197,7 @@ namespace Signalizer
                 }
             }
 
-			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
+			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g, numChannels); });
 
 			postFrame();
 		}
@@ -379,11 +392,6 @@ namespace Signalizer
 			}
 		}
 
-	juce::Colour rotateFor(juce::Colour base, std::size_t offset, std::size_t size)
-	{
-		return base.withRotatedHue(offset / float(size));
-	}
-
 	template<typename ISA>
 		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset)
 		{
@@ -395,11 +403,13 @@ namespace Signalizer
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
+			ColourRotation rotation(state.colourDraw, audio.getNumChannels(), true);
+
 			if (!state.fadeHistory)
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				drawer.addColour(rotateFor(state.colourDraw, offset, audio.getNumChannels()));
+				drawer.addColour(rotation[offset]);
 
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
@@ -416,7 +426,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				auto jcolour = rotateFor(state.colourDraw, offset, audio.getNumChannels());
+				auto jcolour = rotation[offset];
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
 				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
 
@@ -470,7 +480,9 @@ namespace Signalizer
 			auto const fadePerSample = (Ty)1.0 / numSamples;
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
-			const auto colour = rotateFor(state.colourDraw, offset, audio.getNumChannels());
+			ColourRotation rotation(state.colourDraw, audio.getNumChannels(), true);
+
+			const auto colour = rotation[offset];
 
 			const float
 				red = colour.getFloatRed(),

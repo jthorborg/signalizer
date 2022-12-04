@@ -915,6 +915,27 @@
 			std::vector<std::pair<std::string, std::shared_ptr<ProcessorState>>> map;
 		};
 
+		struct ColourRotation
+		{
+			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
+				: base(base), size(size), stereo(stereo)
+			{
+
+			}
+
+			juce::Colour operator [](std::size_t index) const noexcept
+			{
+				if (stereo)
+					index &= ~0x1ull;
+
+				return base.withRotatedHue(index / size);
+			}
+
+			const juce::Colour base;
+			const float size;
+			const bool stereo;
+		};
+
 		template<typename NameVector, typename ColourVector>
 		inline void PaintLegend(juce::Graphics& g, juce::Colour front, juce::Colour back, juce::Point<float> position, const NameVector& names, const ColourVector& colours, std::size_t count)
 		{

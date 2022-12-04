@@ -124,12 +124,11 @@
 
 		protected:
 
-			virtual void paint2DGraphics(juce::Graphics & g);
+			void paint2DGraphics(juce::Graphics & g, std::size_t numChannels);
 			/// <summary>
 			/// Handles all set flags in mtFlags.
-			/// Make sure the audioStream is locked while doing this.
 			/// </summary>
-			virtual void handleFlagUpdates();
+			void handleFlagUpdates();
 
 		private:
 
