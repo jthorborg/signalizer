@@ -444,16 +444,13 @@ namespace Signalizer
 	{
 		// TODO: refactor all behaviour here out to semantic functions
 		// bail out early if we aren't showing anything.
-		//if (!hasCurrentView())
-		//	return;
 
 		auto value = c->bGetValue();
 
 		// freezing of displays
 		if (c == &kfreeze)
 		{
-			// DON*T COMMIT
-			//engine->getPresentationStream().setSuspendedState(value > 0.5);
+			mixGraph.setSuspended(value > 0.5);
 		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)

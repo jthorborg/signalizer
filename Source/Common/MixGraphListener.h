@@ -156,6 +156,11 @@
 				Handle(Handle&&) = default;
 				Handle& operator = (Handle&&) = default;
 
+				void setSuspended(bool shouldBeSuspended)
+				{
+					listener->enabled = !shouldBeSuspended;
+				}
+
 				~Handle()
 				{
 					if (listener)
