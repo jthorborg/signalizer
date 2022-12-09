@@ -37,10 +37,9 @@
 
 		class OscilloscopeContent final
 			: public cpl::Parameters::UserContent
-			, public ProcessorState
+			, public ProcessorStreamState<OscilloscopeContent>
 			, public ParameterSet::UIListener
-			, public AudioStream::Listener
-			, private std::enable_shared_from_this<OscilloscopeContent>
+			, public std::enable_shared_from_this<OscilloscopeContent>
 		{
 		public:
 
@@ -77,8 +76,8 @@
 			    typedef typename AudioHistoryTransformatter<ParameterView>::ValueType ValueType;
 			    typedef typename AudioHistoryTransformatter<ParameterView>::Scaling Scaling;
 
-				WindowSizeTransformatter(std::size_t auxLookahead, Mode mode = Mode::Milliseconds)
-					: AudioHistoryTransformatter<ParameterView>(mode)
+				WindowSizeTransformatter(std::shared_ptr<const ConcurrentConfig>& concurrentConfig, std::size_t auxLookahead, Mode mode = Mode::Milliseconds)
+					: AudioHistoryTransformatter<ParameterView>(concurrentConfig, mode)
 					, lookahead(auxLookahead)
 					, timeMode(TimeMode::Time)
 				{
@@ -352,8 +351,6 @@
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
 				std::shared_ptr<OscilloscopeContent> ptr(new OscilloscopeContent(parameterOffset, system));
-				system.getAudioStream().addListener(ptr);
-
 				return ptr;
 			}
 
@@ -362,7 +359,7 @@
 			OscilloscopeContent(std::size_t parameterOffset, SystemView& system)
 				: concurrentConfig(system.getConcurrentConfig())
 				, parameterSet(name, "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
-				, audioHistoryTransformatter(LookaheadSize, WindowSizeTransformatter<ParameterSet::ParameterView>::Milliseconds)
+				, audioHistoryTransformatter(system.getConcurrentConfig(), LookaheadSize, WindowSizeTransformatter<ParameterSet::ParameterView>::Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)

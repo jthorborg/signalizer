@@ -697,6 +697,8 @@ namespace Signalizer
 				target.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
 
 			transportPosition = playhead.getPositionInSamples() + numSamples;
+			bpm = playhead.getBPM();
+			sampleRate = info.sampleRate;
 
 		}
 

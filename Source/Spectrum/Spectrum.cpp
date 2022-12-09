@@ -39,8 +39,13 @@
 namespace Signalizer
 {
 
-	Spectrum::Spectrum(const SharedBehaviour& globalBehaviour, const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
-		: COpenGLView(nameId)
+	Spectrum::Spectrum(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream,
+		std::shared_ptr<SpectrumContent>& params
+	)
+		: COpenGLView(params->getName())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, lastMousePos()

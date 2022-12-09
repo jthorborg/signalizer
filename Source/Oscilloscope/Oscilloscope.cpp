@@ -50,14 +50,12 @@ namespace Signalizer
 	Oscilloscope::Oscilloscope(
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
-		const cpl::string_ref nameId,
 		std::shared_ptr<AudioStream::Output>& stream,
-		std::shared_ptr<ProcessorState>& params
+		std::shared_ptr<OscilloscopeContent>& params
 	)
-		: COpenGLView(nameId.string())
+		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
-		, editor(nullptr)
 		, state()
 		, medianPos()
 		, processor(std::make_shared<ProcessorShell>())
@@ -72,9 +70,7 @@ namespace Signalizer
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
 
-		mtFlags.firstRun = true;
 		setOpaque(true);
-		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
 		stream->addListener(processor);
 	}
@@ -102,9 +98,9 @@ namespace Signalizer
 
 	std::size_t Oscilloscope::getEffectiveChannels() const noexcept
 	{
-		if (state.channelMode >= OscChannels::OffsetForMono)
+		if (shared.channelMode >= OscChannels::OffsetForMono)
 		{
-			return state.channelMode == OscChannels::Separate ? state.numChannels : 2;
+			return shared.channelMode == OscChannels::Separate ? shared.numChannels : 2;
 		}
 
 		return 1;
@@ -116,29 +112,13 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void Oscilloscope::freeze()
-	{
-		state.isFrozen = true;
-	}
-
-	void Oscilloscope::unfreeze()
-	{
-		state.isFrozen = false;
-	}
-
-	void Oscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
-	{
-		lastMousePos = position;
-		cmouse.setCurrentFromPoint(position);
-	}
-
 	void Oscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
 		double yp;
 
-		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+		if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 		{
 			auto heightPerScope = (getHeight() - 1.0) / getEffectiveChannels();
 			yp = event.position.y;
@@ -209,6 +189,7 @@ namespace Signalizer
 		}
 
 	}
+
 	void Oscilloscope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
@@ -230,7 +211,7 @@ namespace Signalizer
 	}
 	void Oscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
-		auto deltaDifference = event.position - lastMousePos;
+		auto deltaDifference = event.position - currentMouse.getPoint();
 
 		using V = OscilloscopeContent::ViewOffsets;
 
@@ -248,25 +229,14 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
-		auto verticalFactor = state.overlayChannels ? 1 : getEffectiveChannels();
+		auto verticalFactor = shared.overlayChannels ? 1 : getEffectiveChannels();
 
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));
 		addClamped(V::Top, verticalFactor * yp * (top - bottom));
 		addClamped(V::Bottom, verticalFactor * yp * (top - bottom));
 
-		setLastMousePos(event.position);
-	}
-
-	void Oscilloscope::mouseDown(const juce::MouseEvent& event)
-	{
-		// TODO: implement endChangeGesture()
-		setLastMousePos(event.position);
-	}
-
-	void Oscilloscope::mouseMove(const juce::MouseEvent & event)
-	{
-		setLastMousePos(event.position);
+		GraphicsWindow::mouseDrag(event);
 	}
 
 	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
@@ -284,7 +254,7 @@ namespace Signalizer
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
-		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
+		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
@@ -294,11 +264,11 @@ namespace Signalizer
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
-		cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
+		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
-		state.numChannels = cs.channelData.numChannels();
+		shared.numChannels = cs.channelData.numChannels();
 
 		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
@@ -306,7 +276,7 @@ namespace Signalizer
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
-		for (std::size_t c = 0; c < state.numChannels; ++c)
+		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
 			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
 		}
@@ -314,7 +284,7 @@ namespace Signalizer
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:
-			state.effectiveWindowSize = audioStream.getAudioHistorySamplerate() * (60 / (std::max(10.0, audioStream.getASyncPlayhead().getBPM()) * state.beatDivision));
+			state.effectiveWindowSize = cs.sampleRate * (60 / (std::max(10.0, cs.bpm) * state.beatDivision));
 			state.effectiveWindowSize = std::max(state.effectiveWindowSize, 128.0);
 			break;
 		case OscilloscopeContent::TimeMode::Cycles:

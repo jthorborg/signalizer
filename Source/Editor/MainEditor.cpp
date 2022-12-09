@@ -30,7 +30,7 @@
 #include "MainEditor.h"
 #include "../Processor/PluginProcessor.h"
 #include "../Vectorscope/VectorscopeParameters.h"
-//#include "../Oscilloscope/OscilloscopeParameters.h"
+#include "../Oscilloscope/OscilloscopeParameters.h"
 #include "../Spectrum/SpectrumParameters.h"
 #include "../Common/MixGraphListener.h"
 #include <cpl/CPresetManager.h>

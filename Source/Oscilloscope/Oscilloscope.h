@@ -63,7 +63,7 @@
 		class TriggeringProcessor;
 
 		class Oscilloscope final
-			: public cpl::COpenGLView
+			: public GraphicsWindow
 			, private AudioStream::Listener
 		{
 		public:
@@ -76,9 +76,8 @@
 			Oscilloscope(
 				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 				std::shared_ptr<const ConcurrentConfig>& config,
-				const cpl::string_ref nameId,
-				std::shared_ptr<AudioStream::Output>& data,
-				std::shared_ptr<ProcessorState>& params
+				std::shared_ptr<AudioStream::Output>& stream,
+				std::shared_ptr<OscilloscopeContent>& params
 			);
 
 			virtual ~Oscilloscope();
@@ -94,17 +93,11 @@
 			void freeze() override;
 			void unfreeze() override;
 
-			// cbasecontrol overrides
-			bool isEditorOpen() const;
-
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
 			void mouseDown(const juce::MouseEvent& event) override;
 			void mouseMove(const juce::MouseEvent& event) override;
-			void mouseExit(const juce::MouseEvent & e) override;
-			void mouseEnter(const juce::MouseEvent & e) override;
 
 		private:
 
@@ -122,10 +115,11 @@
 					audioWindowWasResized;
 			} mtFlags;
 
+			// TODO: scope to gfx?
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, /*isSuspended, */drawLegend;
+				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, /*isSuspended, */drawLegend;
 				float primitiveSize;
 
 				double effectiveWindowSize;
@@ -137,7 +131,6 @@
 				double autoGain, manualGain;
 
 				double viewOffsets[4];
-				std::size_t numChannels;
 				juce::Colour colourBackground, colourAxis, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourWidget;
 
 				SubSampleInterpolation sampleInterpolation;
@@ -149,6 +142,12 @@
 			{
 				cpl::relaxed_atomic<double>
 					autoGainEnvelope;
+
+				// TODO: accessed from gfx and main thread
+				cpl::relaxed_atomic<std::size_t> numChannels;
+				cpl::relaxed_atomic<OscChannels> channelMode;
+				cpl::relaxed_atomic<bool> overlayChannels;
+
 			} shared;
 
 			struct BinRecord
@@ -209,6 +208,8 @@
 				std::size_t triggeringChannel;
 				std::int64_t historyCapacity;
 				std::int64_t transportPosition;
+				double bpm;
+				double sampleRate;
 				EnvelopeModes envelopeMode;
 				OscChannels channelMode;
 
@@ -284,7 +285,6 @@
 			/// </summary>
 			double getGain();
 
-			void setLastMousePos(const juce::Point<float> position) noexcept;
 			void handleFlagUpdates(StreamState&);
 
 
@@ -292,9 +292,6 @@
 			std::shared_ptr<OscilloscopeContent> content;
 			std::shared_ptr<AudioStream::Output> audioStream;
 
-			juce::Component * editor;
-			std::vector<std::string> channelNames;
-			unsigned long long processorSpeed; // clocks / sec
 			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
 			cpl::aligned_vector<double, 16> temporaryBuffer;
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;
@@ -319,7 +316,7 @@
 			{
 				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 				{
-					shell.streamState.lock()->audioEntryPoint<ISA>(buffer, source, numChannels, numSamples);
+					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
 				}
 			};
 

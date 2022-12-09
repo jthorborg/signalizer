@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "OscilloscopeParameters.h"
+#include "Oscilloscope.h"
 
 namespace Signalizer
 {
@@ -460,4 +461,12 @@ namespace Signalizer
 		return std::make_unique<OscilloscopeController>(*this, shared_from_this());
 	}
 
+	std::unique_ptr<cpl::CSubView> OscilloscopeContent::createView(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<Oscilloscope>(globalBehaviour, config, stream, shared_from_this());
+	} 
 };

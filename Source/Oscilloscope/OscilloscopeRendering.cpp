@@ -152,7 +152,6 @@ namespace Signalizer
 
 		if (state.drawLegend && mouseCheck)
 		{
-			cpl::CMutex scopedLock(bufferLock);
 			PaintLegend(g, state.colourWidget, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
 		}
 
@@ -349,8 +348,6 @@ namespace Signalizer
 
 
 				CPL_DEBUGCHECKGL();
-
-				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
 
 			renderGraphics(
@@ -360,10 +357,6 @@ namespace Signalizer
 					paint2DGraphics<ISA>(g);
 				}
 			);
-
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
 
 		}
 

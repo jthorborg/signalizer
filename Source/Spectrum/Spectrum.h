@@ -97,7 +97,12 @@
 				double low, high;
 			};
 
-			Spectrum(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * state);
+			Spectrum(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream,
+				std::shared_ptr<SpectrumContent>& params
+			);
 			virtual ~Spectrum();
 
 			// Component overrides
