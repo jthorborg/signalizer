@@ -58,7 +58,7 @@ namespace Signalizer
 		, audioStream(stream)
 		, state()
 		, medianPos()
-		, processor(std::make_shared<ProcessorShell>())
+		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
 	{
 		if (!(content = std::dynamic_pointer_cast<OscilloscopeContent>(params)))
 		{
@@ -246,7 +246,7 @@ namespace Signalizer
 		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
-		state.autoGain = shared.autoGainEnvelope;
+		state.autoGain = cs.envelopeGain;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();

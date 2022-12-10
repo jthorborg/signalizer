@@ -55,7 +55,7 @@ namespace Signalizer
 		}
 		else if (cs.envelopeMode == EnvelopeModes::None)
 		{
-			shared.autoGainEnvelope = 1;
+			state.autoGainEnvelope = 1;
 		}
 	}
 
@@ -396,7 +396,7 @@ namespace Signalizer
 		cpl::variable_array<float*> localBuffers(buffer, buffer + numChannels);
 
 		triggeringProcessor->update(ctx.getPlayhead().getSteadyClock());
-		preAnalyseAudio<ISA>(localBuffers.data(), numChannels, numSamples);
+		preAnalyseAudio<ISA>(ctx, localBuffers.data(), numChannels, numSamples);
 
 		if (triggerMode != OscilloscopeContent::TriggeringMode::EnvelopeHold && triggerMode != OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
@@ -412,7 +412,7 @@ namespace Signalizer
 		void Oscilloscope::StreamState::audioProcessing(
 			const AudioStream::Info& info, 
 			const AudioStream::Playhead& playhead, 
-			const AudioStream::DataType** buffer,
+			const AudioStream::DataType* const* buffer,
 			const std::size_t numChannels, 
 			const std::size_t numSamples, 
 			ChannelData::Buffer& target
@@ -493,7 +493,7 @@ namespace Signalizer
 				std::size_t offset = 0;
 
 				// process envelopes so we're not thrashing the icache
-				if (state.envelopeMode != EnvelopeModes::None)
+				if (envelopeMode != EnvelopeModes::None)
 				{
 					switch (mode)
 					{
@@ -684,7 +684,7 @@ namespace Signalizer
 				for (std::size_t c = 0; c < numChannels; ++c)
 					start = std::max(start, std::sqrt(filterEnv[c]));
 
-				shared.autoGainEnvelope = 1.0 / start;
+				envelopeGain = 1.0 / start;
 
 				// only update filters if this mode is on.
 				channelData.filterStates.channels[ChannelData::Left].envelope = filterEnv[0];

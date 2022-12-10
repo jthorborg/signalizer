@@ -140,9 +140,6 @@
 
 			struct SharedStateOptions
 			{
-				cpl::relaxed_atomic<double>
-					autoGainEnvelope;
-
 				// TODO: accessed from gfx and main thread
 				cpl::relaxed_atomic<std::size_t> numChannels;
 				cpl::relaxed_atomic<OscChannels> channelMode;
@@ -208,8 +205,9 @@
 				std::size_t triggeringChannel;
 				std::int64_t historyCapacity;
 				std::int64_t transportPosition;
-				double bpm;
-				double sampleRate;
+				double bpm {};
+				double sampleRate{};
+				double envelopeGain{};
 				EnvelopeModes envelopeMode;
 				OscChannels channelMode;
 
@@ -225,16 +223,14 @@
 				void audioProcessing(
 					const AudioStream::Info& info,
 					const AudioStream::Playhead& playhead,
-					const AudioStream::DataType** buffer,
+					const AudioStream::DataType* const* buffer,
 					const std::size_t numChannels,
 					const std::size_t numSamples,
 					ChannelData::Buffer&
 				);
 
-			private:
 				template<typename ISA>
 				void audioEntryPoint(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
-
 			};
 
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
