@@ -93,23 +93,26 @@ namespace Signalizer
 
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
+
+			const auto perf = audioStream->getPerfMeasures();
+
+			double averageFps, averageCpu;
+			computeAverageStats(averageFps, averageCpu);
 
 			char textbuf[1024];
 
 			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
+				getWidth(), getHeight(), averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead,
 				(double)triggerState.record.index,
 				triggerState.fundamental,
-				triggerState.sampleOffset);
+				triggerState.sampleOffset
+			);
+
 			g.drawSingleLineText(textbuf, 10, 20);
 
 		}
@@ -121,7 +124,7 @@ namespace Signalizer
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<ISA>(g, bounds);
 
-			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 			{
 				const auto cappedChannels = getEffectiveChannels();
 
@@ -148,18 +151,28 @@ namespace Signalizer
 			}
 		}
 
-		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit ? isMouseInside : true;
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
 
 		if (state.drawLegend && mouseCheck)
 		{
-			PaintLegend(g, state.colourWidget, state.colourBackground, { 10, 10 }, channelNames, state.colours, std::min(state.numChannels, channelNames.size()));
+			auto cs = processor->streamState.lock();
+
+			PaintLegend(
+				g, 
+				state.colourWidget, 
+				state.colourBackground, 
+				{ 10, 10 }, 
+				cs->channelNames,
+				state.colours, 
+				std::min(shared.numChannels.load(), cs->channelNames.size())
+			);
 		}
 
 		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
 		{
 			g.setColour(state.colourWidget);
 
-			const auto mouseX = threadedMousePos.first, mouseY = threadedMousePos.second;
+			const auto mouseX = currentMouse.x.load(), mouseY = currentMouse.y.load();
 
 			double estimatedSize[2] = { 180, 70 };
 			double textOffset[2] = { 20, -estimatedSize[1] };
@@ -180,7 +193,7 @@ namespace Signalizer
 
 			const auto normalizedSpace = 1.0 / cappedChannels;
 
-			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 			{
 				const auto position = fraction / normalizedSpace;
 				const auto rounded = static_cast<int>(position);
@@ -226,7 +239,7 @@ namespace Signalizer
 				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps",
 				fraction,
 				20 * std::log10(std::abs(fraction)),
-				1e3 * samples / audioStream.getAudioHistorySamplerate(),
+				1e3 * samples / state.sampleRate,
 				samples
 			);
 
@@ -294,7 +307,7 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				auto mode = streamState.channelMode;
-				const auto numChannels = state.numChannels;
+				const auto numChannels = shared.numChannels.load();
 
 				if (mode > OscChannels::OffsetForMono && numChannels < 2)
 					mode = OscChannels::Left;
@@ -305,30 +318,30 @@ namespace Signalizer
 					{
 					default: case OscChannels::Left:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack, { channelData }, streamState);
 						break;
 					case OscChannels::Right:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack, { channelData }, streamState);
 						break;
 					case OscChannels::Mid:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData }, streamState);
 						break;
 					case OscChannels::Side:
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack, { channelData }, streamState);
 						break;
 					case OscChannels::Separate:
 					{
-						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
+						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
 						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState);
 						
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(state.numChannels), !state.overlayChannels);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(numChannels), !shared.overlayChannels);
 
 						for (std::size_t i = 0; i < numChannels; ++i)
 						{
-							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, { channelData, i, i});
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, { channelData, i, i}, streamState);
 							w.nextPass();
 						}
 
@@ -336,11 +349,11 @@ namespace Signalizer
 					}
 					case OscChannels::MidSide:
 					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, 2, !state.overlayChannels);
+						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, 2, !shared.overlayChannels);
 						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData }, streamState);
 						w.nextPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack, { channelData });
+						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack, { channelData }, streamState);
 						break;
 					}
 					}
@@ -437,7 +450,7 @@ namespace Signalizer
 		if (wantedVerticalLines > 0)
 		{
 			char textBuf[200];
-			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / audioStream.getAudioHistorySamplerate();
+			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / state.sampleRate;
 			if (windowSize == 0)
 				return;
 
@@ -454,7 +467,7 @@ namespace Signalizer
 			{
 				auto numLinesPerCycles = wantedVerticalLines / cyclesTotal;
 				roundedPower = std::pow(2, std::round(std::log2(numLinesPerCycles)));
-				msIncrease = 1000 * (triggerState.cycleSamples) / audioStream.getAudioHistorySamplerate();
+				msIncrease = 1000 * (triggerState.cycleSamples) / state.sampleRate;
 				msIncrease /= roundedPower;
 
 			}
@@ -495,7 +508,7 @@ namespace Signalizer
 
 				auto const fraction = (currentMsPos + offset) / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
-				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
+				auto const samples = 1e-3 * currentMsPos * state.sampleRate;
 
 				g.drawLine(x, yoff, x, rect.getHeight(), samples == 0 ? 1.5f : 1.0f);
 
@@ -537,7 +550,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Evaluator>
-		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const EvaluatorParams& params)
+		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack& openGLStack, const EvaluatorParams& params, Oscilloscope::StreamState& cs)
 		{
 
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
@@ -565,7 +578,7 @@ namespace Signalizer
 			cpl::ssize_t bufferOffset = 0;
 			double subSampleOffset = 0, offset = 0;
 			auto const pixelsPerSample = oglc->getRenderingScale() * std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
-
+			const auto triggerMode = state.triggerMode;
 
 			auto interpolation = state.sampleInterpolation;
 			if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
@@ -573,13 +586,13 @@ namespace Signalizer
 				interpolation = SubSampleInterpolation::Linear;
 			}
 
-			if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+			if (triggerMode == OscilloscopeContent::TriggeringMode::Window)
 			{
-				auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
+				auto const realOffset = std::fmod(cs.transportPosition, state.effectiveWindowSize);
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 				offset = subSampleOffset = 0;
 			}
-			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
+			else if (triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
 				auto const realOffset = triggerState.sampleOffset;
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
@@ -783,11 +796,11 @@ namespace Signalizer
 
 					double samplePos = 0;
 
-					if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					if (triggerMode == OscilloscopeContent::TriggeringMode::Window)
 					{
-						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
+						samplePos = std::fmod(cs.transportPosition, state.effectiveWindowSize) - 1;
 					}
-					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
+					else if (triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 					{
 						samplePos = triggerState.sampleOffset;
 					}
@@ -799,7 +812,7 @@ namespace Signalizer
 					}
 
 					// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
-					if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					if (triggerMode == OscilloscopeContent::TriggeringMode::None || triggerMode == OscilloscopeContent::TriggeringMode::Window)
 					{
 						samplePos = std::ceil(samplePos);
 						//if (state.timeMode == OscilloscopeContent::TimeMode::Time)

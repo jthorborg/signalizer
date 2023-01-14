@@ -69,7 +69,7 @@ namespace Signalizer
 	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
 		{ VectorScopeContent::name, &VectorScopeContent::create },
-		//{ OscilloscopeContent::name, &OscilloscopeContent::create },
+		{ OscilloscopeContent::name, &OscilloscopeContent::create },
 		//{ SpectrumContent::name, &SpectrumContent::create }
 	};
 

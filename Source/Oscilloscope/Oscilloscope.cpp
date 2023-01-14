@@ -244,19 +244,18 @@ namespace Signalizer
 		const auto windowValue = content->windowSize.getTransformedValue();
 
 		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
-		state.autoGain = cs.envelopeGain;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
-		cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
+		state.triggerMode = cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
 		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
-
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourAxis = content->graphColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
@@ -264,17 +263,21 @@ namespace Signalizer
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
-		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
-		shared.numChannels = cs.channelData.numChannels();
 
 		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
+
+		shared.numChannels = cs.channelData.numChannels();
+		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
+
+		state.sampleRate = cs.sampleRate;
+		state.autoGain = cs.envelopeGain;
 
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
@@ -284,7 +287,7 @@ namespace Signalizer
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:
-			state.effectiveWindowSize = cs.sampleRate * (60 / (std::max(10.0, cs.bpm) * state.beatDivision));
+			state.effectiveWindowSize = state.sampleRate * (60 / (std::max(10.0, cs.bpm) * state.beatDivision));
 			state.effectiveWindowSize = std::max(state.effectiveWindowSize, 128.0);
 			break;
 		case OscilloscopeContent::TimeMode::Cycles:

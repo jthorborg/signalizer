@@ -90,14 +90,10 @@
 			juce::Component * getWindow() override;
 			void suspend() override;
 			void resume() override;
-			void freeze() override;
-			void unfreeze() override;
 
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
-			void mouseMove(const juce::MouseEvent& event) override;
 
 		private:
 
@@ -122,6 +118,8 @@
 				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, /*isSuspended, */drawLegend;
 				float primitiveSize;
 
+				OscilloscopeContent::TriggeringMode triggerMode;
+
 				double effectiveWindowSize;
 				double windowTimeOffset;
 				double beatDivision;
@@ -129,6 +127,7 @@
 				double triggerHysteresis;
 				double triggerThreshold;
 				double autoGain, manualGain;
+				double sampleRate;
 
 				double viewOffsets[4];
 				juce::Colour colourBackground, colourAxis, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourWidget;
@@ -249,7 +248,7 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename ISA, typename Eval>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params, StreamState& cs);
 
 			template<typename ISA>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);

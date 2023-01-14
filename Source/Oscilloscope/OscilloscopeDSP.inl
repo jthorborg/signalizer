@@ -55,7 +55,7 @@ namespace Signalizer
 		}
 		else if (cs.envelopeMode == EnvelopeModes::None)
 		{
-			state.autoGainEnvelope = 1;
+			state.autoGain = 1;
 		}
 	}
 
@@ -70,13 +70,13 @@ namespace Signalizer
 
 		if (state.customTrigger)
 		{
-			auto const normalizedFrequency = state.customTriggerFrequency / audioStream.getAudioHistorySamplerate();
+			auto const normalizedFrequency = state.customTriggerFrequency / state.sampleRate;
 			triggerState.record = BinRecord{ 0, 1, normalizedFrequency * TransformSize};
 
 			auto fundamental = state.customTriggerFrequency;
 
 			triggerState.fundamental = state.customTriggerFrequency;
-			triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
+			triggerState.cycleSamples = state.sampleRate / fundamental;
 		}
 		else if(state.triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
 		{
@@ -216,10 +216,10 @@ namespace Signalizer
 
 			// interpolate peak position quadratically
 
-			auto fundamental = audioStream.getAudioHistorySamplerate() * (max.omega()) / TransformSize;
+			auto fundamental = state.sampleRate * (max.omega()) / TransformSize;
 
 			triggerState.fundamental = fundamental = std::max(5.0, fundamental);
-			triggerState.cycleSamples = audioStream.getAudioHistorySamplerate() / fundamental;
+			triggerState.cycleSamples = state.sampleRate / fundamental;
 		}
 	}
 
@@ -304,7 +304,7 @@ namespace Signalizer
 		auto cycles = phase / tau;
 
 		// convert to samples
-		triggerState.sampleOffset = cycles * audioStream.getAudioHistorySamplerate() / (triggerState.fundamental) - 1;
+		triggerState.sampleOffset = cycles * state.sampleRate / (triggerState.fundamental) - 1;
 
 	}
 
@@ -724,9 +724,9 @@ namespace Signalizer
 
 			auto const vHalf = consts<V>::half;
 
-			auto const numChannels = channelData.front.channels.size();
+			auto const numChannels = data.front.channels.size();
 
-			auto const channelMode = numChannels == 1 ? OscChannels::Left : state.channelMode;
+			auto const channelMode = numChannels == 1 ? OscChannels::Left : shared.channelMode;
 
 			auto const numSamples = data.front.channels.begin()->audioData.getSize();
 
@@ -736,8 +736,8 @@ namespace Signalizer
 
 			// since this runs in every frame, we need to scale the coefficient by how often this function runs
 			// (and the amount of samples)
-			double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-			double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * audioStream.getAudioHistorySamplerate())), power);
+			double power = numSamples * openGLDeltaTime();
+			double coeff = std::pow(std::exp(-static_cast<double>(loopIncrement) / (content->envelopeWindow.getNormalizedValue() * state.sampleRate)), power);
 
 			if (channelMode <= OscChannels::OffsetForMono)
 			{
@@ -813,7 +813,7 @@ namespace Signalizer
 	
 						for (std::size_t c = 0; c < numChannels; ++c)
 						{
-							auto&& view = channelData.front.channels[c].audioData.createProxyView();
+							auto&& view = data.front.channels[c].audioData.createProxyView();
 							auto buffer = view.begin();
 
 							for (std::size_t i = 0; i < stop; i += loopIncrement)
@@ -878,7 +878,7 @@ namespace Signalizer
 				start = std::max(start, std::sqrt(smoothEnvelopeState(c)));
 			}
 
-			shared.autoGainEnvelope = 1.0 / start;
+			state.autoGain = 1.0 / start;
 		}
 };
 #endif
