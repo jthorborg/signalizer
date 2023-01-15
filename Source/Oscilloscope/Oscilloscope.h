@@ -173,7 +173,7 @@
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
 				double fundamental;
-				BinRecord record{};
+				BinRecord record;
 				/// <summary>
 				/// The amount of samples per fundamental period
 				/// </summary>
@@ -186,7 +186,7 @@
 				/// The sample offset for the detected fundamental at T = 0 - state.effectiveWindowSize
 				/// </summary>
 				double sampleOffset;
-			} triggerState;
+			} triggerState{};
 
 			struct StreamState
 			{

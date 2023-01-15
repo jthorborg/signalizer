@@ -430,7 +430,7 @@ namespace Signalizer
 			auto colourSmoothPole = channelData.smoothFilterPole;
 
 			// (division by zero is well-defined)
-			const auto envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * info.sampleRate));
+			const auto envelopeCoeff = static_cast<Signalizer::AFloat>(std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * info.sampleRate)));
 
 			cpl::variable_array<AFloat> filterEnv(numChannels);
 
@@ -485,7 +485,7 @@ namespace Signalizer
 			if (numChannels == 1)
 				mode = OscChannels::Left;
 
-			const auto blend = 1 - content->frequencyColouringBlend.parameter.getValue();
+			const auto blend = 1 - static_cast<Signalizer::AFloat>(content->frequencyColouringBlend.parameter.getValue());
 
 			if (numChannels >= 2)
 			{
@@ -517,7 +517,7 @@ namespace Signalizer
 					case OscChannels::Mid:
 						for (std::size_t n = 0; n < numSamples; ++n)
 						{
-							const auto mid = 0.5 * (buffer[fs::Left][n] + buffer[fs::Right][n]);
+							const auto mid = 0.5f * (buffer[fs::Left][n] + buffer[fs::Right][n]);
 							const auto sample = cpl::Math::square(mid);
 							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
 						}
@@ -529,7 +529,7 @@ namespace Signalizer
 					case OscChannels::Side:
 						for (std::size_t n = 0; n < numSamples; ++n)
 						{
-							const auto side = 0.5 * (buffer[fs::Left][n] - buffer[fs::Right][n]);
+							const auto side = 0.5f * (buffer[fs::Left][n] - buffer[fs::Right][n]);
 							const auto sample = cpl::Math::square(side);
 							filterEnv[fs::Left] = sample + envelopeCoeff * (filterEnv[fs::Left] - sample);
 						}
@@ -555,7 +555,9 @@ namespace Signalizer
 						for (std::size_t n = 0; n < numSamples; ++n)
 						{
 							const auto left = buffer[fs::Left][n], right = buffer[fs::Right][n];
-							const auto mid = 0.5 * cpl::Math::square(left + right), side = 0.5 * cpl::Math::square(left - right);
+							const auto 
+								mid = 0.5f * cpl::Math::square(left + right), 
+								side = 0.5f * cpl::Math::square(left - right);
 
 							filterEnv[fs::Left] = mid + envelopeCoeff * (filterEnv[fs::Left] - mid);
 							filterEnv[fs::Right] = side + envelopeCoeff * (filterEnv[fs::Right] - side);
@@ -591,7 +593,7 @@ namespace Signalizer
 				cpl::variable_array<SmoothState> smoothStates(numChannels, [&](std::size_t i) { return channelData.filterStates.channels[i].smoothFilters; });
 				cpl::variable_array<ColourWriter> colourWriters(numChannels, [&](std::size_t i) { return target.channels[i].colourData.createWriter(); });
 				cpl::variable_array<ChannelData::Crossover*> networks(numChannels, [&](std::size_t i) { return &channelData.filterStates.channels[i].network; });
-				cpl::variable_array<ChannelData::PixelType> colours(numChannels, [&](auto i) { return content->getColour(i).getAsJuceColour(); });
+				cpl::variable_array<ChannelData::PixelType> colours(numChannels, [&](auto i) { return channelData.filterStates.channels[i].defaultKey; });
 
 				auto
 					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
@@ -648,7 +650,7 @@ namespace Signalizer
 			}
 			else if (numChannels == 1)
 			{
-				ChannelData::PixelType colour(content->getColour(0).getAsJuceColour());
+				ChannelData::PixelType colour(channelData.filterStates.channels[0].defaultKey);
 
 				auto && lw = target.channels[fs::Left].colourData.createWriter();
 				auto leftSmoothState = channelData.filterStates.channels[fs::Left].smoothFilters;
@@ -865,11 +867,8 @@ namespace Signalizer
 
 						break;
 					}
-
 				}
-
 			}
-
 
 			auto start = std::sqrt(smoothEnvelopeState(0));
 

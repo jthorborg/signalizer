@@ -279,9 +279,14 @@ namespace Signalizer
 		state.sampleRate = cs.sampleRate;
 		state.autoGain = cs.envelopeGain;
 
+		ColourRotation primaryRotation(content->primaryColour.getAsJuceColour(), shared.numChannels >> 1, false);
+		ColourRotation secondaryRotation(content->secondaryColour.getAsJuceColour(), shared.numChannels >> 1, false);
+
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
-			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = content->getColour(c).getAsJuceColour();
+			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
+
+			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = colour;
 		}
 
 		switch (state.timeMode)

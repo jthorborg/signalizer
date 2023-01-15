@@ -169,11 +169,11 @@
 				void vectorGLRendering();
 
 			// vector-accelerated drawing, rendering and processing
-			template<typename ISA>
-				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t);
+			template<typename ISA, typename ColourArray>
+				void drawPolarPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t offset, const ColourArray&);
 
-			template<typename ISA>
-				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t);
+			template<typename ISA, typename ColourArray>
+				void drawRectPlot(cpl::OpenGLRendering::COpenGLStack &, const AudioStream::AudioBufferAccess &, std::size_t, const ColourArray&);
 
 			template<typename ISA>
 				void drawWireFrame(cpl::OpenGLRendering::COpenGLStack &);

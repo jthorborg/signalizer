@@ -276,7 +276,6 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::vectorGLRendering()
 		{
-            auto cStart = cpl::Misc::ClockCounter();
             CPL_DEBUGCHECKGL();
             
 			{
@@ -359,7 +358,6 @@ namespace Signalizer
 					}
 				}
 
-
 				CPL_DEBUGCHECKGL();
 			}
 
@@ -371,6 +369,7 @@ namespace Signalizer
 				}
 			);
 
+			postFrame();
 		}
 
 	template<typename ISA>
@@ -389,7 +388,6 @@ namespace Signalizer
 
 			const auto offset = gain;
 			char textBuf[200];
-
 
 			auto viewTransform = [&](auto pos) {
 				return (pos + (state.viewOffsets[VO::Bottom] - 1)) / verticalDelta;
@@ -428,7 +426,6 @@ namespace Signalizer
 			{
 				if(std::abs(unitSpacePos - 0.5) > zeroDBEpsilon)
 					drawMarkerAt(unitSpacePos, 1.5f);
-
 
 				unitSpacePos += inc;
 			}

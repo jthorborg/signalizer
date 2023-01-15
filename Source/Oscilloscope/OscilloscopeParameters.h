@@ -616,19 +616,6 @@
 				}
 			}
 
-			cpl::ColourValue& getColour(std::size_t index) noexcept
-			{
-				index = std::clamp<std::size_t>(index, 0, NumColourChannels - 1);
-
-				switch (index)
-				{
-				case 0: return primaryColour;
-				case 1: return secondaryColour;
-				default:
-					return extraColours[index - 2];
-				}
-			}
-
 			std::shared_ptr<const ConcurrentConfig> concurrentConfig;
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;

@@ -173,15 +173,17 @@ namespace Signalizer
                     // draw actual stereoscopic plot
                     if (numChannels >= 2)
                     {
+						ColourRotation rotation(state.colourWaveform, lockedView.getNumChannels(), true);
+
 						for (std::size_t c = 0; c < numChannels; c += 2)
 						{
 							if (state.isPolar)
 							{
-								drawPolarPlot<ISA>(openGLStack, lockedView, c);
+								drawPolarPlot<ISA>(openGLStack, lockedView, c, rotation);
 							}
 							else // is Lissajous
 							{
-								drawRectPlot<ISA>(openGLStack, lockedView, c);
+								drawRectPlot<ISA>(openGLStack, lockedView, c, rotation);
 							}
 						}
 
@@ -449,8 +451,8 @@ namespace Signalizer
 			}
 		}
 
-	template<typename ISA>
-		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset)
+	template<typename ISA, typename ColourArray>
+		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
@@ -460,13 +462,11 @@ namespace Signalizer
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
-			ColourRotation rotation(state.colourWaveform, audio.getNumChannels(), true);
-
 			if (!state.fadeHistory)
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				drawer.addColour(rotation[offset]);
+				drawer.addColour(colours[offset]);
 
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
@@ -483,7 +483,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				auto jcolour = rotation[offset];
+				auto jcolour = colours[offset];
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
 				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
 
@@ -507,8 +507,8 @@ namespace Signalizer
 		}
 
 
-	template<typename ISA>
-		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset)
+	template<typename ISA, typename ColourArray>
+		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
 			typedef typename ISA::V V;
 			AudioStream::AudioBufferView views[2] = { audio.getView(0 + offset), audio.getView(1 + offset) };
@@ -538,9 +538,7 @@ namespace Signalizer
 			auto const fadePerSample = (Ty)1.0 / numSamples;
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
-			ColourRotation rotation(state.colourWaveform, audio.getNumChannels(), true);
-
-			const auto colour = rotation[offset];
+			const auto colour = colours[offset];
 
 			const float
 				red = colour.getFloatRed(),
