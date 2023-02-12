@@ -285,6 +285,7 @@ namespace Signalizer
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
 			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
+			// TODO: This is only used for legend. Fix legend to respect channel pairing.
 			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = colour;
 		}
 

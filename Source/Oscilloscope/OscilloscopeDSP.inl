@@ -593,7 +593,7 @@ namespace Signalizer
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 
 				// Process colours for each channel pair
-				for (std::size_t channelPair = 0; channelPair < numChannels / 2; channelPair += 2)
+				for (std::size_t channelPair = 0; channelPair < numChannels; channelPair += 2)
 				{
 					auto& leftMid = channelData.filterStates.channels[channelPair + fs::Left];
 					auto& rightSide = channelData.filterStates.channels[channelPair + fs::Right];

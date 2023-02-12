@@ -301,62 +301,76 @@ namespace Signalizer
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				const GLint halfHeight = static_cast<GLint>(getHeight() * 0.5f);
 
 				CPL_DEBUGCHECKGL();
 
 				auto mode = streamState.channelMode;
+				// TODO: FIX CONCURRENT CHANNEL LOAD; SHOULD BE SYNCHRONIZED TO AUDIO BUFFER
 				const auto numChannels = shared.numChannels.load();
 
-				if (mode > OscChannels::OffsetForMono && numChannels < 2)
-					mode = OscChannels::Left;
+				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
+				CPL_RUNTIME_ASSERTION(numChannels >= channelData.filterStates.channels.size());
 
-				if (numChannels > 0 && channelData.filterStates.channels.size() > 0)
+				const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
+				// Pre-analyse triggering and state
+				switch (mode)
 				{
-					switch (mode)
-					{
 					default: case OscChannels::Left:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack, { channelData }, streamState);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left>>({ channelData, triggerChannel / 2 }, streamState); break;
 					case OscChannels::Right:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack, { channelData }, streamState);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right>>({ channelData, triggerChannel / 2 }, streamState); break;
 					case OscChannels::Mid:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData }, streamState);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerChannel / 2 }, streamState); break;
 					case OscChannels::Side:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack, { channelData }, streamState);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerChannel / 2 }, streamState); break;
 					case OscChannels::Separate:
-					{
-						// TODO: Fix triggering channel in normal modes as well
-						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
-						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState);
-						
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, static_cast<int>(numChannels), !shared.overlayChannels);
-
-						for (std::size_t i = 0; i < numChannels; ++i)
-						{
-							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, { channelData, i, i}, streamState);
-							w.nextPass();
-						}
-
-						break;
-					}
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState); break;
 					case OscChannels::MidSide:
 					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, 2, !shared.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>({ channelData }, streamState);
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack, { channelData }, streamState);
-						w.nextPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack, { channelData }, streamState);
+						if ((triggerChannel & 0x1) == 0)
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerChannel }, streamState);
+						else
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerChannel & ~0x1 }, streamState);
 						break;
 					}
+				}
+
+				const auto numSplits = static_cast<int>(numChannels / (mode > OscChannels::OffsetForMono ? 1 : 2));
+				VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, numSplits, !shared.overlayChannels);
+
+				for (std::size_t channelPair = 0; channelPair < numChannels; channelPair += 2)
+				{
+					EvaluatorParams params { channelData, channelPair };
+
+					switch (mode)
+					{
+						default: case OscChannels::Left:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left>>(openGLStack, params, streamState); break;
+						case OscChannels::Right:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right>>(openGLStack, params, streamState); break;
+						case OscChannels::Mid:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid>>(openGLStack, params, streamState); break;
+						case OscChannels::Side:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side>>(openGLStack, params, streamState); break;
+						case OscChannels::Separate:
+						{
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, params, streamState);
+							w.nextPass();
+							params.channelIndex++;
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, params, streamState);
+
+							break;
+						}
+						case OscChannels::MidSide:
+						{
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid>>(openGLStack, params, streamState);
+							w.nextPass();
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side>>(openGLStack, params, streamState);
+							break;
+						}
 					}
+
+					w.nextPass();
 				}
 
 				CPL_DEBUGCHECKGL();

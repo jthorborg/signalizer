@@ -59,11 +59,10 @@
 		public:
 
 			DynamicChannelEvaluator(const EvaluatorParams& params)
-				: DefaultKey(params.data, params.colourIndex)
+				: DefaultKey(params.data, params.channelIndex)
 				, audioView(params.data.front.channels.at(params.channelIndex).audioData.createProxyView())
 				, colourView(params.data.front.channels.at(params.channelIndex).colourData.createProxyView())
 			{
-
 			}
 
 			inline bool isWellDefined() const noexcept
@@ -161,27 +160,27 @@
 			ColourIt colourPointer {};
 		};
 
-		template<std::size_t ChannelIndex, std::size_t ColourIndex>
+		template<std::size_t ChannelOffset>
 		class Oscilloscope::SimpleChannelEvaluator : public Oscilloscope::DynamicChannelEvaluator
 		{
 		public:
 			SimpleChannelEvaluator(const EvaluatorParams& params)
-				: Oscilloscope::DynamicChannelEvaluator({ params.data, ChannelIndex, ColourIndex })
+				: Oscilloscope::DynamicChannelEvaluator({ params.data, params.channelIndex + ChannelOffset })
 			{
 
 			}
 		};
 
-		template<std::size_t ChannelIndex, std::size_t ColourIndex, typename BinaryFunction>
+		template<std::size_t ColourOffset, typename BinaryFunction>
 			class Oscilloscope::MidSideEvaluatorBase : public Oscilloscope::SampleColourEvaluatorBase, public Oscilloscope::DefaultKey
 			{
 			public:
 
 				MidSideEvaluatorBase(const EvaluatorParams& params)
-					: DefaultKey(params.data, ColourIndex)
-					, audioViewLeft(params.data.front.channels.at(0).audioData.createProxyView())
-					, audioViewRight(params.data.front.channels.at(1).audioData.createProxyView())
-					, colourView(params.data.front.channels.at(ChannelIndex).auxColourData.createProxyView())
+					: DefaultKey(params.data, params.channelIndex + ColourOffset)
+					, audioViewLeft(params.data.front.channels.at(params.channelIndex + 0).audioData.createProxyView())
+					, audioViewRight(params.data.front.channels.at(params.channelIndex + 1).audioData.createProxyView())
+					, colourView(params.data.front.channels.at(params.channelIndex + ColourOffset).auxColourData.createProxyView())
 				{
 
 				}
@@ -297,52 +296,27 @@
 			};
 
 		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Left, 0> : public SimpleChannelEvaluator<0, 0>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Left> : public SimpleChannelEvaluator<0>
 			{
-				using SimpleChannelEvaluator<0, 0>::SimpleChannelEvaluator;
+				using SimpleChannelEvaluator<0>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Left, 1> : public SimpleChannelEvaluator<0, 1>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Right> : public SimpleChannelEvaluator<1>
 			{
-				using SimpleChannelEvaluator<0, 1>::SimpleChannelEvaluator;
+				using SimpleChannelEvaluator<1>::SimpleChannelEvaluator;
 			};
 
 		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Right, 0> : public SimpleChannelEvaluator<1, 0>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Mid> : public MidSideEvaluatorBase<0, std::plus<>>
 			{
-				using SimpleChannelEvaluator<1, 0>::SimpleChannelEvaluator;
+				using MidSideEvaluatorBase<0, std::plus<>>::MidSideEvaluatorBase;
 			};
 
 		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Right, 1> : public SimpleChannelEvaluator<1, 1>
+			class Oscilloscope::SampleColourEvaluator<OscChannels::Side> : public MidSideEvaluatorBase<1, std::minus<>>
 			{
-				using SimpleChannelEvaluator<1, 1>::SimpleChannelEvaluator;
-			};
-
-
-		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Mid, 0> : public MidSideEvaluatorBase<0, 0, std::plus<>>
-			{
-				using MidSideEvaluatorBase<0, 0, std::plus<>>::MidSideEvaluatorBase;
-			};
-
-		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Mid, 1> : public MidSideEvaluatorBase<0, 1, std::plus<>>
-			{
-				using MidSideEvaluatorBase<0, 1, std::plus<>>::MidSideEvaluatorBase;
-			};
-
-		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Side, 0> : public MidSideEvaluatorBase<1, 0, std::minus<>>
-			{
-				using MidSideEvaluatorBase<1, 0, std::minus<>>::MidSideEvaluatorBase;
-			};
-
-		template<>
-			class Oscilloscope::SampleColourEvaluator<OscChannels::Side, 1> : public MidSideEvaluatorBase<1, 1, std::minus<>>
-			{
-				using MidSideEvaluatorBase<1, 1, std::minus<>>::MidSideEvaluatorBase;
+				using MidSideEvaluatorBase<1, std::minus<>>::MidSideEvaluatorBase;
 			};
 	};
 

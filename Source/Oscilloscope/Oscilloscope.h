@@ -56,8 +56,7 @@
 			ChannelData& data;
 
 			std::size_t
-				channelIndex = 0,
-				colourIndex = 0;
+				channelIndex = 0;
 		};
 
 		class TriggeringProcessor;
@@ -343,15 +342,15 @@
 
 			};
 
-			template<OscChannels channelConfiguration, std::size_t ColourIndice>
+			template<OscChannels ChannelConfiguration>
 				class SampleColourEvaluator;
 
 			class DynamicChannelEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice>
+			template<std::size_t ChannelOffset>
 				class SimpleChannelEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice, typename BinaryFunction>
+			template<std::size_t ChannelOffset, typename BinaryFunction>
 				class MidSideEvaluatorBase;
 		};
 
