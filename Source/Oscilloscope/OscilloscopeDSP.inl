@@ -590,62 +590,52 @@ namespace Signalizer
 				typedef ChannelData::Crossover::BandArray SmoothState;
 				typedef unq_typeof(target.channels[fs::Left].colourData.createWriter()) ColourWriter;
 
-				cpl::variable_array<SmoothState> smoothStates(numChannels, [&](std::size_t i) { return channelData.filterStates.channels[i].smoothFilters; });
-				cpl::variable_array<ColourWriter> colourWriters(numChannels, [&](std::size_t i) { return target.channels[i].colourData.createWriter(); });
-				cpl::variable_array<ChannelData::Crossover*> networks(numChannels, [&](std::size_t i) { return &channelData.filterStates.channels[i].network; });
-				cpl::variable_array<ChannelData::PixelType> colours(numChannels, [&](auto i) { return channelData.filterStates.channels[i].defaultKey; });
+				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 
-				auto
-					midSmoothState = channelData.filterStates.midSideSmoothsFilters[0],
-					sideSmoothState = channelData.filterStates.midSideSmoothsFilters[1];
-
-				auto &&
-					mw = target.midSideColour[0].createWriter(),
-					sw = target.midSideColour[1].createWriter();
-
-
-				for (std::size_t n = 0; n < numSamples; ++n)
+				// Process colours for each channel pair
+				for (std::size_t channelPair = 0; channelPair < numChannels / 2; channelPair += 2)
 				{
+					auto& leftMid = channelData.filterStates.channels[channelPair + fs::Left];
+					auto& rightSide = channelData.filterStates.channels[channelPair + fs::Right];
 
-					const auto 
-						left = buffer[fs::Left][n],
-						right = buffer[fs::Right][n];
+					auto 
+						cwLeft = target.channels[channelPair + fs::Left].colourData.createWriter(),
+						cwRight = target.channels[channelPair + fs::Right].colourData.createWriter(),
+						cwMid = target.channels[channelPair + fs::Mid].auxColourData.createWriter(),
+						cwSide = target.channels[channelPair + fs::Side].auxColourData.createWriter();
 
-					// split signal into bands:
-					auto leftBands = networks[0]->process(left, channelData.networkCoeffs);
-					auto rightBands = networks[1]->process(right, channelData.networkCoeffs);
+					auto& netLeft = leftMid.network;
+					auto& netRight = rightSide.network;
 
-					filterStates(leftBands, smoothStates[0]);
-					filterStates(rightBands, smoothStates[1]);
+					auto
+						&smLeft = leftMid.smoothFilters,
+						&smRight = rightSide.smoothFilters,
+						&smMid = leftMid.auxSmoothFilter,
+						&smSide = rightSide.auxSmoothFilter;
 
-					// magnitude doesn't matter for these, as we normalize the data anyway -
-					filterStates(midSignal(leftBands, rightBands), midSmoothState);
-					filterStates(sideSignal(leftBands, rightBands), sideSmoothState);
+					const ChannelData::PixelType leftColour = leftMid.defaultKey;
+					const ChannelData::PixelType rightColour = rightSide.defaultKey;
 
-					for (std::size_t c = 2; c < numChannels; ++c)
+					for (std::size_t n = 0; n < numSamples; ++n)
 					{
-						auto bands = networks[c]->process(buffer[c][n], channelData.networkCoeffs);
-						filterStates(rightBands, smoothStates[c]);
+						auto leftBands = netLeft.process(buffer[channelPair + fs::Left][n], channelData.networkCoeffs);
+						auto rightBands = netRight.process(buffer[channelPair + fs::Right][n], channelData.networkCoeffs);
+
+						filterStates(leftBands, smLeft);
+						filterStates(rightBands, smRight);
+
+						// magnitude doesn't matter for these, as we normalize the data anyway -
+						filterStates(midSignal(leftBands, rightBands), smMid);
+						filterStates(sideSignal(leftBands, rightBands), smSide);
+
+						cwLeft.setHeadAndAdvance(accumulateColour(smLeft, leftColour, blend));
+						cwRight.setHeadAndAdvance(accumulateColour(smRight, rightColour, blend));
+
+						cwMid.setHeadAndAdvance(accumulateColour(smMid, leftColour, blend));
+						cwSide.setHeadAndAdvance(accumulateColour(smSide, rightColour, blend));
+
 					}
-
-					mw.setHeadAndAdvance(accumulateColour(midSmoothState, colours[0], blend));
-					sw.setHeadAndAdvance(accumulateColour(sideSmoothState, colours[1], blend));
-
-					for (std::size_t c = 0; c < numChannels; ++c)
-					{
-						colourWriters[c].setHeadAndAdvance(accumulateColour(smoothStates[c], colours[c], blend));
-					}
-
 				}
-
-				for (std::size_t c = 0; c < numChannels; ++c)
-				{
-					channelData.filterStates.channels[c].smoothFilters = smoothStates[c];
-				}
-
-
-				channelData.filterStates.midSideSmoothsFilters[0] = midSmoothState;
-				channelData.filterStates.midSideSmoothsFilters[1] = sideSmoothState;
 
 			}
 			else if (numChannels == 1)

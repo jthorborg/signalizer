@@ -333,6 +333,7 @@ namespace Signalizer
 						break;
 					case OscChannels::Separate:
 					{
+						// TODO: Fix triggering channel in normal modes as well
 						const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
 						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState);
 						

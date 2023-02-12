@@ -181,7 +181,7 @@
 					: DefaultKey(params.data, ColourIndex)
 					, audioViewLeft(params.data.front.channels.at(0).audioData.createProxyView())
 					, audioViewRight(params.data.front.channels.at(1).audioData.createProxyView())
-					, colourView(params.data.front.midSideColour[ChannelIndex].createProxyView())
+					, colourView(params.data.front.channels.at(ChannelIndex).auxColourData.createProxyView())
 				{
 
 				}

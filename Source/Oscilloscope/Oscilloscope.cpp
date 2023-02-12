@@ -254,7 +254,6 @@ namespace Signalizer
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
-		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourAxis = content->graphColour.getAsJuceColour();
@@ -273,6 +272,7 @@ namespace Signalizer
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
+		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		shared.numChannels = cs.channelData.numChannels();
 		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
@@ -285,7 +285,6 @@ namespace Signalizer
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
 			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
-
 			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = colour;
 		}
 

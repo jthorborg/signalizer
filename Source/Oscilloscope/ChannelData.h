@@ -49,21 +49,29 @@
 			{
 				Slow = 0,
 				Left = 0,
+				Mid = 0,
 				Fast = 1,
-				Right = 1
+				Right = 1,
+				Side = 1
 			};
 
 			struct Channel
 			{
 				AudioBuffer audioData;
 				ColourBuffer colourData;
+				/// <summary>
+				/// Even-indices are mid, odd-indices are side
+				/// </summary>
+				ColourBuffer auxColourData;
 			};
 
 			struct FilterStates
 			{
 				struct ChannelState
 				{
+					// TODO: rename to colourSmoothFilters
 					Crossover::BandArray smoothFilters{};
+					Crossover::BandArray auxSmoothFilter{};
 					Crossover network;
 					juce::Colour defaultKey;
 					AFloat envelope;
@@ -71,13 +79,11 @@
 
 				std::vector<ChannelState> channels;
 
-				Crossover::BandArray midSideSmoothsFilters[2];
 			};
 
 			struct Buffer
 			{
 				std::vector<Channel> channels{ 0};
-				ColourBuffer midSideColour[2];
 
 				Channel & defaultChannel()
 				{
@@ -93,11 +99,7 @@
 					{
 						c.audioData.setStorageRequirements(samples, capacity);
 						c.colourData.setStorageRequirements(samples, capacity);
-					}
-
-					for (auto & c : midSideColour)
-					{
-						c.setStorageRequirements(samples, capacity);
+						c.auxColourData.setStorageRequirements(samples, capacity);
 					}
 				}
 			};
@@ -150,15 +152,11 @@
 					outBuf.createWriter().copyIntoHead(inBuf.createProxyView(), historySize, offset);
 				};
 
-				for (std::size_t i = 0; i < std::extent<decltype(Buffer::midSideColour)>::value; ++i)
-				{
-					swapBuf(back.midSideColour[i], front.midSideColour[i]);
-				}
-
 				for (std::size_t i = 0; i < back.channels.size(); ++i)
 				{
 					swapBuf(back.channels[i].audioData, front.channels[i].audioData);
 					swapBuf(back.channels[i].colourData, front.channels[i].colourData);
+					swapBuf(back.channels[i].auxColourData, front.channels[i].auxColourData);
 				}
 			}
 
