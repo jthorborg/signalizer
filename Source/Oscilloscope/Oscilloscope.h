@@ -114,7 +114,7 @@
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, /*isSuspended, */drawLegend;
+				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, drawLegend;
 				float primitiveSize;
 
 				OscilloscopeContent::TriggeringMode triggerMode;
@@ -129,12 +129,14 @@
 				double sampleRate;
 
 				double viewOffsets[4];
-				juce::Colour colourBackground, colourAxis, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourWidget;
+				juce::Colour colourBackground, colourAxis, colourSecondary, colourWidget;
 
 				SubSampleInterpolation sampleInterpolation;
 				OscilloscopeContent::TimeMode timeMode;
+				ChangeVersion::Listener audioStreamChanged;
+				LegendCache legend;
 
-			} state;
+			} state {};
 
 			struct SharedStateOptions
 			{
@@ -143,7 +145,7 @@
 				cpl::relaxed_atomic<OscChannels> channelMode;
 				cpl::relaxed_atomic<bool> overlayChannels;
 
-			} shared;
+			} shared {};
 
 			struct BinRecord
 			{
@@ -210,6 +212,7 @@
 				OscChannels channelMode;
 
 				OscilloscopeContent::TriggeringMode triggerMode;
+				ChangeVersion audioStreamChangeVersion;
 
 				template<typename ISA>
 				void preAnalyseAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -280,16 +283,7 @@
 			double getGain();
 
 			void handleFlagUpdates(StreamState&);
-
-
-			using VO = OscilloscopeContent::ViewOffsets;
-			std::shared_ptr<OscilloscopeContent> content;
-			std::shared_ptr<AudioStream::Output> audioStream;
-
-			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
-			cpl::aligned_vector<double, 16> temporaryBuffer;
-			std::shared_ptr<const SharedBehaviour> globalBehaviour;
-
+			void recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation);
 
 			struct ProcessorShell : public AudioStream::Listener
 			{
@@ -314,8 +308,6 @@
 				}
 			};
 
-
-
 			struct MedianData
 			{
 				// must be a power of two
@@ -323,7 +315,13 @@
 				BinRecord record{};
 			};
 
+			using VO = OscilloscopeContent::ViewOffsets;
+			std::shared_ptr<OscilloscopeContent> content;
+			std::shared_ptr<AudioStream::Output> audioStream;
 
+			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
+			cpl::aligned_vector<double, 16> temporaryBuffer;
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
 

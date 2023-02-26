@@ -155,17 +155,7 @@ namespace Signalizer
 
 		if (state.drawLegend && mouseCheck)
 		{
-			auto cs = processor->streamState.lock();
-
-			PaintLegend(
-				g, 
-				state.colourWidget, 
-				state.colourBackground, 
-				{ 10, 10 }, 
-				cs->channelNames,
-				state.colours, 
-				std::min(shared.numChannels.load(), cs->channelNames.size())
-			);
+			state.legend.paint(g, state.colourWidget, state.colourBackground);
 		}
 
 		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
@@ -294,9 +284,6 @@ namespace Signalizer
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
-				//cpl::GraphicsND::Transform3D<GLfloat> transform(1);
-				//content->transform.fillTransform3D(transform);
-				//openGLStack.applyTransform3D(transform);
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
@@ -309,7 +296,7 @@ namespace Signalizer
 				const auto numChannels = shared.numChannels.load();
 
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
-				CPL_RUNTIME_ASSERTION(numChannels >= channelData.filterStates.channels.size());
+				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());
 
 				const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
 				// Pre-analyse triggering and state

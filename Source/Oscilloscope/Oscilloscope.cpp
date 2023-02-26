@@ -209,6 +209,7 @@ namespace Signalizer
 			content->viewOffsets[V::Bottom].setNormalizedValue(0);
 		}
 	}
+
 	void Oscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
 		auto deltaDifference = event.position - currentMouse.getPoint();
@@ -274,7 +275,9 @@ namespace Signalizer
 
 		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		shared.numChannels = cs.channelData.numChannels();
+		const auto oldChannelMode = shared.channelMode.load();
 		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
+		const auto resetLegend = state.audioStreamChanged.consumeChanges(cs.audioStreamChangeVersion) || cs.channelMode != oldChannelMode;
 
 		state.sampleRate = cs.sampleRate;
 		state.autoGain = cs.envelopeGain;
@@ -285,9 +288,12 @@ namespace Signalizer
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
 			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
-			// TODO: This is only used for legend. Fix legend to respect channel pairing.
-			state.colours[c] = cs.channelData.filterStates.channels[c].defaultKey = colour;
+			cs.channelData.filterStates.channels[c].defaultKey = colour;
 		}
+
+		// recalculate legend
+		if (resetLegend)
+			recalculateLegend(cs, primaryRotation, secondaryRotation);
 
 		switch (state.timeMode)
 		{
@@ -309,6 +315,48 @@ namespace Signalizer
 		cs.triggeringProcessor->setSettings(cs.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 	}
 
+	void Oscilloscope::recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation)
+	{
+		state.legend.reset({ 10, 10 });
+
+		switch (cs.channelMode)
+		{
+			default:
+			case OscChannels::Left:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2], primaryRotation[c]);
+				break;
+			case OscChannels::Right:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				break;
+			case OscChannels::Mid:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2] + " + " + cs.channelNames[c * 2 + 1], primaryRotation[c]);
+				break;
+			case OscChannels::Side:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2] + " - " + cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				break;
+			case OscChannels::Separate:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+				{
+					state.legend.addLine(cs.channelNames[c * 2], primaryRotation[c]);
+					state.legend.addLine(cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				}
+				break;
+			case OscChannels::MidSide:
+			{
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+				{
+					state.legend.addLine(cs.channelNames[c * 2] + " + " + cs.channelNames[c * 2 + 1], primaryRotation[c]);
+					state.legend.addLine(cs.channelNames[c * 2] + " - " + cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				}
+				break;
+			}
+		}
+	}
+
 	inline void Oscilloscope::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
@@ -322,6 +370,7 @@ namespace Signalizer
 		auto& access = streamState.lock();
 		access->channelNames = source.getChannelNames();
 		access->historyCapacity = source.getInfo().audioHistoryCapacity;
+		access->audioStreamChangeVersion.bump();
 	}
 
 	Oscilloscope::StreamState::StreamState()

@@ -936,6 +936,97 @@
 			const bool stereo;
 		};
 
+		/// <summary>
+		/// Not atomic.
+		/// </summary>
+		struct ChangeVersion
+		{
+			struct Listener
+			{
+			public:
+				bool consumeChanges(const ChangeVersion& v)
+				{
+					CPL_RUNTIME_ASSERTION(version <= v.version);
+
+					if (v.version > version)
+					{
+						version = v.version;
+						return true;
+					}
+
+					return false;
+				}
+
+			private:
+				int version {};
+			};
+
+			void bump() 
+			{
+				version++;
+			}
+
+		private:
+			int version{};
+		};
+
+		struct LegendCache
+		{
+			static constexpr int offset = 5;
+			static constexpr int strokeSize = 50;
+
+			void setFont(juce::Font fontToUse)
+			{
+				font = fontToUse;
+			}
+
+			void reset(juce::Point<float> positionToUse)
+			{
+				position = positionToUse;
+
+				position.y += offset * 3;
+				position.x += offset;
+				startingY = position.y;
+
+				arrangement.clear();
+				colours.clear();
+			}
+
+			void addLine(const juce::String& text, juce::Colour colour)
+			{
+				arrangement.addLineOfText(font, text, position.x, position.y);
+				colours.push_back(colour);
+				position.y += offset + font.getHeight();
+			}
+
+			void paint(juce::Graphics& g, juce::Colour front, juce::Colour back)
+			{
+				auto bounds = arrangement.getBoundingBox(0, -1, true).reduced(-offset).withTrimmedRight(-strokeSize);
+				auto lineHeight = font.getHeight();
+
+				g.setColour(back);
+				g.fillRoundedRectangle(bounds, offset);
+				g.setColour(front);
+				g.drawRoundedRectangle(bounds, offset, 1);
+
+				arrangement.draw(g);
+
+				for (std::size_t i = 0; i < colours.size(); ++i)
+				{
+					auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
+					g.setColour(colours[i]);
+					g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 2.0f);
+				}
+			}
+
+		private:
+			juce::GlyphArrangement arrangement;
+			std::vector<juce::Colour> colours;
+			juce::Font font;
+			juce::Point<float> position;
+			float startingY;
+		};
+
 		template<typename NameVector, typename ColourVector>
 		inline void PaintLegend(juce::Graphics& g, juce::Colour front, juce::Colour back, juce::Point<float> position, const NameVector& names, const ColourVector& colours, std::size_t count)
 		{
