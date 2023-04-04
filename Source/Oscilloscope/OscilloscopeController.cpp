@@ -419,7 +419,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}

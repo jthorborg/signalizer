@@ -181,7 +181,7 @@ namespace Signalizer
 		connectionCommands.emplace_back(ConnectionCommand{ other, {}, pair, false });
 	}
 
-	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples)
+	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock)
 	{
 		auto& realInfo = ctx.getInfo();
 
@@ -234,11 +234,41 @@ namespace Signalizer
 		matrix.softBufferResize(numSamples);
 	}
 
+	void MixGraphListener::pruneImplausible(AudioStream::ListenerContext& ctx, std::size_t& numSamples, std::unique_lock<std::shared_mutex>& lock)
+	{
+		std::size_t max = 0, min = numSamples;
+		State* smallest = nullptr;
+
+		for (auto& g : graph)
+		{
+			auto currentG = g.second.current.load();
+			max = std::max(max, g.second.current.load());
+
+			// select smallest, but only one every prune
+			if (currentG < min)
+			{
+
+			}
+		}
+
+		for (auto& g : graph)
+		{
+			if (&g.second == self)
+				continue;
+
+			if (g.second.channelQueues.empty())
+				continue;
+
+			auto diff = max - g.second.current.load();
+			// TODO: check that the buffer size of G can't possibly ever catch up with the max size, if so, insert silence and increase numSamples
+		}
+	}
+
 	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
 		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
-		handleStructuralChange(ctx, numSamples);
+		handleStructuralChange(ctx, numSamples, graphLayoutAndDataLock);
 
 		// no channels to show
 		if (matrix.size() < 1)
@@ -250,12 +280,19 @@ namespace Signalizer
 		const auto hostOrigin = self->endpoint;
 		const auto hostSamples = self->current.load(std::memory_order_acquire);
 
+		auto diff = hostSamples - numSamples;
+
+		if (diff > ctx.getInfo().anticipatedSize * 2)
+		{
+			diff = hostSamples - numSamples;
+		}
+
 		for (auto& g : graph)
 		{
 			auto& state = g.second;
 			auto currentG = state.current.load(std::memory_order_acquire);
 
-			if (currentG != 0 && hostOrigin != 0)
+			if (currentG != 0 && hostOrigin != 0 && ctx.getPlayhead().isPlaying())
 			{
 				const auto sampleDifference = static_cast<std::int64_t>(currentG) - static_cast<std::int64_t>(hostSamples);
 				const auto tlDifference = state.endpoint - hostOrigin;
@@ -296,9 +333,11 @@ namespace Signalizer
 					matrix.clear(q.first.Destination, 1);
 				}
 			}
-
-			currentG -= std::min(currentG, numSamples);
-			state.current.store(currentG, std::memory_order_release);
+			// seems ultra wrong but makes them sync
+			// something to do with this exceeding max buffer size back in onStreamAudio
+			auto current = state.current.load(std::memory_order_relaxed);
+			auto toSubtract = std::min(current, numSamples);
+			state.current.store(current - toSubtract, std::memory_order_release);
 		}
 
 		// TODO: don't copy into a matrix, rig a provider from the read heads instead
@@ -317,6 +356,8 @@ namespace Signalizer
 		const auto localMaxLatency = maximumLatency.load();
 		const auto maxBufferSize = localMaxLatency * 8;
 		const auto globalPosition = ctx.getPlayhead().getPositionInSamples();
+
+		const bool isSelf = handle == realtime->getHandle();
 
 		if (enabled)
 		{
@@ -351,7 +392,7 @@ namespace Signalizer
 		}
 
 
-		if (handle == realtime->getHandle())
+		if (isSelf)
 		{
 			updateTopologyCommands();
 
@@ -390,8 +431,18 @@ namespace Signalizer
 					}
 					else
 					{
-						// ignore this dependency - it's not processing for some reason or deleted itself
-						continue;
+						// super special case for *current having been updated inbetween these statements (easy to provoke with a debugger)
+						const auto newG = g.second.current.load(std::memory_order_acquire);
+						if (newG == currentG)
+						{
+							// ignore this dependency - it's not processing for some reason or deleted itself
+							continue;
+						}
+						else
+						{
+							min = std::min(min, newG);
+							continue;
+						}
 					}
 				}
 				else
@@ -403,7 +454,14 @@ namespace Signalizer
 
 			if (min > 0)
 			{
-				deliver(ctx, min);
+				if (min != hostSamples)
+				{
+					deliver(ctx, min);
+				}
+				else
+				{
+					deliver(ctx, min);
+				}
 			}
 		}
 	}
@@ -450,6 +508,7 @@ namespace Signalizer
 
 				// TODO: Pauses other channels from this source (and everything)
 				source.current = 0;
+				
 			}
 			else
 			{

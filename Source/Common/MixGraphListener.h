@@ -237,7 +237,8 @@
 			void onStreamAudio(AudioStream::ListenerContext& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override final;
 			void onStreamDied(AudioStream::ListenerContext& dyingSource) override final;
 
-			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples);
+			void pruneImplausible(AudioStream::ListenerContext& ctx, std::size_t& numSamples, std::unique_lock<std::shared_mutex>& lock);
+			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock);
 			void deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples);
 
 			void updateTopologyCommands();
