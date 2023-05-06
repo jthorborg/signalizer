@@ -181,6 +181,16 @@ namespace Signalizer
 		connectionCommands.emplace_back(ConnectionCommand{ other, {}, pair, false });
 	}
 
+	std::size_t MixGraphListener::reportLatency() const noexcept
+	{
+		return currentLatency;
+	}
+
+	bool MixGraphListener::reportSynchronized() const noexcept
+	{
+		return isSynchronized;
+	}
+
 	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock)
 	{
 		auto& realInfo = ctx.getInfo();
@@ -234,36 +244,6 @@ namespace Signalizer
 		matrix.softBufferResize(numSamples);
 	}
 
-	void MixGraphListener::pruneImplausible(AudioStream::ListenerContext& ctx, std::size_t& numSamples, std::unique_lock<std::shared_mutex>& lock)
-	{
-		std::size_t max = 0, min = numSamples;
-		State* smallest = nullptr;
-
-		for (auto& g : graph)
-		{
-			auto currentG = g.second.current.load();
-			max = std::max(max, g.second.current.load());
-
-			// select smallest, but only one every prune
-			if (currentG < min)
-			{
-
-			}
-		}
-
-		for (auto& g : graph)
-		{
-			if (&g.second == self)
-				continue;
-
-			if (g.second.channelQueues.empty())
-				continue;
-
-			auto diff = max - g.second.current.load();
-			// TODO: check that the buffer size of G can't possibly ever catch up with the max size, if so, insert silence and increase numSamples
-		}
-	}
-
 	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
 		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
@@ -277,70 +257,79 @@ namespace Signalizer
 		// clear the matrix for additive / empty slots - might not be needed?
 		matrix.clear();
 
-		const auto hostOrigin = self->endpoint;
-		const auto hostSamples = self->current.load(std::memory_order_acquire);
+		const auto hostEndpoint = self->endpoint.load();
+		const auto hostSamples = static_cast<std::int64_t>(self->containedSamples.load());
 
-		auto diff = hostSamples - numSamples;
-
-		if (diff > ctx.getInfo().anticipatedSize * 2)
-		{
-			diff = hostSamples - numSamples;
-		}
+		bool seeminglySynchronized = true;
 
 		for (auto& g : graph)
 		{
 			auto& state = g.second;
-			auto currentG = state.current.load(std::memory_order_acquire);
+			auto containedInState = state.containedSamples.load();
 
-			if (currentG != 0 && hostOrigin != 0 && ctx.getPlayhead().isPlaying())
+			if (containedInState != 0 && ctx.getPlayhead().isPlaying())
 			{
-				const auto sampleDifference = static_cast<std::int64_t>(currentG) - static_cast<std::int64_t>(hostSamples);
-				const auto tlDifference = state.endpoint - hostOrigin;
-				auto difference = sampleDifference - tlDifference;
-				//difference -= state.offset;
+				const auto sampleDifference = containedInState - hostSamples;
+				const auto tlDifference = state.endpoint - hostEndpoint;
+				const auto difference = sampleDifference - tlDifference;
+
+				const auto hasDiscontinuity = self->discontinuity || state.discontinuity;
 
 				if (difference != 0)
 				{
-					if (difference > 0)
+					seeminglySynchronized = false;
+					// twice we had the same delay? try to adjust
+					if (!hasDiscontinuity && state.typicalOffset == difference)
 					{
-						// this dependency is ahead of the origin.
-						currentG -= std::min(currentG, static_cast<std::size_t>(difference));
+						if (difference > 0)
+						{
+							// erase history, we are too far behind...
+							containedInState -= std::min(containedInState, difference);
+							state.containedSamples = containedInState;
+						}
+						else
+						{
+							// add history, insert silence...
+							for (auto& q : state.channelQueues)
+							{
+								q.second.buffer.createWriter().advance(static_cast<std::size_t>(-difference));
+							}
+
+							containedInState += -difference;
+							state.containedSamples = containedInState;
+						}
+
+						state.typicalOffset = 0;
 					}
 					else
 					{
-						currentG += static_cast<std::size_t>(-difference);
+						state.typicalOffset = difference;
 					}
-
-					//state.globalPosition += difference;
 				}
-
-
 			}
 
-			for (auto& q : state.channelQueues)
+			// if we don't have enough to deliver, do nothing (matrix cleared at beginning)
+			if (containedInState >= static_cast<std::int64_t>(numSamples) || containedInState != 0)
 			{
-				if (currentG >= numSamples || currentG != 0)
+				for (auto& q : state.channelQueues)
 				{
 					auto reader = q.second.buffer.createProxyView();
-					reader.offset(-static_cast<ssize_t>(currentG));
+					reader.offset(-containedInState);
 
-					// TODO: should be additive
-					reader.copyFromHead(matrix[q.first.Destination], numSamples);
-				}
-				else
-				{
-					// nothing to deliver... zero it out. TODO don't?
-					matrix.clear(q.first.Destination, 1);
+					reader.copyFromHead<true>(matrix[q.first.Destination], numSamples);
 				}
 			}
+
 			// seems ultra wrong but makes them sync
 			// something to do with this exceeding max buffer size back in onStreamAudio
-			auto current = state.current.load(std::memory_order_relaxed);
-			auto toSubtract = std::min(current, numSamples);
-			state.current.store(current - toSubtract, std::memory_order_release);
+			auto current = state.containedSamples.load();
+			auto toSubtract = std::min(current, static_cast<std::int64_t>(numSamples));
+			state.containedSamples.store(current - toSubtract);
 		}
 
-		// TODO: don't copy into a matrix, rig a provider from the read heads instead
+		this->isSynchronized = seeminglySynchronized;
+
+		// TODO: don't copy into a matrix, rig a provider from the read heads instead?
 		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, ctx.getPlayhead());
 	}
 
@@ -370,10 +359,12 @@ namespace Signalizer
 
 			auto& s = it->second;
 
+			s.discontinuity = s.endpoint - globalPosition;
+
 			s.globalPosition = globalPosition;
 			s.endpoint = globalPosition + numSamples;
 
-			const auto neededSize = std::min(maxBufferSize, s.current + numSamples);
+			const auto neededSize = std::min(maxBufferSize, s.containedSamples + numSamples);
 
 			for (auto& q : s.channelQueues)
 			{
@@ -387,8 +378,8 @@ namespace Signalizer
 					.copyIntoHead(buffer[q.first.Source], numSamples);
 			}
 
-			const auto currentContained = s.current.load(std::memory_order_acquire) + numSamples;
-			s.current.store(std::min(currentContained, maxBufferSize), std::memory_order_release);
+			const auto currentContained = s.containedSamples.load() + numSamples;
+			s.containedSamples.store(std::min(currentContained, maxBufferSize));
 		}
 
 
@@ -399,26 +390,42 @@ namespace Signalizer
 			if (!enabled || graph.empty())
 				return;
 
-			const auto hostSamples = self->current.load(std::memory_order_acquire);
-			auto min = hostSamples;
+			const auto hostSamples = self->containedSamples.load();
+			const auto hostOrigin = self->endpoint - hostSamples;
 
+			auto min = hostSamples;
+			auto latency = min;
+			
 			if (min == 0)
 			{
-				// TODO: Happens when changing self (resetting the enqueued count)
-				/* CPL_RUNTIME_ASSERTION(numSamples == 0); */
+				// Happens when changing self (resetting the enqueued count)
 				return;
 			}
 
 			for (auto& g : graph)
 			{
-				const auto currentG = g.second.current.load(std::memory_order_acquire);
+				if (min <= 0)
+					break;
 
-				if (currentG != 0)
+				auto containedInState = g.second.containedSamples.load();
+				latency = std::max(containedInState, latency);
+
+				// when playing, we want to clamp the available amount of samples with respect to the alignment
+				// of the timeline compared to the host. this ensures the inner chomping doesn't play "catch up"
+				if (ctx.getPlayhead().isPlaying() && !self->discontinuity && !g.second.discontinuity)
+				{
+					const auto available = g.second.endpoint - hostOrigin;
+
+					if(available < containedInState)
+						containedInState = std::min(containedInState, std::max(0ll, available));
+				}
+
+				if (containedInState > 0)
 				{
 					// we can keep progressing.
-					min = std::min(min, currentG);
+					min = std::min(min, containedInState);
 				}
-				else if (hostSamples > localMaxLatency)
+				else if (hostSamples > static_cast<std::int64_t>(localMaxLatency))
 				{
 					// this link in the chain is still zero, but we are spilling over our max latency which is unexpected 
 					// even for a reverse dependency.
@@ -432,15 +439,15 @@ namespace Signalizer
 					else
 					{
 						// super special case for *current having been updated inbetween these statements (easy to provoke with a debugger)
-						const auto newG = g.second.current.load(std::memory_order_acquire);
-						if (newG == currentG)
+						const auto newAvailable = g.second.containedSamples.load();
+						if (newAvailable == containedInState)
 						{
-							// ignore this dependency - it's not processing for some reason or deleted itself
+							// ignore this dependency - it's not processing yet for some reason or deleted itself
 							continue;
 						}
 						else
 						{
-							min = std::min(min, newG);
+							min = std::min(min, newAvailable);
 							continue;
 						}
 					}
@@ -454,14 +461,8 @@ namespace Signalizer
 
 			if (min > 0)
 			{
-				if (min != hostSamples)
-				{
-					deliver(ctx, min);
-				}
-				else
-				{
-					deliver(ctx, min);
-				}
+				currentLatency = latency;
+				deliver(ctx, min);
 			}
 		}
 	}
@@ -480,6 +481,8 @@ namespace Signalizer
 			structuralChange = true;
 		else
 			return;
+
+		isSynchronized = false;
 
 		// so we can alter mapping tables. can be done without.
 		std::unique_lock<std::shared_mutex> lock(dataMutex);
@@ -507,7 +510,7 @@ namespace Signalizer
 				source.channelQueues[command.pair].originName = std::move(command.name); 
 
 				// TODO: Pauses other channels from this source (and everything)
-				source.current = 0;
+				source.containedSamples = 0;
 				
 			}
 			else

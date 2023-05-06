@@ -173,7 +173,8 @@
 
 			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair, const std::string& name);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
-
+			std::size_t reportLatency() const noexcept;
+			bool reportSynchronized() const noexcept;
 
 			~MixGraphListener();
 
@@ -202,10 +203,28 @@
 				};
 
 				std::map<DirectedPortPair, Channel> channelQueues;
-				std::atomic_size_t current {};
+				/// <summary>
+				/// The amount of samples contained leading up to <see cref="endpoint"/>
+				/// </summary>
+				cpl::weak_atomic<std::int64_t> containedSamples {};
+				/// <summary>
+				/// Reported discontinuity, ie. if the last <see cref="globalPosition"/> didn't update the current
+				/// <see cref="endpoint"/>
+				/// </summary>
+				std::int64_t discontinuity{};
+				/// <summary>
+				/// The last timing difference between this state and the host.
+				/// </summary>
+				std::int64_t typicalOffset{};
+				/// <summary>
+				/// The last reported time stamp of this current graph (not including the samples leading up to the endpoint).
+				/// </summary>
 				std::int64_t globalPosition{};
-				std::int64_t endpoint{};
-				std::int64_t offset{};
+				/// <summary>
+				/// The end of this current time line, ie. the global position plus the amount of samples this state received
+				/// last time around.
+				/// </summary>
+				cpl::weak_atomic<std::int64_t> endpoint{};
 				std::int32_t refCount {};
 
 				std::weak_ptr<AudioStream::Output> source;
@@ -213,10 +232,9 @@
 				State(const State& other) = delete;
 				State(State&& other) noexcept
 					: channelQueues(std::move(other.channelQueues))
-					, current(other.current.load(std::memory_order_acquire))
+					, containedSamples(other.containedSamples)
 					, globalPosition(other.globalPosition)
 					, endpoint(other.endpoint)
-					, offset(other.offset)
 					, refCount(other.refCount)
 					, source(std::move(other.source))
 				{
@@ -237,14 +255,13 @@
 			void onStreamAudio(AudioStream::ListenerContext& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override final;
 			void onStreamDied(AudioStream::ListenerContext& dyingSource) override final;
 
-			void pruneImplausible(AudioStream::ListenerContext& ctx, std::size_t& numSamples, std::unique_lock<std::shared_mutex>& lock);
 			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock);
 			void deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples);
 
 			void updateTopologyCommands();
 			void assignSelf();
 
-			int id;
+			const int id;
 			std::map<AudioStream::Handle, State> graph;
 			std::size_t initialSampleCapacity {};
 			std::shared_ptr<AudioStream::Output> realtime;
@@ -261,7 +278,9 @@
 			std::atomic_bool structuralChange;
 			std::atomic_bool enabled;
 			cpl::weak_atomic<std::size_t> maximumLatency;
-			// TODO: should be shared?
+			cpl::relaxed_atomic<std::size_t> currentLatency;
+			cpl::relaxed_atomic<bool> isSynchronized;
+
 			ConcurrentConfig& concurrentConfig;
 		};
 	}

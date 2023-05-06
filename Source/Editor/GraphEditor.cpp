@@ -690,6 +690,7 @@ namespace Signalizer
 	void GraphEditor::mainEditorDied()
 	{
 		editor = nullptr;
+		delete this;
 	}
 
 	void GraphEditor::closeButtonPressed()
