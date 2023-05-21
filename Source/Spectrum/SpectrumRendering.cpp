@@ -70,7 +70,7 @@ namespace Signalizer
 		auto octave = (roundedNote - semitoneIndex) / 12;
 		auto detune = cpl::Math::round<int>(1000 * (note - roundedNote));
 		char buf[100];
-		sprintf_s(buf, "%s%d%+3.1fc", Semitones[semitoneIndex], octave, detune * 0.1);
+		cpl::sprintfs(buf, "%s%d%+3.1fc", Semitones[semitoneIndex], octave, detune * 0.1);
 		return buf;
 	}
 
@@ -95,7 +95,7 @@ namespace Signalizer
 				// text for frequency divisions
 				for (auto & sdiv : divs)
 				{
-					sprintf_s(buf, "%.2f", sdiv.frequency);
+					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
 					g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
 
 				}
@@ -107,7 +107,7 @@ namespace Signalizer
 
 					for (auto & sdiv : cdivs)
 					{
-						sprintf_s(buf, "-i*%.2f", sdiv.frequency);
+						cpl::sprintfs(buf, "-i*%.2f", sdiv.frequency);
 						// transform back and forth from unit cartesion... should insert a TODO here.
 						g.drawText(buf, getWidth() * (normXC(sdiv.coord) + 1) * 0.5 + 5, 20, 100, 20, juce::Justification::centredLeft);
 					}
@@ -115,7 +115,7 @@ namespace Signalizer
 				// text for db divisions
 				for (auto & dbDiv : dbGraph.getDivisions())
 				{
-					sprintf_s(buf, "%.2f", dbDiv.dbVal);
+					cpl::sprintfs(buf, "%.2f", dbDiv.dbVal);
 					g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 				}
 			}
@@ -132,10 +132,9 @@ namespace Signalizer
 				g.setColour(state.colourGrid);
 				const auto & divs = frequencyGraph.getDivisions();
 
-
 				for (auto & sdiv : divs)
 				{
-					sprintf_s(buf, "%.2f", sdiv.frequency);
+					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
 					g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 				}
 			}
@@ -177,7 +176,7 @@ namespace Signalizer
 			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);
 			//TODO: ensure format specifiers are correct always (%llu mostly)
-			sprintf(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
+			cpl::sprintfs(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
 				laggedFPS, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
@@ -528,7 +527,7 @@ namespace Signalizer
 
 		// TODO: use a monospace font for this part
 		// also: is printf-style really more readable than C++ formatting..
-		sprintf_s(buf,
+		cpl::sprintfs(buf,
 			u8"+x:  %s%11.5f Hz\n"
 			u8"+x:  %s\n"
 			u8"+y:  %+9.5f dB\n"

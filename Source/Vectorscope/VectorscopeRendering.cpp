@@ -72,7 +72,7 @@ namespace Signalizer
 
 			auto scale = oglc->getRenderingScale();
 
-			sprintf(textbuf, "%dx%d (%.2f): %.1f fps - %.1f%% cpu, deltaT = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+			cpl::sprintfs(textbuf, "%dx%d (%.2f): %.1f fps - %.1f%% cpu, deltaT = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), scale, averageFps, averageCpu, openGLDeltaTime(),
 				100 * perf.producerUsage,
 				100 * perf.producerOverhead,

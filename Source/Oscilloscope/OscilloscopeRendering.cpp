@@ -102,7 +102,7 @@ namespace Signalizer
 
 			char textbuf[1024];
 
-			sprintf(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
+			cpl::sprintfs(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
 				getWidth(), getHeight(), averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
 				100 * perf.producerUsage,
 				100 * perf.producerOverhead,
@@ -225,7 +225,7 @@ namespace Signalizer
 
 			char text[1024];
 
-			sprintf_s(text,
+			cpl::sprintfs(text,
 				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps",
 				fraction,
 				20 * std::log10(std::abs(fraction)),
@@ -405,7 +405,7 @@ namespace Signalizer
 				auto const y = coord;
 				auto const dBs = 20 * std::log10(waveSpace / offset);
 
-				sprintf_s(textBuf, "%.3f dB", dBs);
+				cpl::sprintfs(textBuf, "%.3f dB", dBs);
 
 				g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
 
@@ -514,7 +514,7 @@ namespace Signalizer
 				float offset = 10;
 
 				auto textOut = [&](auto format, auto... args) {
-					sprintf_s(textBuf, format, args...);
+					cpl::sprintfs(textBuf, format, args...);
 					g.drawSingleLineText(textBuf, std::floor(x + 5), yoff + rect.getHeight() - offset, juce::Justification::left);
 					offset += 15;
 				};

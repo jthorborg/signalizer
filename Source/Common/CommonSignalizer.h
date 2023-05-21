@@ -357,11 +357,11 @@
 
 				if (m == Milliseconds)
 				{
-					sprintf_s(buffer, "%.2f ms", 1000 * val / sampleRate);
+					cpl::sprintfs(buffer, "%.2f ms", 1000 * val / sampleRate);
 				}
 				else
 				{
-					sprintf_s(buffer, "%.0f smps", val);
+					cpl::sprintfs(buffer, "%.0f smps", val);
 				}
 
 				buf = buffer;

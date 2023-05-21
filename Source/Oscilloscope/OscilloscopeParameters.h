@@ -99,13 +99,13 @@
 					{
 						case TimeMode::Cycles:
 						{
-							sprintf_s(buffer, u8"%.2f (%.2f r)", val, cpl::simd::consts<ValueType>::tau * val);
+							cpl::sprintfs(buffer, u8"%.2f (%.2f r)", val, cpl::simd::consts<ValueType>::tau * val);
 							buf = buffer;
 							return true;
 						}
 						case TimeMode::Beats:
 						{
-							sprintf_s(buffer, "1/%.0f", val);
+							cpl::sprintfs(buffer, "1/%.0f", val);
 							buf = buffer;
 							return true;
 						}
@@ -265,7 +265,7 @@
 				virtual bool format(const ValueType & val, std::string & buf) override
 				{
 					char buffer[100];
-					sprintf_s(buffer, "%.5f Hz", val);
+					cpl::sprintfs(buffer, "%.5f Hz", val);
 					buf = buffer;
 					return true;
 				}

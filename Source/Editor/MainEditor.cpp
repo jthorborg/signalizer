@@ -1246,7 +1246,7 @@ namespace Signalizer
 		else if (ctrl == &kswapInterval)
 		{
 			char buf[100];
-			sprintf_s(buf, "%d frames", cpl::Math::round<int>(val * kdefaultMaxSkippedFrames));
+			cpl::sprintfs(buf, "%d frames", cpl::Math::round<int>(val * kdefaultMaxSkippedFrames));
 			valString = buf;
 			return true;
 		}
