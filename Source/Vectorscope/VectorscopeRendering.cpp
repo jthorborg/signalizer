@@ -66,7 +66,7 @@ namespace Signalizer
 
 			char textbuf[4096];
 
-			double averageFps, averageCpu;
+			float averageFps, averageCpu;
 
 			computeAverageStats(averageFps, averageCpu);
 

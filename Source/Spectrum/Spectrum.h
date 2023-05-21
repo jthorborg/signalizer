@@ -60,10 +60,9 @@
 	{
 
 		class Spectrum final
-		:
-			public cpl::COpenGLView,
-			protected AudioStream::Listener,
-			private ParameterSet::RTListener
+			: public GraphicsWindow
+			, protected AudioStream::Listener
+			, private ParameterSet::RTListener
 		{
 
 		public:
@@ -109,11 +108,6 @@
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
-			void mouseMove(const juce::MouseEvent& event) override;
-			void mouseExit(const juce::MouseEvent & e) override;
-			void mouseEnter(const juce::MouseEvent & e) override;
 
 			void resized() override;
 
@@ -167,8 +161,9 @@
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
+			// TODO: These were the old callbacks.
+			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples);
+			void onAsyncChangedProperties();
 
 
 			/// <summary>
@@ -382,7 +377,7 @@
 			template<typename ISA, class Vector>
 				std::size_t copyResonatorStateInto(Vector & output);
 
-			void drawFrequencyTracking(juce::Graphics & g);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
@@ -552,16 +547,33 @@
 					mouseMove;
 			} flags;
 
-			/// <summary>
-			/// visual objects
-			/// </summary>
-			const SharedBehaviour & globalBehaviour;
+			struct StreamState {};
+
+			struct ProcessorShell : public AudioStream::Listener
+			{
+				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+				CriticalSection<StreamState> streamState;
+				cpl::relaxed_atomic<bool> isSuspended;
+
+				//void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				//void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
+
+				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
+					: globalBehaviour(behaviour)
+				{
+				}
+			};
+
+
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;			
+			std::shared_ptr<const ConcurrentConfig> config;
 			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::special::FrequencyAxis frequencyGraph, complexFrequencyGraph;
 			cpl::special::DBMeterAxis dbGraph;
 
 			// non-state variables
-			SpectrumContent * content;
+			std::shared_ptr<SpectrumContent> content;
+			std::shared_ptr<ProcessorShell> processor;
 			double audioThreadUsage;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			bool wasResized;
@@ -583,7 +595,6 @@
 			double oldWindowSize;
 			int droppedAudioFrames;
 			double framesPerUpdate;
-			cpl::CPeakFilter<double> fpuFilter;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
 
 			struct LineGraphDesc
@@ -627,7 +638,7 @@
 			/// <summary>
 			/// The connected, incoming stream of data.
 			/// </summary>
-			AudioStream & audioStream;
+			std::shared_ptr<AudioStream::Output> audioStream;
 			/// <summary>
 			/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 			/// </summary>

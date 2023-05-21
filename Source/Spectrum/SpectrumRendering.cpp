@@ -162,43 +162,44 @@ namespace Signalizer
 			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
 		}
 
-		laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+		float averageFps, averageCpu;
 
-		drawFrequencyTracking(g);
+		computeAverageStats(averageFps, averageCpu);
+
+		drawFrequencyTracking(g, averageFps);
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
+			const auto perf = audioStream->getPerfMeasures();
 
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * laggedFPS;
-			double asu = 100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed);
-			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);
 			//TODO: ensure format specifiers are correct always (%llu mostly)
 			cpl::sprintfs(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
-				laggedFPS, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				audioStream.getPerfMeasures().droppedAudioFrames.load(std::memory_order_relaxed),
-				asu,
-				aso);
+				averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				perf.droppedFrames,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead
+			);
 
 			g.drawSingleLineText(text, 10, 20);
 
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps)
 	{
-		if (globalBehaviour.hideWidgetsOnMouseExit)
+		if (globalBehaviour->hideWidgetsOnMouseExit)
 		{
 			if (!isMouseInside)
 				return;
 		}
 
 		auto graphN = state.frequencyTrackingGraph;
+		// TODO: feature request
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
 		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
@@ -226,7 +227,7 @@ namespace Signalizer
 			peakDeviance = 0,
 			peakSlope = 0,
 			peakSlopeDbs = 0,
-			sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_relaxed),
+			sampleRate = config->sampleRate,
 			maxFrequency = sampleRate / 2;
 
 		bool frequencyIsComplex = false;
@@ -237,8 +238,8 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
-			mouseX = cmouse.x;
-			mouseY = cmouse.y;
+			mouseX = currentMouse.x;
+			mouseY = currentMouse.y;
 
 			// a possible concurrent bug
 			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints() - 1);
@@ -297,7 +298,7 @@ namespace Signalizer
 		}
 		else
 		{
-			// ?
+			CPL_RUNTIME_ASSERTION("What?");
 		}
 
 		mouseFraction = cpl::Math::confineTo(mouseFraction, 0, 1);
@@ -512,7 +513,7 @@ namespace Signalizer
 			peakDBs = -std::numeric_limits<double>::infinity();
 
 		peakState.clearNonNormals();
-		peakState.design(content->trackerSmoothing.parameter.getValue() * 1000, laggedFPS);
+		peakState.design(content->trackerSmoothing.parameter.getValue() * 1000, fps);
 
 		peakState.process(peakDBs, peakFrequency);
 
@@ -695,7 +696,7 @@ namespace Signalizer
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
                     audioLock.acquire(audioResource);
-                    lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
+                    lineTransformReady = prepareTransform(audioStream->getAudioBufferViews());
                 }
 
             }
@@ -734,13 +735,10 @@ namespace Signalizer
             }
             
         }
-		CPL_DEBUGCHECKGL();
+
 		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
-		CPL_DEBUGCHECKGL();
-        renderCycles = cpl::Misc::ClockCounter() - cStart;
-        auto tickNow = juce::Time::getHighResolutionTicks();
-        avgFps.setNext(tickNow - lastFrameTick);
-        lastFrameTick = tickNow;
+
+		postFrame();
 	}
 
 

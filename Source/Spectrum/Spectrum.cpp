@@ -45,10 +45,9 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream,
 		std::shared_ptr<SpectrumContent>& params
 	)
-		: COpenGLView(params->getName())
+		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
-		, lastMousePos()
 		, state()
 		, framePixelPosition()
 		, frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
@@ -58,16 +57,14 @@ namespace Signalizer
 		, audioThreadUsage()
 		, relayWidth()
 		, relayHeight()
-		, cmouse()
 		, lastPeak()
 		, scallopLoss()
 		, oldWindowSize(-1)
 		, framesPerUpdate()
-		, laggedFPS()
-		, isMouseInside(false)
+		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
 	{
 		setOpaque(true);
-		if (!(content = dynamic_cast<SpectrumContent *>(processorState)))
+		if (!(content = std::dynamic_pointer_cast<SpectrumContent>(params)))
 		{
 			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to SpectrumContent");
 		}
@@ -83,12 +80,10 @@ namespace Signalizer
 
 		oldViewRect = state.viewRect;
 		oglImage.setFillColour(juce::Colours::black);
-		listenToSource(stream);
 
 		state.minLogFreq = 10;
 
-		//setWindowSize(200);
-
+		audioStream->addListener(processor);
 
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
@@ -118,7 +113,9 @@ namespace Signalizer
 	Spectrum::~Spectrum()
 	{
 		content->getParameterSet().removeRTListener(this, true);
-		detachFromSource();
+	
+		audioStream->removeListener(processor);
+
 #pragma message cwarn("Fix this as well.")
 		SFrameBuffer::FrameVector * frame;
 		while (sfbuf.frameQueue.popElement(frame))
@@ -167,9 +164,10 @@ namespace Signalizer
 
 	void Spectrum::initPanelAndControls()
 	{
+		// TODO: Clean this up
 		// preliminary initialization - this will update all controls to match audio properties.
 		// it may seem like a hack, but it's well-defined and avoids code duplications.
-		onAsyncChangedProperties(audioStream, audioStream.getInfo());
+		onAsyncChangedProperties();
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
@@ -288,7 +286,8 @@ namespace Signalizer
 	{
 		if (event.mods.isLeftButtonDown())
 		{
-			auto mouseDelta = event.position - lastMousePos;
+			// TODO: use delta?
+			auto mouseDelta = event.position - this->currentMouse.getPoint();
 			auto left = content->viewLeft.getTransformedValue();
 			auto right = content->viewRight.getTransformedValue();
 			auto freqDelta = left - right;
@@ -307,12 +306,13 @@ namespace Signalizer
 			content->viewLeft.setTransformedValue(left + freqInc);
 			content->viewRight.setTransformedValue(right + freqInc);
 
-			lastMousePos = event.position;
 			flags.dynamicRangeChange = true;
 			flags.viewChanged = true;
 		}
 
 		flags.mouseMove = true;
+
+		GraphicsWindow::mouseDrag(event);
 	}
 
 
@@ -447,7 +447,8 @@ namespace Signalizer
 		if (flags.audioStreamChanged.cas())
 		{
 			audioLock.acquire(audioResource);
-			state.sampleRate = static_cast<float>(audioStream.getAudioHistorySamplerate());
+			// TODO: Globals
+			state.sampleRate = static_cast<float>(config->sampleRate);
 			flags.viewChanged = true;
 		}
 
@@ -483,24 +484,27 @@ namespace Signalizer
 
 		if (flags.initiateWindowResize)
 		{
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			// TODO: globals
+			// we will get notified asynchronously in onStreamPropertiesChanged.
+			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				flags.initiateWindowResize.cas();
-				audioStream.setAudioHistorySize(state.newWindowSize);
-			}
 
+				audioStream->modifyConsumerInfo(
+					[&](auto& info)
+					{
+						info.audioHistorySize = state.newWindowSize;
+					}
+				);
+			}
 
 		}
 		if (flags.audioWindowWasResized.cas())
 		{
 			audioLock.acquire(audioResource);
 			// TODO: possible difference between parameter and audiostream?
-
-			auto current = audioStream.getAudioHistorySize();
-
-			state.windowSize = getValidWindowSize(current);
+			state.windowSize = getValidWindowSize(config->historySize);
 			cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;
 			flags.audioMemoryResize = true;
@@ -723,9 +727,11 @@ namespace Signalizer
 		flags.internalFlagHandlerRunning = false;
 	}
 
+
+	// TODO: Get rid of this pair
 	std::size_t Spectrum::getValidWindowSize(std::size_t in) const noexcept
 	{
-		std::size_t n = std::min(audioStream.getAudioHistoryCapacity(), in);
+		std::size_t n = std::min(config->historyCapacity.load(), in);
 		return n;
 	}
 
@@ -735,8 +741,8 @@ namespace Signalizer
 		flags.initiateWindowResize = true;
 	}
 
-
-	void Spectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	// TODO: this needs to be in onStreamPropertiesChanged
+	void Spectrum::onAsyncChangedProperties()
 	{
 		flags.audioStreamChanged = true;
 		flags.audioWindowWasResized = true;

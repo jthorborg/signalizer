@@ -1440,7 +1440,7 @@ namespace Signalizer
 
 	bool Spectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend)
+		if (state.isSuspended && globalBehaviour->stopProcessingOnSuspend)
 			return false;
 
 		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);
@@ -1522,18 +1522,18 @@ namespace Signalizer
 						if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 						{
 							fpoint * offBuf[2] = { buffer[0], buffer[1]};
-							if (audioStream.getNumDeferredSamples() == 0)
+							if (audioStream->getNumDeferredSamples() == 0)
 							{
 								// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 								// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-								if((transformReady = prepareTransform(audioStream.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
+								if((transformReady = prepareTransform(audioStream->getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
 									doTransform();
 							}
 							else
 							{
 								// ignore the deferred samples and produce some views that is slightly out-of-date.
 								// this ONLY happens if something else is hogging the buffers.
-								if((transformReady = prepareTransform(audioStream.getAudioBufferViews())))
+								if((transformReady = prepareTransform(audioStream->getAudioBufferViews())))
 									doTransform();
 							}
 						}

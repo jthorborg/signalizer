@@ -157,8 +157,8 @@
 			juce::MouseCursor displayCursor;
 
 			// guis and whatnot
-			cpl::CBoxFilter<double, 60> avgDelta;
-			cpl::CBoxFilter<double, 60> avgFrame;
+			cpl::CBoxFilter<float, 64> avgDelta;
+			cpl::CBoxFilter<float, 64> avgFrame;
 
 
 			// Mouse overrides
@@ -218,13 +218,13 @@
 				return avgDelta.getAverage();
 			}
 
-			void computeAverageStats(double& fps, double& usagePercent)
+			void computeAverageStats(float& fps, float& usagePercent)
 			{
 				const auto frame = avgFrame.getAverage();
 				const auto delta = avgDelta.getAverage();
 
 				usagePercent = 100 * (frame / delta);
-				fps = 1.0 / delta;
+				fps = 1.0f / delta;
 			}
 		};
 
