@@ -673,10 +673,7 @@ namespace Signalizer
     template<typename ISA>
     void Spectrum::vectorGLRendering()
 	{
-		auto cStart = cpl::Misc::ClockCounter();
         {
-
-            cpl::CFastMutex audioLock;
             // starting from a clean slate?
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
@@ -695,8 +692,7 @@ namespace Signalizer
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
-                    audioLock.acquire(audioResource);
-                    lineTransformReady = prepareTransform(audioStream->getAudioBufferViews());
+                    lineTransformReady = streamAccess->prepareTransform(audioStream->getAudioBufferViews());
                 }
 
             }
@@ -722,10 +718,9 @@ namespace Signalizer
                 // such that only we have access to it.
                 if (lineTransformReady)
                 {
-                    audioLock.acquire(audioResource);
-                    doTransform();
-                    mapToLinearSpace();
-                    cs.postProcessStdTransform();
+					streamAccess->doTransform();
+					streamAccess->mapToLinearSpace();
+					postProcessStdTransform(*streamAccess);
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:

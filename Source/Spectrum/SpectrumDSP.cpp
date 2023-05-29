@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:CSpectrumDSP.cpp
+	file:SpectrumDSP.cpp
 
 		Implementation of the dsp code for the spectrum.
 
@@ -78,19 +78,18 @@ namespace Signalizer
 		flags.resetStateBuffers = true;
 	}
 
-	bool Spectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
+	bool Spectrum::StreamState::prepareTransform(const AudioStream::AudioBufferAccess & audio)
 	{
 		if (audio.getNumChannels() < 2)
 			return false;
 
-		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
-
-		auto size = getWindowSize(); // the size of the transform, containing samples
+		auto size = windowSize; // the size of the transform, containing samples
 									 // the quantized (to next power of 2) samples of this transform
 									 // that is, the size + additional zero-padding
+		// TODO: replace with transformSize
 		auto fullSize = getFFTSpace<std::complex<double>>();
 
-		auto const channelConfiguration = state.configuration;
+		auto const channelConfiguration = configuration;
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -104,7 +103,7 @@ namespace Signalizer
 			// can't underflow
 			std::size_t offset = views[0].size() - size;
 
-			switch (state.algo)
+			switch (algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -286,15 +285,16 @@ namespace Signalizer
 		return true;
 	}
 
-	bool Spectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
+	bool Spectrum::StreamState::prepareTransform(const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
 	{
 
-		auto size = getWindowSize(); // the size of the transform, containing samples
+		auto size = windowSize; // the size of the transform, containing samples
 									 // the quantized (to next power of 2) samples of this transform
 									 // that is, the size + additional zero-padding
+		// TODO: replace with transformSize
 		auto fullSize = getFFTSpace<std::complex<double>>();
 
-		auto const channelConfiguration = state.configuration;
+		auto const channelConfiguration = configuration;
 
 
 		{
@@ -309,7 +309,7 @@ namespace Signalizer
 			// extra discarded samples in case the incoming buffer is larger than our own
 			std::size_t extraDiscardedSamples = views[0].size() - size;
 
-			switch (state.algo)
+			switch (algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -548,11 +548,9 @@ namespace Signalizer
 		return true;
 	}
 
-	void Spectrum::doTransform()
+	void Spectrum::StreamState::doTransform()
 	{
-		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
-
-		switch (state.algo)
+		switch (algo)
 		{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -703,17 +701,17 @@ namespace Signalizer
 		}
 
 	template<class InVector>
-		void Spectrum::StreamState::postProcessTransform(const InVector & transform)
+		void Spectrum::postProcessTransform(const InVector & transform)
 		{
-			mapAndTransformDFTFilters(state.configuration, transform, axisPoints, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
+			mapAndTransformDFTFilters(state.configuration, transform, state.axisPoints, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
 		}
 
-	void Spectrum::StreamState::postProcessStdTransform()
+	void Spectrum::postProcessStdTransform(const StreamState& state)
 	{
-		if (algo == SpectrumContent::TransformAlgorithm::FFT)
-			postProcessTransform(getWorkingMemory<fftType>());
+		if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
+			postProcessTransform(state.getTransformResult<fftType>());
 		else
-			postProcessTransform(getWorkingMemory<fpoint>());
+			postProcessTransform(state.getTransformResult<fpoint>());
 	}
 
 	std::size_t Spectrum::StreamState::mapToLinearSpace()
@@ -1441,7 +1439,7 @@ namespace Signalizer
 			{
 				if (curFrame.size() == numFilters)
 				{
-					postProcessTransform(reinterpret_cast<fpoint*>(curFrame.data()), numFilters);
+					postProcessTransform(reinterpret_cast<fpoint*>(curFrame.data()));
 				}
 				else
 				{
@@ -1458,7 +1456,7 @@ namespace Signalizer
 						auto yFrac = y2 - x;
 						tempSpace[n] = curFrame[x] * (fpoint(1) - yFrac) + curFrame[x + 1] * yFrac;
 					}
-					postProcessTransform(reinterpret_cast<fpoint *>(tempSpace.data()), numFilters);
+					postProcessTransform(reinterpret_cast<fpoint *>(tempSpace.data()));
 				}
 			}
 

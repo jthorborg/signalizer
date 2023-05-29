@@ -154,40 +154,6 @@
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
 			/// <summary>
-			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
-			/// The transform will be rendered into filterResults after this.
-			/// </summary>
-			template<class InVector>
-				void postProcessTransform(const InVector & transform, std::size_t size);
-
-			/// <summary>
-			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-			/// or windowing, this is done here.
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			bool prepareTransform(const AudioStream::AudioBufferAccess & audio);
-
-			/// <summary>
-			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-			/// or windowing, this is done here.
-			///
-			/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
-			/// the first argument).
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			bool prepareTransform(const AudioStream::AudioBufferAccess & audio, fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
-
-			/// <summary>
-			/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			void doTransform();
-
-			/// <summary>
 			/// internally used for now.
 			/// </summary>
 			bool processNextSpectrumFrame();
@@ -196,6 +162,19 @@
 		private:
 
 			typedef struct StreamState;
+
+			/// <summary>
+			/// Post processes the transform that will be interpreted according to what's selected.
+			/// </summary>
+			void postProcessStdTransform(const StreamState& state);
+
+			/// <summary>
+			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
+			/// The transform will be rendered into filterResults after this.
+			/// </summary>
+			template<class InVector>
+			void postProcessTransform(const InVector& transform);
+
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
@@ -496,23 +475,42 @@
 				void clearAudioState();
 
 				/// <summary>
-				/// Post processes the transform that will be interpreted according to what's selected.
-				/// </summary>
-				void postProcessStdTransform();
-
-				template<class InVector>
-				void postProcessTransform(const InVector& transform);
-
-				/// <summary>
 				/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
 				/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
 				/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
 				///
 				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
-				/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
+				/// After the call to mapToLinearSpace, the results are written to getTransformResults().
 				/// Returns the complex amount of filters processed.
 				/// </summary>
 				std::size_t mapToLinearSpace();
+
+				/// <summary>
+				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
+				/// or windowing, this is done here.
+				///
+				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
+				/// Needs exclusive access to audioResource.
+				/// </summary>
+				bool prepareTransform(const AudioStream::AudioBufferAccess& audio);
+
+				/// <summary>
+				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
+				/// or windowing, this is done here.
+				///
+				/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
+				/// the first argument).
+				/// Needs exclusive access to audioResource.
+				/// </summary>
+				bool prepareTransform(const AudioStream::AudioBufferAccess& audio, fpoint** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
+
+				/// <summary>
+				/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
+				///
+				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
+				/// Needs exclusive access to audioResource.
+				/// </summary>
+				void doTransform();
 
 				void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors);
 				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
@@ -520,6 +518,12 @@
 				void generateSlopeMap(OutVector& map, const cpl::PowerSlopeValue::PowerFunction&);
 
 				void regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner);
+
+				template<typename T>
+				const T* getTransformResult() const noexcept
+				{
+					return getWorkingMemory<T>();
+				}
 
 			private:
 
