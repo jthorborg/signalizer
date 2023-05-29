@@ -525,8 +525,6 @@ namespace Signalizer
 		std::string mouseNote = frequencyToSemitone(reference, mouseFrequency);
 		std::string freqNote = frequencyToSemitone(reference, peakFrequency);
 
-
-		// TODO: use a monospace font for this part
 		// also: is printf-style really more readable than C++ formatting..
 		cpl::sprintfs(buf,
 			u8"+x:  %s%11.5f Hz\n"
@@ -689,9 +687,11 @@ namespace Signalizer
 
             bool lineTransformReady = false;
 
+			auto&& streamAccess = processor->streamState.lock();
+
             // lock the memory buffers, and do our thing.
             {
-                handleFlagUpdates();
+                handleFlagUpdates(*streamAccess);
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {

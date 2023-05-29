@@ -1448,6 +1448,21 @@ namespace Signalizer
 		return false;
 	}
 
+	void Spectrum::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+	{
+		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
+			return;
+
+		//cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
+	}
+
+	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
+	{
+		auto& access = streamState.lock();
+		
+		access->audioStreamChangeVersion.bump();
+	}
+
 	template<typename ISA>
 	void Spectrum::addAudioFrame()
 	{

@@ -62,6 +62,7 @@ namespace Signalizer
 		, oldWindowSize(-1)
 		, framesPerUpdate()
 		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
+		, config(config)
 	{
 		setOpaque(true);
 		if (!(content = std::dynamic_pointer_cast<SpectrumContent>(params)))
@@ -72,7 +73,12 @@ namespace Signalizer
 		content->getParameterSet().addRTListener(this, true);
 
 		initPanelAndControls();
-		flags.firstChange = true;
+
+		// "first change" flags
+		flags.initiateWindowResize = true;
+		flags.audioWindowWasResized = true;
+		flags.displayModeChange = true;
+		flags.audioStreamChanged = true;
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
 		state.sampleRate = 0;
@@ -164,20 +170,7 @@ namespace Signalizer
 
 	void Spectrum::initPanelAndControls()
 	{
-		// TODO: Clean this up
-		// preliminary initialization - this will update all controls to match audio properties.
-		// it may seem like a hack, but it's well-defined and avoids code duplications.
-		onAsyncChangedProperties();
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-	}
-
-	void Spectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
-	{
-
-	}
-
-	void Spectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
-	{
 	}
 
 	void Spectrum::resized()
@@ -377,28 +370,21 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates()
+	void Spectrum::handleFlagUpdates(Spectrum::StreamState& cs)
 	{
+		// TODO: Re-entracy guards?
 		cpl::CMutex audioLock;
-		if (flags.internalFlagHandlerRunning)
-			CPL_RUNTIME_EXCEPTION("Function is NOT reentrant!");
 
-		flags.internalFlagHandlerRunning = true;
-		bool firstRun = false;
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
 
-
-		if (flags.firstChange.cas())
+		// did audio stream change since last sync?
+		if (state.audioStreamChanged.consumeChanges(cs.audioStreamChangeVersion))
 		{
-			flags.initiateWindowResize = true;
-			flags.audioWindowWasResized = true;
-			flags.displayModeChange = true;
 			flags.audioStreamChanged = true;
-			firstRun = true;
+			flags.audioWindowWasResized = true;
 		}
-
 
 		state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
@@ -486,6 +472,7 @@ namespace Signalizer
 		{
 			// TODO: globals
 			// we will get notified asynchronously in onStreamPropertiesChanged.
+			// TODO: cache them there?
 			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
@@ -722,9 +709,6 @@ namespace Signalizer
 			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
 			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
 		}
-
-		// reset all flags through value-initialization
-		flags.internalFlagHandlerRunning = false;
 	}
 
 
@@ -739,13 +723,6 @@ namespace Signalizer
 	{
 		state.newWindowSize = getValidWindowSize(size);
 		flags.initiateWindowResize = true;
-	}
-
-	// TODO: this needs to be in onStreamPropertiesChanged
-	void Spectrum::onAsyncChangedProperties()
-	{
-		flags.audioStreamChanged = true;
-		flags.audioWindowWasResized = true;
 	}
 
 	void Spectrum::resetStaticViewAssumptions()

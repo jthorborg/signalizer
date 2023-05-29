@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "SpectrumParameters.h"
+#include "Spectrum.h"
 
 namespace Signalizer
 {
@@ -559,6 +560,15 @@ namespace Signalizer
 			valueSerializer;
 	};
 
+
+	std::unique_ptr<cpl::CSubView> SpectrumContent::createView(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<Spectrum>(globalBehaviour, config, stream, shared_from_this());
+	}
 
 	std::unique_ptr<StateEditor> SpectrumContent::createEditor()
 	{

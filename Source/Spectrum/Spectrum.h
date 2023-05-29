@@ -163,8 +163,6 @@
 
 			// TODO: These were the old callbacks.
 			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples);
-			void onAsyncChangedProperties();
-
 
 			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
@@ -232,8 +230,7 @@
 			void calculateSpectrumColourRatios();
 		private:
 
-			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override;
-			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override;
+			typedef struct StreamState;
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
@@ -285,7 +282,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates();
+			void handleFlagUpdates(StreamState&);
 			/// <summary>
 			/// Computes the time-domain window kernel (see state.windowKernel) of getWindowSize() size.
 			/// </summary>
@@ -471,6 +468,8 @@
 				std::size_t axisPoints, numFilters;
 
 				SpectrumContent::LineGraphs frequencyTrackingGraph;
+
+				ChangeVersion::Listener audioStreamChanged;
 			} state;
 
 
@@ -480,11 +479,6 @@
 			/// </summary>
 			struct Flags
 			{
-				/// <summary>
-				/// Dont set this! Set by the flag handler to assert state
-				/// </summary>
-				volatile bool internalFlagHandlerRunning;
-
 				cpl::ABoolFlag
 					/// <summary>
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
@@ -494,6 +488,9 @@
 					/// <summary>
 					/// Set if anything in the audio stream changed
 					/// </summary>
+					/// <remarks>
+					/// Can be non-atomic?
+					/// </remarks>
 					audioStreamChanged,
 					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
@@ -533,10 +530,6 @@
 					/// </summary>
 					dynamicRangeChange,
 					/// <summary>
-					/// This flag will be true the first time handleFlagUpdates() is called
-					/// </summary>
-					firstChange,
-					/// <summary>
 					/// Set to update how the transforms are displayed (spectrum, graphs, etc?)
 					/// </summary>
 					displayModeChange,
@@ -547,7 +540,10 @@
 					mouseMove;
 			} flags;
 
-			struct StreamState {};
+			struct StreamState 
+			{
+				ChangeVersion audioStreamChangeVersion;
+			};
 
 			struct ProcessorShell : public AudioStream::Listener
 			{
@@ -555,8 +551,8 @@
 				CriticalSection<StreamState> streamState;
 				cpl::relaxed_atomic<bool> isSuspended;
 
-				//void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
-				//void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
+				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
 
 				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
 					: globalBehaviour(behaviour)
