@@ -387,7 +387,7 @@ namespace Signalizer
 		cs.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
 		cs.dspWindow = content->dspWin.getWindowType();
-		state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
+		cs.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
@@ -450,7 +450,6 @@ namespace Signalizer
 
 		if (axisPoints != state.axisPoints)
 		{
-			audioLock.acquire(audioResource);
 			flags.resized = true;
 			state.axisPoints = state.numFilters = axisPoints;
 		}
@@ -488,19 +487,18 @@ namespace Signalizer
 			audioLock.acquire(audioResource);
 			// TODO: possible difference between parameter and audiostream?
 			state.windowSize = getValidWindowSize(config->historySize);
-			cs.cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;
 			flags.audioMemoryResize = true;
 		}
 
+		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
+
+		cs.setStorage(state.axisPoints, state.windowSize);
+
 		if (flags.audioMemoryResize.cas())
 		{
 			audioLock.acquire(audioResource);
-			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
-			// some cases it is nice to have an extra entry (see handling of
-			// separating real and imaginary transforms)
-			audioMemory.resize((bufSize + 1) * sizeof(std::complex<double>));
-			windowKernel.resize(bufSize);
+
 			flags.windowKernelChange = true;
 		}
 
@@ -520,7 +518,6 @@ namespace Signalizer
 			}
 
 			slopeMap.resize(numFilters);
-			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
 
 			columnUpdate.resize(getHeight());
 			// avoid doing it twice.
@@ -598,88 +595,26 @@ namespace Signalizer
 
 		if (remapFrequencies)
 		{
-			audioLock.acquire(audioResource);
-			mappedFrequencies.resize(numFilters);
-
-			double viewSize = state.viewRect.dist();
-
-
-			switch (state.viewScale)
-			{
-				case SpectrumContent::ViewScaling::Linear:
-				{
-					double halfSampleRate = sampleRate * 0.5;
-					double complexFactor = state.configuration == SpectrumChannels::Complex ? 2.0 : 1.0;
-					double freqPerPixel = halfSampleRate / (numFilters - 1);
-
-					for (std::size_t i = 0; i < numFilters; ++i)
-					{
-						mappedFrequencies[i] = static_cast<float>(complexFactor * state.viewRect.left * halfSampleRate + complexFactor * viewSize * i * freqPerPixel);
-					}
-
-					break;
-				}
-				case SpectrumContent::ViewScaling::Logarithmic:
-				{
-					double sampleSize = (numFilters - 1);
-
-					double minFreq = state.minLogFreq;
-
-					double end = sampleRate / 2;
-					if (state.configuration != SpectrumChannels::Complex)
-					{
-						for (std::size_t i = 0; i < numFilters; ++i)
-						{
-							mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
-						}
-
-					}
-					else
-					{
-						for (std::size_t i = 0; i < numFilters; ++i)
-						{
-							auto arg = state.viewRect.left + viewSize * i / sampleSize;
-							if (arg < 0.5)
-							{
-								mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, arg * 2));
-							}
-							else
-							{
-								arg -= 0.5;
-								auto power = minFreq * std::pow(end / minFreq, 1.0 - arg * 2);
-								mappedFrequencies[i] = static_cast<float>(end + (end - power));
-							}
-						}
-
-					}
-					break;
-				}
-			}
+			cs.remapFrequencies(state.viewRect, state.viewScale, state.minLogFreq);
 			remapResonator = true;
 			flags.slopeMapChanged = true;
 		}
 
 		if (flags.slopeMapChanged.cas())
 		{
-			cpl::PowerSlopeValue::PowerFunction slopeFunction = content->slope.derive();
-
-			for (std::size_t i = 0; i < numFilters; ++i)
-			{
-				slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
-			}
+			cs.generateSlopeMap(slopeMap, content->slope.derive());
 		}
 
 		if (flags.windowKernelChange.cas())
 		{
-			windowScale = content->dspWin.generateWindow<fftType>(windowKernel, getWindowSize());
 			remapResonator = true;
+			cs.regenerateWindowKernel(content->dspWin);
 		}
 
 		if (remapResonator)
 		{
 			auto window = content->dspWin.getWindowType();
-			cs.cresonator.setFreeQ(content->freeQ.getTransformedValue() > 0.5);
-			cs.cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
+			cs.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
 			flags.frequencyGraphChange = true;
 			relayWidth = getWidth();
 			relayHeight = getHeight();
@@ -698,11 +633,10 @@ namespace Signalizer
 
 		if (flags.resetStateBuffers.cas())
 		{
-			cs.cresonator.resetState();
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
-			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
-			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
+
+			cs.clearAudioState();
 		}
 	}
 

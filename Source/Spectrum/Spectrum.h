@@ -154,35 +154,11 @@
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
 			/// <summary>
-			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
-			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
-			/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
-			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
-			/// Returns the complex amount of filters processed.
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			std::size_t mapToLinearSpace();
-
-			/// <summary>
 			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
 			/// The transform will be rendered into filterResults after this.
 			/// </summary>
 			template<class InVector>
 				void postProcessTransform(const InVector & transform, std::size_t size);
-
-			/// <summary>
-			/// Post processes the transform that will be interpreted according to what's selected.
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			void postProcessStdTransform();
-
-			/// <summary>
-			/// Call this when something affects the view scaling, view size, mapping of frequencies, display modes etc.
-			/// Set state accordingly first.
-			/// </summary>
-			void displayReordered();
 
 			/// <summary>
 			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
@@ -273,12 +249,6 @@
 			/// </summary>
 			void handleFlagUpdates(StreamState&);
 
-			template<typename T>
-				T * getAudioMemory()
-				{
-					return reinterpret_cast<T*>(audioMemory.data());
-				}
-
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
 			/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
@@ -297,31 +267,6 @@
 			template<class V2>
 				void mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
 
-			/// <summary>
-			/// Returns the number of T elements available in the audio space buffer
-			/// (as returned by getAudioMemory<T>())
-			/// </summary>
-			template<typename T>
-				std::size_t getNumAudioElements() const noexcept;
-
-			/// <summary>
-			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
-			/// Guaranteed to be less than getNumAudioElements.
-			/// TODO: hoist into .inl file (other cases in this file as well)
-			/// </summary>
-			template<typename T>
-				std::size_t getFFTSpace() const noexcept
-				{
-					auto size = audioMemory.size();
-					return size ? (size - 1) / sizeof(T) : 0;
-				}
-
-			template<typename T>
-				T * getWorkingMemory();
-
-			template<typename T>
-				std::size_t getNumWorkingElements() const noexcept;
-
 			template<typename ISA>
 				void renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack &);
 
@@ -330,9 +275,6 @@
 
 			template<typename ISA>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA>
-				void addAudioFrame();
 
 			void drawFrequencyTracking(juce::Graphics & g, const float fps);
 
@@ -502,6 +444,7 @@
 				/// <summary>
 				/// The complex resonator used for iir spectrums
 				/// </summary>
+				// TODO: make private?
 				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 
 				SFrameBuffer& sfbuf;
@@ -518,7 +461,12 @@
 				/// The window function applied to the input. Precomputed into windowKernel.
 				/// </summary>
 				cpl::dsp::WindowTypes dspWindow;
+				double sampleRate;
 
+				/// <summary>
+				/// Interpolation method for discrete bins to continuous space
+				/// </summary>
+				SpectrumContent::BinInterpolation binPolation;
 				/// <summary>
 				/// Copies the state from the complex resonator into the output buffer.
 				/// The output vector is assumed to accept index assigning of std::complex of fpoints.
@@ -537,7 +485,79 @@
 				template<typename ISA>
 				void audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
 
+				/// <param name="elements">
+				/// "axis points" or the display window size
+				/// </param>
+				/// <param name="transformSize">
+				/// the size of an fft transform
+				/// </param>
+				/// <seealso cref="mapToLinearSpace"/>
+				void setStorage(std::size_t elements, std::size_t transformSize);
+				void clearAudioState();
+
+				/// <summary>
+				/// Post processes the transform that will be interpreted according to what's selected.
+				/// </summary>
+				void postProcessStdTransform();
+
+				template<class InVector>
+				void postProcessTransform(const InVector& transform);
+
+				/// <summary>
+				/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
+				/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
+				/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
+				///
+				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
+				/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
+				/// Returns the complex amount of filters processed.
+				/// </summary>
+				std::size_t mapToLinearSpace();
+
+				void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors);
+				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
+				template<class OutVector>
+				void generateSlopeMap(OutVector& map, const cpl::PowerSlopeValue::PowerFunction&);
+
+				void regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner);
+
 			private:
+
+				std::size_t getStateConfigurationChannels() const noexcept;
+				void checkInvariants();
+
+				template<typename T>
+				std::size_t getNumWorkingElements() const noexcept;
+				/// <summary>
+				/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
+				/// Guaranteed to be less than getNumAudioElements.
+				/// </summary>
+				template<typename T>
+				std::size_t getFFTSpace() const noexcept
+				{
+					auto size = audioMemory.size();
+					return size ? (size - 1) / sizeof(T) : 0;
+				}
+
+				/// <summary>
+				/// Returns the number of T elements available in the audio space buffer
+				/// (as returned by getAudioMemory<T>())
+				/// </summary>
+				template<typename T>
+				std::size_t getNumAudioElements() const noexcept;
+
+				template<typename ISA>
+				void addAudioFrame();
+
+				template<typename T>
+				T* getWorkingMemory();
+
+				template<typename T>
+				T* getAudioMemory()
+				{
+					return reinterpret_cast<T*>(audioMemory.data());
+				}
+
 
 				/// <summary>
 				/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
@@ -558,6 +578,31 @@
 				/// Not suited for real-time usage (allocates memory)
 				/// </summary>
 				void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
+
+				/// <summary>
+				/// Temporary memory buffer for other applications.
+				/// </summary>
+				cpl::aligned_vector<char, 32> workingMemory;
+
+				/// <summary>
+				/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
+				/// </summary>
+				cpl::aligned_vector<char, 32> audioMemory;
+				// TODO: initialize this or don't process until we've swapped once.
+				std::size_t axisPoints, transformSize, windowSize;
+				// TODO: rename to windowKernelScale
+				double windowScale;
+
+				/// <summary>
+				/// An array, of numFilters size, with each element being the frequency for the filter of
+				/// the corresponding logical display pixel unit.
+				/// </summary>
+				std::vector<fpoint> mappedFrequencies;
+
+				/// <summary>
+				/// The time-domain representation of the dsp-window applied to fourier transforms.
+				/// </summary>
+				cpl::aligned_vector<double, 32> windowKernel;
 			};
 
 			struct ProcessorShell : public AudioStream::Listener
@@ -590,6 +635,7 @@
 			// non-state variables
 			std::shared_ptr<SpectrumContent> content;
 			std::shared_ptr<ProcessorShell> processor;
+			// TODO: remove
 			double audioThreadUsage;
 			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
 			bool wasResized;
@@ -606,6 +652,7 @@
 			/// <summary>
 			/// Lenght/height after state updates.
 			/// </summary>
+			// TODO: Delete?
 			std::size_t relayWidth, relayHeight;
 			int framePixelPosition;
 			double oldWindowSize;
@@ -642,19 +689,11 @@
 			};
 			// dsp objects
 			std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
-			/// <summary>
-			/// An array, of numFilters size, with each element being the frequency for the filter of
-			/// the corresponding logical display pixel unit.
-			/// </summary>
-			std::vector<fpoint> mappedFrequencies;
+
 			/// <summary>
 			/// The connected, incoming stream of data.
 			/// </summary>
 			std::shared_ptr<AudioStream::Output> audioStream;
-			/// <summary>
-			/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
-			/// </summary>
-			cpl::aligned_vector<char, 32> audioMemory;
 
 			struct SmoothedPeakState
 			{
@@ -711,16 +750,6 @@
 				double currentFrequency{}, currentPeakDBs{}, currentPeak{};
 
 			} peakState;
-
-			/// <summary>
-			/// Temporary memory buffer for other applications.
-			/// Resized in displayReordered
-			/// </summary>
-			cpl::aligned_vector<char, 32> workingMemory;
-			/// <summary>
-			/// The time-domain representation of the dsp-window applied to fourier transforms.
-			/// </summary>
-			cpl::aligned_vector<double, 32> windowKernel;
 
 			cpl::aligned_vector<fpoint, 32> slopeMap;
 			/// <summary>

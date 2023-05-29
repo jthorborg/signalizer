@@ -725,7 +725,7 @@ namespace Signalizer
                     audioLock.acquire(audioResource);
                     doTransform();
                     mapToLinearSpace();
-                    postProcessStdTransform();
+                    cs.postProcessStdTransform();
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
