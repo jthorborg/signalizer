@@ -69,45 +69,6 @@ namespace Signalizer
 		flags.resetStateBuffers = true;
 	}
 
-
-	void Spectrum::computeWindowKernel()
-	{
-		size_t sampleSize = getWindowSize();
-		std::size_t i = 0;
-
-
-		switch (state.dspWindow.load())
-		{
-
-			case cpl::dsp::WindowTypes::Hann:
-			{
-				for (; i < sampleSize; ++i)
-				{
-					windowKernel[i] = 1.0 - std::cos(TAU * i / (sampleSize - 1));
-				}
-				break;
-			}
-			default:
-				for (; i < sampleSize; ++i)
-				{
-					windowKernel[i] = 1.0;
-				}
-			break;
-		}
-
-
-		size_t fullSize = getFFTSpace<std::complex<double>>();
-		// zero-padding
-		for (; i < fullSize; ++i)
-		{
-			windowKernel[i] = 0.0;
-		}
-		// uncomment if you want to use window for convolution
-		//cpl::dsp::CSignalTransform::sfft(reinterpret_cast<double*>(windowKernel.data()), fullSize);
-	}
-
-
-
 	bool Spectrum::prepareTransform(const AudioStream::AudioBufferAccess & audio)
 	{
 		if (audio.getNumChannels() < 2)
@@ -1356,13 +1317,9 @@ namespace Signalizer
 		{
 
 			std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
-			std::size_t filtersPerChannel;
-			{
-				// locking, to ensure the amount of resonators doesn't change inbetween.
-				cpl::CMutex lock(cresonator);
-				filtersPerChannel = copyResonatorStateInto<fpoint>(wsp) / getStateConfigurationChannels();
-			}
-
+			auto configurationChannels = getStateConfigurationChannels();
+			// TODO: recursive lock?
+			std::size_t filtersPerChannel = processor->streamState.lock()->copyResonatorStateInto<fpoint>(wsp, configurationChannels) / getStateConfigurationChannels();
 
 			switch (state.configuration)
 			{
@@ -1453,6 +1410,7 @@ namespace Signalizer
 		access->audioStreamChangeVersion.bump();
 	}
 
+	// Called from DSP only
 	template<typename ISA>
 	void Spectrum::addAudioFrame()
 	{
@@ -1482,16 +1440,15 @@ namespace Signalizer
 
 
 	template<typename V, class Vector>
-	std::size_t Spectrum::copyResonatorStateInto(Vector & output)
+	std::size_t Spectrum::StreamState::copyResonatorStateInto(Vector& output, std::size_t outChannels)
 	{
 		auto numResFilters = cresonator.getNumFilters();
-		auto numChannels = getStateConfigurationChannels();
 		// casts from std::complex<T> * to T * which is well-defined.
+		// TODO: std::ranges
+		auto buf = reinterpret_cast<fpoint*>(cpl::data(output));
+		cresonator.getWholeWindowedState<V>(dspWindow, buf, outChannels, numResFilters);
 
-		auto buf = (fpoint*)cpl::data(output);
-		cresonator.getWholeWindowedState<V>(state.dspWindow, buf, numChannels, numResFilters);
-
-		return numResFilters << (numChannels - 1);
+		return numResFilters << (outChannels - 1);
 	}
 
 	Spectrum::StreamState::StreamState(Spectrum::SFrameBuffer& buffer)
@@ -1566,24 +1523,22 @@ namespace Signalizer
 
 			sfbuf.sampleCounter += numSamples;
 		}
-		else if(state.algo == SpectrumContent::TransformAlgorithm::RSNT)
+		else */if(algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			resonatingDispatch<ISA>(buffer, numChannels, numSamples);
 		}
-		*/
+		
 	}
 
 
 	template<typename ISA>
-	void Spectrum::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Spectrum::StreamState::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		CPL_RUNTIME_ASSERTION(audioResource.refCountForThisThread() > 0 && "Thread processing audio transforms doesn't own lock");
-
 		// TODO: asserts?
 		if (numChannels > 2)
 			return;
 
-		switch (state.configuration)
+		switch (configuration)
 		{
 			case SpectrumChannels::Right:
 			{
@@ -1649,12 +1604,12 @@ namespace Signalizer
 		}
 	}
 
-	Spectrum::fpoint * Spectrum::getRelayBufferChannel(std::size_t channel)
+	Spectrum::fpoint* Spectrum::StreamState::getRelayBufferChannel(std::size_t channel)
 	{
 		return relay.buffer.data() + channel * relay.samples;
 	}
 
-	void Spectrum::ensureRelayBufferSize(std::size_t channels, std::size_t numSamples)
+	void Spectrum::StreamState::ensureRelayBufferSize(std::size_t channels, std::size_t numSamples)
 	{
 		relay.buffer.resize(channels * numSamples);
 		relay.samples = numSamples;

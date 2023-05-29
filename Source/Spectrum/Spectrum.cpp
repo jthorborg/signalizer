@@ -348,7 +348,6 @@ namespace Signalizer
 		}
 		else if (param == &content->freeQ.parameter)
 		{
-			cresonator.setFreeQ(content->freeQ.getTransformedValue() > 0.5);
 			flags.windowKernelChange = true;
 		}
 		else if (param == &content->spectrumStretching.parameter)
@@ -385,9 +384,9 @@ namespace Signalizer
 			flags.audioWindowWasResized = true;
 		}
 
-		state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
+		cs.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
-		state.dspWindow = content->dspWin.getWindowType();
+		cs.dspWindow = content->dspWin.getWindowType();
 		state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
@@ -421,7 +420,7 @@ namespace Signalizer
 
 		if (newconf != state.configuration)
 		{
-			state.configuration = newconf;
+			cs.configuration = state.configuration = newconf;
 			if (newconf != SpectrumChannels::Complex)
 			{
 				complexFrequencyGraph.clear();
@@ -489,7 +488,7 @@ namespace Signalizer
 			audioLock.acquire(audioResource);
 			// TODO: possible difference between parameter and audiostream?
 			state.windowSize = getValidWindowSize(config->historySize);
-			cresonator.setWindowSize(8, getWindowSize());
+			cs.cresonator.setWindowSize(8, getWindowSize());
 			remapResonator = true;
 			flags.audioMemoryResize = true;
 		}
@@ -678,9 +677,9 @@ namespace Signalizer
 
 		if (remapResonator)
 		{
-			audioLock.acquire(audioResource);
 			auto window = content->dspWin.getWindowType();
-			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
+			cs.cresonator.setFreeQ(content->freeQ.getTransformedValue() > 0.5);
+			cs.cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
 			flags.frequencyGraphChange = true;
 			relayWidth = getWidth();
 			relayHeight = getHeight();
@@ -699,8 +698,7 @@ namespace Signalizer
 
 		if (flags.resetStateBuffers.cas())
 		{
-			audioLock.acquire(audioResource);
-			cresonator.resetState();
+			cs.cresonator.resetState();
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
 			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);

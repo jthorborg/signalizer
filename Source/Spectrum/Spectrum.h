@@ -272,10 +272,6 @@
 			/// (certain operations imply others)
 			/// </summary>
 			void handleFlagUpdates(StreamState&);
-			/// <summary>
-			/// Computes the time-domain window kernel (see state.windowKernel) of getWindowSize() size.
-			/// </summary>
-			void computeWindowKernel();
 
 			template<typename T>
 				T * getAudioMemory()
@@ -309,16 +305,6 @@
 				std::size_t getNumAudioElements() const noexcept;
 
 			/// <summary>
-			/// Gets the relay buffer for the channel.
-			/// Note: you should call ensureRelayBufferSize before.
-			/// </summary>
-			fpoint * getRelayBufferChannel(std::size_t channel);
-			/// <summary>
-			/// Ensures the storage for the relay buffer.
-			/// Not suited for real-time usage (allocates memory)
-			/// </summary>
-			void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
-			/// <summary>
 			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
 			/// Guaranteed to be less than getNumAudioElements.
 			/// TODO: hoist into .inl file (other cases in this file as well)
@@ -346,22 +332,7 @@
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			template<typename ISA>
-				void resonatingDispatch(float ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA>
 				void addAudioFrame();
-
-			/// <summary>
-			/// Copies the state from the complex resonator into the output buffer.
-			/// The output vector is assumed to accept index assigning of std::complex of fpoints.
-			/// It is assumed the output vector can hold at least numChannels (of configuration) times
-			/// numFilters.
-			/// Output of channels are stored at numFilters offsets.
-			///
-			/// Returns the total number of complex samples copied into the output
-			/// </summary>
-			template<typename ISA, class Vector>
-				std::size_t copyResonatorStateInto(Vector & output);
 
 			void drawFrequencyTracking(juce::Graphics & g, const float fps);
 
@@ -400,7 +371,7 @@
 				/// <summary>
 				/// The current selected algorithm that will digest the audio data into the display.
 				/// </summary>
-				cpl::weak_atomic<SpectrumContent::TransformAlgorithm> algo;
+				SpectrumContent::TransformAlgorithm algo;
 				/// <summary>
 				/// How the incoming data is interpreted, channel-wise.
 				/// </summary>
@@ -442,11 +413,6 @@
 				/// Logarithmic displays has to start at a positive value.
 				/// </summary>
 				double minLogFreq = 10;
-
-				/// <summary>
-				/// The window function applied to the input. Precomputed into windowKernel.
-				/// </summary>
-				cpl::weak_atomic<cpl::dsp::WindowTypes> dspWindow;
 
 				cpl::weak_atomic<std::size_t> newWindowSize;
 				cpl::weak_atomic<float> sampleRate;
@@ -533,14 +499,65 @@
 			{
 				StreamState(SFrameBuffer& buffer);
 
+				/// <summary>
+				/// The complex resonator used for iir spectrums
+				/// </summary>
+				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
+
 				SFrameBuffer& sfbuf;
 				ChangeVersion audioStreamChangeVersion;
 
 				// From flag updates
-				SpectrumContent::DisplayMode displayMode;
-				
+				SpectrumContent::DisplayMode displayMode {};
+				SpectrumContent::TransformAlgorithm algo {};
+				/// <summary>
+				/// How the incoming data is interpreted, channel-wise.
+				/// </summary>
+				SpectrumChannels configuration;
+				/// <summary>
+				/// The window function applied to the input. Precomputed into windowKernel.
+				/// </summary>
+				cpl::dsp::WindowTypes dspWindow;
+
+				/// <summary>
+				/// Copies the state from the complex resonator into the output buffer.
+				/// The output vector is assumed to accept index assigning of std::complex of fpoints.
+				/// It is assumed the output vector can hold at least numChannels (of configuration) times
+				/// numFilters.
+				/// Output of channels are stored at numFilters offsets.
+				///
+				/// Returns the total number of complex samples copied into the output
+				/// </summary>
+				template<typename ISA, class Vector>
+				std::size_t copyResonatorStateInto(Vector& output, std::size_t outChannels);
+
+				template<typename ISA>
+				void resonatingDispatch(float** buffer, std::size_t numChannels, std::size_t numSamples);
+
 				template<typename ISA>
 				void audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
+
+			private:
+
+				/// <summary>
+				/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
+				/// </summary>
+				struct RelayBuffer
+				{
+					cpl::aligned_vector<fpoint, 32> buffer;
+					std::size_t samples, channels;
+				} relay;
+
+				/// <summary>
+				/// Gets the relay buffer for the channel.
+				/// Note: you should call ensureRelayBufferSize before.
+				/// </summary>
+				fpoint* getRelayBufferChannel(std::size_t channel);
+				/// <summary>
+				/// Ensures the storage for the relay buffer.
+				/// Not suited for real-time usage (allocates memory)
+				/// </summary>
+				void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
 			};
 
 			struct ProcessorShell : public AudioStream::Listener
@@ -626,10 +643,6 @@
 			// dsp objects
 			std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
 			/// <summary>
-			/// The complex resonator used for iir spectrums
-			/// </summary>
-			cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
-			/// <summary>
 			/// An array, of numFilters size, with each element being the frequency for the filter of
 			/// the corresponding logical display pixel unit.
 			/// </summary>
@@ -642,14 +655,6 @@
 			/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 			/// </summary>
 			cpl::aligned_vector<char, 32> audioMemory;
-			/// <summary>
-			/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
-			/// </summary>
-			struct RelayBuffer
-			{
-				cpl::aligned_vector<fpoint, 32> buffer;
-				std::size_t samples, channels;
-			} relay;
 
 			struct SmoothedPeakState
 			{
