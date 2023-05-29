@@ -93,7 +93,6 @@ namespace Signalizer
 
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
-		sfbuf.sampleBufferSize = 200;
 		resetStaticViewAssumptions();
 	}
 
@@ -124,7 +123,7 @@ namespace Signalizer
 
 #pragma message cwarn("Fix this as well.")
 		SFrameBuffer::FrameVector * frame;
-		while (sfbuf.frameQueue.popElement(frame))
+		while (processor->sfbuf.frameQueue.popElement(frame))
 			delete frame;
 
 		notifyDestruction();
@@ -443,9 +442,7 @@ namespace Signalizer
 
 		if (flags.displayModeChange.cas())
 		{
-			// ensures any concurrent processing modes gets to finish.
-			audioLock.acquire(audioResource);
-			state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
+			cs.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
 			flags.resized = true;
 			flags.resetStateBuffers = true;
 		}

@@ -1106,6 +1106,12 @@
 				return { *this };
 			}
 
+			template <typename... Args>
+			CriticalSection(Args&& ...args)
+				: data{ std::forward<Args>(args)... }
+			{
+			}
+
 		private:
 			T data;
 			std::mutex mutex;

@@ -1398,7 +1398,7 @@ namespace Signalizer
 	bool Spectrum::processNextSpectrumFrame()
 	{
 		SFrameBuffer::FrameVector * next;
-		if (sfbuf.frameQueue.popElement(next))
+		if (processor->sfbuf.frameQueue.popElement(next))
 		{
 			SFrameBuffer::FrameVector & curFrame(*next);
 
@@ -1438,22 +1438,12 @@ namespace Signalizer
 		return false;
 	}
 
-	bool Spectrum::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
-	{
-		if (state.isSuspended && globalBehaviour->stopProcessingOnSuspend)
-			return false;
-
-		cpl::simd::dynamic_isa_dispatch<AudioStream::DataType, AudioDispatcher>(*this, buffer, numChannels, numSamples);
-
-		return false;
-	}
-
 	void Spectrum::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
 			return;
 
-		//cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
+		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
 	}
 
 	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
@@ -1504,79 +1494,84 @@ namespace Signalizer
 		return numResFilters << (numChannels - 1);
 	}
 
+	Spectrum::StreamState::StreamState(Spectrum::SFrameBuffer& buffer)
+		: sfbuf(buffer)
+	{
+	}
+
+	Spectrum::ProcessorShell::ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
+		: globalBehaviour(behaviour), sfbuf(), streamState(sfbuf)
+	{
+		sfbuf.sampleBufferSize = 200;
+	}
+
 	template<typename ISA>
-		void Spectrum::audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Spectrum::StreamState::audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+	{ /*
+		if (displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
-			cpl::CMutex audioLock;
+			std::int64_t n = numSamples;
+			std::size_t offset = 0;
 
-			if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+			while (n > 0)
 			{
+				std::int64_t numRemainingSamples = sfbuf.sampleBufferSize - sfbuf.currentCounter;
+				const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
-				std::int64_t n = numSamples;
-				std::size_t offset = 0;
-
-				while (n > 0)
+				// do some resonation
+				if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 				{
-					std::int64_t numRemainingSamples = sfbuf.sampleBufferSize - sfbuf.currentCounter;
-					const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
-
-					// do some resonation
-					if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
-					{
-						audioLock.acquire(audioResource);
-						fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
-						resonatingDispatch<ISA>(offBuf, numChannels, availableSamples);
-					}
-
-					sfbuf.currentCounter += availableSamples;
-
-					if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
-					{
-						audioLock.acquire(audioResource);
-						bool transformReady = true;
-						if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
-						{
-							fpoint * offBuf[2] = { buffer[0], buffer[1]};
-							if (audioStream->getNumDeferredSamples() == 0)
-							{
-								// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
-								// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-								if((transformReady = prepareTransform(audioStream->getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
-									doTransform();
-							}
-							else
-							{
-								// ignore the deferred samples and produce some views that is slightly out-of-date.
-								// this ONLY happens if something else is hogging the buffers.
-								if((transformReady = prepareTransform(audioStream->getAudioBufferViews())))
-									doTransform();
-							}
-						}
-
-						if(transformReady)
-							addAudioFrame<ISA>();
-
-						sfbuf.currentCounter = 0;
-
-						// change this here. oh really?
-						sfbuf.sampleBufferSize = getBlobSamples();
-					}
-
-					offset += availableSamples;
-					n -= availableSamples;
+					// TODO: Assumptions about channels...
+					fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
+					resonatingDispatch<ISA>(offBuf, numChannels, availableSamples);
 				}
 
+				sfbuf.currentCounter += availableSamples;
 
-				sfbuf.sampleCounter += numSamples;
-			}
-			else if(state.algo == SpectrumContent::TransformAlgorithm::RSNT)
-			{
-				audioLock.acquire(audioResource);
-				resonatingDispatch<ISA>(buffer, numChannels, numSamples);
+				if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
+				{
+					bool transformReady = true;
+					if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
+					{
+						fpoint * offBuf[2] = { buffer[0], buffer[1]};
+						if (audioStream->getNumDeferredSamples() == 0)
+						{
+							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
+							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
+							if((transformReady = prepareTransform(audioStream->getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
+								doTransform();
+						}
+						else
+						{
+							// ignore the deferred samples and produce some views that is slightly out-of-date.
+							// this ONLY happens if something else is hogging the buffers.
+							if((transformReady = prepareTransform(audioStream->getAudioBufferViews())))
+								doTransform();
+						}
+					}
+
+					if(transformReady)
+						addAudioFrame<ISA>();
+
+					sfbuf.currentCounter = 0;
+
+					// change this here. oh really?
+					sfbuf.sampleBufferSize = getBlobSamples();
+				}
+
+				offset += availableSamples;
+				n -= availableSamples;
 			}
 
-			return;
+
+			sfbuf.sampleCounter += numSamples;
 		}
+		else if(state.algo == SpectrumContent::TransformAlgorithm::RSNT)
+		{
+			resonatingDispatch<ISA>(buffer, numChannels, numSamples);
+		}
+		*/
+	}
 
 
 	template<typename ISA>
@@ -1688,7 +1683,7 @@ namespace Signalizer
 	std::size_t Spectrum::getApproximateStoredFrames() const noexcept
 	{
 #pragma message cwarn("fix this to include channels, other processing methods.. etc.")
-		return sfbuf.frameQueue.enqueuededElements();
+		return processor->sfbuf.frameQueue.enqueuededElements();
 	}
 
 	int Spectrum::getNumFilters() const noexcept

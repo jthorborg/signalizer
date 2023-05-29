@@ -145,14 +145,6 @@
 				template<typename ISA> static void dispatch(Spectrum & c) { c.vectorGLRendering<ISA>(); }
 			};
 
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(Spectrum & c, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
-				{
-					c.audioProcessing<ISA>(buffer, numChannels, numSamples);
-				}
-			};
-
 
             template<typename ISA>
                 void vectorGLRendering();
@@ -160,9 +152,6 @@
 			virtual void paint2DGraphics(juce::Graphics & g);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
-
-			// TODO: These were the old callbacks.
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples);
 
 			/// <summary>
 			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
@@ -542,24 +531,38 @@
 
 			struct StreamState 
 			{
+				StreamState(SFrameBuffer& buffer);
+
+				SFrameBuffer& sfbuf;
 				ChangeVersion audioStreamChangeVersion;
+
+				// From flag updates
+				SpectrumContent::DisplayMode displayMode;
+				
+				template<typename ISA>
+				void audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
 			};
 
 			struct ProcessorShell : public AudioStream::Listener
 			{
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+				SFrameBuffer sfbuf;
 				CriticalSection<StreamState> streamState;
 				cpl::relaxed_atomic<bool> isSuspended;
 
 				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
 				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
 
-				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
-					: globalBehaviour(behaviour)
-				{
-				}
+				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour);
 			};
 
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
+				}
+			};
 
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;			
 			std::shared_ptr<const ConcurrentConfig> config;
@@ -721,7 +724,6 @@
 			/// </summary>
 			cpl::CMutex::Lockable audioResource;
 
-			SFrameBuffer sfbuf;
 		};
 
 	};
