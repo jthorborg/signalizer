@@ -65,6 +65,8 @@
 			, private ParameterSet::RTListener
 		{
 
+			struct StreamState;
+
 		public:
 
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
@@ -149,7 +151,7 @@
             template<typename ISA>
                 void vectorGLRendering();
 
-			virtual void paint2DGraphics(juce::Graphics & g);
+			virtual void paint2DGraphics(juce::Graphics & g, const StreamState& streamState);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
@@ -255,14 +257,14 @@
 			template<typename ISA>
 				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
 
-			void drawFrequencyTracking(juce::Graphics & g, const float fps);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps, const StreamState& streamState);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
 			/// </summary>
 			/// <param name="coordinate"></param>
 			/// <returns></returns>
-			double getScallopingLossAtCoordinate(std::size_t coordinate);
+			double getScallopingLossAtCoordinate(std::size_t coordinate, const StreamState& streamState);
 
 			/// <summary>
 			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.
@@ -341,11 +343,12 @@
 
 				float alphaFloodFill;
 
-				std::size_t axisPoints, numFilters;
+				std::size_t axisPoints, numFilters, transformSize;
 
 				SpectrumContent::LineGraphs frequencyTrackingGraph;
 
 				ChangeVersion::Listener audioStreamChanged;
+				double windowScale;
 			} state;
 
 
@@ -467,11 +470,14 @@
 				/// <param name="elements">
 				/// "axis points" or the display window size
 				/// </param>
-				/// <param name="transformSize">
-				/// the size of an fft transform
+				/// <param name="effectiveTransformSize">
+				/// the size of the fourier transform
+				/// </param>
+				/// <param name="outputTransformSize">
+				/// the actual size used for the fft computation
 				/// </param>
 				/// <seealso cref="mapToLinearSpace"/>
-				void setStorage(std::size_t elements, std::size_t transformSize);
+				void setStorage(std::size_t elements, std::size_t effectiveTransformSize, std::size_t& outputTransformSize);
 				void clearAudioState();
 
 				/// <summary>
@@ -514,15 +520,38 @@
 
 				void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors);
 				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
+
 				template<class OutVector>
-				void generateSlopeMap(OutVector& map, const cpl::PowerSlopeValue::PowerFunction&);
+				void generateSlopeMap(OutVector& slopeMap, const cpl::PowerSlopeValue::PowerFunction& slopeFunction)
+				{
+					for (std::size_t i = 0; i < axisPoints; ++i)
+					{
+						slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
+					}
+				}
 
-				void regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner);
+				double regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner);
 
+				/// <summary>
+				/// Returns an array of "axis points" size. 
+				/// </summary>
 				template<typename T>
 				const T* getTransformResult() const noexcept
 				{
 					return getWorkingMemory<T>();
+				}
+
+				/// <summary>
+				/// Returns an array of "axis points" size. 
+				/// </summary>
+				const std::complex<fftType>* getRawFFT() const noexcept
+				{
+					return getAudioMemory<std::complex<fftType>>();
+				}
+
+				float mapFrequency(std::size_t axisPoint) const noexcept
+				{
+					return mappedFrequencies.at(axisPoint);
 				}
 
 			private:
@@ -553,13 +582,29 @@
 				template<typename ISA>
 				void addAudioFrame();
 
-				template<typename T>
-				T* getWorkingMemory();
 
 				template<typename T>
-				T* getAudioMemory()
+				T* getWorkingMemory() noexcept
+				{
+					return reinterpret_cast<T*>(workingMemory.data());
+				}
+
+				template<typename T>
+				const T* getWorkingMemory() const noexcept
+				{
+					return reinterpret_cast<const T*>(workingMemory.data());
+				}
+
+				template<typename T>
+				T* getAudioMemory() noexcept
 				{
 					return reinterpret_cast<T*>(audioMemory.data());
+				}
+
+				template<typename T>
+				const T* getAudioMemory() const noexcept
+				{
+					return reinterpret_cast<const T*>(audioMemory.data());
 				}
 
 
@@ -593,7 +638,7 @@
 				/// </summary>
 				cpl::aligned_vector<char, 32> audioMemory;
 				// TODO: initialize this or don't process until we've swapped once.
-				std::size_t axisPoints, transformSize, windowSize;
+				std::size_t axisPoints {}, transformSize{}, windowSize{};
 				// TODO: rename to windowKernelScale
 				double windowScale;
 
@@ -647,11 +692,6 @@
 			cpl::weak_atomic<bool> hasMainThreadInitializedAudioStreamDependenant;
 			double scallopLoss;
 			int lastPeak;
-
-			/// <summary>
-			/// see cpl::dsp::windowScale
-			/// </summary>
-			fftType windowScale;
 
 			/// <summary>
 			/// Lenght/height after state updates.

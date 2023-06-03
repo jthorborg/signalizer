@@ -493,7 +493,7 @@ namespace Signalizer
 
 		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 
-		cs.setStorage(state.axisPoints, state.windowSize);
+		cs.setStorage(state.axisPoints, state.windowSize, state.transformSize);
 
 		if (flags.audioMemoryResize.cas())
 		{
@@ -608,7 +608,7 @@ namespace Signalizer
 		if (flags.windowKernelChange.cas())
 		{
 			remapResonator = true;
-			cs.regenerateWindowKernel(content->dspWin);
+			state.windowScale = cs.regenerateWindowKernel(content->dspWin);
 		}
 
 		if (remapResonator)

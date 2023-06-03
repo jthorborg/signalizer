@@ -47,21 +47,6 @@ namespace Signalizer
 			return audioMemory.size() / sizeof(T);
 		}
 
-	template<typename T>
-		T * Spectrum::StreamState::getWorkingMemory()
-		{
-			return reinterpret_cast<T*>(workingMemory.data());
-		}
-
-		template<class OutVector>
-		void Spectrum::StreamState::generateSlopeMap(OutVector& slopeMap, const cpl::PowerSlopeValue::PowerFunction& slopeFunction)
-		{
-			for (std::size_t i = 0; i < axisPoints; ++i)
-			{
-				slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
-			}
-		}
-
 		template<typename T>
 		std::size_t Spectrum::StreamState::getNumWorkingElements() const noexcept
 		{
@@ -1676,11 +1661,12 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::StreamState::setStorage(std::size_t elements, std::size_t effectiveWindowSize)
+	void Spectrum::StreamState::setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
 	{
 		windowSize = effectiveWindowSize;
 		const auto newTransformSize = cpl::Math::nextPow2Inc(windowSize);
 		axisPoints = elements;
+		transformSize = outputTransformSize = newTransformSize;
 		// some cases it is nice to have an extra entry (see handling of
 		// separating real and imaginary transforms)
 		// TODO: type these in terms of complex, not god damn chars.
@@ -1690,9 +1676,9 @@ namespace Signalizer
 		windowKernel.resize(transformSize);
 	}
 
-	void Spectrum::StreamState::regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner)
+	double Spectrum::StreamState::regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner)
 	{
-		windowScale = windowDesigner.generateWindow<fftType>(windowKernel, windowSize);
+		return windowScale = windowDesigner.generateWindow<fftType>(windowKernel, windowSize);
 	}
 
 	void Spectrum::StreamState::clearAudioState()
@@ -1744,9 +1730,13 @@ namespace Signalizer
 		return getAxisPoints();
 	}
 
-	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate)
+	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate, const StreamState& streamState)
 	{
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
+
+		if (state.axisPoints < 3)
+			return ret;
+
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
 #pragma message cwarn("Fix this to use direct values")
@@ -1761,13 +1751,13 @@ namespace Signalizer
 			double normalizedBandwidth = 0, fractionateScallopLoss = normalizedBandwidth;
 
 
-			auto safeIndex = cpl::Math::confineTo<std::size_t>(coordinate, 0, mappedFrequencies.size() - 2);
+			auto safeIndex = cpl::Math::confineTo<std::size_t>(coordinate, 0, state.axisPoints - 2);
 			if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
 			{
 				if (state.viewScale == SpectrumContent::ViewScaling::Linear)
 				{
 
-					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
+					normalizedBandwidth = state.windowSize * std::abs((double)streamState.mapFrequency(safeIndex + 1) - streamState.mapFrequency(safeIndex)) / sampleRate;
 
 					normalizedBandwidth = std::min(0.5, normalizedBandwidth);
 				}
@@ -1782,7 +1772,7 @@ namespace Signalizer
 
 				if (state.binPolation == SpectrumContent::BinInterpolation::Lanczos && state.frequencyTrackingGraph != SpectrumContent::LineGraphs::Transform)
 				{
-					normalizedBandwidth = getWindowSize() * std::abs((double)mappedFrequencies[safeIndex + 1] - mappedFrequencies[safeIndex]) / sampleRate;
+					normalizedBandwidth = state.windowSize * std::abs((double)streamState.mapFrequency(safeIndex + 1) - streamState.mapFrequency(safeIndex)) / sampleRate;
 					if (normalizedBandwidth < 0.5)
 					{
 						canOvershoot = true;

@@ -74,7 +74,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::paint2DGraphics(juce::Graphics & g)
+	void Spectrum::paint2DGraphics(juce::Graphics & g, const StreamState& streamState)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -166,7 +166,7 @@ namespace Signalizer
 
 		computeAverageStats(averageFps, averageCpu);
 
-		drawFrequencyTracking(g, averageFps);
+		drawFrequencyTracking(g, averageFps, streamState);
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
@@ -190,7 +190,7 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Spectrum::StreamState& streamState)
 	{
 		if (globalBehaviour->hideWidgetsOnMouseExit)
 		{
@@ -362,17 +362,17 @@ namespace Signalizer
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
 
-			peakFrequency = mappedFrequencies[peakOffset];
+			peakFrequency = streamState.mapFrequency(peakOffset);
 
 
-			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
-			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
+			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(state.axisPoints - 1);
+			peakDeviance = streamState.mapFrequency(offsetIsEnd ? peakOffset : peakOffset + 1) - streamState.mapFrequency(offsetIsEnd ? peakOffset - 1 : peakOffset);
 
 			if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
 				if (state.binPolation != SpectrumContent::BinInterpolation::Lanczos)
-					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
+					peakDeviance = std::max(peakDeviance, 0.5 * state.transformSize / N);
 			}
 
 			peakX = peakOffset;
@@ -391,17 +391,18 @@ namespace Signalizer
 		else
 		{
 			// search the original FFT
-			auto N = getFFTSpace<std::complex<fftType>>();
+			// TODO: name hiding
+			auto N = state.transformSize;
 			auto points = getNumFilters();
 			auto lowerBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction - nearbyFractionToConsider));
-			lowerBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(lowerBound, 0, points - 1)] / sampleRate));
+			lowerBound = cpl::Math::round<cpl::ssize_t>((N * streamState.mapFrequency(cpl::Math::confineTo(lowerBound, 0, points - 1)) / sampleRate));
 			auto higherBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction + nearbyFractionToConsider));
-			higherBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(higherBound, 0, points - 1)] / sampleRate));
+			higherBound = cpl::Math::round<cpl::ssize_t>((N * streamState.mapFrequency(cpl::Math::confineTo(higherBound, 0, points - 1)) / sampleRate));
 
 			lowerBound = cpl::Math::confineTo(lowerBound, 0, N);
 			higherBound = cpl::Math::confineTo(higherBound, 0, N);
 
-			auto source = getAudioMemory<std::complex<fftType>>();
+			auto source = streamState.getRawFFT();
 
 			auto peak = std::max_element(source + lowerBound, source + higherBound + 1,
 				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
@@ -434,9 +435,9 @@ namespace Signalizer
 				}
 			}
 
-			auto peakOffset = std::distance(source, peak);
+			const auto peakOffset = std::distance(source, peak);
 
-			auto const invSize = windowScale / (getWindowSize() * 0.5);
+			const auto invSize = state.windowScale / (getWindowSize() * 0.5);
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
@@ -472,6 +473,7 @@ namespace Signalizer
 
 			// deviance firstly considers bin width in frequency, scaled by bin position (precision gets better as
 			// frequency increases) and scaled by assumed precision interpolation
+			// TODO: This is wrong.
 			auto normalizedDeviation = (1.0 - peakFraction) / N;
 			peakDeviance = 2 * interpolationError * normalizedDeviation * sampleRate + precisionError;
 			adjustedScallopLoss = 1.0 - ((1.0 - scallopLoss) * interpolationError + normalizedDeviation); // subtract error
@@ -489,7 +491,7 @@ namespace Signalizer
 			auto truncatedPeak = (int)peakX;
 			if (truncatedPeak != lastPeak)
 			{
-				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak);
+				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak, streamState);
 				lastPeak = truncatedPeak;
 			}
 
@@ -729,9 +731,9 @@ namespace Signalizer
 
             }
             
+			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, *streamAccess); });
         }
 
-		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 
 		postFrame();
 	}
