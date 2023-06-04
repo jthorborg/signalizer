@@ -46,6 +46,8 @@
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
 
+	#define USE_DUST_FFT
+
 	namespace cpl
 	{
 		namespace OpenGLRendering
@@ -71,8 +73,11 @@
 
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
+#ifdef USE_DUST_FFT
 			typedef double fftType;
-
+#else
+			typedef float fftType;
+#endif
 			class SFrameBuffer
 			{
 			public:
@@ -567,8 +572,7 @@
 				template<typename T>
 				std::size_t getFFTSpace() const noexcept
 				{
-					auto size = audioMemory.size();
-					return size ? (size - 1) / sizeof(T) : 0;
+					return transformSize;
 				}
 
 				/// <summary>
@@ -613,7 +617,7 @@
 				struct RelayBuffer
 				{
 					cpl::aligned_vector<fpoint, 32> buffer;
-					std::size_t samples, channels;
+					std::size_t samples {}, channels {};
 				} relay;
 
 				/// <summary>
@@ -635,8 +639,8 @@
 				/// <summary>
 				/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 				/// </summary>
-				cpl::aligned_vector<char, 32> audioMemory;
-				// TODO: initialize this or don't process until we've swapped once.
+				cpl::aligned_vector<std::complex<fftType>, 32> audioMemory;
+
 				std::size_t axisPoints {}, transformSize{}, windowSize{};
 				// TODO: rename to windowKernelScale
 				double windowScale;
@@ -650,7 +654,7 @@
 				/// <summary>
 				/// The time-domain representation of the dsp-window applied to fourier transforms.
 				/// </summary>
-				cpl::aligned_vector<double, 32> windowKernel;
+				cpl::aligned_vector<fftType, 32> windowKernel;
 			};
 
 			struct ProcessorShell : public AudioStream::Listener

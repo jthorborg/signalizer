@@ -33,7 +33,6 @@
 
 	#include <cpl/Common.h>
 	#include <cpl/state/Serialization.h>
-	#include <cpl/CAudioStream.h>
 	#include <mutex>
 	#include <shared_mutex>
 	#include <map>

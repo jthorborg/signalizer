@@ -44,7 +44,7 @@ namespace Signalizer
 	template<typename T>
 		std::size_t Spectrum::StreamState::getNumAudioElements() const noexcept
 		{
-			return audioMemory.size() / sizeof(T);
+			return transformSize;
 		}
 
 		template<typename T>
@@ -696,7 +696,7 @@ namespace Signalizer
 		{
 			const auto lanczosFilterSize = 5;
 			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
-			Types::fsint_t N = static_cast<Types::fsint_t>(getFFTSpace<std::complex<double>>());
+			Types::fsint_t N = transformSize;
 
 			// we rely on mapping indexes, so we need N > 2 at least.
 			if (N == 0)
@@ -704,7 +704,7 @@ namespace Signalizer
 
 			std::size_t numBins = N >> 1;
 			auto const topFrequency = sampleRate / 2;
-			auto const freqToBin = static_cast<double>(numBins) / topFrequency;
+			auto const freqToBin = static_cast<fftType>(numBins / topFrequency);
 
 			typedef fftType ftype;
 
@@ -713,7 +713,7 @@ namespace Signalizer
 			ftype maxLMag, maxRMag, newLMag, newRMag;
 
 			// complex transform results, N + 1 size
-			std::complex<ftype> * csf = getAudioMemory<std::complex<ftype>>();
+			auto csf = getAudioMemory<std::complex<ftype>>();
 			// buffer for single results, numPoints * 2 size
 			ftype * wsp = getWorkingMemory<ftype>();
 			// buffer for complex results, numPoints size
@@ -722,7 +722,7 @@ namespace Signalizer
 			// this will make scaling correct regardless of amount of zero-padding
 			// notice the 0.5: fft's of size 32 will output 16 for exact frequency bin matches,
 			// so we halve the reciprocal scaling factor to normalize the size.
-			auto const invSize = windowScale / (windowSize * 0.5);
+			auto const invSize = static_cast<fftType>(windowScale / (windowSize * 0.5));
 
 			switch (configuration)
 			{
@@ -1331,8 +1331,6 @@ namespace Signalizer
 
 	void Spectrum::StreamState::remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minFreq)
 	{
-		mappedFrequencies.resize(axisPoints);
-
 		double viewSize = viewRect.dist();
 
 		switch (scaling)
@@ -1390,6 +1388,7 @@ namespace Signalizer
 
 	void Spectrum::StreamState::checkInvariants()
 	{
+		CPL_RUNTIME_ASSERTION(transformSize >= 16);
 		CPL_RUNTIME_ASSERTION(mappedFrequencies.size() == axisPoints);
 		CPL_RUNTIME_ASSERTION(getFFTSpace<std::complex<double>>() == transformSize);
 		CPL_RUNTIME_ASSERTION(sfbuf.sampleBufferSize > 0);
@@ -1496,6 +1495,7 @@ namespace Signalizer
 	Spectrum::StreamState::StreamState(Spectrum::SFrameBuffer& buffer)
 		: sfbuf(buffer)
 	{
+
 	}
 
 	Spectrum::ProcessorShell::ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
@@ -1648,16 +1648,17 @@ namespace Signalizer
 	void Spectrum::StreamState::setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
 	{
 		windowSize = effectiveWindowSize;
-		const auto newTransformSize = cpl::Math::nextPow2Inc(windowSize);
+		const auto newTransformSize = std::max<std::size_t>(16, cpl::Math::nextPow2Inc(windowSize));
 		axisPoints = elements;
 		transformSize = outputTransformSize = newTransformSize;
 		// some cases it is nice to have an extra entry (see handling of
 		// separating real and imaginary transforms)
 		// TODO: type these in terms of complex, not god damn chars.
-		audioMemory.resize((transformSize + 1) * sizeof(std::complex<double>));
+		audioMemory.resize(transformSize + 1);
 		workingMemory.resize(elements * 2 * sizeof(std::complex<double>));
 		cresonator.setWindowSize(8, windowSize);
 		windowKernel.resize(transformSize);
+		mappedFrequencies.resize(axisPoints);
 	}
 
 	double Spectrum::StreamState::regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner)

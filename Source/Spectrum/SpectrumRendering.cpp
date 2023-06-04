@@ -437,7 +437,7 @@ namespace Signalizer
 
 			const auto peakOffset = std::distance(source, peak);
 
-			const auto invSize = state.windowScale / (getWindowSize() * 0.5);
+			const auto invSize = static_cast<fftType>(state.windowScale / (getWindowSize() * 0.5));
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html

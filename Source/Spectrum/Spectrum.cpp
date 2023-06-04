@@ -85,6 +85,7 @@ namespace Signalizer
 
 		state.minLogFreq = 10;
 
+		processor->streamState.lock()->setStorage(10, 16, state.transformSize);
 		audioStream->addListener(processor);
 
 		state.antialias = true;
