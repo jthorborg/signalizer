@@ -53,10 +53,6 @@ namespace Signalizer
 		, frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, flags()
-		, droppedAudioFrames()
-		, audioThreadUsage()
-		, relayWidth()
-		, relayHeight()
 		, lastPeak()
 		, scallopLoss()
 		, oldWindowSize(-1)
@@ -430,7 +426,6 @@ namespace Signalizer
 
 		if (flags.audioStreamChanged.cas())
 		{
-			audioLock.acquire(audioResource);
 			// TODO: Globals
 			state.sampleRate = static_cast<float>(config->sampleRate);
 			flags.viewChanged = true;
@@ -484,7 +479,6 @@ namespace Signalizer
 		}
 		if (flags.audioWindowWasResized.cas())
 		{
-			audioLock.acquire(audioResource);
 			// TODO: possible difference between parameter and audiostream?
 			state.windowSize = getValidWindowSize(config->historySize);
 			remapResonator = true;
@@ -497,8 +491,6 @@ namespace Signalizer
 
 		if (flags.audioMemoryResize.cas())
 		{
-			audioLock.acquire(audioResource);
-
 			flags.windowKernelChange = true;
 		}
 
@@ -510,8 +502,6 @@ namespace Signalizer
 		}
 		if (flags.resized.cas())
 		{
-			audioLock.acquire(audioResource);
-
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 			{
 				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
@@ -586,7 +576,6 @@ namespace Signalizer
 
 			oldViewRect = state.viewRect;
 
-			audioLock.acquire(audioResource);
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
 
@@ -616,8 +605,6 @@ namespace Signalizer
 			auto window = content->dspWin.getWindowType();
 			cs.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
 			flags.frequencyGraphChange = true;
-			relayWidth = getWidth();
-			relayHeight = getHeight();
 		}
 
 		if (flags.frequencyGraphChange.cas())

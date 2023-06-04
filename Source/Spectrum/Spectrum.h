@@ -684,12 +684,7 @@
 			// non-state variables
 			std::shared_ptr<SpectrumContent> content;
 			std::shared_ptr<ProcessorShell> processor;
-			// TODO: remove
-			double audioThreadUsage;
-			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-			bool wasResized;
 			cpl::Utility::Bounds<double> oldViewRect;
-			cpl::weak_atomic<bool> hasMainThreadInitializedAudioStreamDependenant;
 			double scallopLoss;
 			int lastPeak;
 
@@ -697,10 +692,8 @@
 			/// Lenght/height after state updates.
 			/// </summary>
 			// TODO: Delete?
-			std::size_t relayWidth, relayHeight;
 			int framePixelPosition;
 			double oldWindowSize;
-			int droppedAudioFrames;
 			double framesPerUpdate;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
 
@@ -796,11 +789,6 @@
 			} peakState;
 
 			cpl::aligned_vector<fpoint, 32> slopeMap;
-			/// <summary>
-			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock.
-			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
-			/// </summary>
-			cpl::CMutex::Lockable audioResource;
 
 		};
 

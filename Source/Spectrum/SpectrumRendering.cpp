@@ -581,15 +581,12 @@ namespace Signalizer
 
 	void Spectrum::initOpenGL()
 	{
-		//oglImage.resize(getWidth(), getHeight(), false);
 		flags.openGLInitiation = true;
-		textures.clear();
 
 	}
 
 	void Spectrum::closeOpenGL()
 	{
-		textures.clear();
 		oglImage.offload();
 	}
 
