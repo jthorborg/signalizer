@@ -80,13 +80,12 @@
 				typedef cpl::aligned_vector < UComplex, 32 > FrameVector;
 
 				SFrameBuffer()
-					: sampleBufferSize(), sampleCounter(), currentCounter(), frameQueue(10, 1000)
+					: sampleBufferSize(), currentCounter(), frameQueue(10, 1000)
 				{
 
 				}
-				std::size_t sampleBufferSize;
+				cpl::relaxed_atomic<std::size_t> sampleBufferSize;
 				std::size_t currentCounter;
-				std::uint64_t sampleCounter;
 
 				cpl::CLockFreeQueue<FrameVector *> frameQueue;
 			};

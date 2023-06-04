@@ -55,7 +55,7 @@ namespace Signalizer
 
 	std::size_t Spectrum::getBlobSamples() const noexcept
 	{
-		return static_cast<std::size_t>(content->blobSize.getTransformedValue() * 0.001 * getSampleRate());
+		return std::max<std::size_t>(10, static_cast<std::size_t>(content->blobSize.getTransformedValue() * 0.001 * getSampleRate()));
 	}
 
 	void Spectrum::resetState()
@@ -68,12 +68,6 @@ namespace Signalizer
 		if (audio.getNumChannels() < 2)
 			return false;
 
-		auto size = windowSize; // the size of the transform, containing samples
-									 // the quantized (to next power of 2) samples of this transform
-									 // that is, the size + additional zero-padding
-		// TODO: replace with transformSize
-		auto fullSize = getFFTSpace<std::complex<double>>();
-
 		auto const channelConfiguration = configuration;
 
 		{
@@ -82,11 +76,11 @@ namespace Signalizer
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
-			if (views[0].size() != views[1].size() || views[0].size() < size)
+			if (views[0].size() != views[1].size() || views[0].size() < windowSize)
 				return false;
 
 			// can't underflow
-			std::size_t offset = views[0].size() - size;
+			std::size_t offset = views[0].size() - windowSize;
 
 			switch (algo)
 			{
@@ -257,7 +251,7 @@ namespace Signalizer
 				}
 				//zero-pad until buffer is filled
 
-				for (size_t pad = i; pad < fullSize; ++pad)
+				for (size_t pad = i; pad < transformSize; ++pad)
 				{
 					buffer[pad] = (fftType)0;
 				}
@@ -272,15 +266,7 @@ namespace Signalizer
 
 	bool Spectrum::StreamState::prepareTransform(const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
 	{
-
-		auto size = windowSize; // the size of the transform, containing samples
-									 // the quantized (to next power of 2) samples of this transform
-									 // that is, the size + additional zero-padding
-		// TODO: replace with transformSize
-		auto fullSize = getFFTSpace<std::complex<double>>();
-
 		auto const channelConfiguration = configuration;
-
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -288,11 +274,11 @@ namespace Signalizer
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
-			if (views[0].size() != views[1].size() || views[0].size() < size)
+			if (views[0].size() != views[1].size() || views[0].size() < windowSize)
 				return false;
 
 			// extra discarded samples in case the incoming buffer is larger than our own
-			std::size_t extraDiscardedSamples = views[0].size() - size;
+			std::size_t extraDiscardedSamples = views[0].size() - windowSize;
 
 			switch (algo)
 			{
@@ -301,10 +287,10 @@ namespace Signalizer
 				auto buffer = getAudioMemory<std::complex<fftType>>();
 				std::size_t channel = 1;
 				std::size_t i = 0;
-				std::size_t stop = std::min(numSamples, size);
+				std::size_t stop = std::min(numSamples, windowSize);
 
 				std::size_t offset = stop + extraDiscardedSamples;
-				auto sizeToStopAt = size - offset;
+				auto sizeToStopAt = windowSize - offset;
 
 				switch (channelConfiguration)
 				{
@@ -520,7 +506,7 @@ namespace Signalizer
 				}
 				}
 				//zero-pad until buffer is filled
-				for (size_t pad = i; pad < fullSize; ++pad)
+				for (size_t pad = i; pad < transformSize; ++pad)
 				{
 					buffer[pad] = 0;
 				}
@@ -1406,6 +1392,7 @@ namespace Signalizer
 	{
 		CPL_RUNTIME_ASSERTION(mappedFrequencies.size() == axisPoints);
 		CPL_RUNTIME_ASSERTION(getFFTSpace<std::complex<double>>() == transformSize);
+		CPL_RUNTIME_ASSERTION(sfbuf.sampleBufferSize > 0);
 	}
 
 
@@ -1475,12 +1462,12 @@ namespace Signalizer
 		auto filters = mapToLinearSpace();
 		CPL_RUNTIME_ASSERTION(filters == axisPoints); // TODO: get rid of this useless return?
 
-		if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
+		if (algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + filters /* channels ? */));
 			sfbuf.frameQueue.pushElement<true>(&frame);
 		}
-		else if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
+		else if (algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(filters));
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
@@ -1521,19 +1508,21 @@ namespace Signalizer
 	void Spectrum::StreamState::audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{ 
 		checkInvariants();
-		/*
+		
 		if (displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
 			std::int64_t n = numSamples;
 			std::size_t offset = 0;
 
+			const auto sampleBufferSize = sfbuf.sampleBufferSize.load();
+
 			while (n > 0)
 			{
-				std::int64_t numRemainingSamples = sfbuf.sampleBufferSize - sfbuf.currentCounter;
+				std::int64_t numRemainingSamples = sfbuf.currentCounter > sampleBufferSize ? 0 : sampleBufferSize - sfbuf.currentCounter;
 				const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 				// do some resonation
-				if (state.algo == SpectrumContent::TransformAlgorithm::RSNT)
+				if (algo == SpectrumContent::TransformAlgorithm::RSNT)
 				{
 					// TODO: Assumptions about channels...
 					fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
@@ -1542,24 +1531,25 @@ namespace Signalizer
 
 				sfbuf.currentCounter += availableSamples;
 
-				if (sfbuf.currentCounter >= (sfbuf.sampleBufferSize))
+				if (sfbuf.currentCounter >= (sampleBufferSize))
 				{
 					bool transformReady = true;
-					if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
+					if (algo == SpectrumContent::TransformAlgorithm::FFT)
 					{
 						fpoint * offBuf[2] = { buffer[0], buffer[1]};
-						if (audioStream->getNumDeferredSamples() == 0)
+						if (ctx.getNumDeferredSamples() == 0)
 						{
 							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-							if((transformReady = prepareTransform(audioStream->getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
+							if((transformReady = prepareTransform(ctx.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
 								doTransform();
 						}
 						else
 						{
 							// ignore the deferred samples and produce some views that is slightly out-of-date.
 							// this ONLY happens if something else is hogging the buffers.
-							if((transformReady = prepareTransform(audioStream->getAudioBufferViews())))
+							// TODO: missing offset?
+							if((transformReady = prepareTransform(ctx.getAudioBufferViews())))
 								doTransform();
 						}
 					}
@@ -1568,19 +1558,13 @@ namespace Signalizer
 						addAudioFrame<ISA>();
 
 					sfbuf.currentCounter = 0;
-
-					// change this here. oh really?
-					sfbuf.sampleBufferSize = getBlobSamples();
 				}
 
 				offset += availableSamples;
 				n -= availableSamples;
 			}
-
-
-			sfbuf.sampleCounter += numSamples;
 		}
-		else */if(algo == SpectrumContent::TransformAlgorithm::RSNT)
+		else if(algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			resonatingDispatch<ISA>(buffer, numChannels, numSamples);
 		}

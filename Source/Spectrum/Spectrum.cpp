@@ -380,6 +380,8 @@ namespace Signalizer
 			flags.audioWindowWasResized = true;
 		}
 
+		processor->sfbuf.sampleBufferSize = getBlobSamples();
+		
 		cs.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
 		cs.dspWindow = content->dspWin.getWindowType();
