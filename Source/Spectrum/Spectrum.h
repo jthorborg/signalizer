@@ -30,7 +30,7 @@
 #ifndef SIGNALIZER_SPECTRUM_H
 	#define SIGNALIZER_SPECTRUM_H
 
-	#include "Signalizer.h"
+	#include "../Signalizer.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/Utility.h>
@@ -45,6 +45,7 @@
 	#include <vector>
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
+	#include "TransformConstant.h"
 
 	#define USE_DUST_FFT
 
@@ -78,6 +79,8 @@
 #else
 			typedef float fftType;
 #endif
+			typedef TransformConstant<fftType> Constant;
+
 			class SFrameBuffer
 			{
 			public:
@@ -155,7 +158,7 @@
             template<typename ISA>
                 void vectorGLRendering();
 
-			virtual void paint2DGraphics(juce::Graphics & g, const StreamState& streamState);
+			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, const StreamState& transform);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
@@ -232,7 +235,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates(StreamState&);
+			void handleFlagUpdates(Constant& constant, StreamState& transform);
 
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
@@ -258,17 +261,14 @@
 			template<typename ISA>
 				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
 
-			template<typename ISA>
-				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			void drawFrequencyTracking(juce::Graphics & g, const float fps, const StreamState& streamState);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const StreamState& transform);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
 			/// </summary>
 			/// <param name="coordinate"></param>
 			/// <returns></returns>
-			double getScallopingLossAtCoordinate(std::size_t coordinate, const StreamState& streamState);
+			double getScallopingLossAtCoordinate(std::size_t coordinate, const Constant& constant);
 
 			/// <summary>
 			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.
@@ -439,15 +439,6 @@
 				// From flag updates
 				SpectrumContent::DisplayMode displayMode {};
 				SpectrumContent::TransformAlgorithm algo {};
-				/// <summary>
-				/// How the incoming data is interpreted, channel-wise.
-				/// </summary>
-				SpectrumChannels configuration;
-				/// <summary>
-				/// The window function applied to the input. Precomputed into windowKernel.
-				/// </summary>
-				cpl::dsp::WindowTypes dspWindow;
-				double sampleRate;
 
 				/// <summary>
 				/// Interpolation method for discrete bins to continuous space
@@ -463,13 +454,13 @@
 				/// Returns the total number of complex samples copied into the output
 				/// </summary>
 				template<typename ISA, class Vector>
-				std::size_t copyResonatorStateInto(Vector& output, std::size_t outChannels);
+				std::size_t copyResonatorStateInto(cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
 
 				template<typename ISA>
-				void resonatingDispatch(float** buffer, std::size_t numChannels, std::size_t numSamples);
+				void resonatingDispatch(const Constant& constant, float** buffer, std::size_t numChannels, std::size_t numSamples);
 
 				template<typename ISA>
-				void audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
+				void audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
 
 				/// <param name="elements">
 				/// "axis points" or the display window size
@@ -481,7 +472,7 @@
 				/// the actual size used for the fft computation
 				/// </param>
 				/// <seealso cref="mapToLinearSpace"/>
-				void setStorage(std::size_t elements, std::size_t effectiveTransformSize, std::size_t& outputTransformSize);
+				void setStorage(const Constant& constant);
 				void clearAudioState();
 
 				/// <summary>
@@ -493,7 +484,7 @@
 				/// After the call to mapToLinearSpace, the results are written to getTransformResults().
 				/// Returns the complex amount of filters processed.
 				/// </summary>
-				std::size_t mapToLinearSpace();
+				void mapToLinearSpace(const Constant& constant);
 
 				/// <summary>
 				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
@@ -502,7 +493,7 @@
 				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 				/// Needs exclusive access to audioResource.
 				/// </summary>
-				bool prepareTransform(const AudioStream::AudioBufferAccess& audio);
+				bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio);
 
 				/// <summary>
 				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
@@ -512,7 +503,7 @@
 				/// the first argument).
 				/// Needs exclusive access to audioResource.
 				/// </summary>
-				bool prepareTransform(const AudioStream::AudioBufferAccess& audio, fpoint** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
+				bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio, fpoint** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
 
 				/// <summary>
 				/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
@@ -520,21 +511,10 @@
 				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
 				/// Needs exclusive access to audioResource.
 				/// </summary>
-				void doTransform();
+				void doTransform(const Constant& constant);
 
-				void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors);
+				void remapResonator(const Constant& constant, bool shouldHaveFreeQ, std::size_t numVectors);
 				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
-
-				template<class OutVector>
-				void generateSlopeMap(OutVector& slopeMap, const cpl::PowerSlopeValue::PowerFunction& slopeFunction)
-				{
-					for (std::size_t i = 0; i < axisPoints; ++i)
-					{
-						slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
-					}
-				}
-
-				double regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner);
 
 				/// <summary>
 				/// Returns an array of "axis points" size. 
@@ -553,10 +533,9 @@
 					return getAudioMemory<std::complex<fftType>>();
 				}
 
-				float mapFrequency(std::size_t axisPoint) const noexcept
-				{
-					return mappedFrequencies.at(axisPoint);
-				}
+
+				// TODO: get rid of copy?
+				double streamLocalSampleRate;
 
 			private:
 
@@ -565,25 +544,9 @@
 
 				template<typename T>
 				std::size_t getNumWorkingElements() const noexcept;
-				/// <summary>
-				/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
-				/// Guaranteed to be less than getNumAudioElements.
-				/// </summary>
-				template<typename T>
-				std::size_t getFFTSpace() const noexcept
-				{
-					return transformSize;
-				}
-
-				/// <summary>
-				/// Returns the number of T elements available in the audio space buffer
-				/// (as returned by getAudioMemory<T>())
-				/// </summary>
-				template<typename T>
-				std::size_t getNumAudioElements() const noexcept;
 
 				template<typename ISA>
-				void addAudioFrame();
+				void addAudioFrame(const Constant& constant);
 
 
 				template<typename T>
@@ -640,28 +603,19 @@
 				/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 				/// </summary>
 				cpl::aligned_vector<std::complex<fftType>, 32> audioMemory;
+			};
 
-				std::size_t axisPoints {}, transformSize{}, windowSize{};
-				// TODO: rename to windowKernelScale
-				double windowScale;
-
-				/// <summary>
-				/// An array, of numFilters size, with each element being the frequency for the filter of
-				/// the corresponding logical display pixel unit.
-				/// </summary>
-				std::vector<fpoint> mappedFrequencies;
-
-				/// <summary>
-				/// The time-domain representation of the dsp-window applied to fourier transforms.
-				/// </summary>
-				cpl::aligned_vector<fftType, 32> windowKernel;
+			struct StreamAndConstant
+			{
+				StreamState Stream;
+				Constant Constant;
 			};
 
 			struct ProcessorShell : public AudioStream::Listener
 			{
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
 				SFrameBuffer sfbuf;
-				CriticalSection<StreamState> streamState;
+				CriticalSection<StreamAndConstant> streamState;
 				cpl::relaxed_atomic<bool> isSuspended;
 
 				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
@@ -674,7 +628,9 @@
 			{
 				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 				{
-					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
+					auto access = shell.streamState.lock();
+					
+					access->Stream.audioEntryPoint<ISA>(access->Constant, source, buffer, numChannels, numSamples);
 				}
 			};
 

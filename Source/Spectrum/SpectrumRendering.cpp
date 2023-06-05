@@ -74,7 +74,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::paint2DGraphics(juce::Graphics & g, const StreamState& streamState)
+	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, const StreamState& transform)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -166,7 +166,7 @@ namespace Signalizer
 
 		computeAverageStats(averageFps, averageCpu);
 
-		drawFrequencyTracking(g, averageFps, streamState);
+		drawFrequencyTracking(g, averageFps, constant, transform);
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
@@ -185,12 +185,14 @@ namespace Signalizer
 				100 * perf.consumerOverhead
 			);
 
+			auto old = g.getCurrentFont();
+			g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText, 0));
 			g.drawSingleLineText(text, 10, 20);
 
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Spectrum::StreamState& streamState)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const StreamState& transform)
 	{
 		if (globalBehaviour->hideWidgetsOnMouseExit)
 		{
@@ -362,11 +364,11 @@ namespace Signalizer
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
 
-			peakFrequency = streamState.mapFrequency(peakOffset);
+			peakFrequency = constant.mapFrequency(peakOffset);
 
 
 			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(state.axisPoints - 1);
-			peakDeviance = streamState.mapFrequency(offsetIsEnd ? peakOffset : peakOffset + 1) - streamState.mapFrequency(offsetIsEnd ? peakOffset - 1 : peakOffset);
+			peakDeviance = constant.mapFrequency(offsetIsEnd ? peakOffset : peakOffset + 1) - constant.mapFrequency(offsetIsEnd ? peakOffset - 1 : peakOffset);
 
 			if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
@@ -395,14 +397,14 @@ namespace Signalizer
 			auto N = state.transformSize;
 			auto points = getNumFilters();
 			auto lowerBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction - nearbyFractionToConsider));
-			lowerBound = cpl::Math::round<cpl::ssize_t>((N * streamState.mapFrequency(cpl::Math::confineTo(lowerBound, 0, points - 1)) / sampleRate));
+			lowerBound = cpl::Math::round<cpl::ssize_t>((N * constant.mapFrequency(cpl::Math::confineTo(lowerBound, 0, points - 1)) / sampleRate));
 			auto higherBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction + nearbyFractionToConsider));
-			higherBound = cpl::Math::round<cpl::ssize_t>((N * streamState.mapFrequency(cpl::Math::confineTo(higherBound, 0, points - 1)) / sampleRate));
+			higherBound = cpl::Math::round<cpl::ssize_t>((N * constant.mapFrequency(cpl::Math::confineTo(higherBound, 0, points - 1)) / sampleRate));
 
 			lowerBound = cpl::Math::confineTo(lowerBound, 0, N);
 			higherBound = cpl::Math::confineTo(higherBound, 0, N);
 
-			auto source = streamState.getRawFFT();
+			auto source = transform.getRawFFT();
 
 			auto peak = std::max_element(source + lowerBound, source + higherBound + 1,
 				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
@@ -491,7 +493,7 @@ namespace Signalizer
 			auto truncatedPeak = (int)peakX;
 			if (truncatedPeak != lastPeak)
 			{
-				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak, streamState);
+				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak, constant);
 				lastPeak = truncatedPeak;
 			}
 
@@ -683,15 +685,15 @@ namespace Signalizer
 
             bool lineTransformReady = false;
 
-			auto&& streamAccess = processor->streamState.lock();
+			auto&& access = processor->streamState.lock();
 
             // lock the memory buffers, and do our thing.
             {
-                handleFlagUpdates(*streamAccess);
+                handleFlagUpdates(access->Constant, access->Stream);
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
-                    lineTransformReady = streamAccess->prepareTransform(audioStream->getAudioBufferViews());
+                    lineTransformReady = access->Stream.prepareTransform(access->Constant, audioStream->getAudioBufferViews());
                 }
 
             }
@@ -717,9 +719,9 @@ namespace Signalizer
                 // such that only we have access to it.
                 if (lineTransformReady)
                 {
-					streamAccess->doTransform();
-					streamAccess->mapToLinearSpace();
-					postProcessStdTransform(*streamAccess);
+					access->Stream.doTransform(access->Constant);
+					access->Stream.mapToLinearSpace(access->Constant);
+					postProcessStdTransform(access->Stream);
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
@@ -728,7 +730,7 @@ namespace Signalizer
 
             }
             
-			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, *streamAccess); });
+			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->Constant, access->Stream); });
         }
 
 

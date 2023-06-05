@@ -2255,6 +2255,9 @@
     <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

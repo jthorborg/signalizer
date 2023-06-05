@@ -819,6 +819,7 @@
     <ClInclude Include="..\..\Source\Signalizer.h" />
     <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
     <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />
+    <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h" />
     <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h" />
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />

@@ -36,23 +36,6 @@
 namespace Signalizer
 {
 
-	std::size_t Spectrum::StreamState::getStateConfigurationChannels() const noexcept
-	{
-		return configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
-	}
-
-	template<typename T>
-		std::size_t Spectrum::StreamState::getNumAudioElements() const noexcept
-		{
-			return transformSize;
-		}
-
-		template<typename T>
-		std::size_t Spectrum::StreamState::getNumWorkingElements() const noexcept
-		{
-			return workingMemory.size() / sizeof(T);
-		}
-
 	std::size_t Spectrum::getBlobSamples() const noexcept
 	{
 		return std::max<std::size_t>(10, static_cast<std::size_t>(content->blobSize.getTransformedValue() * 0.001 * getSampleRate()));
@@ -63,12 +46,10 @@ namespace Signalizer
 		flags.resetStateBuffers = true;
 	}
 
-	bool Spectrum::StreamState::prepareTransform(const AudioStream::AudioBufferAccess & audio)
+	bool Spectrum::StreamState::prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess & audio)
 	{
 		if (audio.getNumChannels() < 2)
 			return false;
-
-		auto const channelConfiguration = configuration;
 
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
@@ -76,11 +57,11 @@ namespace Signalizer
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
-			if (views[0].size() != views[1].size() || views[0].size() < windowSize)
+			if (views[0].size() != views[1].size() || views[0].size() < constant.windowSize)
 				return false;
 
 			// can't underflow
-			std::size_t offset = views[0].size() - windowSize;
+			std::size_t offset = views[0].size() - constant.windowSize;
 
 			switch (algo)
 			{
@@ -90,7 +71,7 @@ namespace Signalizer
 				std::size_t channel = 1;
 				std::size_t i = 0;
 
-				switch (channelConfiguration)
+				switch (constant.configuration)
 				{
 				case SpectrumChannels::Left:
 					channel = 0;
@@ -108,7 +89,7 @@ namespace Signalizer
 
 							while (range--)
 							{
-								buffer[i] = *it++ * windowKernel[i];
+								buffer[i] = *it++ * constant.windowKernel[i];
 								i++;
 							}
 
@@ -138,7 +119,7 @@ namespace Signalizer
 
 							while (range--)
 							{
-								buffer[i] =	(*left++ + *right++) * windowKernel[i] * 0.5f;
+								buffer[i] =	(*left++ + *right++) * constant.windowKernel[i] * 0.5f;
 								i++;
 							}
 							offset = 0;
@@ -166,7 +147,7 @@ namespace Signalizer
 
 							while (range--)
 							{
-								buffer[i] = (*left++ - *right++) * windowKernel[i] * 0.5f;
+								buffer[i] = (*left++ - *right++) * constant.windowKernel[i] * 0.5f;
 								i++;
 							}
 
@@ -197,8 +178,8 @@ namespace Signalizer
 							{
 								buffer[i] = std::complex<fftType>
 								(
-									(*left + *right) * windowKernel[i] * 0.5f,
-									(*left - *right) * windowKernel[i] * 0.5f
+									(*left + *right) * constant.windowKernel[i] * 0.5f,
+									(*left - *right) * constant.windowKernel[i] * 0.5f
 								);
 								left++;
 								right++;
@@ -234,8 +215,8 @@ namespace Signalizer
 							{
 								buffer[i] = std::complex<fftType>
 								{
-									*left++ * windowKernel[i],
-									*right++ * windowKernel[i]
+									*left++ * constant.windowKernel[i],
+									*right++ * constant.windowKernel[i]
 								};
 								i++;
 							}
@@ -251,7 +232,7 @@ namespace Signalizer
 				}
 				//zero-pad until buffer is filled
 
-				for (size_t pad = i; pad < transformSize; ++pad)
+				for (size_t pad = i; pad < constant.transformSize; ++pad)
 				{
 					buffer[pad] = (fftType)0;
 				}
@@ -264,21 +245,19 @@ namespace Signalizer
 		return true;
 	}
 
-	bool Spectrum::StreamState::prepareTransform(const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
+	bool Spectrum::StreamState::prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess & audio, Spectrum::fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
 	{
-		auto const channelConfiguration = configuration;
-
 		{
 			Stream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
-			if (views[0].size() != views[1].size() || views[0].size() < windowSize)
+			if (views[0].size() != views[1].size() || views[0].size() < constant.windowSize)
 				return false;
 
 			// extra discarded samples in case the incoming buffer is larger than our own
-			std::size_t extraDiscardedSamples = views[0].size() - windowSize;
+			std::size_t extraDiscardedSamples = views[0].size() - constant.windowSize;
 
 			switch (algo)
 			{
@@ -287,12 +266,12 @@ namespace Signalizer
 				auto buffer = getAudioMemory<std::complex<fftType>>();
 				std::size_t channel = 1;
 				std::size_t i = 0;
-				std::size_t stop = std::min(numSamples, windowSize);
+				std::size_t stop = std::min(numSamples, constant.windowSize);
 
 				std::size_t offset = stop + extraDiscardedSamples;
-				auto sizeToStopAt = windowSize - offset;
+				auto sizeToStopAt = constant.windowSize - offset;
 
-				switch (channelConfiguration)
+				switch (constant.configuration)
 				{
 				case SpectrumChannels::Left:
 					channel = 0;
@@ -316,7 +295,7 @@ namespace Signalizer
 
 							while (range-- && i < sizeToStopAt)
 							{
-								buffer[i] = *it++ * windowKernel[i];
+								buffer[i] = *it++ * constant.windowKernel[i];
 								i++;
 							}
 
@@ -333,7 +312,7 @@ namespace Signalizer
 					// process preliminary
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
-						buffer[i] = preliminaryAudio[channel][k] * windowKernel[i];
+						buffer[i] = preliminaryAudio[channel][k] * constant.windowKernel[i];
 					}
 
 
@@ -355,7 +334,7 @@ namespace Signalizer
 
 							while (range-- && i < sizeToStopAt)
 							{
-								buffer[i] = (*left++ + *right++) * windowKernel[i] * 0.5f;
+								buffer[i] = (*left++ + *right++) * constant.windowKernel[i] * 0.5f;
 								i++;
 							}
 
@@ -370,7 +349,7 @@ namespace Signalizer
 
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
-						buffer[i] = (preliminaryAudio[0][k] + preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
+						buffer[i] = (preliminaryAudio[0][k] + preliminaryAudio[1][k]) * constant.windowKernel[i] * (fftType)0.5;
 					}
 
 					break;
@@ -391,7 +370,7 @@ namespace Signalizer
 
 							while (range-- && i < sizeToStopAt)
 							{
-								buffer[i] = (*left++ - *right++) * windowKernel[i] * (fftType)0.5;
+								buffer[i] = (*left++ - *right++) * constant.windowKernel[i] * (fftType)0.5;
 								i++;
 							}
 
@@ -406,7 +385,7 @@ namespace Signalizer
 
 					for (std::size_t k = 0; k < stop; ++i, k++)
 					{
-						buffer[i] = (preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5;
+						buffer[i] = (preliminaryAudio[0][k] - preliminaryAudio[1][k]) * constant.windowKernel[i] * (fftType)0.5;
 					}
 
 					break;
@@ -429,8 +408,8 @@ namespace Signalizer
 							{
 								buffer[i] = std::complex<fftType>
 								(
-									(*left + *right) * windowKernel[i] * (fftType)0.5,
-									(*left - *right) * windowKernel[i] * (fftType)0.5
+									(*left + *right) * constant.windowKernel[i] * (fftType)0.5,
+									(*left - *right) * constant.windowKernel[i] * (fftType)0.5
 								);
 								left++;
 								right++;
@@ -450,8 +429,8 @@ namespace Signalizer
 					{
 						buffer[i] = std::complex<fftType>
 						(
-							(preliminaryAudio[0][k] + preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5,
-							(preliminaryAudio[0][k] - preliminaryAudio[1][k]) * windowKernel[i] * (fftType)0.5
+							(preliminaryAudio[0][k] + preliminaryAudio[1][k]) * constant.windowKernel[i] * (fftType)0.5,
+							(preliminaryAudio[0][k] - preliminaryAudio[1][k]) * constant.windowKernel[i] * (fftType)0.5
 						);
 					}
 
@@ -478,8 +457,8 @@ namespace Signalizer
 							{
 								buffer[i] = std::complex<fftType>
 								{
-									*left++ * windowKernel[i],
-									*right++ * windowKernel[i]
+									*left++ * constant.windowKernel[i],
+									*right++ * constant.windowKernel[i]
 								};
 								i++;
 							}
@@ -497,8 +476,8 @@ namespace Signalizer
 					{
 						buffer[i] = std::complex<fftType>
 						(
-							preliminaryAudio[0][k] * windowKernel[i],
-							preliminaryAudio[1][k] * windowKernel[i]
+							preliminaryAudio[0][k] * constant.windowKernel[i],
+							preliminaryAudio[1][k] * constant.windowKernel[i]
 						);
 					}
 
@@ -506,7 +485,7 @@ namespace Signalizer
 				}
 				}
 				//zero-pad until buffer is filled
-				for (size_t pad = i; pad < transformSize; ++pad)
+				for (size_t pad = i; pad < constant.transformSize; ++pad)
 				{
 					buffer[pad] = 0;
 				}
@@ -519,15 +498,14 @@ namespace Signalizer
 		return true;
 	}
 
-	void Spectrum::StreamState::doTransform()
+	void Spectrum::StreamState::doTransform(const Constant& constant)
 	{
 		switch (algo)
 		{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
-				auto const numSamples = getFFTSpace<std::complex<double>>();
-				if(numSamples != 0)
-					signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(numSamples));
+				if(constant.transformSize > 0)
+					signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(constant.transformSize));
 
 				break;
 			}
@@ -685,10 +663,9 @@ namespace Signalizer
 			postProcessTransform(state.getTransformResult<fpoint>());
 	}
 
-	std::size_t Spectrum::StreamState::mapToLinearSpace()
+	void Spectrum::StreamState::mapToLinearSpace(const Constant& constant)
 	{
 		using namespace cpl;
-		std::size_t numPoints = axisPoints; // TODO: erase
 
 		switch (algo)
 		{
@@ -696,14 +673,14 @@ namespace Signalizer
 		{
 			const auto lanczosFilterSize = 5;
 			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
-			Types::fsint_t N = transformSize;
+			Types::fsint_t N = constant.transformSize;
 
 			// we rely on mapping indexes, so we need N > 2 at least.
-			if (N == 0)
-				return 0;
+			if (N < 3 || constant.sampleRate < 1)
+				return;
 
 			std::size_t numBins = N >> 1;
-			auto const topFrequency = sampleRate / 2;
+			auto const topFrequency = constant.sampleRate / 2;
 			auto const freqToBin = static_cast<fftType>(numBins / topFrequency);
 
 			typedef fftType ftype;
@@ -722,16 +699,16 @@ namespace Signalizer
 			// this will make scaling correct regardless of amount of zero-padding
 			// notice the 0.5: fft's of size 32 will output 16 for exact frequency bin matches,
 			// so we halve the reciprocal scaling factor to normalize the size.
-			auto const invSize = static_cast<fftType>(windowScale / (windowSize * 0.5));
+			auto const invSize = static_cast<fftType>(constant.windowKernelScale / (constant.windowSize * 0.5));
 
-			switch (configuration)
+			switch (constant.configuration)
 			{
 			case SpectrumChannels::Left:
 			case SpectrumChannels::Right:
 			case SpectrumChannels::Merge:
 			case SpectrumChannels::Side:
 			{
-				oldBin = mappedFrequencies[0] * freqToBin;
+				oldBin = constant.mappedFrequencies[0] * freqToBin;
 
 				// the DC (0) and nyquist bin are NOT 'halved' due to the symmetric nature of the fft,
 				// so halve these:
@@ -750,53 +727,53 @@ namespace Signalizer
 				switch (binPolation)
 				{
 				case SpectrumContent::BinInterpolation::None:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 						// bandwidth of the filter for this 'line', or point
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						// as long as the bandwidth is smaller than our fft resolution, we interpolate the points
 						// otherwise, break out and sample the max values of the bins inside the bandwidth
 						if (bwForLine > fftBandwidth)
 							break;
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
+						auto index = Math::confineTo((std::size_t)(constant.mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 						csp[x] = invSize * csf[index];
 					}
 					break;
 				case SpectrumContent::BinInterpolation::Linear:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 							break;
 
-						csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N, mappedFrequencies[x] * freqToBin);
+						csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N, constant.mappedFrequencies[x] * freqToBin);
 					}
 					break;
 				case SpectrumContent::BinInterpolation::Lanczos:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 							break;
 
-						csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
 					}
 					break;
 				default:
 					break;
 				}
 
-				oldBin = mappedFrequencies[x] * freqToBin;
+				oldBin = constant.mappedFrequencies[x] * freqToBin;
 
-				for (; x < numPoints; ++x)
+				for (; x < constant.axisPoints; ++x)
 				{
 					maxLMag = maxRMag = newLMag = newRMag = 0;
 
-					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
+					bin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin >= constant.transformSize)
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 					maxRBin = maxLBin = bin;
@@ -846,7 +823,7 @@ namespace Signalizer
 
 				// The index of the transform, where the bandwidth is higher than mapped pixels (so no more interpolation is needed)
 				// TODO: This can be calculated from view mapping scale and N pixels.
-				std::size_t bandWidthBreakingPoint = numPoints;
+				std::size_t bandWidthBreakingPoint = constant.axisPoints;
 
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
@@ -856,17 +833,17 @@ namespace Signalizer
 				case SpectrumContent::BinInterpolation::Linear:
 				{
 					// phase pass
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 						{
 							bandWidthBreakingPoint = x;
 							break;
 						}
 
-						auto iLeft = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, mappedFrequencies[x] * freqToBin);
-						auto iRight = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin));
+						auto iLeft = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
+						auto iRight = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin));
 
 						auto cancellation = invSize * std::sqrt(Math::square(iLeft + iRight));
 						auto mid = invSize * (std::abs(iLeft) + std::abs(iRight));
@@ -894,7 +871,7 @@ namespace Signalizer
 					for (x = 0; x < bandWidthBreakingPoint; ++x)
 					{
 						// fractional bin position
-						auto binPosition = mappedFrequencies[x] * freqToBin;
+						auto binPosition = constant.mappedFrequencies[x] * freqToBin;
 
 						// normalize vectors we need to magnitude-interpolate.
 						while ((binPosition + linearFilterSize) > normalizedPosition && x < bandWidthBreakingPoint - (linearFilterSize + 1))
@@ -914,18 +891,18 @@ namespace Signalizer
 				}
 				case SpectrumContent::BinInterpolation::Lanczos:
 				{
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 						{
 							bandWidthBreakingPoint = x;
 							break;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
-						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						auto cancellation = invSize * std::sqrt(Math::square(iLeft + iRight));
 						auto mid = invSize * (std::abs(iLeft) + std::abs(iRight));
@@ -944,7 +921,7 @@ namespace Signalizer
 					for (x = 0; x < bandWidthBreakingPoint; ++x)
 					{
 						// fractional bin position
-						auto binPosition = mappedFrequencies[x] * freqToBin;
+						auto binPosition = constant.mappedFrequencies[x] * freqToBin;
 
 						// normalize vectors we need to magnitude-interpolate.
 						while ((binPosition + lanczosFilterSize) > normalizedPosition && x < bandWidthBreakingPoint - (lanczosFilterSize + 1))
@@ -954,8 +931,8 @@ namespace Signalizer
 							normalizedPosition++;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
-						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						wsp[x * 2] = invSize * (std::abs(iLeft) + std::abs(iRight));
 					}
@@ -963,17 +940,17 @@ namespace Signalizer
 					break;
 				}
 				default:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 						// bandwidth of the filter for this 'line', or point
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						// as long as the bandwidth is smaller than our fft resolution, we interpolate the points
 						// otherwise, break out and sample the max values of the bins inside the bandwidth
 						if (bwForLine > fftBandwidth)
 							break;
 
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
+						auto index = Math::confineTo((std::size_t)(constant.mappedFrequencies[x] * freqToBin + 0.5), 0, numBins - 1);
 						auto iLeft = csf[index];
 						auto iRight = csf[N - index];
 
@@ -990,18 +967,18 @@ namespace Signalizer
 
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
-				if(x < numPoints)
-					oldBin = mappedFrequencies[x] * freqToBin;
+				if(x < constant.axisPoints)
+					oldBin = constant.mappedFrequencies[x] * freqToBin;
 
 
 
-				for (; x < numPoints; ++x)
+				for (; x < constant.axisPoints; ++x)
 				{
 					std::size_t maxBin = 0;
 					ftype maxValue = 0, newMag = 0;
-					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
+					bin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin >= constant.transformSize)
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 
@@ -1055,7 +1032,7 @@ namespace Signalizer
 
 				// The index of the transform, where the bandwidth is higher than mapped pixels (so no more interpolation is needed)
 				// TODO: This can be calculated from view mapping scale and N pixels.
-				std::size_t bandWidthBreakingPoint = numPoints - 1;
+				std::size_t bandWidthBreakingPoint = constant.axisPoints - 1;
 
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
@@ -1065,57 +1042,57 @@ namespace Signalizer
 				case SpectrumContent::BinInterpolation::Linear:
 
 					// phase pass
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 						{
 							bandWidthBreakingPoint = x;
 							break;
 						}
 
-						auto iLeft = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, mappedFrequencies[x] * freqToBin);
-						auto iRight = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin));
+						auto iLeft = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
+						auto iRight = dsp::linearFilter<std::complex<ftype>>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin));
 
 						csp[x] = invSize * iLeft;
-						csp[axisPoints + x] = invSize * iRight;
+						csp[constant.axisPoints + x] = invSize * iRight;
 					}
 
 					break;
 				case SpectrumContent::BinInterpolation::Lanczos:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						if (bwForLine > fftBandwidth)
 						{
 							bandWidthBreakingPoint = x;
 							break;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, 5);
-						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, 5);
+						auto iRight = dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						csp[x] = invSize * iLeft;
-						csp[axisPoints + x] = invSize * iRight;
+						csp[constant.axisPoints + x] = invSize * iRight;
 					}
 
 					break;
 				default:
-					for (x = 0; x < numPoints - 1; ++x)
+					for (x = 0; x < constant.axisPoints - 1; ++x)
 					{
 						// bandwidth of the filter for this 'line', or point
-						double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+						double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 						// as long as the bandwidth is smaller than our fft resolution, we interpolate the points
 						// otherwise, break out and sample the max values of the bins inside the bandwidth
 						if (bwForLine > fftBandwidth)
 							break;
 
 						// +0.5 to centerly space bins.
-						auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
+						auto index = Math::confineTo((std::size_t)(constant.mappedFrequencies[x] * freqToBin + 0.5), 0, numBins);
 
 						csp[x] = invSize * csf[index];
-						csp[axisPoints + x] = invSize * csf[N - index];
+						csp[constant.axisPoints + x] = invSize * csf[N - index];
 					}
 					break;
 				}
@@ -1124,15 +1101,15 @@ namespace Signalizer
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
 
-				oldBin = mappedFrequencies[x] * freqToBin;
+				oldBin = constant.mappedFrequencies[x] * freqToBin;
 
-				for (; x < numPoints; ++x)
+				for (; x < constant.axisPoints; ++x)
 				{
 					maxLMag = maxRMag = newLMag = newRMag = 0;
 
-					bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
+					bin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 #ifdef DEBUG
-					if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
+					if ((std::size_t)bin >= constant.transformSize)
 						CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
 #endif
 					maxRBin = maxLBin = bin;
@@ -1164,7 +1141,7 @@ namespace Signalizer
 					} while (diff > 0);
 
 					csp[x] = invSize * csf[maxLBin];
-					csp[axisPoints + x] = invSize * csf[maxRBin];
+					csp[constant.axisPoints + x] = invSize * csf[maxRBin];
 					oldBin = bin;
 				}
 			}
@@ -1186,72 +1163,72 @@ namespace Signalizer
 					csf[i] = std::abs(csf[i]);
 				}
 
-				while(x < numPoints)
+				while(x < constant.axisPoints)
 				{
 
 					switch (binPolation)
 					{
 					case SpectrumContent::BinInterpolation::Linear:
 					{
-						for (; x < numPoints; ++x)
+						for (; x < constant.axisPoints; ++x)
 						{
-							if (x != numPoints - 1)
+							if (x != constant.axisPoints - 1)
 							{
-								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 								if (bwForLine > fftBandwidth)
 									break;
 							}
-							csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N + 1, mappedFrequencies[x] * freqToBin);
+							csp[x] = invSize * dsp::linearFilter<std::complex<ftype>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
 						}
 						break;
 					}
 					case SpectrumContent::BinInterpolation::Lanczos:
 					{
-						for (; x < numPoints; ++x)
+						for (; x < constant.axisPoints; ++x)
 						{
-							if (x != numPoints - 1)
+							if (x != constant.axisPoints - 1)
 							{
-								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 								if (bwForLine > fftBandwidth)
 									break;
 							}
 
-							csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+							csp[x] = invSize * dsp::lanczosFilter<std::complex<ftype>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
 						}
 
 						break;
 					}
 					default:
-						for (; x < numPoints; ++x)
+						for (; x < constant.axisPoints; ++x)
 						{
-							if (x != numPoints - 1)
+							if (x != constant.axisPoints - 1)
 							{
-								double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+								double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 								if (bwForLine > fftBandwidth)
 									break;
 							}
 							// +0.5 to centerly space bins.
-							auto index = Math::confineTo((std::size_t)(mappedFrequencies[x] * freqToBin + 0.5), 0, N);
+							auto index = Math::confineTo((std::size_t)(constant.mappedFrequencies[x] * freqToBin + 0.5), 0, N);
 							csp[x] = invSize * csf[index];
 						}
 						break;
 					}
-					if(x != numPoints)
-						oldBin = mappedFrequencies[x] * freqToBin;
+					if(x != constant.axisPoints)
+						oldBin = constant.mappedFrequencies[x] * freqToBin;
 
-					for (; x < numPoints ; ++x)
+					for (; x < constant.axisPoints; ++x)
 					{
 						maxLMag = maxRMag = newLMag = newRMag = 0;
 
-						bin = static_cast<std::size_t>(mappedFrequencies[x] * freqToBin);
-	#ifdef DEBUG
-						if ((std::size_t)bin > getNumAudioElements < std::complex < ftype >> ())
+						bin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
+#ifdef DEBUG
+						if ((std::size_t)bin >= constant.transformSize)
 							CPL_RUNTIME_EXCEPTION("Corrupt frequency mapping!");
-	#endif
+#endif
 						maxRBin = maxLBin = bin;
-						if (x != numPoints - 1)
+						if (x != constant.axisPoints - 1)
 						{
-							double bwForLine = (mappedFrequencies[x + 1] - mappedFrequencies[x]) / topFrequency;
+							double bwForLine = (constant.mappedFrequencies[x + 1] - constant.mappedFrequencies[x]) / topFrequency;
 							if (bwForLine < fftBandwidth)
 								break;
 						}
@@ -1289,11 +1266,11 @@ namespace Signalizer
 		{
 
 			std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
-			auto configurationChannels = getStateConfigurationChannels();
+			auto configurationChannels = constant.getStateConfigurationChannels();
 			// TODO: recursive lock?
-			std::size_t filtersPerChannel = copyResonatorStateInto<fpoint>(wsp, configurationChannels) / getStateConfigurationChannels();
+			std::size_t filtersPerChannel = copyResonatorStateInto<fpoint>(constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
-			switch (configuration)
+			switch (constant.configuration)
 			{
 			case SpectrumChannels::Phase:
 			{
@@ -1319,78 +1296,16 @@ namespace Signalizer
 		}
 		break;
 		}
-
-		return axisPoints;
 	}
 
-	void Spectrum::StreamState::remapResonator(bool shouldHaveFreeQ, std::size_t numVectors)
+	void Spectrum::StreamState::remapResonator(const Constant& constant, bool shouldHaveFreeQ, std::size_t numVectors)
 	{
 		cresonator.setFreeQ(shouldHaveFreeQ);
-		cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), numVectors, sampleRate);
-	}
-
-	void Spectrum::StreamState::remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minFreq)
-	{
-		double viewSize = viewRect.dist();
-
-		switch (scaling)
-		{
-		case SpectrumContent::ViewScaling::Linear:
-		{
-			double halfSampleRate = sampleRate * 0.5;
-			double complexFactor = configuration == SpectrumChannels::Complex ? 2.0 : 1.0;
-			// TODO: division by zero=
-			double freqPerPixel = halfSampleRate / (axisPoints - 1);
-
-			for (std::size_t i = 0; i < axisPoints; ++i)
-			{
-				mappedFrequencies[i] = static_cast<float>(complexFactor * viewRect.left * halfSampleRate + complexFactor * viewSize * i * freqPerPixel);
-			}
-
-			break;
-		}
-		case SpectrumContent::ViewScaling::Logarithmic:
-		{
-			double sampleSize = (axisPoints - 1);
-
-			double end = sampleRate / 2;
-			if (configuration != SpectrumChannels::Complex)
-			{
-				for (std::size_t i = 0; i < axisPoints; ++i)
-				{
-					mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, viewRect.left + viewSize * (i / sampleSize)));
-				}
-
-			}
-			else
-			{
-				for (std::size_t i = 0; i < axisPoints; ++i)
-				{
-					auto arg = viewRect.left + viewSize * i / sampleSize;
-					if (arg < 0.5)
-					{
-						mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, arg * 2));
-					}
-					else
-					{
-						arg -= 0.5;
-						auto power = minFreq * std::pow(end / minFreq, 1.0 - arg * 2);
-						mappedFrequencies[i] = static_cast<float>(end + (end - power));
-					}
-				}
-
-			}
-			break;
-		}
-		}
-
+		cresonator.mapSystemHz(constant.mappedFrequencies, constant.mappedFrequencies.size(), numVectors, constant.sampleRate);
 	}
 
 	void Spectrum::StreamState::checkInvariants()
 	{
-		CPL_RUNTIME_ASSERTION(transformSize >= 16);
-		CPL_RUNTIME_ASSERTION(mappedFrequencies.size() == axisPoints);
-		CPL_RUNTIME_ASSERTION(getFFTSpace<std::complex<double>>() == transformSize);
 		CPL_RUNTIME_ASSERTION(sfbuf.sampleBufferSize > 0);
 	}
 
@@ -1448,27 +1363,25 @@ namespace Signalizer
 
 	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
-		auto& access = streamState.lock();
+		auto access = streamState.lock();
 		
-		access->audioStreamChangeVersion.bump();
-		access->sampleRate = source.getInfo().sampleRate;
+		access->Stream.audioStreamChangeVersion.bump();
+		access->Stream.streamLocalSampleRate = source.getInfo().sampleRate;
 	}
 
-	// Called from DSP only
 	template<typename ISA>
-	void Spectrum::StreamState::addAudioFrame()
+	void Spectrum::StreamState::addAudioFrame(const Constant& constant)
 	{
-		auto filters = mapToLinearSpace();
-		CPL_RUNTIME_ASSERTION(filters == axisPoints); // TODO: get rid of this useless return?
+		mapToLinearSpace(constant);
 
 		if (algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
-			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + filters /* channels ? */));
+			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + constant.axisPoints /* channels ? */));
 			sfbuf.frameQueue.pushElement<true>(&frame);
 		}
 		else if (algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
-			auto & frame = *(new SFrameBuffer::FrameVector(filters));
+			auto & frame = *(new SFrameBuffer::FrameVector(constant.axisPoints));
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
 			for (std::size_t i = 0; i < frame.size(); ++i)
 			{
@@ -1476,18 +1389,17 @@ namespace Signalizer
 				frame[i].imag = (fpoint)wsp[i].imag();
 			}
 			sfbuf.frameQueue.pushElement<true>(&frame);
-
 		}
 	}
 
 	template<typename V, class Vector>
-	std::size_t Spectrum::StreamState::copyResonatorStateInto(Vector& output, std::size_t outChannels)
+	std::size_t Spectrum::StreamState::copyResonatorStateInto(cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels)
 	{
 		auto numResFilters = cresonator.getNumFilters();
 		// casts from std::complex<T> * to T * which is well-defined.
 		// TODO: std::ranges
 		auto buf = reinterpret_cast<fpoint*>(cpl::data(output));
-		cresonator.getWholeWindowedState<V>(dspWindow, buf, outChannels, numResFilters);
+		cresonator.getWholeWindowedState<V>(windowType, buf, outChannels, numResFilters);
 
 		return numResFilters << (outChannels - 1);
 	}
@@ -1505,7 +1417,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA>
-	void Spectrum::StreamState::audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Spectrum::StreamState::audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{ 
 		checkInvariants();
 		
@@ -1526,7 +1438,7 @@ namespace Signalizer
 				{
 					// TODO: Assumptions about channels...
 					fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
-					resonatingDispatch<ISA>(offBuf, numChannels, availableSamples);
+					resonatingDispatch<ISA>(constant, offBuf, numChannels, availableSamples);
 				}
 
 				sfbuf.currentCounter += availableSamples;
@@ -1541,21 +1453,21 @@ namespace Signalizer
 						{
 							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-							if((transformReady = prepareTransform(ctx.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
-								doTransform();
+							if((transformReady = prepareTransform(constant, ctx.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
+								doTransform(constant);
 						}
 						else
 						{
 							// ignore the deferred samples and produce some views that is slightly out-of-date.
 							// this ONLY happens if something else is hogging the buffers.
 							// TODO: missing offset?
-							if((transformReady = prepareTransform(ctx.getAudioBufferViews())))
-								doTransform();
+							if((transformReady = prepareTransform(constant, ctx.getAudioBufferViews())))
+								doTransform(constant);
 						}
 					}
 
 					if(transformReady)
-						addAudioFrame<ISA>();
+						addAudioFrame<ISA>(constant);
 
 					sfbuf.currentCounter = 0;
 				}
@@ -1566,20 +1478,20 @@ namespace Signalizer
 		}
 		else if(algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
-			resonatingDispatch<ISA>(buffer, numChannels, numSamples);
+			resonatingDispatch<ISA>(constant, buffer, numChannels, numSamples);
 		}
 		
 	}
 
 
 	template<typename ISA>
-	void Spectrum::StreamState::resonatingDispatch(fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Spectrum::StreamState::resonatingDispatch(const Constant& constant, fpoint ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
 		// TODO: asserts?
 		if (numChannels > 2)
 			return;
 
-		switch (configuration)
+		switch (constant.configuration)
 		{
 			case SpectrumChannels::Right:
 			{
@@ -1645,25 +1557,14 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::StreamState::setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
+	void Spectrum::StreamState::setStorage(const Constant& constant)
 	{
-		windowSize = effectiveWindowSize;
-		const auto newTransformSize = std::max<std::size_t>(16, cpl::Math::nextPow2Inc(windowSize));
-		axisPoints = elements;
-		transformSize = outputTransformSize = newTransformSize;
 		// some cases it is nice to have an extra entry (see handling of
 		// separating real and imaginary transforms)
 		// TODO: type these in terms of complex, not god damn chars.
-		audioMemory.resize(transformSize + 1);
-		workingMemory.resize(elements * 2 * sizeof(std::complex<double>));
-		cresonator.setWindowSize(8, windowSize);
-		windowKernel.resize(transformSize);
-		mappedFrequencies.resize(axisPoints);
-	}
-
-	double Spectrum::StreamState::regenerateWindowKernel(/*const*/ cpl::ParameterWindowDesignValue<ParameterSet::ParameterView>& windowDesigner)
-	{
-		return windowScale = windowDesigner.generateWindow<fftType>(windowKernel, windowSize);
+		audioMemory.resize(constant.transformSize + 1);
+		workingMemory.resize(constant.axisPoints * 2 * sizeof(std::complex<double>));
+		cresonator.setWindowSize(8, constant.windowSize);
 	}
 
 	void Spectrum::StreamState::clearAudioState()
@@ -1715,7 +1616,7 @@ namespace Signalizer
 		return getAxisPoints();
 	}
 
-	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate, const StreamState& streamState)
+	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate, const Constant& constant)
 	{
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
 
@@ -1742,7 +1643,7 @@ namespace Signalizer
 				if (state.viewScale == SpectrumContent::ViewScaling::Linear)
 				{
 
-					normalizedBandwidth = state.windowSize * std::abs((double)streamState.mapFrequency(safeIndex + 1) - streamState.mapFrequency(safeIndex)) / sampleRate;
+					normalizedBandwidth = state.windowSize * std::abs((double)constant.mapFrequency(safeIndex + 1) - constant.mapFrequency(safeIndex)) / sampleRate;
 
 					normalizedBandwidth = std::min(0.5, normalizedBandwidth);
 				}
@@ -1757,7 +1658,7 @@ namespace Signalizer
 
 				if (state.binPolation == SpectrumContent::BinInterpolation::Lanczos && state.frequencyTrackingGraph != SpectrumContent::LineGraphs::Transform)
 				{
-					normalizedBandwidth = state.windowSize * std::abs((double)streamState.mapFrequency(safeIndex + 1) - streamState.mapFrequency(safeIndex)) / sampleRate;
+					normalizedBandwidth = state.windowSize * std::abs((double)constant.mapFrequency(safeIndex + 1) - constant.mapFrequency(safeIndex)) / sampleRate;
 					if (normalizedBandwidth < 0.5)
 					{
 						canOvershoot = true;
