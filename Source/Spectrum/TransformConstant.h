@@ -150,6 +150,15 @@
 				return configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 			}
 
+			// From flag updates
+			SpectrumContent::DisplayMode displayMode{};
+			SpectrumContent::TransformAlgorithm algo{};
+
+			/// <summary>
+			/// Interpolation method for discrete bins to continuous space
+			/// </summary>
+			SpectrumContent::BinInterpolation binPolation;
+
 			/// <summary>
 			/// How the incoming data is interpreted, channel-wise.
 			/// </summary>

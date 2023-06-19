@@ -171,11 +171,12 @@
 		private:
 
 			typedef struct StreamState;
+			typedef struct StreamAndConstant;
 
 			/// <summary>
 			/// Post processes the transform that will be interpreted according to what's selected.
 			/// </summary>
-			void postProcessStdTransform(const StreamState& state);
+			void postProcessStdTransform(const Constant& constant, const StreamState& state);
 
 			/// <summary>
 			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
@@ -235,7 +236,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates(Constant& constant, StreamState& transform);
+			void handleFlagUpdates(Constant& constant, StreamState& transform, StreamAndConstant& sac);
 
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
@@ -434,16 +435,6 @@
 				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 
 				SFrameBuffer& sfbuf;
-				ChangeVersion audioStreamChangeVersion;
-
-				// From flag updates
-				SpectrumContent::DisplayMode displayMode {};
-				SpectrumContent::TransformAlgorithm algo {};
-
-				/// <summary>
-				/// Interpolation method for discrete bins to continuous space
-				/// </summary>
-				SpectrumContent::BinInterpolation binPolation;
 				/// <summary>
 				/// Copies the state from the complex resonator into the output buffer.
 				/// The output vector is assumed to accept index assigning of std::complex of fpoints.
@@ -533,10 +524,6 @@
 					return getAudioMemory<std::complex<fftType>>();
 				}
 
-
-				// TODO: get rid of copy?
-				double streamLocalSampleRate;
-
 			private:
 
 				std::size_t getStateConfigurationChannels() const noexcept;
@@ -609,6 +596,8 @@
 			{
 				StreamState Stream;
 				Constant Constant;
+				ChangeVersion audioStreamChangeVersion;
+				double streamLocalSampleRate;
 			};
 
 			struct ProcessorShell : public AudioStream::Listener

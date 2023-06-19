@@ -369,7 +369,7 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates(Constant& constant, StreamState& transform)
+	void Spectrum::handleFlagUpdates(Constant& constant, StreamState& transform, StreamAndConstant& sac)
 	{
 		// TODO: Re-entracy guards?
 		cpl::CMutex audioLock;
@@ -379,7 +379,7 @@ namespace Signalizer
 		bool glImageHasBeenResized = false;
 
 		// did audio stream change since last sync?
-		if (state.audioStreamChanged.consumeChanges(transform.audioStreamChangeVersion))
+		if (state.audioStreamChanged.consumeChanges(sac.audioStreamChangeVersion))
 		{
 			flags.audioStreamChanged = true;
 			flags.audioWindowWasResized = true;
@@ -387,10 +387,10 @@ namespace Signalizer
 
 		processor->sfbuf.sampleBufferSize = getBlobSamples();
 		
-		transform.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
+		constant.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
 		constant.dspWindow = content->dspWin.getWindowType();
-		transform.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
+		constant.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
@@ -434,7 +434,7 @@ namespace Signalizer
 		if (flags.audioStreamChanged.cas())
 		{
 			// TODO: Globals
-			state.sampleRate = transform.streamLocalSampleRate;
+			state.sampleRate = sac.streamLocalSampleRate;
 			constant.sampleRate = state.sampleRate;
 			flags.viewChanged = true;
 		}
@@ -444,7 +444,7 @@ namespace Signalizer
 
 		if (flags.displayModeChange.cas())
 		{
-			transform.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
+			constant.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
 			flags.resized = true;
 			flags.resetStateBuffers = true;
 		}

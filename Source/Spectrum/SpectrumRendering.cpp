@@ -689,7 +689,7 @@ namespace Signalizer
 
             // lock the memory buffers, and do our thing.
             {
-                handleFlagUpdates(access->Constant, access->Stream);
+                handleFlagUpdates(access->Constant, access->Stream, *access);
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
@@ -721,7 +721,7 @@ namespace Signalizer
                 {
 					access->Stream.doTransform(access->Constant);
 					access->Stream.mapToLinearSpace(access->Constant);
-					postProcessStdTransform(access->Stream);
+					postProcessStdTransform(access->Constant, access->Stream);
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:

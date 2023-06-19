@@ -63,7 +63,7 @@ namespace Signalizer
 			// can't underflow
 			std::size_t offset = views[0].size() - constant.windowSize;
 
-			switch (algo)
+			switch (constant.algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -259,7 +259,7 @@ namespace Signalizer
 			// extra discarded samples in case the incoming buffer is larger than our own
 			std::size_t extraDiscardedSamples = views[0].size() - constant.windowSize;
 
-			switch (algo)
+			switch (constant.algo)
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -500,7 +500,7 @@ namespace Signalizer
 
 	void Spectrum::StreamState::doTransform(const Constant& constant)
 	{
-		switch (algo)
+		switch (constant.algo)
 		{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
@@ -655,9 +655,9 @@ namespace Signalizer
 			mapAndTransformDFTFilters(state.configuration, transform, state.axisPoints, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
 		}
 
-	void Spectrum::postProcessStdTransform(const StreamState& state)
+	void Spectrum::postProcessStdTransform(const Constant& constant, const StreamState& state)
 	{
-		if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
+		if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 			postProcessTransform(state.getTransformResult<fftType>());
 		else
 			postProcessTransform(state.getTransformResult<fpoint>());
@@ -667,7 +667,7 @@ namespace Signalizer
 	{
 		using namespace cpl;
 
-		switch (algo)
+		switch (constant.algo)
 		{
 		case SpectrumContent::TransformAlgorithm::FFT:
 		{
@@ -724,7 +724,7 @@ namespace Signalizer
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
-				switch (binPolation)
+				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::None:
 					for (x = 0; x < constant.axisPoints - 1; ++x)
@@ -828,7 +828,7 @@ namespace Signalizer
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
-				switch (binPolation)
+				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::Linear:
 				{
@@ -1037,7 +1037,7 @@ namespace Signalizer
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x;
-				switch (binPolation)
+				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::Linear:
 
@@ -1166,7 +1166,7 @@ namespace Signalizer
 				while(x < constant.axisPoints)
 				{
 
-					switch (binPolation)
+					switch (constant.binPolation)
 					{
 					case SpectrumContent::BinInterpolation::Linear:
 					{
@@ -1365,8 +1365,8 @@ namespace Signalizer
 	{
 		auto access = streamState.lock();
 		
-		access->Stream.audioStreamChangeVersion.bump();
-		access->Stream.streamLocalSampleRate = source.getInfo().sampleRate;
+		access->audioStreamChangeVersion.bump();
+		access->streamLocalSampleRate = source.getInfo().sampleRate;
 	}
 
 	template<typename ISA>
@@ -1374,12 +1374,12 @@ namespace Signalizer
 	{
 		mapToLinearSpace(constant);
 
-		if (algo == SpectrumContent::TransformAlgorithm::RSNT)
+		if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + constant.axisPoints /* channels ? */));
 			sfbuf.frameQueue.pushElement<true>(&frame);
 		}
-		else if (algo == SpectrumContent::TransformAlgorithm::FFT)
+		else if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
 			auto & frame = *(new SFrameBuffer::FrameVector(constant.axisPoints));
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
@@ -1421,7 +1421,7 @@ namespace Signalizer
 	{ 
 		checkInvariants();
 		
-		if (displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+		if (constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
 			std::int64_t n = numSamples;
 			std::size_t offset = 0;
@@ -1434,7 +1434,7 @@ namespace Signalizer
 				const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 				// do some resonation
-				if (algo == SpectrumContent::TransformAlgorithm::RSNT)
+				if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 				{
 					// TODO: Assumptions about channels...
 					fpoint * offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
@@ -1446,7 +1446,7 @@ namespace Signalizer
 				if (sfbuf.currentCounter >= (sampleBufferSize))
 				{
 					bool transformReady = true;
-					if (algo == SpectrumContent::TransformAlgorithm::FFT)
+					if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 					{
 						fpoint * offBuf[2] = { buffer[0], buffer[1]};
 						if (ctx.getNumDeferredSamples() == 0)
@@ -1476,7 +1476,7 @@ namespace Signalizer
 				n -= availableSamples;
 			}
 		}
-		else if(algo == SpectrumContent::TransformAlgorithm::RSNT)
+		else if(constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
 			resonatingDispatch<ISA>(constant, buffer, numChannels, numSamples);
 		}
