@@ -613,7 +613,9 @@ namespace Signalizer
 		if (remapResonator)
 		{
 			auto window = content->dspWin.getWindowType();
-			transform.remapResonator(constant, content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
+			constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
+			// might be possible to not need this
+			transform.remapResonator(constant);
 			flags.frequencyGraphChange = true;
 		}
 

@@ -38,9 +38,12 @@
 	#include <memory>
 	#include "SpectrumParameters.h"
 	#include <cpl/simd.h>
+	#include <cpl/dsp/CComplexResonator.h>
 
 	namespace Signalizer
 	{
+		template<typename T>
+		using Resonator = cpl::dsp::CComplexResonator<T, 2>;
 
 		template<typename T>
 		class TransformConstant
@@ -85,6 +88,11 @@
 				{
 					slopeMap[i] = static_cast<Y>(b * std::pow<T>(mappedFrequencies[i], a));
 				}
+			}
+
+			void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors)
+			{
+				Resonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), numVectors, sampleRate, shouldHaveFreeQ, 8, windowSize);
 			}
 
 			void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minFreq)
@@ -149,6 +157,8 @@
 			{
 				return configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 			}
+
+			typename Resonator<float>::Constant Resonator;
 
 			// From flag updates
 			SpectrumContent::DisplayMode displayMode{};

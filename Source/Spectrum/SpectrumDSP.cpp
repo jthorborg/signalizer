@@ -673,7 +673,7 @@ namespace Signalizer
 		{
 			const auto lanczosFilterSize = 5;
 			cpl::ssize_t bin = 0, oldBin = 0, maxLBin, maxRBin = 0;
-			Types::fsint_t N = constant.transformSize;
+			Types::fsint_t N = static_cast<Types::fsint_t>(constant.transformSize);
 
 			// we rely on mapping indexes, so we need N > 2 at least.
 			if (N < 3 || constant.sampleRate < 1)
@@ -1268,7 +1268,7 @@ namespace Signalizer
 			std::complex<float> * wsp = getWorkingMemory<std::complex<float>>();
 			auto configurationChannels = constant.getStateConfigurationChannels();
 			// TODO: recursive lock?
-			std::size_t filtersPerChannel = copyResonatorStateInto<fpoint>(constant.dspWindow, wsp, configurationChannels) / configurationChannels;
+			std::size_t filtersPerChannel = copyResonatorStateInto<fpoint>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
 			switch (constant.configuration)
 			{
@@ -1298,10 +1298,9 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::StreamState::remapResonator(const Constant& constant, bool shouldHaveFreeQ, std::size_t numVectors)
+	void Spectrum::StreamState::remapResonator(Constant& constant)
 	{
-		cresonator.setFreeQ(shouldHaveFreeQ);
-		cresonator.mapSystemHz(constant.mappedFrequencies, constant.mappedFrequencies.size(), numVectors, constant.sampleRate);
+		cresonator.match(constant.Resonator);
 	}
 
 	void Spectrum::StreamState::checkInvariants()
@@ -1393,13 +1392,13 @@ namespace Signalizer
 	}
 
 	template<typename V, class Vector>
-	std::size_t Spectrum::StreamState::copyResonatorStateInto(cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels)
+	std::size_t Spectrum::StreamState::copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels)
 	{
-		auto numResFilters = cresonator.getNumFilters();
+		auto numResFilters = constant.Resonator.getNumFilters();
 		// casts from std::complex<T> * to T * which is well-defined.
 		// TODO: std::ranges
 		auto buf = reinterpret_cast<fpoint*>(cpl::data(output));
-		cresonator.getWholeWindowedState<V>(windowType, buf, outChannels, numResFilters);
+		cresonator.getWholeWindowedState<V>(constant.Resonator, windowType, buf, outChannels, numResFilters);
 
 		return numResFilters << (outChannels - 1);
 	}
@@ -1495,12 +1494,12 @@ namespace Signalizer
 		{
 			case SpectrumChannels::Right:
 			{
-				cresonator.resonateReal<typename ISA::V>(&buffer[1], 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, &buffer[1], 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Left:
 			{
-				cresonator.resonateReal<typename ISA::V>(buffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, buffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Mid:
@@ -1513,7 +1512,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] + buffer[1][i]);
 				}
 
-				cresonator.resonateReal<typename ISA::V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::Side:
@@ -1526,7 +1525,7 @@ namespace Signalizer
 					rbuffer[0][i] = fpoint(0.5) * (buffer[0][i] - buffer[1][i]);
 				}
 
-				cresonator.resonateReal<typename ISA::V>(rbuffer, 1, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
 				break;
 			}
 			case SpectrumChannels::MidSide:
@@ -1540,18 +1539,18 @@ namespace Signalizer
 					rbuffer[1][i] = buffer[0][i] - buffer[1][i];
 				}
 
-				cresonator.resonateReal<typename ISA::V>(rbuffer, 2, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Phase:
 			case SpectrumChannels::Separate:
 			{
-				cresonator.resonateReal<typename ISA::V>(buffer, 2, numSamples);
+				cresonator.resonateReal<typename ISA::V>(constant.Resonator, buffer, 2, numSamples);
 				break;
 			}
 			case SpectrumChannels::Complex:
 			{
-				cresonator.resonateComplex<typename ISA::V>(buffer, numSamples);
+				cresonator.resonateComplex<typename ISA::V>(constant.Resonator, buffer, numSamples);
 				break;
 			}
 		}
@@ -1564,7 +1563,6 @@ namespace Signalizer
 		// TODO: type these in terms of complex, not god damn chars.
 		audioMemory.resize(constant.transformSize + 1);
 		workingMemory.resize(constant.axisPoints * 2 * sizeof(std::complex<double>));
-		cresonator.setWindowSize(8, constant.windowSize);
 	}
 
 	void Spectrum::StreamState::clearAudioState()

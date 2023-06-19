@@ -431,8 +431,6 @@
 				/// <summary>
 				/// The complex resonator used for iir spectrums
 				/// </summary>
-				// TODO: make private?
-				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 
 				SFrameBuffer& sfbuf;
 				/// <summary>
@@ -445,7 +443,7 @@
 				/// Returns the total number of complex samples copied into the output
 				/// </summary>
 				template<typename ISA, class Vector>
-				std::size_t copyResonatorStateInto(cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
+				std::size_t copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
 
 				template<typename ISA>
 				void resonatingDispatch(const Constant& constant, float** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -504,7 +502,7 @@
 				/// </summary>
 				void doTransform(const Constant& constant);
 
-				void remapResonator(const Constant& constant, bool shouldHaveFreeQ, std::size_t numVectors);
+				void remapResonator(Constant& constant);
 				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
 
 				/// <summary>
@@ -590,6 +588,7 @@
 				/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 				/// </summary>
 				cpl::aligned_vector<std::complex<fftType>, 32> audioMemory;
+				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
 			};
 
 			struct StreamAndConstant
