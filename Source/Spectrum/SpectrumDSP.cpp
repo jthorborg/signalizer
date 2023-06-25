@@ -32,6 +32,8 @@
 #include <cpl/system/SysStats.h>
 #include <cpl/lib/LockFreeDataQueue.h>
 #include <cpl/stdext.h>
+#include <cpl/JobSystem.h>
+#include <execution>
 
 namespace Signalizer
 {
@@ -511,8 +513,6 @@ namespace Signalizer
 			}
 		}
 	}
-
-
 
 	template<class V2>
 		void Spectrum::mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowDbs, double highDbs, float clip)
@@ -1303,18 +1303,13 @@ namespace Signalizer
 		cresonator.match(constant.Resonator);
 	}
 
-	void Spectrum::StreamState::checkInvariants()
-	{
-		CPL_RUNTIME_ASSERTION(sfbuf.sampleBufferSize > 0);
-	}
-
 
 	bool Spectrum::processNextSpectrumFrame()
 	{
-		SFrameBuffer::FrameVector * next;
-		if (processor->sfbuf.frameQueue.popElement(next))
+		SFrameQueue::ElementAccess access;
+		if (processor->frameQueue.popElement(access))
 		{
-			SFrameBuffer::FrameVector & curFrame(*next);
+			FrameVector& curFrame(*access.getData());
 
 			std::size_t numFilters = getNumFilters();
 
@@ -1345,12 +1340,37 @@ namespace Signalizer
 				}
 			}
 
-#pragma message cwarn("OPERATOR DELETE OMG!!")
-			delete next;
 			return true;
 		}
 		return false;
 	}
+
+	struct AudioDispatcher
+	{
+		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+		{
+			auto access = shell.streamState.lock();
+			auto& state = access->Stream;
+			state.audioEntryPoint<ISA>(access->Constant, source, buffer, numChannels, numSamples);
+
+			if (access->Constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+			{
+				for (std::size_t i = 0; i < state.sfbuf.size(); ++i)
+				{
+					Spectrum::SFrameQueue::ElementAccess access;
+
+					// shouldn't be possible.
+					if (!shell.frameQueue.acquireFreeElement<true, false>(access))
+						break;
+
+					auto& buffer = *access.getData();
+					buffer = std::move(state.sfbuf[i]);
+				}
+
+				state.sfbuf.clear();
+			}
+		}
+	};
 
 	void Spectrum::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
@@ -1375,19 +1395,21 @@ namespace Signalizer
 
 		if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
-			auto & frame = *(new SFrameBuffer::FrameVector(getWorkingMemory<std::complex<fpoint>>(), getWorkingMemory<std::complex<fpoint>>() + constant.axisPoints /* channels ? */));
-			sfbuf.frameQueue.pushElement<true>(&frame);
+			auto memory = getWorkingMemory<std::complex<fpoint>>();
+			auto frame = FrameVector(memory, memory + constant.axisPoints /* channels ? */);
+			sfbuf.emplace_back(std::move(frame));
 		}
 		else if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
-			auto & frame = *(new SFrameBuffer::FrameVector(constant.axisPoints));
+			// TODO: remove this once fft type == fpoint
+			auto frame = FrameVector(constant.axisPoints);
 			auto wsp = getWorkingMemory<std::complex<fftType>>();
 			for (std::size_t i = 0; i < frame.size(); ++i)
 			{
 				frame[i].real = (fpoint)wsp[i].real();
 				frame[i].imag = (fpoint)wsp[i].imag();
 			}
-			sfbuf.frameQueue.pushElement<true>(&frame);
+			sfbuf.emplace_back(std::move(frame));
 		}
 	}
 
@@ -1403,33 +1425,22 @@ namespace Signalizer
 		return numResFilters << (outChannels - 1);
 	}
 
-	Spectrum::StreamState::StreamState(Spectrum::SFrameBuffer& buffer)
-		: sfbuf(buffer)
-	{
-
-	}
-
 	Spectrum::ProcessorShell::ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
-		: globalBehaviour(behaviour), sfbuf(), streamState(sfbuf)
+		: globalBehaviour(behaviour), frameQueue(10)
 	{
-		sfbuf.sampleBufferSize = 200;
 	}
 
 	template<typename ISA>
 	void Spectrum::StreamState::audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{ 
-		checkInvariants();
-		
 		if (constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
 			std::int64_t n = numSamples;
 			std::size_t offset = 0;
 
-			const auto sampleBufferSize = sfbuf.sampleBufferSize.load();
-
 			while (n > 0)
 			{
-				std::int64_t numRemainingSamples = sfbuf.currentCounter > sampleBufferSize ? 0 : sampleBufferSize - sfbuf.currentCounter;
+				std::int64_t numRemainingSamples = currentCounter > constant.sampleBufferSize ? 0 : constant.sampleBufferSize - currentCounter;
 				const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 				// do some resonation
@@ -1440,9 +1451,9 @@ namespace Signalizer
 					resonatingDispatch<ISA>(constant, offBuf, numChannels, availableSamples);
 				}
 
-				sfbuf.currentCounter += availableSamples;
+				currentCounter += availableSamples;
 
-				if (sfbuf.currentCounter >= (sampleBufferSize))
+				if (currentCounter >= constant.sampleBufferSize)
 				{
 					bool transformReady = true;
 					if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
@@ -1468,7 +1479,7 @@ namespace Signalizer
 					if(transformReady)
 						addAudioFrame<ISA>(constant);
 
-					sfbuf.currentCounter = 0;
+					currentCounter = 0;
 				}
 
 				offset += availableSamples;
@@ -1606,7 +1617,7 @@ namespace Signalizer
 	std::size_t Spectrum::getApproximateStoredFrames() const noexcept
 	{
 #pragma message cwarn("fix this to include channels, other processing methods.. etc.")
-		return processor->sfbuf.frameQueue.enqueuededElements();
+		return processor->frameQueue.enqueuededElements();
 	}
 
 	int Spectrum::getNumFilters() const noexcept

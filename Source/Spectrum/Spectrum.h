@@ -46,6 +46,7 @@
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include "TransformConstant.h"
+	#include <cpl/lib/LockFreeDataQueue.h>
 
 	#define USE_DUST_FFT
 
@@ -80,25 +81,6 @@
 			typedef float fftType;
 #endif
 			typedef TransformConstant<fftType> Constant;
-
-			class SFrameBuffer
-			{
-			public:
-
-				typedef cpl::aligned_vector < UComplex, 32 > FrameVector;
-
-				SFrameBuffer()
-					: sampleBufferSize(), currentCounter(), frameQueue(10, 1000)
-				{
-
-				}
-				cpl::relaxed_atomic<std::size_t> sampleBufferSize;
-				std::size_t currentCounter;
-
-				cpl::CLockFreeQueue<FrameVector *> frameQueue;
-			};
-
-
 
 			struct DBRange
 			{
@@ -172,6 +154,8 @@
 
 			typedef struct StreamState;
 			typedef struct StreamAndConstant;
+			typedef cpl::aligned_vector<UComplex, 32> FrameVector;
+			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
 
 			/// <summary>
 			/// Post processes the transform that will be interpreted according to what's selected.
@@ -424,15 +408,13 @@
 					mouseMove;
 			} flags;
 
+
 			struct StreamState 
 			{
-				StreamState(SFrameBuffer& buffer);
-
 				/// <summary>
 				/// The complex resonator used for iir spectrums
 				/// </summary>
-
-				SFrameBuffer& sfbuf;
+				std::vector<FrameVector> sfbuf;
 				/// <summary>
 				/// Copies the state from the complex resonator into the output buffer.
 				/// The output vector is assumed to accept index assigning of std::complex of fpoints.
@@ -589,6 +571,7 @@
 				/// </summary>
 				cpl::aligned_vector<std::complex<fftType>, 32> audioMemory;
 				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
+				std::size_t currentCounter{};
 			};
 
 			struct StreamAndConstant
@@ -602,7 +585,7 @@
 			struct ProcessorShell : public AudioStream::Listener
 			{
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
-				SFrameBuffer sfbuf;
+				cpl::CLockFreeDataQueue<FrameVector> frameQueue;
 				CriticalSection<StreamAndConstant> streamState;
 				cpl::relaxed_atomic<bool> isSuspended;
 
@@ -612,15 +595,7 @@
 				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour);
 			};
 
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
-				{
-					auto access = shell.streamState.lock();
-					
-					access->Stream.audioEntryPoint<ISA>(access->Constant, source, buffer, numChannels, numSamples);
-				}
-			};
+			friend struct AudioDispatcher;
 
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;			
 			std::shared_ptr<const ConcurrentConfig> config;

@@ -121,12 +121,6 @@ namespace Signalizer
 		content->getParameterSet().removeRTListener(this, true);
 	
 		audioStream->removeListener(processor);
-
-#pragma message cwarn("Fix this as well.")
-		SFrameBuffer::FrameVector * frame;
-		while (processor->sfbuf.frameQueue.popElement(frame))
-			delete frame;
-
 		notifyDestruction();
 	}
 
@@ -385,7 +379,7 @@ namespace Signalizer
 			flags.audioWindowWasResized = true;
 		}
 
-		processor->sfbuf.sampleBufferSize = getBlobSamples();
+		constant.sampleBufferSize = getBlobSamples();
 		
 		constant.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
