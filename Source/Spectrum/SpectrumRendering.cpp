@@ -74,7 +74,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, const StreamState& transform)
+	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, const TransformPair& primaryTransform)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -166,7 +166,7 @@ namespace Signalizer
 
 		computeAverageStats(averageFps, averageCpu);
 
-		drawFrequencyTracking(g, averageFps, constant, transform);
+		drawFrequencyTracking(g, averageFps, constant, primaryTransform);
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
@@ -192,7 +192,7 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const StreamState& transform)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform)
 	{
 		if (globalBehaviour->hideWidgetsOnMouseExit)
 		{
@@ -689,7 +689,7 @@ namespace Signalizer
 
             // lock the memory buffers, and do our thing.
             {
-                handleFlagUpdates(access->Constant, access->Stream, *access);
+                handleFlagUpdates(*access);
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {

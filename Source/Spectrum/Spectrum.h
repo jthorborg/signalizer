@@ -46,6 +46,7 @@
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include "TransformConstant.h"
+	#include "TransformPair.h"
 	#include <cpl/lib/LockFreeDataQueue.h>
 
 	#define USE_DUST_FFT
@@ -130,17 +131,18 @@
 			void setWindowSize(std::size_t size);
 
 		protected:
+			typedef TransformPair<fftType> TransformPair;
+			typedef TransformPair::FrameVector FrameVector;
 
 			struct RenderingDispatcher
 			{
 				template<typename ISA> static void dispatch(Spectrum & c) { c.vectorGLRendering<ISA>(); }
 			};
 
-
             template<typename ISA>
                 void vectorGLRendering();
 
-			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, const StreamState& transform);
+			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, const TransformPair& primaryTransform);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
@@ -154,13 +156,12 @@
 
 			typedef struct StreamState;
 			typedef struct StreamAndConstant;
-			typedef cpl::aligned_vector<UComplex, 32> FrameVector;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
 
 			/// <summary>
 			/// Post processes the transform that will be interpreted according to what's selected.
 			/// </summary>
-			void postProcessStdTransform(const Constant& constant, const StreamState& state);
+			void postProcessStdTransform(const Constant& constant, const TransformPair& transform);
 
 			/// <summary>
 			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
@@ -220,7 +221,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates(Constant& constant, StreamState& transform, StreamAndConstant& sac);
+			void handleFlagUpdates(StreamAndConstant& sac);
 
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
@@ -246,7 +247,7 @@
 			template<typename ISA>
 				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
 
-			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const StreamState& transform);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
@@ -408,175 +409,9 @@
 					mouseMove;
 			} flags;
 
-
-			struct StreamState 
-			{
-				/// <summary>
-				/// The complex resonator used for iir spectrums
-				/// </summary>
-				std::vector<FrameVector> sfbuf;
-				/// <summary>
-				/// Copies the state from the complex resonator into the output buffer.
-				/// The output vector is assumed to accept index assigning of std::complex of fpoints.
-				/// It is assumed the output vector can hold at least numChannels (of configuration) times
-				/// numFilters.
-				/// Output of channels are stored at numFilters offsets.
-				///
-				/// Returns the total number of complex samples copied into the output
-				/// </summary>
-				template<typename ISA, class Vector>
-				std::size_t copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
-
-				template<typename ISA>
-				void resonatingDispatch(const Constant& constant, float** buffer, std::size_t numChannels, std::size_t numSamples);
-
-				template<typename ISA>
-				void audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
-
-				/// <param name="elements">
-				/// "axis points" or the display window size
-				/// </param>
-				/// <param name="effectiveTransformSize">
-				/// the size of the fourier transform
-				/// </param>
-				/// <param name="outputTransformSize">
-				/// the actual size used for the fft computation
-				/// </param>
-				/// <seealso cref="mapToLinearSpace"/>
-				void setStorage(const Constant& constant);
-				void clearAudioState();
-
-				/// <summary>
-				/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
-				/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
-				/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
-				///
-				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
-				/// After the call to mapToLinearSpace, the results are written to getTransformResults().
-				/// Returns the complex amount of filters processed.
-				/// </summary>
-				void mapToLinearSpace(const Constant& constant);
-
-				/// <summary>
-				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-				/// or windowing, this is done here.
-				///
-				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-				/// Needs exclusive access to audioResource.
-				/// </summary>
-				bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio);
-
-				/// <summary>
-				/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-				/// or windowing, this is done here.
-				///
-				/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
-				/// the first argument).
-				/// Needs exclusive access to audioResource.
-				/// </summary>
-				bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio, fpoint** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
-
-				/// <summary>
-				/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
-				///
-				/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-				/// Needs exclusive access to audioResource.
-				/// </summary>
-				void doTransform(const Constant& constant);
-
-				void remapResonator(Constant& constant);
-				void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minimumLogFrequency);
-
-				/// <summary>
-				/// Returns an array of "axis points" size. 
-				/// </summary>
-				template<typename T>
-				const T* getTransformResult() const noexcept
-				{
-					return getWorkingMemory<T>();
-				}
-
-				/// <summary>
-				/// Returns an array of "axis points" size. 
-				/// </summary>
-				const std::complex<fftType>* getRawFFT() const noexcept
-				{
-					return getAudioMemory<std::complex<fftType>>();
-				}
-
-			private:
-
-				std::size_t getStateConfigurationChannels() const noexcept;
-				void checkInvariants();
-
-				template<typename T>
-				std::size_t getNumWorkingElements() const noexcept;
-
-				template<typename ISA>
-				void addAudioFrame(const Constant& constant);
-
-
-				template<typename T>
-				T* getWorkingMemory() noexcept
-				{
-					return reinterpret_cast<T*>(workingMemory.data());
-				}
-
-				template<typename T>
-				const T* getWorkingMemory() const noexcept
-				{
-					return reinterpret_cast<const T*>(workingMemory.data());
-				}
-
-				template<typename T>
-				T* getAudioMemory() noexcept
-				{
-					return reinterpret_cast<T*>(audioMemory.data());
-				}
-
-				template<typename T>
-				const T* getAudioMemory() const noexcept
-				{
-					return reinterpret_cast<const T*>(audioMemory.data());
-				}
-
-
-				/// <summary>
-				/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
-				/// </summary>
-				struct RelayBuffer
-				{
-					cpl::aligned_vector<fpoint, 32> buffer;
-					std::size_t samples {}, channels {};
-				} relay;
-
-				/// <summary>
-				/// Gets the relay buffer for the channel.
-				/// Note: you should call ensureRelayBufferSize before.
-				/// </summary>
-				fpoint* getRelayBufferChannel(std::size_t channel);
-				/// <summary>
-				/// Ensures the storage for the relay buffer.
-				/// Not suited for real-time usage (allocates memory)
-				/// </summary>
-				void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
-
-				/// <summary>
-				/// Temporary memory buffer for other applications.
-				/// </summary>
-				cpl::aligned_vector<char, 32> workingMemory;
-
-				/// <summary>
-				/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
-				/// </summary>
-				cpl::aligned_vector<std::complex<fftType>, 32> audioMemory;
-				cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
-				std::size_t currentCounter{};
-			};
-
 			struct StreamAndConstant
 			{
-				StreamState Stream;
+				TransformPair Stream;
 				Constant Constant;
 				ChangeVersion audioStreamChangeVersion;
 				double streamLocalSampleRate;

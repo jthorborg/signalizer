@@ -363,7 +363,7 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates(Constant& constant, StreamState& transform, StreamAndConstant& sac)
+	void Spectrum::handleFlagUpdates(StreamAndConstant& stream)
 	{
 		// TODO: Re-entracy guards?
 		cpl::CMutex audioLock;
@@ -373,18 +373,18 @@ namespace Signalizer
 		bool glImageHasBeenResized = false;
 
 		// did audio stream change since last sync?
-		if (state.audioStreamChanged.consumeChanges(sac.audioStreamChangeVersion))
+		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
 			flags.audioStreamChanged = true;
 			flags.audioWindowWasResized = true;
 		}
 
-		constant.sampleBufferSize = getBlobSamples();
+		stream.Constant.sampleBufferSize = getBlobSamples();
 		
-		constant.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
+		stream.Constant.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
-		constant.dspWindow = content->dspWin.getWindowType();
-		constant.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
+		stream.Constant.dspWindow = content->dspWin.getWindowType();
+		stream.Constant.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
@@ -417,7 +417,7 @@ namespace Signalizer
 
 		if (newconf != state.configuration)
 		{
-			constant.configuration = state.configuration = newconf;
+			stream.Constant.configuration = state.configuration = newconf;
 			if (newconf != SpectrumChannels::Complex)
 			{
 				complexFrequencyGraph.clear();
@@ -428,8 +428,8 @@ namespace Signalizer
 		if (flags.audioStreamChanged.cas())
 		{
 			// TODO: Globals
-			state.sampleRate = sac.streamLocalSampleRate;
-			constant.sampleRate = state.sampleRate;
+			state.sampleRate = stream.streamLocalSampleRate;
+			stream.Constant.sampleRate = state.sampleRate;
 			flags.viewChanged = true;
 		}
 
@@ -438,7 +438,7 @@ namespace Signalizer
 
 		if (flags.displayModeChange.cas())
 		{
-			constant.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
+			stream.Constant.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
 			flags.resized = true;
 			flags.resetStateBuffers = true;
 		}
@@ -489,8 +489,8 @@ namespace Signalizer
 
 		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 
-		constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
-		transform.setStorage(constant);
+		stream.Constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
+		stream.Stream.setStorage(stream.Constant);
 
 		if (flags.audioMemoryResize.cas())
 		{
@@ -587,29 +587,29 @@ namespace Signalizer
 
 		if (remapFrequencies)
 		{
-			constant.remapFrequencies(state.viewRect, state.viewScale, state.minLogFreq);
+			stream.Constant.remapFrequencies(state.viewRect, state.viewScale, state.minLogFreq);
 			remapResonator = true;
 			flags.slopeMapChanged = true;
 		}
 
 		if (flags.slopeMapChanged.cas())
 		{
-			constant.generateSlopeMap<fpoint>(slopeMap, content->slope.derive());
+			stream.Constant.generateSlopeMap<fpoint>(slopeMap, content->slope.derive());
 		}
 
 		if (flags.windowKernelChange.cas())
 		{
 			remapResonator = true;
-			constant.regenerateWindowKernel(content->dspWin);
-			state.windowScale = constant.windowKernelScale;
+			stream.Constant.regenerateWindowKernel(content->dspWin);
+			state.windowScale = stream.Constant.windowKernelScale;
 		}
 
 		if (remapResonator)
 		{
 			auto window = content->dspWin.getWindowType();
-			constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
+			stream.Constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
 			// might be possible to not need this
-			transform.remapResonator(constant);
+			stream.Stream.remapResonator(stream.Constant);
 			flags.frequencyGraphChange = true;
 		}
 
@@ -629,7 +629,7 @@ namespace Signalizer
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
 
-			transform.clearAudioState();
+			stream.Stream.clearAudioState();
 		}
 	}
 

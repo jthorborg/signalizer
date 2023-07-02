@@ -2258,6 +2258,9 @@
     <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h">
       <Filter>Signalizer\Source\Spectrum</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformPair.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
@@ -2310,6 +2313,9 @@
     </None>
     <None Include="..\..\prepare.py">
       <Filter>Signalizer</Filter>
+    </None>
+    <None Include="..\..\Source\Spectrum\TransformDSP.inl">
+      <Filter>Signalizer\Source\Spectrum</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

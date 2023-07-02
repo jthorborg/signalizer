@@ -820,6 +820,7 @@
     <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
     <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />
     <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h" />
+    <ClInclude Include="..\..\Source\Spectrum\TransformPair.h" />
     <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h" />
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />
@@ -842,6 +843,7 @@
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr" />
     <None Include="..\..\prepare.py" />
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl" />
+    <None Include="..\..\Source\Spectrum\TransformDSP.inl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc" />
