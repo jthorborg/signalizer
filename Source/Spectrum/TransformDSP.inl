@@ -532,9 +532,9 @@ namespace Signalizer
 			// complex transform results, N + 1 size
 			auto csf = getAudioMemory<std::complex<T>>();
 			// buffer for single results, numPoints * 2 size
-			T* wsp = getWorkingMemory<T>();
+			auto wsp = getWork<T>(constant.axisPoints);
 			// buffer for complex results, numPoints size
-			std::complex<T>* csp = getWorkingMemory<std::complex<T>>();
+			auto csp = getWork<std::complex<T>>(constant.axisPoints);
 
 			// this will make scaling correct regardless of amount of zero-padding
 			// notice the 0.5: fft's of size 32 will output 16 for exact frequency bin matches,
@@ -1104,9 +1104,8 @@ namespace Signalizer
 		}
 		case SpectrumContent::TransformAlgorithm::RSNT:
 		{
-
-			std::complex<float>* wsp = getWorkingMemory<std::complex<float>>();
 			auto configurationChannels = constant.getStateConfigurationChannels();
+			auto wsp = getWork<std::complex<float>>(constant.Resonator.getNumFilters() * configurationChannels);
 			// TODO: recursive lock?
 			std::size_t filtersPerChannel = copyResonatorStateInto<AFloat>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
@@ -1146,15 +1145,15 @@ namespace Signalizer
 
 		if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
-			auto memory = getWorkingMemory<std::complex<AFloat>>();
-			auto frame = FrameVector(memory, memory + constant.axisPoints /* channels ? */);
+			auto memory = getWork<std::complex<AFloat>>(constant.axisPoints);
+			auto frame = FrameVector(memory.begin(), memory.begin() + constant.axisPoints /* channels ? */);
 			sfbuf.emplace_back(std::move(frame));
 		}
 		else if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 		{
 			// TODO: remove this once fft type == AFloat
 			auto frame = FrameVector(constant.axisPoints);
-			auto wsp = getWorkingMemory<std::complex<T>>();
+			auto wsp = getWork<std::complex<T>>(constant.axisPoints);
 			for (std::size_t i = 0; i < frame.size(); ++i)
 			{
 				frame[i].real = (AFloat)wsp[i].real();
@@ -1327,6 +1326,13 @@ namespace Signalizer
 		relay.buffer.resize(channels * numSamples);
 		relay.samples = numSamples;
 		relay.channels = channels;
+	}
+
+	template<typename T>
+	template<typename Y>
+	cpl::uarray<const Y> TransformPair<T>::getTransformResult(const Constant& constant) const noexcept
+	{
+		return getWork<Y>(constant.axisPoints * constant.getStateConfigurationChannels() * 2);
 	}
 }
 

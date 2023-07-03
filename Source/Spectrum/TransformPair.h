@@ -37,6 +37,8 @@
 #include "SpectrumParameters.h"
 #include <cpl/simd.h>
 #include <cpl/dsp/CComplexResonator.h>
+#include <cpl/ffts.h>
+#include <cpl/lib/uarray.h>
 
 namespace Signalizer
 {
@@ -116,11 +118,8 @@ namespace Signalizer
 		/// <summary>
 		/// Returns an array of "axis points" size. 
 		/// </summary>
-		template<typename T>
-		const T* getTransformResult() const noexcept
-		{
-			return getWorkingMemory<T>();
-		}
+		template<typename Y>
+		cpl::uarray<const Y> getTransformResult(const Constant& constant) const noexcept;
 
 		/// <summary>
 		/// </summary>
@@ -135,7 +134,7 @@ namespace Signalizer
 			// separating real and imaginary transforms)
 			// TODO: type these in terms of complex, not god damn chars.
 			audioMemory.resize(constant.transformSize + 1);
-			workingMemory.resize(constant.axisPoints * 2 * sizeof(std::complex<double>));
+			workingMemory.resize(constant.axisPoints * 4);
 		}
 
 		void clearAudioState()
@@ -152,26 +151,27 @@ namespace Signalizer
 
 	private:
 
-		std::size_t getStateConfigurationChannels() const noexcept;
-		void checkInvariants();
-
-		template<typename T>
-		std::size_t getNumWorkingElements() const noexcept;
-
 		template<typename ISA>
 		void addAudioFrame(const Constant& constant);
 
-
-		template<typename T>
-		T* getWorkingMemory() noexcept
+		template<typename Y>
+		cpl::uarray<Y> getWork(std::size_t size)
 		{
-			return reinterpret_cast<T*>(workingMemory.data());
+			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
+
+			if(workingMemory.size() < size)
+				workingMemory.resize(size);
+
+			return cpl::as_uarray(workingMemory).reinterpret<Y>().slice(0, size);
 		}
 
-		template<typename T>
-		const T* getWorkingMemory() const noexcept
+		template<typename Y>
+		cpl::uarray<const Y> getWork(std::size_t size) const
 		{
-			return reinterpret_cast<const T*>(workingMemory.data());
+			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
+			CPL_RUNTIME_ASSERTION(workingMemory.size() >= size);
+
+			return cpl::as_uarray(workingMemory).reinterpret<Y>().slice(0, size);
 		}
 
 		template<typename T>
@@ -210,7 +210,7 @@ namespace Signalizer
 		/// <summary>
 		/// Temporary memory buffer for other applications.
 		/// </summary>
-		cpl::aligned_vector<char, 32> workingMemory;
+		cpl::aligned_vector<std::complex<T>, 32> workingMemory;
 
 		/// <summary>
 		/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)

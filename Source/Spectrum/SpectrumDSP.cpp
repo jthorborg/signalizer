@@ -196,9 +196,9 @@ namespace Signalizer
 	void Spectrum::postProcessStdTransform(const Constant& constant, const TransformPair& transform)
 	{
 		if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
-			postProcessTransform(transform.getTransformResult<fftType>());
+			postProcessTransform(transform.getTransformResult<fftType>(constant));
 		else
-			postProcessTransform(transform.getTransformResult<fpoint>());
+			postProcessTransform(transform.getTransformResult<fpoint>(constant));
 	}
 
 

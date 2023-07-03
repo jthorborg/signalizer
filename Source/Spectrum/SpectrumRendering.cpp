@@ -300,7 +300,7 @@ namespace Signalizer
 		}
 		else
 		{
-			CPL_RUNTIME_ASSERTION("What?");
+			CPL_RUNTIME_ASSERTION(!"What?");
 		}
 
 		mouseFraction = cpl::Math::confineTo(mouseFraction, 0, 1);
