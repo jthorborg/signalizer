@@ -534,7 +534,7 @@ namespace Signalizer
 			// buffer for single results, numPoints * 2 size
 			auto wsp = getWork<T>(constant.axisPoints);
 			// buffer for complex results, numPoints size
-			auto csp = getWork<std::complex<T>>(constant.axisPoints);
+			auto csp = getWork<std::complex<T>>(constant.axisPoints * 2);
 
 			// this will make scaling correct regardless of amount of zero-padding
 			// notice the 0.5: fft's of size 32 will output 16 for exact frequency bin matches,
@@ -1244,6 +1244,8 @@ namespace Signalizer
 	template<typename ISA>
 	inline void TransformPair<T>::resonatingDispatch(const Constant& constant, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		typedef AFloat TReso;
+
 		// TODO: asserts?
 		if (numChannels > 2)
 			return;
@@ -1262,12 +1264,12 @@ namespace Signalizer
 		}
 		case SpectrumChannels::Mid:
 		{
-			ensureRelayBufferSize(1, numSamples);
-			AFloat* rbuffer[] = { getRelayBufferChannel(0) };
+			auto work = getWork<TReso>(numSamples);
+			TReso* rbuffer[] = { work.data() };
 
 			for (std::size_t i = 0; i < numSamples; ++i)
 			{
-				rbuffer[0][i] = AFloat(0.5) * (buffer[0][i] + buffer[1][i]);
+				work[i] = static_cast<T>(T(0.5) * (buffer[0][i] + buffer[1][i]));
 			}
 
 			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
@@ -1275,12 +1277,12 @@ namespace Signalizer
 		}
 		case SpectrumChannels::Side:
 		{
-			ensureRelayBufferSize(1, numSamples);
-			AFloat* rbuffer[] = { getRelayBufferChannel(0) };
+			auto work = getWork<TReso>(numSamples);
+			TReso* rbuffer[] = { work.data() };
 
 			for (std::size_t i = 0; i < numSamples; ++i)
 			{
-				rbuffer[0][i] = AFloat(0.5) * (buffer[0][i] - buffer[1][i]);
+				work[i] = static_cast<TReso>(TReso(0.5) * (buffer[0][i] - buffer[1][i]));
 			}
 
 			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
@@ -1288,13 +1290,13 @@ namespace Signalizer
 		}
 		case SpectrumChannels::MidSide:
 		{
-			ensureRelayBufferSize(numChannels, numSamples);
-			AFloat* rbuffer[] = { getRelayBufferChannel(0), getRelayBufferChannel(1) };
+			auto work = getWork<TReso>(numSamples * 2);
+			TReso* rbuffer[] = { work.data(), work.data() + numSamples};
 
 			for (std::size_t i = 0; i < numSamples; ++i)
 			{
-				rbuffer[0][i] = buffer[0][i] + buffer[1][i];
-				rbuffer[1][i] = buffer[0][i] - buffer[1][i];
+				work[i] = static_cast<TReso>(buffer[0][i] + buffer[1][i]);
+				work[i + numSamples] = static_cast<TReso>(buffer[0][i] - buffer[1][i]);
 			}
 
 			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 2, numSamples);
@@ -1312,20 +1314,6 @@ namespace Signalizer
 			break;
 		}
 		}
-	}
-
-	template<typename T>
-	inline AFloat* TransformPair<T>::getRelayBufferChannel(std::size_t channel)
-	{
-		return relay.buffer.data() + channel * relay.samples;
-	}
-
-	template<typename T>
-	inline void TransformPair<T>::ensureRelayBufferSize(std::size_t channels, std::size_t numSamples)
-	{
-		relay.buffer.resize(channels * numSamples);
-		relay.samples = numSamples;
-		relay.channels = channels;
 	}
 
 	template<typename T>

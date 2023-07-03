@@ -186,27 +186,6 @@ namespace Signalizer
 			return reinterpret_cast<const T*>(audioMemory.data());
 		}
 
-
-		/// <summary>
-		/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
-		/// </summary>
-		struct RelayBuffer
-		{
-			cpl::aligned_vector<AFloat, 32> buffer;
-			std::size_t samples{}, channels{};
-		} relay;
-
-		/// <summary>
-		/// Gets the relay buffer for the channel.
-		/// Note: you should call ensureRelayBufferSize before.
-		/// </summary>
-		AFloat* getRelayBufferChannel(std::size_t channel);
-		/// <summary>
-		/// Ensures the storage for the relay buffer.
-		/// Not suited for real-time usage (allocates memory)
-		/// </summary>
-		void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
-
 		/// <summary>
 		/// Temporary memory buffer for other applications.
 		/// </summary>
