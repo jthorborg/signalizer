@@ -54,6 +54,7 @@ namespace Signalizer
 		typedef UComplexFilter<AFloat> UComplex;
 		typedef cpl::aligned_vector<UComplex, 32> FrameVector;
 		typedef TransformConstant<T> Constant;
+		typedef T ProcessingType;
 
 		/// <summary>
 		/// The complex resonator used for iir spectrums
@@ -118,14 +119,11 @@ namespace Signalizer
 		/// <summary>
 		/// Returns an array of "axis points" size. 
 		/// </summary>
-		template<typename Y>
-		cpl::uarray<const Y> getTransformResult(const Constant& constant) const noexcept;
+		cpl::uarray<const T> getTransformResult(const Constant& constant) const noexcept;
 
-		/// <summary>
-		/// </summary>
-		const std::complex<T>* getRawFFT() const noexcept
+		cpl::uarray<const std::complex<T>> getRawFFT(const Constant& constant) const noexcept
 		{
-			return getAudioMemory<std::complex<T>>();
+			return getAudioMemory<std::complex<T>>(constant.transformSize);
 		}
 
 		void setStorage(const Constant& constant)
@@ -174,16 +172,24 @@ namespace Signalizer
 			return cpl::as_uarray(workingMemory).reinterpret<Y>().slice(0, size);
 		}
 
-		template<typename T>
-		T* getAudioMemory() noexcept
+		template<typename Y>
+		cpl::uarray<Y> getAudioMemory(std::size_t size) noexcept
 		{
-			return reinterpret_cast<T*>(audioMemory.data());
+			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
+
+			if (audioMemory.size() < size)
+				audioMemory.resize(size);
+
+			return cpl::as_uarray(audioMemory).reinterpret<Y>().slice(0, size);
 		}
 
-		template<typename T>
-		const T* getAudioMemory() const noexcept
+		template<typename Y>
+		cpl::uarray<const Y> getAudioMemory(std::size_t size) const
 		{
-			return reinterpret_cast<const T*>(audioMemory.data());
+			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
+			CPL_RUNTIME_ASSERTION(audioMemory.size() >= size);
+
+			return cpl::as_uarray(audioMemory).reinterpret<Y>().slice(0, size);
 		}
 
 		/// <summary>
@@ -196,7 +202,7 @@ namespace Signalizer
 		/// </summary>
 		cpl::aligned_vector<std::complex<T>, 32> audioMemory;
 		// TODO: Change to T
-		cpl::dsp::CComplexResonator<AFloat, 2> cresonator;
+		cpl::dsp::CComplexResonator<T, 2> cresonator;
 		std::size_t currentCounter{};
 	};
 }

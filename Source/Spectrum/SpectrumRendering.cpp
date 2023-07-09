@@ -404,18 +404,18 @@ namespace Signalizer
 			lowerBound = cpl::Math::confineTo(lowerBound, 0, N);
 			higherBound = cpl::Math::confineTo(higherBound, 0, N);
 
-			auto source = transform.getRawFFT();
+			auto source = transform.getRawFFT(constant);
 
-			auto peak = std::max_element(source + lowerBound, source + higherBound + 1,
-				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
+			auto peak = std::max_element(source.begin() + lowerBound, source.begin() + higherBound + 1,
+				[](const auto & left, const auto & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
-			if (peak == source + lowerBound && lowerBound != 0)
+			if (peak == source.begin() + lowerBound && lowerBound != 0)
 			{
 				while (true)
 				{
 					auto nextPeak = peak - 1;
-					if (nextPeak == source)
+					if (nextPeak == source.begin())
 						break;
 					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
 						break;
@@ -423,12 +423,12 @@ namespace Signalizer
 						peak = nextPeak;
 				}
 			}
-			else if (peak == source + (higherBound - 1))
+			else if (peak == (source.begin() + higherBound - 1))
 			{
 				while (true)
 				{
 					auto nextPeak = peak + 1;
-					if (nextPeak == source + N)
+					if (nextPeak == source.end())
 						break;
 					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
 						break;
@@ -437,9 +437,9 @@ namespace Signalizer
 				}
 			}
 
-			const auto peakOffset = std::distance(source, peak);
+			const auto peakOffset = std::distance(source.begin(), peak);
 
-			const auto invSize = static_cast<fftType>(state.windowScale / (getWindowSize() * 0.5));
+			const auto invSize = static_cast<ProcessingType>(state.windowScale / (getWindowSize() * 0.5));
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html

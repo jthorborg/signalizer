@@ -57,7 +57,7 @@ namespace Signalizer
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
-				auto buffer = getAudioMemory<std::complex<T>>();
+				auto buffer = getAudioMemory<std::complex<T>>(constant.transformSize);
 				std::size_t channel = 1;
 				std::size_t i = 0;
 
@@ -254,7 +254,7 @@ namespace Signalizer
 			{
 			case SpectrumContent::TransformAlgorithm::FFT:
 			{
-				auto buffer = getAudioMemory<std::complex<T>>();
+				auto buffer = getAudioMemory<std::complex<T>>(constant.transformSize);
 				std::size_t channel = 1;
 				std::size_t i = 0;
 				std::size_t stop = std::min(numSamples, constant.windowSize);
@@ -530,9 +530,9 @@ namespace Signalizer
 			T maxLMag, maxRMag, newLMag, newRMag;
 
 			// complex transform results, N + 1 size
-			auto csf = getAudioMemory<std::complex<T>>();
+			auto csf = getAudioMemory<std::complex<T>>(constant.transformSize + 1);
 			// buffer for single results, numPoints * 2 size
-			auto wsp = getWork<T>(constant.axisPoints);
+			auto wsp = getWork<T>(constant.axisPoints * 2);
 			// buffer for complex results, numPoints size
 			auto csp = getWork<std::complex<T>>(constant.axisPoints * 2);
 
@@ -587,7 +587,7 @@ namespace Signalizer
 						if (bwForLine > fftBandwidth)
 							break;
 
-						csp[x] = invSize * dsp::linearFilter<std::complex<T>>(csf, N, constant.mappedFrequencies[x] * freqToBin);
+						csp[x] = invSize * dsp::linearFilter<std::complex<T>>(csf, constant.mappedFrequencies[x] * freqToBin);
 					}
 					break;
 				case SpectrumContent::BinInterpolation::Lanczos:
@@ -598,7 +598,7 @@ namespace Signalizer
 						if (bwForLine > fftBandwidth)
 							break;
 
-						csp[x] = invSize * dsp::lanczosFilter<std::complex<T>, true>(csf, N, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						csp[x] = invSize * dsp::lanczosFilter<std::complex<T>, true>(csf, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
 					}
 					break;
 				default:
@@ -645,7 +645,7 @@ namespace Signalizer
 			case SpectrumChannels::Phase:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
-				dsp::separateTransformsIPL(csf, N);
+				dsp::separateTransformsIPL(csf);
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * 0.5;
@@ -682,8 +682,8 @@ namespace Signalizer
 							break;
 						}
 
-						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
-						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin));
+						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, constant.mappedFrequencies[x] * freqToBin);
+						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N - (constant.mappedFrequencies[x] * freqToBin));
 
 						auto cancellation = invSize * std::sqrt(Math::square(iLeft + iRight));
 						auto mid = invSize * (std::abs(iLeft) + std::abs(iRight));
@@ -721,8 +721,8 @@ namespace Signalizer
 							normalizedPosition++;
 						}
 
-						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, N + 1, binPosition);
-						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N + 1, N - binPosition);
+						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, binPosition);
+						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N - binPosition);
 						// TODO: abs not really needed, because of normalization.
 						wsp[x * 2] = invSize * (std::abs(iLeft) + std::abs(iRight));
 
@@ -741,8 +741,8 @@ namespace Signalizer
 							break;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
-						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						auto cancellation = invSize * std::sqrt(Math::square(iLeft + iRight));
 						auto mid = invSize * (std::abs(iLeft) + std::abs(iRight));
@@ -771,8 +771,8 @@ namespace Signalizer
 							normalizedPosition++;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
-						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						wsp[x * 2] = invSize * (std::abs(iLeft) + std::abs(iRight));
 					}
@@ -857,7 +857,7 @@ namespace Signalizer
 			case SpectrumChannels::MidSide:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
-				dsp::separateTransformsIPL(csf, N);
+				dsp::separateTransformsIPL(csf.slice(0, N));
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * 0.5;
@@ -891,8 +891,8 @@ namespace Signalizer
 							break;
 						}
 
-						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
-						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin));
+						auto iLeft = dsp::linearFilter<std::complex<T>>(csf, constant.mappedFrequencies[x] * freqToBin);
+						auto iRight = dsp::linearFilter<std::complex<T>>(csf, N - (constant.mappedFrequencies[x] * freqToBin));
 
 						csp[x] = invSize * iLeft;
 						csp[constant.axisPoints + x] = invSize * iRight;
@@ -910,8 +910,8 @@ namespace Signalizer
 							break;
 						}
 
-						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, 5);
-						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
+						auto iLeft = dsp::lanczosFilter<std::complex<T>, true>(csf, constant.mappedFrequencies[x] * freqToBin, 5);
+						auto iRight = dsp::lanczosFilter<std::complex<T>, true>(csf, N - (constant.mappedFrequencies[x] * freqToBin), lanczosFilterSize);
 
 						csp[x] = invSize * iLeft;
 						csp[constant.axisPoints + x] = invSize * iRight;
@@ -1018,7 +1018,7 @@ namespace Signalizer
 								if (bwForLine > fftBandwidth)
 									break;
 							}
-							csp[x] = invSize * dsp::linearFilter<std::complex<T>>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin);
+							csp[x] = invSize * dsp::linearFilter<std::complex<T>>(csf, constant.mappedFrequencies[x] * freqToBin);
 						}
 						break;
 					}
@@ -1033,7 +1033,7 @@ namespace Signalizer
 									break;
 							}
 
-							csp[x] = invSize * dsp::lanczosFilter<std::complex<T>, true>(csf, N + 1, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
+							csp[x] = invSize * dsp::lanczosFilter<std::complex<T>, true>(csf, constant.mappedFrequencies[x] * freqToBin, lanczosFilterSize);
 						}
 
 						break;
@@ -1246,6 +1246,32 @@ namespace Signalizer
 	{
 		typedef AFloat TReso;
 
+		auto one = [&](auto fn)
+		{
+			auto work = this->getWork<T>(numSamples);
+
+			for (std::size_t i = 0; i < numSamples; ++i)
+			{
+				work[i] = static_cast<T>(fn(buffer[0][i], buffer[1][i]));
+			}
+
+			return std::array{ work };
+		};
+
+		auto two = [&](auto fn)
+		{
+			auto work = this->getWork<T>(numSamples * 2);
+
+			for (std::size_t i = 0; i < numSamples; ++i)
+			{
+				auto result = fn(buffer[0][i], buffer[1][i]);
+				work[i] = static_cast<T>(result.first);
+				work[i + numSamples] = static_cast<T>(result.second);
+			}
+
+			return std::array{ work.slice(0, numSamples), work.slice(numSamples, numSamples) };
+		};
+
 		// TODO: asserts?
 		if (numChannels > 2)
 			return;
@@ -1254,73 +1280,54 @@ namespace Signalizer
 		{
 		case SpectrumChannels::Right:
 		{
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, &buffer[1], 1, numSamples);
+			auto work = one([](AFloat left, AFloat right) { return right; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 1, numSamples);			
 			break;
 		}
 		case SpectrumChannels::Left:
 		{
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, buffer, 1, numSamples);
+			auto work = one([](AFloat left, AFloat right) { return left; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::Mid:
 		{
-			auto work = getWork<TReso>(numSamples);
-			TReso* rbuffer[] = { work.data() };
-
-			for (std::size_t i = 0; i < numSamples; ++i)
-			{
-				work[i] = static_cast<T>(T(0.5) * (buffer[0][i] + buffer[1][i]));
-			}
-
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
+			auto work = one([](AFloat left, AFloat right) { return left + right; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::Side:
 		{
-			auto work = getWork<TReso>(numSamples);
-			TReso* rbuffer[] = { work.data() };
-
-			for (std::size_t i = 0; i < numSamples; ++i)
-			{
-				work[i] = static_cast<TReso>(TReso(0.5) * (buffer[0][i] - buffer[1][i]));
-			}
-
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 1, numSamples);
+			auto work = one([](AFloat left, AFloat right) { return left - right; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::MidSide:
 		{
-			auto work = getWork<TReso>(numSamples * 2);
-			TReso* rbuffer[] = { work.data(), work.data() + numSamples};
-
-			for (std::size_t i = 0; i < numSamples; ++i)
-			{
-				work[i] = static_cast<TReso>(buffer[0][i] + buffer[1][i]);
-				work[i + numSamples] = static_cast<TReso>(buffer[0][i] - buffer[1][i]);
-			}
-
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, rbuffer, 2, numSamples);
+			auto work = two([](AFloat left, AFloat right) { return std::pair{ left - right, left + right }; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 2, numSamples);
 			break;
 		}
 		case SpectrumChannels::Phase:
 		case SpectrumChannels::Separate:
 		{
-			cresonator.resonateReal<typename ISA::V>(constant.Resonator, buffer, 2, numSamples);
+			auto work = two([](AFloat left, AFloat right) { return std::pair{ left, right }; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 2, numSamples);
 			break;
 		}
 		case SpectrumChannels::Complex:
 		{
-			cresonator.resonateComplex<typename ISA::V>(constant.Resonator, buffer, numSamples);
+			auto work = two([](AFloat left, AFloat right) { return std::pair{ left, right }; });
+			cresonator.resonateReal<typename ISA::V>(constant.Resonator, work, 2, numSamples);
 			break;
 		}
 		}
 	}
 
 	template<typename T>
-	template<typename Y>
-	cpl::uarray<const Y> TransformPair<T>::getTransformResult(const Constant& constant) const noexcept
+	cpl::uarray<const T> TransformPair<T>::getTransformResult(const Constant& constant) const noexcept
 	{
-		return getWork<Y>(constant.axisPoints * constant.getStateConfigurationChannels() * 2);
+		return getWork<T>(constant.axisPoints * constant.getStateConfigurationChannels() * 2);
 	}
 }
 

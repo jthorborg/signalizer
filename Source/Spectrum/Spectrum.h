@@ -76,12 +76,10 @@
 
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
-#ifdef USE_DUST_FFT
-			typedef double fftType;
-#else
-			typedef float fftType;
-#endif
-			typedef TransformConstant<fftType> Constant;
+
+			typedef TransformPair<float> TransformPair;
+			typedef TransformPair::Constant Constant;
+			typedef TransformPair::ProcessingType ProcessingType;
 
 			struct DBRange
 			{
@@ -131,7 +129,6 @@
 			void setWindowSize(std::size_t size);
 
 		protected:
-			typedef TransformPair<fftType> TransformPair;
 			typedef TransformPair::FrameVector FrameVector;
 
 			struct RenderingDispatcher

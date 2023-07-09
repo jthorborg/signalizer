@@ -53,7 +53,7 @@
 			void setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
 			{
 				windowSize = effectiveWindowSize;
-				const auto newTransformSize = std::max<std::size_t>(16, cpl::Math::nextPow2Inc(windowSize));
+				const auto newTransformSize = std::max<std::size_t>(32, cpl::Math::nextPow2Inc(windowSize));
 				axisPoints = elements;
 				transformSize = outputTransformSize = newTransformSize;
 				windowKernel.resize(transformSize);
@@ -157,7 +157,7 @@
 				return configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 			}
 
-			typename Resonator<float>::Constant Resonator;
+			typename Resonator<T>::Constant Resonator;
 
 			// From flag updates
 			SpectrumContent::DisplayMode displayMode{};

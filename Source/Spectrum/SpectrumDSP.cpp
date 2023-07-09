@@ -195,10 +195,7 @@ namespace Signalizer
 
 	void Spectrum::postProcessStdTransform(const Constant& constant, const TransformPair& transform)
 	{
-		if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
-			postProcessTransform(transform.getTransformResult<fftType>(constant));
-		else
-			postProcessTransform(transform.getTransformResult<fpoint>(constant));
+		postProcessTransform(transform.getTransformResult(constant));
 	}
 
 
@@ -275,7 +272,7 @@ namespace Signalizer
 		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
 			return;
 
-		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
+		cpl::simd::dynamic_isa_dispatch<ProcessingType, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
 	}
 
 	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
