@@ -245,10 +245,10 @@ namespace Signalizer
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			auto access = shell.streamState.lock();
-			auto& state = access->Stream;
-			state.audioEntryPoint<ISA>(access->Constant, source, buffer, numChannels, numSamples);
+			auto& state = access->pairs;
+			state.audioEntryPoint<ISA>(access->constant, source, buffer, numChannels, numSamples);
 
-			if (access->Constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+			if (access->constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
 				for (std::size_t i = 0; i < state.sfbuf.size(); ++i)
 				{

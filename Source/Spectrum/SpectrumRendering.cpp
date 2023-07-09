@@ -456,7 +456,7 @@ namespace Signalizer
 			peakFrequency = 0.5 * peakFraction * sampleRate;
 			// translate to local
 
-			peakDBs = beta - 0.25*(alpha - gamma) * phi;
+			peakDBs = beta - 0.25 * (alpha - gamma) * phi;
 			if (!std::isnormal(peakDBs))
 				peakDBs = 20 * std::log10(std::abs(source[peakOffset]) / (N * 0.5));
 
@@ -693,7 +693,7 @@ namespace Signalizer
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
-                    lineTransformReady = access->Stream.prepareTransform(access->Constant, audioStream->getAudioBufferViews());
+                    lineTransformReady = access->pairs.prepareTransform(access->constant, audioStream->getAudioBufferViews());
                 }
 
             }
@@ -719,9 +719,9 @@ namespace Signalizer
                 // such that only we have access to it.
                 if (lineTransformReady)
                 {
-					access->Stream.doTransform(access->Constant);
-					access->Stream.mapToLinearSpace(access->Constant);
-					postProcessStdTransform(access->Constant, access->Stream);
+					access->pairs.doTransform(access->constant);
+					access->pairs.mapToLinearSpace(access->constant);
+					postProcessStdTransform(access->constant, access->pairs);
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
@@ -730,7 +730,7 @@ namespace Signalizer
 
             }
             
-			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->Constant, access->Stream); });
+			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->constant, access->pairs); });
         }
 
 

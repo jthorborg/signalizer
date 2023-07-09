@@ -69,9 +69,6 @@
 			, protected AudioStream::Listener
 			, private ParameterSet::RTListener
 		{
-
-			struct StreamState;
-
 		public:
 
 			typedef UComplexFilter<AudioStream::DataType> UComplex;
@@ -152,7 +149,6 @@
 		private:
 
 			typedef struct StreamState;
-			typedef struct StreamAndConstant;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
 
 			/// <summary>
@@ -218,7 +214,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates(StreamAndConstant& sac);
+			void handleFlagUpdates(StreamState& sac);
 
 			/// <summary>
 			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
@@ -406,10 +402,10 @@
 					mouseMove;
 			} flags;
 
-			struct StreamAndConstant
+			struct StreamState
 			{
-				TransformPair Stream;
-				Constant Constant;
+				TransformPair pairs;
+				Constant constant;
 				ChangeVersion audioStreamChangeVersion;
 				double streamLocalSampleRate;
 			};
@@ -418,7 +414,7 @@
 			{
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
 				cpl::CLockFreeDataQueue<FrameVector> frameQueue;
-				CriticalSection<StreamAndConstant> streamState;
+				CriticalSection<StreamState> streamState;
 				cpl::relaxed_atomic<bool> isSuspended;
 
 				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;

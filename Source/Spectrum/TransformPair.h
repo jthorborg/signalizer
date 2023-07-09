@@ -144,7 +144,7 @@ namespace Signalizer
 
 		void remapResonator(Constant& constant)
 		{
-			cresonator.match(constant.Resonator);
+			cresonator.match(constant.resonator);
 		}
 
 	private:

@@ -91,7 +91,7 @@
 
 			void remapResonator(bool shouldHaveFreeQ, std::size_t numVectors)
 			{
-				Resonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), numVectors, sampleRate, shouldHaveFreeQ, 8, windowSize);
+				resonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), numVectors, sampleRate, shouldHaveFreeQ, 8, windowSize);
 			}
 
 			void remapFrequencies(const cpl::Utility::Bounds<double>& viewRect, SpectrumContent::ViewScaling scaling, double minFreq)
@@ -157,7 +157,7 @@
 				return configuration > SpectrumChannels::OffsetForMono ? 2 : 1;
 			}
 
-			typename Resonator<T>::Constant Resonator;
+			typename Resonator<T>::Constant resonator;
 
 			// From flag updates
 			SpectrumContent::DisplayMode displayMode{};
