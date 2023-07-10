@@ -397,7 +397,7 @@ namespace Signalizer
 			lineGraphs[i].filter.setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.algo != SpectrumContent::TransformAlgorithm::FFT)
+		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
 			state.colourSpecs[0] = state.colourBackground;
 
