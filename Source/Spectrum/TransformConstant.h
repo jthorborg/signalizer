@@ -58,6 +58,7 @@
 				transformSize = outputTransformSize = newTransformSize;
 				windowKernel.resize(transformSize);
 				mappedFrequencies.resize(axisPoints);
+				fft = { transformSize };
 			}
 
 			void checkInvariants()
@@ -192,6 +193,7 @@
 			cpl::aligned_vector<T, 32> windowKernel;
 			T windowKernelScale;
 			std::size_t sampleBufferSize { 200 };
+			cpl::dsp::UniFFT<std::complex<T>> fft;
 		};
 	}
 

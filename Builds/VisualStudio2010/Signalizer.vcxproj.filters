@@ -843,6 +843,15 @@
     <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp">
       <Filter>Signalizer\Source\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_double.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_common.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">

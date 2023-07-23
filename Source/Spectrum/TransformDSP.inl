@@ -497,8 +497,12 @@ namespace Signalizer
 		case SpectrumContent::TransformAlgorithm::FFT:
 		{
 			if (constant.transformSize > 0)
-				signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(constant.transformSize));
-
+				//signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(constant.transformSize));
+				constant.fft.forward(
+					getAudioMemory<std::complex<T>>(constant.transformSize),
+					getAudioMemory<std::complex<T>>(constant.transformSize),
+					getWork<std::complex<T>>(constant.transformSize)
+				);
 			break;
 		}
 		}
@@ -1273,7 +1277,7 @@ namespace Signalizer
 		};
 
 		// TODO: asserts?
-		if (numChannels > 2)
+		if (numChannels > 2 || numSamples < 1)
 			return;
 
 		switch (constant.configuration)
