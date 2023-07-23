@@ -88,7 +88,6 @@ namespace Signalizer
 		{
 			auto access = processor->streamState.lock();
 			access->constant.setStorage(10, 16, state.transformSize);
-			access->pairs.setStorage(access->constant);
 		}
 		audioStream->addListener(processor);
 
@@ -490,7 +489,6 @@ namespace Signalizer
 		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 
 		stream.constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
-		stream.pairs.setStorage(stream.constant);
 
 		if (flags.audioMemoryResize.cas())
 		{
@@ -608,8 +606,9 @@ namespace Signalizer
 		{
 			auto window = content->dspWin.getWindowType();
 			stream.constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
-			// might be possible to not need this
-			stream.pairs.remapResonator(stream.constant);
+			for (auto& pair : stream.pairs)
+				pair.remapResonator(stream.constant);
+
 			flags.frequencyGraphChange = true;
 		}
 
@@ -629,7 +628,8 @@ namespace Signalizer
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 				lineGraphs[i].zero();
 
-			stream.pairs.clearAudioState();
+			for(auto& pair : stream.pairs)
+				pair.clearAudioState();
 		}
 	}
 

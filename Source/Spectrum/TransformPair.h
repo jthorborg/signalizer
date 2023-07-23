@@ -126,15 +126,6 @@ namespace Signalizer
 			return getAudioMemory<std::complex<T>>(constant.transformSize);
 		}
 
-		void setStorage(const Constant& constant)
-		{
-			// some cases it is nice to have an extra entry (see handling of
-			// separating real and imaginary transforms)
-			// TODO: type these in terms of complex, not god damn chars.
-			audioMemory.resize(constant.transformSize + 1);
-			workingMemory.resize(constant.axisPoints * 4);
-		}
-
 		void clearAudioState()
 		{
 			std::fill(workingMemory.begin(), workingMemory.end(), 0);

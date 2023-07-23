@@ -214,24 +214,24 @@ namespace Signalizer
 			{
 				if (curFrame.size() == numFilters)
 				{
-					postProcessTransform(reinterpret_cast<fpoint*>(curFrame.data()));
+					postProcessTransform(cpl::as_uarray(curFrame).reinterpret<UComplex::Scalar>());
 				}
 				else
 				{
 					// linearly interpolate bins. if we win the cpu-lottery one day, change this to sinc.
-					std::vector<std::complex<fpoint>> tempSpace(numFilters);
+					std::vector<UComplex> tempSpace(numFilters);
 
 					// interpolation factor.
-					fpoint wspToNext = (curFrame.size() - 1) / fpoint(std::max<std::size_t>(1, numFilters));
+					UComplex::Scalar wspToNext = (curFrame.size() - 1) / UComplex::Scalar(std::max<std::size_t>(1, numFilters));
 
 					for (std::size_t n = 0; n < numFilters; ++n)
 					{
 						auto y2 = n * wspToNext;
 						auto x = static_cast<std::size_t>(y2);
 						auto yFrac = y2 - x;
-						tempSpace[n] = curFrame[x] * (fpoint(1) - yFrac) + curFrame[x + 1] * yFrac;
+						tempSpace[n] = curFrame[x] * (UComplex::Scalar(1) - yFrac) + curFrame[x + 1] * yFrac;
 					}
-					postProcessTransform(reinterpret_cast<fpoint*>(tempSpace.data()));
+					postProcessTransform(cpl::as_uarray(tempSpace).reinterpret<UComplex::Scalar>());
 				}
 			}
 
@@ -262,7 +262,8 @@ namespace Signalizer
 					buffer = std::move(state.sfbuf[i]);
 				}
 
-				state.sfbuf.clear();
+				for (auto& pair : access->pairs)
+					pair.sfbuf.clear();
 			}
 		}
 	};

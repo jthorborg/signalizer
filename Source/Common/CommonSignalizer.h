@@ -538,6 +538,8 @@
 		template<typename Scalar>
 		union UComplexFilter
 		{
+			typedef Scalar Scalar;
+
 			UComplexFilter() : real(0), imag(0) { }
 
 			UComplexFilter(const std::complex<Scalar> & c)

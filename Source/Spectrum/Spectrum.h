@@ -70,8 +70,6 @@
 			, private ParameterSet::RTListener
 		{
 		public:
-
-			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
 
 			typedef TransformPair<float> TransformPair;
@@ -127,6 +125,7 @@
 
 		protected:
 			typedef TransformPair::FrameVector FrameVector;
+			typedef TransformPair::UComplex UComplex;
 
 			struct RenderingDispatcher
 			{
