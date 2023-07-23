@@ -693,7 +693,7 @@ namespace Signalizer
                 // line graph data for ffts are rendered now.
                 if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
                 {
-                    lineTransformReady = access->pairs.prepareTransform(access->constant, audioStream->getAudioBufferViews());
+                    lineTransformReady = access->pairs[0].prepareTransform(access->constant, audioStream->getAudioBufferViews());
                 }
 
             }
@@ -719,9 +719,9 @@ namespace Signalizer
                 // such that only we have access to it.
                 if (lineTransformReady)
                 {
-					access->pairs.doTransform(access->constant);
-					access->pairs.mapToLinearSpace(access->constant);
-					postProcessStdTransform(access->constant, access->pairs);
+					access->pairs[0].doTransform(access->constant);
+					access->pairs[0].mapToLinearSpace(access->constant);
+					postProcessStdTransform(access->constant, access->pairs[0]);
                 }
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
@@ -730,7 +730,7 @@ namespace Signalizer
 
             }
             
-			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->constant, access->pairs); });
+			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->constant, access->pairs[0]); });
         }
 
 

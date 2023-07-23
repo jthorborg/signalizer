@@ -403,7 +403,7 @@
 
 			struct StreamState
 			{
-				TransformPair pairs;
+				std::vector<TransformPair> pairs;
 				Constant constant;
 				ChangeVersion audioStreamChangeVersion;
 				double streamLocalSampleRate;

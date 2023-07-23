@@ -244,12 +244,27 @@ namespace Signalizer
 	{
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			constexpr std::size_t concurrency = 4;
+
+			CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
 			auto access = shell.streamState.lock();
-			auto& state = access->pairs;
-			state.audioEntryPoint<ISA>(access->constant, source, buffer, numChannels, numSamples);
+
+			if (numChannels < 2 || access->pairs.empty())
+				return;
+
+			cpl::jobs::parallel_for(
+				numChannels / 2,
+				[&](auto i)
+				{
+					access->pairs[i].audioEntryPoint<ISA>(access->constant, source, buffer + i * 2, 2, numSamples);
+				}
+			);
 
 			if (access->constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
+
+				auto& state = access->pairs[0];
+
 				for (std::size_t i = 0; i < state.sfbuf.size(); ++i)
 				{
 					Spectrum::SFrameQueue::ElementAccess access;
@@ -282,6 +297,8 @@ namespace Signalizer
 
 		access->audioStreamChangeVersion.bump();
 		access->streamLocalSampleRate = source.getInfo().sampleRate;
+
+		access->pairs.resize(source.getInfo().channels / 2);
 	}
 
 	float Spectrum::getSampleRate() const noexcept
