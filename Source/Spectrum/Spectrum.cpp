@@ -389,11 +389,16 @@ namespace Signalizer
 		state.colourWidget = content->widgetColour.getAsJuceColour();
 		state.viewRect = { content->viewLeft.getTransformedValue(), content->viewRight.getTransformedValue() };
 
+		stream.constant.lowDBs = content->lowDbs.getTransformedValue();	
+		stream.constant.clipDB = content->lowDbs.getTransformer().transform(0);
+		stream.constant.highDBs = content->highDbs.getTransformedValue();
+
 		for (std::size_t i = 0; i < SpectrumContent::LineEnd; ++i)
 		{
 			state.colourOne[i] = content->lines[i].colourOne.getAsJuceColour();
 			state.colourTwo[i] = content->lines[i].colourTwo.getAsJuceColour();
-			lineGraphs[i].filter.setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
+			stream.constant.filter[i].setSampleRate(fpoint(1.0 / openGLDeltaTime()));
+			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
 		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
@@ -501,14 +506,13 @@ namespace Signalizer
 			oglImage.resize(getWidth(), getHeight(), true);
 			glImageHasBeenResized = true;
 		}
+
 		if (flags.resized.cas())
 		{
 			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
 			{
 				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
 			}
-
-			slopeMap.resize(numFilters);
 
 			columnUpdate.resize(getHeight());
 			// avoid doing it twice.
@@ -592,7 +596,7 @@ namespace Signalizer
 
 		if (flags.slopeMapChanged.cas())
 		{
-			stream.constant.generateSlopeMap<fpoint>(slopeMap, content->slope.derive());
+			stream.constant.generateSlopeMap(content->slope.derive());
 		}
 
 		if (flags.windowKernelChange.cas())

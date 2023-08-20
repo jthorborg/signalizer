@@ -142,7 +142,7 @@
 			/// <summary>
 			/// internally used for now.
 			/// </summary>
-			bool processNextSpectrumFrame();
+			bool processNextSpectrumFrame(const Constant& constant);
 
 			void calculateSpectrumColourRatios();
 		private:
@@ -160,7 +160,7 @@
 			/// The transform will be rendered into filterResults after this.
 			/// </summary>
 			template<class InVector>
-			void postProcessTransform(const InVector& transform);
+			void postProcessTransform(const Constant& constant, const InVector& transform);
 
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
@@ -231,10 +231,10 @@
 			/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
 			/// </summary>
 			template<class V2>
-				void mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
+				void mapAndTransformDFTFilters(const Constant& constant, const V2 & newVals, std::size_t size);
 
 			template<typename ISA>
-				void renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack &);
+				void renderColourSpectrum(const Constant& constant, cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename ISA>
 				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
@@ -449,10 +449,6 @@
 			struct LineGraphDesc
 			{
 				/// <summary>
-				/// The peak filter coefficient, describing the decay rate of the filters.
-				/// </summary>
-				cpl::CPeakFilter<fpoint> filter;
-				/// <summary>
 				/// The'raw' formatted state output of the mapped transform algorithms.
 				/// </summary>
 				cpl::aligned_vector<UComplex, 32> states;
@@ -536,9 +532,6 @@
 				double currentFrequency{}, currentPeakDBs{}, currentPeak{};
 
 			} peakState;
-
-			cpl::aligned_vector<fpoint, 32> slopeMap;
-
 		};
 
 	};

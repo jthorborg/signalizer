@@ -252,7 +252,7 @@ namespace Signalizer
 
 			mouseFraction = mouseX / (getWidth() - 1);
 			mouseFractionOrth = mouseY / (getHeight() - 1);
-			mouseSlope = 20 * std::log10(slopeMap[mouseX]);
+			mouseSlope = 20 * std::log10(constant.slopeMap[mouseX]);
 
 			if (state.viewScale == SpectrumContent::ViewScaling::Logarithmic)
 			{
@@ -379,7 +379,7 @@ namespace Signalizer
 
 			peakX = peakOffset;
 
-			peakSlope = slopeMap[peakOffset];
+			peakSlope = constant.slopeMap[peakOffset];
 
 
 			peakFractionY = results[peakOffset].leftMagnitude;
@@ -462,7 +462,7 @@ namespace Signalizer
 
 			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
 
-			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
+			peakSlope = constant.slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
 
 			peakDBs += 20 * std::log10(peakSlope);
 			const auto & dbs = getDBs();
@@ -678,11 +678,6 @@ namespace Signalizer
             // starting from a clean slate?
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
-
-
-            for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-                lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
-
             bool lineTransformReady = false;
 
 			auto&& access = processor->streamState.lock();
@@ -726,7 +721,7 @@ namespace Signalizer
                 renderLineGraph<ISA>(openGLStack); break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
                 // mapping and processing is already done here.
-                renderColourSpectrum<ISA>(openGLStack); break;
+                renderColourSpectrum<ISA>(access->constant, openGLStack); break;
 
             }
             
@@ -739,7 +734,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void Spectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
+		void Spectrum::renderColourSpectrum(const Constant& constant, cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
@@ -760,7 +755,7 @@ namespace Signalizer
 				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
-				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
+				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame(constant))
 				{
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
 					// run the next frame through pixel filters and format it etc.

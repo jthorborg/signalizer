@@ -58,6 +58,8 @@
 				transformSize = outputTransformSize = newTransformSize;
 				windowKernel.resize(transformSize);
 				mappedFrequencies.resize(axisPoints);
+				slopeMap.resize(axisPoints);
+
 				fft = { transformSize };
 			}
 
@@ -76,17 +78,14 @@
 				windowKernelScale = windowDesigner.generateWindow<T>(windowKernel, windowSize);
 			}
 
-			template<class Y>
-			void generateSlopeMap(cpl::uarray<Y> slopeMap, const cpl::PowerSlopeValue::PowerFunction& slopeFunction)
+			void generateSlopeMap(const cpl::PowerSlopeValue::PowerFunction& slopeFunction)
 			{
-				CPL_RUNTIME_ASSERTION(slopeMap.size() == axisPoints);
-
 				const auto a = static_cast<T>(slopeFunction.a);
 				const auto b = static_cast<T>(slopeFunction.b);
 
 				for (std::size_t i = 0; i < axisPoints; ++i)
 				{
-					slopeMap[i] = static_cast<Y>(b * std::pow<T>(mappedFrequencies[i], a));
+					slopeMap[i] = b * std::pow<T>(mappedFrequencies[i], a);
 				}
 			}
 
@@ -194,6 +193,15 @@
 			T windowKernelScale;
 			std::size_t sampleBufferSize { 200 };
 			cpl::dsp::UniFFT<std::complex<T>> fft;
+
+			/// <summary>
+			/// The peak filter coefficient, describing the decay rate of the filters.
+			/// </summary>
+			std::array<cpl::CPeakFilter<T>, 2> filter;
+
+			double lowDBs, highDBs, clipDB;
+
+			cpl::aligned_vector<T, 32> slopeMap;
 		};
 	}
 

@@ -54,18 +54,18 @@ namespace Signalizer
 	}
 
 	template<class V2>
-	void Spectrum::mapAndTransformDFTFilters(SpectrumChannels type, const V2& newVals, std::size_t size, double lowDbs, double highDbs, float clip)
+	void Spectrum::mapAndTransformDFTFilters(const Constant& constant, const V2& newVals, std::size_t size)
 	{
-		double lowerFraction = cpl::Math::dbToFraction<double>(lowDbs);
-		double upperFraction = cpl::Math::dbToFraction<double>(highDbs);
+		double lowerFraction = cpl::Math::dbToFraction<double>(constant.lowDBs);
+		double upperFraction = cpl::Math::dbToFraction<double>(constant.highDBs);
 
 		auto deltaYRecip = static_cast<fpoint>(1.0 / std::log(upperFraction / lowerFraction));
 		auto minFracRecip = static_cast<fpoint>(1.0 / lowerFraction);
 		auto halfRecip = fpoint(0.5);
 
-		fpoint lowerClip = (fpoint)clip;
+		fpoint lowerClip = (fpoint)constant.clipDB;
 
-		switch (type)
+		switch (constant.configuration)
 		{
 		case SpectrumChannels::Left:
 		case SpectrumChannels::Merge:
@@ -85,14 +85,14 @@ namespace Signalizer
 
 				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 				{
-					lineGraphs[k].states[i].magnitude *= lineGraphs[k].filter.pole;
+					lineGraphs[k].states[i].magnitude *= constant.filter[k].pole;
 
 					if (magnitude > lineGraphs[k].states[i].magnitude)
 					{
 						lineGraphs[k].states[i].magnitude = (fpoint)magnitude;
 					}
 
-					auto deltaX = slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
+					auto deltaX = constant.slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
 					// deltaX mostly zero here - add simd check
 					auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
 					lineGraphs[k].results[i].magnitude = (fpoint)result;
@@ -119,8 +119,8 @@ namespace Signalizer
 
 				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 				{
-					lineGraphs[k].states[i].leftMagnitude *= lineGraphs[k].filter.pole;
-					lineGraphs[k].states[i].rightMagnitude *= lineGraphs[k].filter.pole;
+					lineGraphs[k].states[i].leftMagnitude *= constant.filter[k].pole;
+					lineGraphs[k].states[i].rightMagnitude *= constant.filter[k].pole;
 
 					if (lmag > lineGraphs[k].states[i].leftMagnitude)
 					{
@@ -131,8 +131,8 @@ namespace Signalizer
 						lineGraphs[k].states[i].rightMagnitude = (fpoint)rmag;
 					}
 					// log10(y / _min) / log10(_max / _min);
-					auto deltaLX = slopeMap[i] * lineGraphs[k].states[i].leftMagnitude * minFracRecip;
-					auto deltaRX = slopeMap[i] * lineGraphs[k].states[i].rightMagnitude * minFracRecip;
+					auto deltaLX = constant.slopeMap[i] * lineGraphs[k].states[i].leftMagnitude * minFracRecip;
+					auto deltaRX = constant.slopeMap[i] * lineGraphs[k].states[i].rightMagnitude * minFracRecip;
 					// deltaX mostly zero here - add simd check
 					auto lResult = deltaLX > 0 ? std::log(deltaLX) * deltaYRecip : lowerClip;
 					auto rResult = deltaRX > 0 ? std::log(deltaRX) * deltaYRecip : lowerClip;
@@ -147,7 +147,7 @@ namespace Signalizer
 			fpoint phaseFilters[SpectrumContent::LineGraphs::LineEnd];
 
 			for (std::size_t k = 0; k < lineGraphs.size(); ++k)
-				phaseFilters[k] = std::pow(lineGraphs[k].filter.pole, 0.3);
+				phaseFilters[k] = std::pow(constant.filter[k].pole, 0.3);
 
 			for (cpl::Types::fint_t i = 0; i < size; ++i)
 			{
@@ -156,11 +156,11 @@ namespace Signalizer
 				auto phase = newVals[i * 2 + 1];
 				// mag = abs(cmplx)
 
-				mag *= halfRecip;
+				mag /= halfRecip;
 
 				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
 				{
-					lineGraphs[k].states[i].magnitude *= lineGraphs[k].filter.pole;
+					lineGraphs[k].states[i].magnitude *= constant.filter[k].pole;
 
 					if (mag > lineGraphs[k].states[i].magnitude)
 					{
@@ -173,8 +173,8 @@ namespace Signalizer
 
 					// log10(y / _min) / log10(_max / _min);
 					// deltaX mostly zero here - add simd check
-					auto deltaX = slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
-					auto deltaY = slopeMap[i] * lineGraphs[k].states[i].phase * minFracRecip;
+					auto deltaX = constant.slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
+					auto deltaY = constant.slopeMap[i] * lineGraphs[k].states[i].phase * minFracRecip;
 					// deltaX mostly zero here - add simd check
 					auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
 					lineGraphs[k].results[i].magnitude = (fpoint)result;
@@ -188,18 +188,18 @@ namespace Signalizer
 	}
 
 	template<class InVector>
-	void Spectrum::postProcessTransform(const InVector& transform)
+	void Spectrum::postProcessTransform(const Constant& constant, const InVector& transform)
 	{
-		mapAndTransformDFTFilters(state.configuration, transform, state.axisPoints, content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue(), content->lowDbs.getTransformer().transform(0));
+		mapAndTransformDFTFilters(constant, transform, state.axisPoints);
 	}
 
 	void Spectrum::postProcessStdTransform(const Constant& constant, const TransformPair& transform)
 	{
-		postProcessTransform(transform.getTransformResult(constant));
+		postProcessTransform(constant, transform.getTransformResult(constant));
 	}
 
 
-	bool Spectrum::processNextSpectrumFrame()
+	bool Spectrum::processNextSpectrumFrame(const Constant& constant)
 	{
 		SFrameQueue::ElementAccess access;
 		if (processor->frameQueue.popElement(access))
@@ -214,7 +214,7 @@ namespace Signalizer
 			{
 				if (curFrame.size() == numFilters)
 				{
-					postProcessTransform(cpl::as_uarray(curFrame).reinterpret<UComplex::Scalar>());
+					postProcessTransform(constant, cpl::as_uarray(curFrame).reinterpret<UComplex::Scalar>());
 				}
 				else
 				{
@@ -231,7 +231,7 @@ namespace Signalizer
 						auto yFrac = y2 - x;
 						tempSpace[n] = curFrame[x] * (UComplex::Scalar(1) - yFrac) + curFrame[x + 1] * yFrac;
 					}
-					postProcessTransform(cpl::as_uarray(tempSpace).reinterpret<UComplex::Scalar>());
+					postProcessTransform(constant, cpl::as_uarray(tempSpace).reinterpret<UComplex::Scalar>());
 				}
 			}
 
