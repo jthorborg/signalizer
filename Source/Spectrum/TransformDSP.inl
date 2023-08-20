@@ -1329,6 +1329,159 @@ namespace Signalizer
 	}
 
 	template<typename T>
+	template<class V2>
+	void TransformPair<T>::mapAndTransformDFTFilters(const Constant& constant, const V2& newVals, std::size_t size)
+	{
+		CPL_RUNTIME_ASSERTION(size == constant.axisPoints);
+
+		for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+		{
+			lineGraphs[k].resize(size);
+		}
+
+		double lowerFraction = cpl::Math::dbToFraction<double>(constant.lowDBs);
+		double upperFraction = cpl::Math::dbToFraction<double>(constant.highDBs);
+
+		auto deltaYRecip = static_cast<T>(1.0 / std::log(upperFraction / lowerFraction));
+		auto minFracRecip = static_cast<T>(1.0 / lowerFraction);
+
+		T lowerClip = static_cast<T>(constant.clipDB);
+
+		switch (constant.configuration)
+		{
+		case SpectrumChannels::Left:
+		case SpectrumChannels::Merge:
+		case SpectrumChannels::Right:
+		case SpectrumChannels::Side:
+		case SpectrumChannels::Complex:
+		{
+
+			for (cpl::Types::fint_t i = 0; i < size; ++i)
+			{
+
+				auto newReal = newVals[i * 2];
+				auto newImag = newVals[i * 2 + 1];
+				// mag = abs(cmplx)
+				auto magnitude = sqrt(newReal * newReal + newImag * newImag);
+
+
+				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+				{
+					lineGraphs[k].states[i].magnitude *= constant.filter[k].pole;
+
+					if (magnitude > lineGraphs[k].states[i].magnitude)
+					{
+						lineGraphs[k].states[i].magnitude = static_cast<T>(magnitude);
+					}
+
+					auto deltaX = constant.slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
+					// deltaX mostly zero here - add simd check
+					auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
+					lineGraphs[k].results[i].magnitude = static_cast<T>(result);
+					lineGraphs[k].results[i].phase = 0;
+				}
+
+			}
+			break;
+		}
+		case SpectrumChannels::Separate:
+		case SpectrumChannels::MidSide:
+		{
+
+			for (cpl::Types::fint_t i = 0; i < size; ++i)
+			{
+
+				auto lreal = newVals[i * 2];
+				auto rreal = newVals[i * 2 + size * 2];
+				auto limag = newVals[i * 2 + 1];
+				auto rimag = newVals[i * 2 + size * 2 + 1];
+				// mag = abs(cmplx)
+				auto lmag = sqrt(lreal * lreal + limag * limag);
+				auto rmag = sqrt(rreal * rreal + rimag * rimag);
+
+				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+				{
+					lineGraphs[k].states[i].leftMagnitude *= constant.filter[k].pole;
+					lineGraphs[k].states[i].rightMagnitude *= constant.filter[k].pole;
+
+					if (lmag > lineGraphs[k].states[i].leftMagnitude)
+					{
+						lineGraphs[k].states[i].leftMagnitude = static_cast<T>(lmag);
+					}
+					if (rmag > lineGraphs[k].states[i].rightMagnitude)
+					{
+						lineGraphs[k].states[i].rightMagnitude = static_cast<T>(rmag);
+					}
+					// log10(y / _min) / log10(_max / _min);
+					auto deltaLX = constant.slopeMap[i] * lineGraphs[k].states[i].leftMagnitude * minFracRecip;
+					auto deltaRX = constant.slopeMap[i] * lineGraphs[k].states[i].rightMagnitude * minFracRecip;
+					// deltaX mostly zero here - add simd check
+					auto lResult = deltaLX > 0 ? std::log(deltaLX) * deltaYRecip : lowerClip;
+					auto rResult = deltaRX > 0 ? std::log(deltaRX) * deltaYRecip : lowerClip;
+					lineGraphs[k].results[i].leftMagnitude = static_cast<T>(lResult);
+					lineGraphs[k].results[i].rightMagnitude = static_cast<T>(rResult);
+				}
+			}
+			break;
+		}
+		case SpectrumChannels::Phase:
+		{
+			T phaseFilters[SpectrumContent::LineGraphs::LineEnd];
+
+			for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+				phaseFilters[k] = std::pow<T>(constant.filter[k].pole, 0.3);
+
+			for (cpl::Types::fint_t i = 0; i < size; ++i)
+			{
+
+				auto mag = newVals[i * 2];
+				auto phase = newVals[i * 2 + 1];
+				// mag = abs(cmplx)
+
+				mag *= consts::half;
+
+				for (std::size_t k = 0; k < lineGraphs.size(); ++k)
+				{
+					lineGraphs[k].states[i].magnitude *= constant.filter[k].pole;
+
+					if (mag > lineGraphs[k].states[i].magnitude)
+					{
+						lineGraphs[k].states[i].magnitude = static_cast<T>(mag);
+					}
+					phase *= mag;
+
+					lineGraphs[k].states[i].phase = phase + phaseFilters[k] * (lineGraphs[k].states[i].phase - phase);
+
+
+					// log10(y / _min) / log10(_max / _min);
+					// deltaX mostly zero here - add simd check
+					auto deltaX = constant.slopeMap[i] * lineGraphs[k].states[i].magnitude * minFracRecip;
+					auto deltaY = constant.slopeMap[i] * lineGraphs[k].states[i].phase * minFracRecip;
+					// deltaX mostly zero here - add simd check
+					auto result = deltaX > 0 ? std::log(deltaX) * deltaYRecip : lowerClip;
+					lineGraphs[k].results[i].magnitude = static_cast<T>(result);
+					lineGraphs[k].results[i].phase = static_cast<T>(deltaY > 0 ? std::log(deltaY) * deltaYRecip : lowerClip);
+				}
+			}
+			break;
+		}
+		};
+	}
+
+	template<typename T>
+	template<class InVector>
+	void TransformPair<T>::postProcessTransform(const Constant& constant, const InVector& transform)
+	{
+		mapAndTransformDFTFilters(constant, transform, constant.axisPoints);
+	}
+
+	template<typename T>
+	void TransformPair<T>::postProcessStdTransform(const Constant& constant)
+	{
+		postProcessTransform(constant, getTransformResult(constant));
+	}
+
+	template<typename T>
 	cpl::uarray<const T> TransformPair<T>::getTransformResult(const Constant& constant) const noexcept
 	{
 		return getWork<T>(constant.axisPoints * constant.getStateConfigurationChannels() * 2);

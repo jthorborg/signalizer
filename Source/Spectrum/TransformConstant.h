@@ -197,7 +197,7 @@
 			/// <summary>
 			/// The peak filter coefficient, describing the decay rate of the filters.
 			/// </summary>
-			std::array<cpl::CPeakFilter<T>, 2> filter;
+			std::array<cpl::CPeakFilter<T>, SpectrumContent::LineGraphs::LineEnd> filter;
 
 			double lowDBs, highDBs, clipDB;
 

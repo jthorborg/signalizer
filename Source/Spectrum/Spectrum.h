@@ -142,26 +142,13 @@
 			/// <summary>
 			/// internally used for now.
 			/// </summary>
-			bool processNextSpectrumFrame(const Constant& constant);
+			bool processNextSpectrumFrame(const Constant& constant, TransformPair& transform);
 
 			void calculateSpectrumColourRatios();
 		private:
 
 			typedef struct StreamState;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
-
-			/// <summary>
-			/// Post processes the transform that will be interpreted according to what's selected.
-			/// </summary>
-			void postProcessStdTransform(const Constant& constant, const TransformPair& transform);
-
-			/// <summary>
-			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
-			/// The transform will be rendered into filterResults after this.
-			/// </summary>
-			template<class InVector>
-			void postProcessTransform(const Constant& constant, const InVector& transform);
-
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
@@ -215,29 +202,11 @@
 			/// </summary>
 			void handleFlagUpdates(StreamState& sac);
 
-			/// <summary>
-			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
-			/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
-			/// for mode = left / merge / mid / side / right
-			/// 	newVals is a complex vector of floats of size
-			/// for mode = separate, mid&side
-			/// 	newVals is a complex vector of floats of size * 2
-			/// 	newVals[n * 2 + 0] = lreal
-			/// 	newVals[n * 2 + 1] = limag
-			/// 	newVals[n * 2 + size + 0] = rreal
-			/// 	newVals[n * 2 + size + 1] = rimag
-			/// for mode = phase
-			/// 	newVals[n * 2 + 0] = mag
-			/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
-			/// </summary>
-			template<class V2>
-				void mapAndTransformDFTFilters(const Constant& constant, const V2 & newVals, std::size_t size);
+			template<typename ISA>
+				void renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename ISA>
-				void renderColourSpectrum(const Constant& constant, cpl::OpenGLRendering::COpenGLStack &);
-
-			template<typename ISA>
-				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
+				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &, const TransformPair& transform);
 
 			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform);
 
@@ -445,32 +414,6 @@
 			double oldWindowSize;
 			double framesPerUpdate;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
-
-			struct LineGraphDesc
-			{
-				/// <summary>
-				/// The'raw' formatted state output of the mapped transform algorithms.
-				/// </summary>
-				cpl::aligned_vector<UComplex, 32> states;
-				/// <summary>
-				/// The decay/peak-filtered and scaled outputs of the transforms,
-				/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
-				/// Resized in displayReordered
-				/// </summary>
-				cpl::aligned_vector<UComplex, 32> results;
-
-				void resize(std::size_t n)
-				{
-					states.resize(n); results.resize(n);
-				}
-
-				void zero() {
-					std::memset(states.data(), 0, states.size() * sizeof(UComplex));
-					std::memset(results.data(), 0, results.size() * sizeof(UComplex));
-				}
-			};
-			// dsp objects
-			std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
 
 			/// <summary>
 			/// The connected, incoming stream of data.

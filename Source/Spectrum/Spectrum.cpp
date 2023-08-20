@@ -509,11 +509,6 @@ namespace Signalizer
 
 		if (flags.resized.cas())
 		{
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-			{
-				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
-			}
-
 			columnUpdate.resize(getHeight());
 			// avoid doing it twice.
 			if (!glImageHasBeenResized)
@@ -557,17 +552,11 @@ namespace Signalizer
 
 				frequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
-				//frequencyGraph.setView({ state.viewRect.left * axisPoints * 0.5, (state.viewRect.right - 0.5) * axisPoints * 0.5});
 				frequencyGraph.setMaxFrequency(sampleRate / 2);
 				frequencyGraph.setScaling(state.viewScale == SpectrumContent::ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
 
 				complexFrequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - state.viewRect.left) * axisPoints });
-
-				//complexFrequencyGraph.setBounds({ axisPoints * 0.5, axisPoints * 1.0 });
-				//complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - (state.viewRect.right - state.viewRect.left) * 0.5 - 0.5) * axisPoints });
-
-
 
 				complexFrequencyGraph.setMaxFrequency(sampleRate / 2);
 				complexFrequencyGraph.setScaling(state.viewScale == SpectrumContent::ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
@@ -581,8 +570,8 @@ namespace Signalizer
 
 			oldViewRect = state.viewRect;
 
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-				lineGraphs[i].zero();
+			for (auto& pair : stream.pairs)
+				pair.clearLineGraphStates();
 
 			resetStaticViewAssumptions();
 		}
@@ -629,9 +618,6 @@ namespace Signalizer
 
 		if (flags.resetStateBuffers.cas())
 		{
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-				lineGraphs[i].zero();
-
 			for(auto& pair : stream.pairs)
 				pair.clearAudioState();
 		}

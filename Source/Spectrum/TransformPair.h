@@ -39,6 +39,7 @@
 #include <cpl/dsp/CComplexResonator.h>
 #include <cpl/ffts.h>
 #include <cpl/lib/uarray.h>
+#include <array>
 
 namespace Signalizer
 {
@@ -55,6 +56,31 @@ namespace Signalizer
 		typedef cpl::aligned_vector<UComplex, 32> FrameVector;
 		typedef TransformConstant<T> Constant;
 		typedef T ProcessingType;
+		typedef cpl::simd::consts<T> consts;
+
+		struct LineGraphDesc
+		{
+			/// <summary>
+			/// The'raw' formatted state output of the mapped transform algorithms.
+			/// </summary>
+			cpl::aligned_vector<UComplex, 32> states;
+			/// <summary>
+			/// The decay/peak-filtered and scaled outputs of the transforms,
+			/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
+			/// Resized in displayReordered
+			/// </summary>
+			cpl::aligned_vector<UComplex, 32> results;
+
+			void resize(std::size_t n)
+			{
+				states.resize(n); results.resize(n);
+			}
+
+			void zero() {
+				std::memset(states.data(), 0, states.size() * sizeof(UComplex));
+				std::memset(results.data(), 0, results.size() * sizeof(UComplex));
+			}
+		};
 
 		/// <summary>
 		/// The complex resonator used for iir spectrums
@@ -85,7 +111,6 @@ namespace Signalizer
 		///
 		/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
 		/// After the call to mapToLinearSpace, the results are written to getTransformResults().
-		/// Returns the complex amount of filters processed.
 		/// </summary>
 		void mapToLinearSpace(const Constant& constant);
 
@@ -117,6 +142,18 @@ namespace Signalizer
 		void doTransform(const Constant& constant);
 
 		/// <summary>
+		/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
+		/// The transform will be rendered into filterResults after this.
+		/// </summary>
+		template<class InVector>
+		void postProcessTransform(const Constant& constant, const InVector& transform);
+
+		/// <summary>
+		/// Post processes the transform that will be interpreted according to what's selected.
+		/// </summary>
+		void postProcessStdTransform(const Constant& constant);
+
+		/// <summary>
 		/// Returns an array of "axis points" size. 
 		/// </summary>
 		cpl::uarray<const T> getTransformResult(const Constant& constant) const noexcept;
@@ -126,8 +163,18 @@ namespace Signalizer
 			return getAudioMemory<std::complex<T>>(constant.transformSize);
 		}
 
+		void clearLineGraphStates()
+		{
+			for (std::size_t i = 0; i < lineGraphs.size(); ++i)
+			{
+				lineGraphs[i].zero();
+			}
+		}
+
 		void clearAudioState()
 		{
+			clearLineGraphStates();
+
 			std::fill(workingMemory.begin(), workingMemory.end(), 0);
 			std::fill(audioMemory.begin(), audioMemory.end(), 0);
 			cresonator.resetState();
@@ -138,7 +185,29 @@ namespace Signalizer
 			cresonator.match(constant.resonator);
 		}
 
+
+		// dsp objects -- TODO: Make private?
+		std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
+
 	private:
+
+		/// <summary>
+		/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
+		/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
+		/// for mode = left / merge / mid / side / right
+		/// 	newVals is a complex vector of floats of size
+		/// for mode = separate, mid&side
+		/// 	newVals is a complex vector of floats of size * 2
+		/// 	newVals[n * 2 + 0] = lreal
+		/// 	newVals[n * 2 + 1] = limag
+		/// 	newVals[n * 2 + size + 0] = rreal
+		/// 	newVals[n * 2 + size + 1] = rimag
+		/// for mode = phase
+		/// 	newVals[n * 2 + 0] = mag
+		/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
+		/// </summary>
+		template<class V2>
+		void mapAndTransformDFTFilters(const Constant& constant, const V2& newVals, std::size_t size);
 
 		template<typename ISA>
 		void addAudioFrame(const Constant& constant);
@@ -195,6 +264,7 @@ namespace Signalizer
 		// TODO: Change to T
 		cpl::dsp::CComplexResonator<T, 2> cresonator;
 		std::size_t currentCounter{};
+
 	};
 }
 

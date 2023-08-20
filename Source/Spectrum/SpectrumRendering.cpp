@@ -34,6 +34,7 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <array>
+#include "TransformDSP.inl"
 
 namespace Signalizer
 {
@@ -318,7 +319,7 @@ namespace Signalizer
 			if (graphN == SpectrumContent::LineGraphs::Transform)
 				graphN = SpectrumContent::LineGraphs::LineMain;
 
-			auto & results = lineGraphs[graphN].results;
+			auto & results = transform.lineGraphs[graphN].results;
 			auto N = results.size();
 			auto pivot = cpl::Math::round<std::size_t>(N * mouseFraction);
 			auto range = cpl::Math::round<std::size_t>(N * nearbyFractionToConsider);
@@ -716,12 +717,13 @@ namespace Signalizer
                 {
 					access->pairs[0].doTransform(access->constant);
 					access->pairs[0].mapToLinearSpace(access->constant);
-					postProcessStdTransform(access->constant, access->pairs[0]);
+					access->pairs[0].postProcessStdTransform(access->constant);
+					renderLineGraph<ISA>(openGLStack, access->pairs[0]);
                 }
-                renderLineGraph<ISA>(openGLStack); break;
+                 break;
             case SpectrumContent::DisplayMode::ColourSpectrum:
                 // mapping and processing is already done here.
-                renderColourSpectrum<ISA>(access->constant, openGLStack); break;
+                renderColourSpectrum<ISA>(access->constant, access->pairs[0], openGLStack); break;
 
             }
             
@@ -734,7 +736,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-		void Spectrum::renderColourSpectrum(const Constant& constant, cpl::OpenGLRendering::COpenGLStack & ogs)
+		void Spectrum::renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
@@ -755,13 +757,13 @@ namespace Signalizer
 				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
-				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame(constant))
+				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame(constant, transform))
 				{
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
 					// run the next frame through pixel filters and format it etc.
 
 
-					for (int i = 0; i < getAxisPoints(); ++i)
+					for (std::size_t i = 0; i < constant.axisPoints; ++i)
 					{
 //#define SIGNALIZER_VISUALDEBUGTEST
 #ifdef SIGNALIZER_VISUALDEBUGTEST
@@ -776,7 +778,7 @@ namespace Signalizer
 #else
 						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
 							columnUpdate.data() + i,
-							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
+							transform.lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
 							state.colourSpecs,
 							state.normalizedSpecRatios
 						);
@@ -842,7 +844,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-	void Spectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
+	void Spectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform)
 	{
 		int points = getAxisPoints() - 1;
 		// render the flood fill with alpha
@@ -874,7 +876,7 @@ namespace Signalizer
 					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
 					for (int i = 0; i < (points + 1); ++i)
 					{
-						lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
+						lineDrawer.addVertex(i, transform.lineGraphs[k].results[i].rightMagnitude, -0.5);
 						lineDrawer.addVertex(i, endPoint, -0.5);
 					}
 				}
@@ -889,7 +891,7 @@ namespace Signalizer
 					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
 					for (int i = 0; i < (points + 1); ++i)
 					{
-						lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
+						lineDrawer.addVertex(i, transform.lineGraphs[k].results[i].leftMagnitude, 0);
 						lineDrawer.addVertex(i, endPoint, 0);
 					}
 				}
@@ -917,7 +919,7 @@ namespace Signalizer
 				lineDrawer.addColour(state.colourTwo[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
-					lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
+					lineDrawer.addVertex(i, transform.lineGraphs[k].results[i].rightMagnitude, -0.5);
 				}
 			}
 			// (fall-through intentional)
@@ -931,7 +933,7 @@ namespace Signalizer
 				lineDrawer.addColour(state.colourOne[k]);
 				for (int i = 0; i < (points + 1); ++i)
 				{
-					lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
+					lineDrawer.addVertex(i, transform.lineGraphs[k].results[i].leftMagnitude, 0);
 				}
 			}
 			default:
