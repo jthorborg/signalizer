@@ -208,6 +208,9 @@
 			template<typename ISA>
 				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &, const TransformPair& transform);
 
+			template<typename ISA>
+				void renderLineGrid(cpl::OpenGLRendering::COpenGLStack&);
+
 			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform);
 
 			/// <summary>

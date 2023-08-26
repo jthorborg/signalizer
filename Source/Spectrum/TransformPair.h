@@ -62,19 +62,22 @@ namespace Signalizer
 
 		struct LineGraphDesc
 		{
-			/// <summary>
-			/// The'raw' formatted state output of the mapped transform algorithms.
-			/// </summary>
-			cpl::aligned_vector<UComplex, 32> states;
+			friend class TransformPair;
+
 			/// <summary>
 			/// The decay/peak-filtered and scaled outputs of the transforms,
 			/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
 			/// Resized in displayReordered
 			/// </summary>
-			cpl::aligned_vector<UComplex, 32> results;
+			cpl::uarray<const UComplex> getResults(std::size_t size) const
+			{
+				results.resize(size);
+				return cpl::as_uarray(results);
+			}
 
 			void resize(std::size_t n)
 			{
+				// TODO: This is only called from mapAndTransformDFTFilters. Size can go out of sync with drawing code that uses getResults().
 				states.resize(n); results.resize(n);
 			}
 
@@ -82,6 +85,13 @@ namespace Signalizer
 				std::memset(states.data(), 0, states.size() * sizeof(UComplex));
 				std::memset(results.data(), 0, results.size() * sizeof(UComplex));
 			}
+
+		private:
+			/// <summary>
+			/// The'raw' formatted state output of the mapped transform algorithms.
+			/// </summary>
+			cpl::aligned_vector<UComplex, 32> states;
+			mutable cpl::aligned_vector<UComplex, 32> results;
 		};
 
 		/// <summary>
