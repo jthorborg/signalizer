@@ -599,9 +599,6 @@ namespace Signalizer
 		{
 			auto window = content->dspWin.getWindowType();
 			stream.constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
-			for (auto& pair : stream.pairs)
-				pair.remapResonator(stream.constant);
-
 			flags.frequencyGraphChange = true;
 		}
 

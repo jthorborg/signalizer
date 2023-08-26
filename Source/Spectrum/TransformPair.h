@@ -40,6 +40,7 @@
 #include <cpl/ffts.h>
 #include <cpl/lib/uarray.h>
 #include <array>
+#include <optional>
 
 namespace Signalizer
 {
@@ -57,6 +58,7 @@ namespace Signalizer
 		typedef TransformConstant<T> Constant;
 		typedef T ProcessingType;
 		typedef cpl::simd::consts<T> consts;
+		typedef std::array<AudioStream::AudioBufferView, 2> AudioPair;
 
 		struct LineGraphDesc
 		{
@@ -99,10 +101,10 @@ namespace Signalizer
 		std::size_t copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
 
 		template<typename ISA>
-		void resonatingDispatch(const Constant& constant, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+		void resonatingDispatch(const Constant& constant, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		template<typename ISA>
-		void audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+		void audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& pairs, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		/// <summary>
 		/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
@@ -119,9 +121,8 @@ namespace Signalizer
 		/// or windowing, this is done here.
 		///
 		/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-		/// Needs exclusive access to audioResource.
 		/// </summary>
-		bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio);
+		bool prepareTransform(const Constant& constant, const AudioPair& audio);
 
 		/// <summary>
 		/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
@@ -129,9 +130,8 @@ namespace Signalizer
 		///
 		/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
 		/// the first argument).
-		/// Needs exclusive access to audioResource.
 		/// </summary>
-		bool prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio, AFloat** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
+		bool prepareTransform(const Constant& constant, const AudioPair& audio, std::array<AFloat*, 2> preliminaryAudio, std::size_t numSamples);
 
 		/// <summary>
 		/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
@@ -179,12 +179,6 @@ namespace Signalizer
 			std::fill(audioMemory.begin(), audioMemory.end(), 0);
 			cresonator.resetState();
 		}
-
-		void remapResonator(Constant& constant)
-		{
-			cresonator.match(constant.resonator);
-		}
-
 
 		// dsp objects -- TODO: Make private?
 		std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;

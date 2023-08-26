@@ -102,22 +102,43 @@ namespace Signalizer
 			constexpr std::size_t concurrency = 4;
 
 			CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
+
 			auto access = shell.streamState.lock();
 
 			if (numChannels < 2 || access->pairs.empty())
 				return;
 
+			CPL_RUNTIME_ASSERTION((numChannels / 2) == access->pairs.size());
+			CPL_RUNTIME_ASSERTION(source.getNumDeferredSamples() == 0);
+
+			// conditional lock.
+			std::optional<AudioStream::AudioBufferAccess> aba;
+			if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
+			{
+				aba.emplace(source.getAudioBufferViews());
+			}
+
 			cpl::jobs::parallel_for(
 				numChannels / 2,
 				[&](auto i)
 				{
-					access->pairs[i].audioEntryPoint<ISA>(access->constant, source, buffer + i * 2, 2, numSamples);
+					std::optional<Spectrum::TransformPair::AudioPair> views;
+					if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
+					{
+						views = Spectrum::TransformPair::AudioPair{ aba->getView(i * 2), aba->getView(i * 2 + 1) };
+					}
+					
+					access->pairs[i].audioEntryPoint<ISA>(
+						access->constant, 
+						views,
+						{ buffer[i * 2], buffer[i * 2 + 1] },
+						numSamples
+					);
 				}
 			);
 
 			if (access->constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
-
 				auto& state = access->pairs[0];
 
 				for (std::size_t i = 0; i < state.sfbuf.size(); ++i)

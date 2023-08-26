@@ -679,20 +679,16 @@ namespace Signalizer
             // starting from a clean slate?
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
+
             bool lineTransformReady = false;
 
 			auto&& access = processor->streamState.lock();
 
-            // lock the memory buffers, and do our thing.
-            {
-                handleFlagUpdates(*access);
-                // line graph data for ffts are rendered now.
-                if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
-                {
-                    lineTransformReady = access->pairs[0].prepareTransform(access->constant, audioStream->getAudioBufferViews());
-                }
+            handleFlagUpdates(*access);
 
-            }
+			if (access->pairs.size() == 0)
+				return;
+
             // flags may have altered ogl state
             CPL_DEBUGCHECKGL();
 
@@ -711,16 +707,25 @@ namespace Signalizer
             switch (state.displayMode)
             {
             case SpectrumContent::DisplayMode::LineGraph:
-                // no need to lock in this case, as this display mode is exclusively switched,
-                // such that only we have access to it.
-                if (lineTransformReady)
-                {
-					access->pairs[0].doTransform(access->constant);
-					access->pairs[0].mapToLinearSpace(access->constant);
-					access->pairs[0].postProcessStdTransform(access->constant);
-					renderLineGraph<ISA>(openGLStack, access->pairs[0]);
-                }
-                 break;
+			{
+				std::size_t channel = 0;
+				for (auto& pair : access->pairs)
+				{
+					auto views = audioStream->getAudioBufferViews();
+
+					if (pair.prepareTransform(access->constant, { views.getView(channel * 2), views.getView(channel * 2 + 1)}))
+					{
+						pair.doTransform(access->constant);
+						pair.mapToLinearSpace(access->constant);
+						pair.postProcessStdTransform(access->constant);
+					}
+
+					renderLineGraph<ISA>(openGLStack, pair);
+				}
+
+				break;
+			}
+
             case SpectrumContent::DisplayMode::ColourSpectrum:
                 // mapping and processing is already done here.
                 renderColourSpectrum<ISA>(access->constant, access->pairs[0], openGLStack); break;

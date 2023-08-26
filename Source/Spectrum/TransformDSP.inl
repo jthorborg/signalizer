@@ -36,14 +36,9 @@
 namespace Signalizer
 {
 	template<typename T>
-	inline bool TransformPair<T>::prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio)
+	inline bool TransformPair<T>::prepareTransform(const Constant& constant, const AudioPair& views)
 	{
-		if (audio.getNumChannels() < 2)
-			return false;
-
 		{
-			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
-
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
 			// call, however to avoid unnecessary locks we skip a frame instead once in a while.
@@ -236,10 +231,9 @@ namespace Signalizer
 	}
 
 	template<typename T>
-	inline bool TransformPair<T>::prepareTransform(const Constant& constant, const AudioStream::AudioBufferAccess& audio, AFloat** preliminaryAudio, std::size_t numChannels, std::size_t numSamples)
+	inline bool TransformPair<T>::prepareTransform(const Constant& constant, const AudioPair& views, std::array<AFloat*, 2> preliminaryAudio, std::size_t numSamples)
 	{
 		{
-			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
 
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
@@ -1182,7 +1176,7 @@ namespace Signalizer
 
 	template<typename T>
 	template<typename ISA>
-	inline void TransformPair<T>::audioEntryPoint(const Constant& constant, AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
+	inline void TransformPair<T>::audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& views, std::array<AFloat*, 2> buffer, std::size_t numSamples)
 	{
 		if (constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
@@ -1198,8 +1192,7 @@ namespace Signalizer
 				if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 				{
 					// TODO: Assumptions about channels...
-					AFloat* offBuf[2] = { buffer[0] + offset, buffer[1] + offset };
-					resonatingDispatch<ISA>(constant, offBuf, numChannels, availableSamples);
+					resonatingDispatch<ISA>(constant, { buffer[0] + offset, buffer[1] + offset }, availableSamples);
 				}
 
 				currentCounter += availableSamples;
@@ -1209,22 +1202,18 @@ namespace Signalizer
 					bool transformReady = true;
 					if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 					{
-						AFloat* offBuf[2] = { buffer[0], buffer[1] };
-						if (ctx.getNumDeferredSamples() == 0)
-						{
+						//if (ctx.getNumDeferredSamples() == 0)
+						//{
 							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-							if ((transformReady = prepareTransform(constant, ctx.getAudioBufferViews(), offBuf, numChannels, availableSamples + offset)))
+							if ((transformReady = prepareTransform(constant, *views, buffer, availableSamples + offset)))
 								doTransform(constant);
-						}
-						else
-						{
 							// ignore the deferred samples and produce some views that is slightly out-of-date.
 							// this ONLY happens if something else is hogging the buffers.
 							// TODO: missing offset?
-							if ((transformReady = prepareTransform(constant, ctx.getAudioBufferViews())))
-								doTransform(constant);
-						}
+							//if ((transformReady = prepareTransform(constant, ctx.getAudioBufferViews())))
+							//	doTransform(constant);
+						//}
 					}
 
 					if (transformReady)
@@ -1239,14 +1228,14 @@ namespace Signalizer
 		}
 		else if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 		{
-			resonatingDispatch<ISA>(constant, buffer, numChannels, numSamples);
+			resonatingDispatch<ISA>(constant, buffer, numSamples);
 		}
 
 	}
 
 	template<typename T>
 	template<typename ISA>
-	inline void TransformPair<T>::resonatingDispatch(const Constant& constant, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
+	inline void TransformPair<T>::resonatingDispatch(const Constant& constant, std::array<AFloat*, 2> buffer, std::size_t numSamples)
 	{
 		typedef AFloat TReso;
 
@@ -1277,7 +1266,7 @@ namespace Signalizer
 		};
 
 		// TODO: asserts?
-		if (numChannels > 2 || numSamples < 1)
+		if (numSamples < 1)
 			return;
 
 		switch (constant.configuration)
