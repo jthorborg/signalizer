@@ -919,6 +919,8 @@
 
 		struct ColourRotation
 		{
+			ColourRotation() : base(), size(), stereo() {}
+
 			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
 				: base(base), size(size), stereo(stereo)
 			{
@@ -933,9 +935,10 @@
 				return base.withRotatedHue(index / size);
 			}
 
-			const juce::Colour base;
-			const float size;
-			const bool stereo;
+		private:
+			juce::Colour base;
+			float size;
+			bool stereo;
 		};
 
 		/// <summary>

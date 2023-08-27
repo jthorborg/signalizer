@@ -707,19 +707,28 @@ namespace Signalizer
             {
             case SpectrumContent::DisplayMode::LineGraph:
 			{
-				std::size_t channel = 0;
+				std::size_t pairCount = 0;
 				for (auto& pair : access->pairs)
 				{
 					auto views = audioStream->getAudioBufferViews();
 
-					if (pair.prepareTransform(access->constant, { views.getView(channel * 2), views.getView(channel * 2 + 1)}))
+					if (pair.prepareTransform(access->constant, { views.getView(pairCount * 2), views.getView(pairCount * 2 + 1)}))
 					{
 						pair.doTransform(access->constant);
 						pair.mapToLinearSpace(access->constant);
 						pair.postProcessStdTransform(access->constant);
 					}
 
-					renderLineGraph<ISA>(openGLStack, pair);
+					CPL_RUNTIME_ASSERTION(state.colourOne.size() == 2);
+
+					renderTransformAsGraph<ISA>(
+						openGLStack, 
+						pair, 
+						{ state.colourOne[0][pairCount], state.colourOne[1][pairCount] },
+						{ state.colourTwo[0][pairCount], state.colourTwo[1][pairCount] }
+					);
+
+					pairCount++;
 				}
 
 				renderLineGrid<ISA>(openGLStack);
@@ -851,7 +860,7 @@ namespace Signalizer
 
 
 	template<typename ISA>
-	void Spectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform)
+	void Spectrum::renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform, const LineColours& one, const LineColours& two)
 	{
 		// render the flood fill with alpha
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -879,7 +888,7 @@ namespace Signalizer
 				case SpectrumChannels::Separate:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
-					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
+					lineDrawer.addColour(two[k].withAlpha(state.alphaFloodFill));
 					const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
 
 					for (std::size_t i = 0; i < state.axisPoints; ++i)
@@ -896,7 +905,7 @@ namespace Signalizer
 				case SpectrumChannels::Complex:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
-					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
+					lineDrawer.addColour(one[k].withAlpha(state.alphaFloodFill));
 					const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
 
 					for (std::size_t i = 0; i < state.axisPoints; ++i)
@@ -926,7 +935,7 @@ namespace Signalizer
 			case SpectrumChannels::Separate:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-				lineDrawer.addColour(state.colourTwo[k]);
+				lineDrawer.addColour(two[k]);
 				const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
 
 				for (std::size_t i = 0; i < state.axisPoints; ++i)
@@ -942,7 +951,7 @@ namespace Signalizer
 			case SpectrumChannels::Complex:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-				lineDrawer.addColour(state.colourOne[k]);
+				lineDrawer.addColour(one[k]);
 				const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
 
 				for (std::size_t i = 0; i < state.axisPoints; ++i)
@@ -1000,7 +1009,6 @@ namespace Signalizer
 				lineDrawer.addVertex(line, 1.0f, 0.0f);
 			}
 
-			//m.scale(1, getHeight(), 1);
 			lineDrawer.addColour(state.colourGrid);
 			const auto& divs = frequencyGraph.getDivisions();
 			const auto& cdivs = complexFrequencyGraph.getDivisions();

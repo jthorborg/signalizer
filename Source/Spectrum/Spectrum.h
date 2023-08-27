@@ -147,6 +147,7 @@
 			void calculateSpectrumColourRatios();
 		private:
 
+			typedef std::array<juce::Colour, SpectrumContent::LineGraphs::LineEnd> LineColours;
 			typedef struct StreamState;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
 
@@ -206,7 +207,7 @@
 				void renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename ISA>
-				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &, const TransformPair& transform);
+				void renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack &, const TransformPair& transform, const LineColours& one, const LineColours& two);
 
 			template<typename ISA>
 				void renderLineGrid(cpl::OpenGLRendering::COpenGLStack&);
@@ -267,7 +268,9 @@
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourGrid, colourBackground, colourWidget, colourOne[SpectrumContent::LineGraphs::LineEnd], colourTwo[SpectrumContent::LineGraphs::LineEnd];
+				juce::Colour colourGrid, colourBackground, colourWidget;
+
+				std::array<ColourRotation, SpectrumContent::LineGraphs::LineEnd> colourOne, colourTwo;
 
 				/// <summary>
 				/// Colours for spectrum

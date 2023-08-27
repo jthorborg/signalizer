@@ -364,9 +364,6 @@ namespace Signalizer
 
 	void Spectrum::handleFlagUpdates(StreamState& stream)
 	{
-		// TODO: Re-entracy guards?
-		cpl::CMutex audioLock;
-
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
@@ -393,10 +390,12 @@ namespace Signalizer
 		stream.constant.clipDB = content->lowDbs.getTransformer().transform(0);
 		stream.constant.highDBs = content->highDbs.getTransformedValue();
 
+		const auto pairs = stream.pairs.size();
+
 		for (std::size_t i = 0; i < SpectrumContent::LineEnd; ++i)
 		{
-			state.colourOne[i] = content->lines[i].colourOne.getAsJuceColour();
-			state.colourTwo[i] = content->lines[i].colourTwo.getAsJuceColour();
+			state.colourOne[i] = ColourRotation(content->lines[i].colourOne.getAsJuceColour(), pairs, false);
+			state.colourTwo[i] = ColourRotation(content->lines[i].colourTwo.getAsJuceColour(), pairs, false);
 			stream.constant.filter[i].setSampleRate(fpoint(1.0 / openGLDeltaTime()));
 			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
