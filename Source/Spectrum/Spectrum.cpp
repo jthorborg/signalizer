@@ -367,12 +367,13 @@ namespace Signalizer
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
-
+		bool calculateLegend = false;
 		// did audio stream change since last sync?
 		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
 			flags.audioStreamChanged = true;
 			flags.audioWindowWasResized = true;
+			calculateLegend = true;
 		}
 
 		stream.constant.sampleBufferSize = getBlobSamples();
@@ -385,7 +386,7 @@ namespace Signalizer
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
 		state.viewRect = { content->viewLeft.getTransformedValue(), content->viewRight.getTransformedValue() };
-
+		state.drawLegend = content->showLegend.getNormalizedValue() > 0.5f;
 		stream.constant.lowDBs = content->lowDbs.getTransformedValue();	
 		stream.constant.clipDB = content->lowDbs.getTransformer().transform(0);
 		stream.constant.highDBs = content->highDbs.getTransformedValue();
@@ -426,6 +427,7 @@ namespace Signalizer
 				complexFrequencyGraph.clear();
 			}
 			flags.viewChanged = true;
+			calculateLegend = true;
 		}
 
 		if (flags.audioStreamChanged.cas())
@@ -444,6 +446,7 @@ namespace Signalizer
 			stream.constant.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
 			flags.resized = true;
 			flags.resetStateBuffers = true;
+			calculateLegend = true;
 		}
 
 		std::size_t axisPoints = state.displayMode == SpectrumContent::DisplayMode::LineGraph ? getWidth() : getHeight();
@@ -617,6 +620,9 @@ namespace Signalizer
 			for(auto& pair : stream.pairs)
 				pair.clearAudioState();
 		}
+
+		if (calculateLegend)
+			recalculateLegend(stream);
 	}
 
 
@@ -638,4 +644,70 @@ namespace Signalizer
 		lastPeak = -1;
 	}
 
+	void Spectrum::recalculateLegend(StreamState& cs)
+	{
+		state.legend.reset({ 10, 10 });
+
+		const auto numPairs = cs.pairs.size();
+
+		auto c = [&](int index, int subline, std::size_t channel)
+		{
+			return (index == 1 ? state.colourTwo : state.colourOne)[subline][channel];
+		};
+
+		switch (cs.constant.configuration)
+		{
+		default:
+
+		case SpectrumChannels::Left:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2], c(0, 0, p), c(0, 1, p));
+			break;
+		case SpectrumChannels::Right:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+			break;
+		case SpectrumChannels::Mid:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
+			break;
+		case SpectrumChannels::Side:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+			break;
+		case SpectrumChannels::Separate:
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2], c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+			}
+			break;
+		case SpectrumChannels::MidSide:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+			}
+			break;
+		}
+		case SpectrumChannels::Phase:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine("|" + cs.channelNames[p * 2] + "| + |" + cs.channelNames[p * 2 + 1] + "|", c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " / " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+			}
+			break;
+		}
+		case SpectrumChannels::Complex:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2] + " + i*" + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
+			}
+			break;
+		}
+		}
+	}
 };

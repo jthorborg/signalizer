@@ -167,7 +167,15 @@ namespace Signalizer
 
 		computeAverageStats(averageFps, averageCpu);
 
-		drawFrequencyTracking(g, averageFps, constant, primaryTransform);
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+
+		if (mouseCheck)
+		{
+			if(state.drawLegend)
+				state.legend.paint(g, state.colourWidget, state.colourBackground);
+
+			drawFrequencyTracking(g, averageFps, constant, primaryTransform);
+		}
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
@@ -195,12 +203,6 @@ namespace Signalizer
 
 	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, TransformPair& transform)
 	{
-		if (globalBehaviour->hideWidgetsOnMouseExit)
-		{
-			if (!isMouseInside)
-				return;
-		}
-
 		auto graphN = state.frequencyTrackingGraph;
 		// TODO: feature request
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures

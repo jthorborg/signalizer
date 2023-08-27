@@ -176,6 +176,7 @@ namespace Signalizer
 		access->streamLocalSampleRate = source.getInfo().sampleRate;
 
 		access->pairs.resize(source.getInfo().channels / 2);
+		access->channelNames = source.getChannelNames();
 	}
 
 	float Spectrum::getSampleRate() const noexcept

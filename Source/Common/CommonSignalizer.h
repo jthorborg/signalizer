@@ -935,6 +935,11 @@
 				return base.withRotatedHue(index / size);
 			}
 
+			juce::Colour getBase() const noexcept
+			{
+				return base;
+			}
+
 		private:
 			juce::Colour base;
 			float size;
@@ -1001,6 +1006,13 @@
 			{
 				arrangement.addLineOfText(font, text, position.x, position.y);
 				colours.push_back(colour);
+				position.y += offset + font.getHeight();
+			}
+
+			void addLine(const juce::String& text, juce::Colour a, juce::Colour b)
+			{
+				arrangement.addLineOfText(font, text, position.x, position.y);
+				colours.push_back(a);
 				position.y += offset + font.getHeight();
 			}
 

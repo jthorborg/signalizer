@@ -221,6 +221,8 @@
 			/// </summary>
 			void resetStaticViewAssumptions();
 
+			void recalculateLegend(StreamState& cs);
+
 			// TODO: technically, avoid any data races by making every member a std::atomic (or refactor everything that
 			// changes state into altering flags instead (check out valueChanged()))
 			struct StateOptions
@@ -300,6 +302,10 @@
 
 				ChangeVersion::Listener audioStreamChanged;
 				double windowScale;
+
+				bool drawLegend{ };
+				LegendCache legend;
+
 			} state;
 
 
@@ -375,7 +381,8 @@
 				std::vector<TransformPair> pairs;
 				Constant constant;
 				ChangeVersion audioStreamChangeVersion;
-				double streamLocalSampleRate;
+				double streamLocalSampleRate;				
+				std::vector<std::string> channelNames;
 			};
 
 			struct ProcessorShell : public AudioStream::Listener
@@ -470,7 +477,7 @@
 				}
 
 			private:
-				SmoothParam::PoleState peakPole, filterPole;
+				SmoothParam::PoleState peakPole {}, filterPole{};
 				SmoothParam frequencyState, peakDBsState;
 				double currentFrequency{}, currentPeakDBs{}, currentPeak{};
 
