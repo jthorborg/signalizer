@@ -109,12 +109,13 @@ namespace Signalizer
 				return;
 
 			CPL_RUNTIME_ASSERTION((numChannels / 2) == access->pairs.size());
-			CPL_RUNTIME_ASSERTION(source.getNumDeferredSamples() == 0);
 
 			// conditional lock.
 			std::optional<AudioStream::AudioBufferAccess> aba;
 			if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
+				CPL_RUNTIME_ASSERTION(source.getNumDeferredSamples() == 0);
+
 				aba.emplace(source.getAudioBufferViews());
 			}
 

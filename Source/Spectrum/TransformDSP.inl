@@ -1471,7 +1471,7 @@ namespace Signalizer
 	}
 
 	template<typename T>
-	cpl::uarray<const T> TransformPair<T>::getTransformResult(const Constant& constant) const noexcept
+	cpl::uarray<const T> TransformPair<T>::getTransformResult(const Constant& constant)
 	{
 		return getWork<T>(constant.axisPoints * constant.getStateConfigurationChannels() * 2);
 	}

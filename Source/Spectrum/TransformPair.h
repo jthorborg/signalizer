@@ -166,9 +166,9 @@ namespace Signalizer
 		/// <summary>
 		/// Returns an array of "axis points" size. 
 		/// </summary>
-		cpl::uarray<const T> getTransformResult(const Constant& constant) const noexcept;
+		cpl::uarray<const T> getTransformResult(const Constant& constant);
 
-		cpl::uarray<const std::complex<T>> getRawFFT(const Constant& constant) const noexcept
+		cpl::uarray<const std::complex<T>> getRawFFT(const Constant& constant)
 		{
 			return getAudioMemory<std::complex<T>>(constant.transformSize);
 		}
@@ -228,30 +228,12 @@ namespace Signalizer
 		}
 
 		template<typename Y>
-		cpl::uarray<const Y> getWork(std::size_t size) const
-		{
-			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
-			CPL_RUNTIME_ASSERTION(workingMemory.size() >= size);
-
-			return cpl::as_uarray(workingMemory).reinterpret<Y>().slice(0, size);
-		}
-
-		template<typename Y>
-		cpl::uarray<Y> getAudioMemory(std::size_t size) noexcept
+		cpl::uarray<Y> getAudioMemory(std::size_t size) 
 		{
 			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
 
 			if (audioMemory.size() < size)
 				audioMemory.resize(size);
-
-			return cpl::as_uarray(audioMemory).reinterpret<Y>().slice(0, size);
-		}
-
-		template<typename Y>
-		cpl::uarray<const Y> getAudioMemory(std::size_t size) const
-		{
-			static_assert(sizeof(Y) <= sizeof(std::complex<T>));
-			CPL_RUNTIME_ASSERTION(audioMemory.size() >= size);
 
 			return cpl::as_uarray(audioMemory).reinterpret<Y>().slice(0, size);
 		}

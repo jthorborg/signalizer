@@ -75,7 +75,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, const TransformPair& primaryTransform)
+	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, TransformPair& primaryTransform)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -193,7 +193,7 @@ namespace Signalizer
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, TransformPair& transform)
 	{
 		if (globalBehaviour->hideWidgetsOnMouseExit)
 		{

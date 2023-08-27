@@ -135,7 +135,7 @@
             template<typename ISA>
                 void vectorGLRendering();
 
-			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, const TransformPair& primaryTransform);
+			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, /*const*/ TransformPair& primaryTransform);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
@@ -162,7 +162,6 @@
 			/// <summary>
 			/// Transforms state.audioBlobSizeMs into samples.
 			/// </summary>
-			/// <returns></returns>
 			std::size_t getBlobSamples() const noexcept;
 
 			/// <summary>
@@ -178,17 +177,14 @@
 			/// <summary>
 			/// The number of pixels/points in the frequency axis.
 			/// </summary>
-			/// <returns></returns>
 			int getAxisPoints() const noexcept;
 			/// <summary>
 			/// For a certain blob size and refresh rate, N frames has to be generated each display update.
 			/// </summary>
-			/// <returns></returns>
 			double getOptimalFramesPerUpdate() const noexcept;
 			/// <summary>
 			/// Returns an estimate of how many frames whom are ready to be rendered, through processNextSpectrumFrame()
 			/// </summary>
-			/// <returns></returns>
 			std::size_t getApproximateStoredFrames() const noexcept;
 			/// <summary>
 			/// Inits the UI.
@@ -212,13 +208,11 @@
 			template<typename ISA>
 				void renderLineGrid(cpl::OpenGLRendering::COpenGLStack&);
 
-			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, const TransformPair& transform);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, /*const*/ TransformPair& transform);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
 			/// </summary>
-			/// <param name="coordinate"></param>
-			/// <returns></returns>
 			double getScallopingLossAtCoordinate(std::size_t coordinate, const Constant& constant);
 
 			/// <summary>
