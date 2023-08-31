@@ -397,7 +397,13 @@ namespace Signalizer
 		{
 			state.colourOne[i] = ColourRotation(content->lines[i].colourOne.getAsJuceColour(), pairs, false);
 			state.colourTwo[i] = ColourRotation(content->lines[i].colourTwo.getAsJuceColour(), pairs, false);
-			stream.constant.filter[i].setSampleRate(fpoint(1.0 / openGLDeltaTime()));
+
+			double unitFrameTime;
+			if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+				unitFrameTime = content->blobSize.getTransformedValue() / 1000;
+			else
+				unitFrameTime = openGLDeltaTime();
+			stream.constant.filter[i].setSampleRate(fpoint(1.0 / unitFrameTime));
 			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
