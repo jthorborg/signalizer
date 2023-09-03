@@ -50,6 +50,20 @@
 			using consts = cpl::simd::consts<T>;
 		public:
 
+			typedef std::array<FloatColour, SpectrumContent::numSpectrumColours + 1> SpectrumColourArray;
+
+			SpectrumColourArray generateSpectrogramColourRotation(std::size_t rotation) const noexcept
+			{
+				Spectrum::Constant::SpectrumColourArray sca;
+
+				sca[0] = colourSpecs[0][0];
+
+				for (std::size_t i = 1; i < colourSpecs.size(); ++i)
+					sca[i] = colourSpecs[i][rotation];
+
+				return sca;
+			}
+
 			void setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
 			{
 				windowSize = effectiveWindowSize;
@@ -206,7 +220,7 @@
 			/// <summary>
 			/// Colours for spectrum
 			/// </summary>
-			std::array<FloatColour, SpectrumContent::numSpectrumColours + 1> colourSpecs;
+			std::array<ColourRotation, SpectrumContent::numSpectrumColours + 1> colourSpecs;
 			std::array<float, SpectrumContent::numSpectrumColours + 1> normalizedSpecRatios;
 			std::array<float, SpectrumContent::numSpectrumColours + 1> inverseSpecSection;
 

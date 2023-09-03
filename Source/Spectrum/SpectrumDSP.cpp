@@ -77,6 +77,8 @@ namespace Signalizer
 				aba.emplace(source.getAudioBufferViews());
 			}
 
+			const auto authorityCounter = access->pairs[0].processedSamplesSinceLastFrame;
+
 			cpl::jobs::parallel_for(
 				numChannels / 2,
 				[&](auto i)
@@ -87,6 +89,8 @@ namespace Signalizer
 						views = Spectrum::TransformPair::AudioPair{ aba->getView(i * 2), aba->getView(i * 2 + 1) };
 					}
 					
+					access->pairs[i].processedSamplesSinceLastFrame = authorityCounter;
+
 					access->pairs[i].audioEntryPoint<ISA>(
 						access->constant, 
 						views,
@@ -108,11 +112,10 @@ namespace Signalizer
 			if (state.pairs.size() < 0 || state.pairs[0].sfbuf.size() < 1)
 				return;
 
-			// TODO: Fired once...
 			for (std::size_t i = 1; i < state.pairs.size(); ++i)
 				CPL_RUNTIME_ASSERTION(state.pairs[i].sfbuf.size() == state.pairs[0].sfbuf.size());
 
-			auto renderSf = [&](cpl::aligned_vector<FloatColour, 32>& colourBuffer, const Spectrum::TransformPair::ComplexSpectrumFrame& input)
+			auto renderSf = [&](cpl::aligned_vector<FloatColour, 32>& colourBuffer, const Spectrum::TransformPair::ComplexSpectrumFrame& input, const Spectrum::Constant::SpectrumColourArray& sca)
 			{
 				for (std::size_t i = 0; i < state.constant.axisPoints; ++i)
 				{
@@ -139,8 +142,8 @@ namespace Signalizer
 								const auto mix = (intensity - min) / (max - min);
 								const auto imix = 1 - mix;
 
-								const auto a = state.constant.colourSpecs[c - 1];
-								const auto b = state.constant.colourSpecs[c];
+								const auto a = sca[c - 1];
+								const auto b = sca[c];
 
 								colour[0] = a[0] * imix + b[0] * mix;
 								colour[1] = a[1] * imix + b[1] * mix;
@@ -152,7 +155,7 @@ namespace Signalizer
 					}
 					else
 					{
-						colour = state.constant.colourSpecs.back();
+						colour = sca.back();
 					}
 
 					for (std::size_t c = 0; c < colour.size(); ++c)
@@ -168,12 +171,11 @@ namespace Signalizer
 			for (std::size_t s = 0; s < state.pairs[0].sfbuf.size(); ++s)
 			{
 				colourBuffer.resize(state.constant.axisPoints);
-				Spectrum::FrameVector pixels(state.constant.axisPoints);
 
 				// render a frame for each pair and blend it into the buffer
 				for (std::size_t p = 0; p < state.pairs.size(); ++p)
 				{
-					renderSf(colourBuffer, state.pairs[p].sfbuf[s]);
+					renderSf(colourBuffer, state.pairs[p].sfbuf[s], state.constant.generateSpectrogramColourRotation(p));
 				}
 
 				Spectrum::SFrameQueue::ElementAccess access;
@@ -181,6 +183,9 @@ namespace Signalizer
 				// shouldn't be possible.
 				if (!shell.frameQueue.acquireFreeElement<true, false>(access))
 					break;
+
+				auto& pixels = *access.getData();
+				pixels.resize(state.constant.axisPoints);
 
 				constexpr auto maxByte = std::numeric_limits<std::uint8_t>::max();
 
@@ -191,9 +196,6 @@ namespace Signalizer
 					pixels[p].pixel.b = static_cast<std::uint8_t>(colourBuffer[p][2] * maxByte);
 					pixels[p].pixel.a = maxByte;
 				}
-
-				auto& buffer = *access.getData();
-				buffer = std::move(pixels);
 
 				colourBuffer.resize(0);
 			}

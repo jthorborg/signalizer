@@ -151,7 +151,7 @@ namespace Signalizer
 			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
 			{
 				gradientPos += constant.normalizedSpecRatios[i];
-				gradient.addColour(gradientPos, constant.colourSpecs[i].toJuceColour());
+				gradient.addColour(gradientPos, constant.colourSpecs[i].getBase());
 			}
 
 
@@ -595,37 +595,6 @@ namespace Signalizer
 		oglImage.offload();
 	}
 
-
-	template<std::size_t N, std::size_t V, cpl::GraphicsND::ComponentOrder order>
-		void ColourScale2(cpl::GraphicsND::UPixel<order> * CPL_RESTRICT outPixel,
-			float intensity, cpl::GraphicsND::UPixel<order> colours[N + 1], float normalizedScales[N])
-		{
-			intensity = cpl::Math::confineTo(intensity, 0.0f, 1.0f);
-
-			float accumulatedSum = 0.0f;
-
-			for (std::size_t i = 0; i < N; ++i)
-			{
-				accumulatedSum += normalizedScales[i];
-
-				if (accumulatedSum >= intensity)
-				{
-					std::uint16_t factor = cpl::Math::round<std::uint8_t>(0xFF * cpl::Math::UnityScale::Inv::linear<float>(intensity, accumulatedSum - normalizedScales[i], accumulatedSum));
-
-					std::size_t
-						x1 = std::max(signed(i) - 1, 0),
-						x2 = std::min(x1 + 1, N - 1);
-
-					for (std::size_t p = 0; p < V; ++p)
-					{
-						outPixel->pixel.data[p] = (((colours[x1].pixel.data[p] * (0x00FF - factor)) + 0x80) >> 8) + (((colours[x2].pixel.data[p] * factor) + 0x80) >> 8);
-					}
-
-					return;
-				}
-			}
-		}
-
     void Spectrum::onOpenGLRendering()
     {
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
@@ -746,10 +715,11 @@ namespace Signalizer
 					if (curFrame.size() != constant.axisPoints)
 						continue;
 
-					for (std::size_t i = 0; i < constant.axisPoints; ++i)
-					{
 //#define SIGNALIZER_VISUALDEBUGTEST
 #ifdef SIGNALIZER_VISUALDEBUGTEST
+					for (std::size_t i = 0; i < constant.axisPoints; ++i)
+					{
+
 						if (framePixelPosition & 1 && i & 1)
 						{
 							columnUpdate[i] = { 0xff, 0xFF, 0xff, 0xff };
@@ -758,18 +728,10 @@ namespace Signalizer
 						{
 							columnUpdate[i] = { 0x00, 0x00, 0x00, 0x00 };
 						}
-#else
-						/*ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
-							columnUpdate.data() + i,
-							curFrame[i].magnitude,
-							state.colourSpecs,
-							state.normalizedSpecRatios
-						); */
 #endif
 					}
-					//CPL_DEBUGCHECKGL();
+
 					oglImage.updateSingleColumn(framePixelPosition, curFrame, FrameVector::value_type::glFormat());
-					//CPL_DEBUGCHECKGL();
 
 					framePixelPosition++;
 					framePixelPosition %= pW;

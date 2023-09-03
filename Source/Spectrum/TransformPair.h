@@ -186,6 +186,7 @@ namespace Signalizer
 		// dsp objects -- TODO: Make private?
 		std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
 
+		std::size_t processedSamplesSinceLastFrame{};
 	private:
 
 		/// <summary>
@@ -240,9 +241,7 @@ namespace Signalizer
 		/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
 		/// </summary>
 		cpl::aligned_vector<std::complex<T>, 32> audioMemory;
-		// TODO: Change to T
 		cpl::dsp::CComplexResonator<T, 2> cresonator;
-		std::size_t currentCounter{};
 
 	};
 }

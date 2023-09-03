@@ -1172,7 +1172,7 @@ namespace Signalizer
 
 			while (n > 0)
 			{
-				std::int64_t numRemainingSamples = currentCounter > constant.sampleBufferSize ? 0 : constant.sampleBufferSize - currentCounter;
+				std::int64_t numRemainingSamples = processedSamplesSinceLastFrame > constant.sampleBufferSize ? 0 : constant.sampleBufferSize - processedSamplesSinceLastFrame;
 				const auto availableSamples = numRemainingSamples + std::min(std::int64_t(0), n - numRemainingSamples);
 
 				// do some resonation
@@ -1182,9 +1182,9 @@ namespace Signalizer
 					resonatingDispatch<ISA>(constant, { buffer[0] + offset, buffer[1] + offset }, availableSamples);
 				}
 
-				currentCounter += availableSamples;
+				processedSamplesSinceLastFrame += availableSamples;
 
-				if (currentCounter >= constant.sampleBufferSize)
+				if (processedSamplesSinceLastFrame >= constant.sampleBufferSize)
 				{
 					bool transformReady = true;
 					if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
@@ -1193,8 +1193,12 @@ namespace Signalizer
 						//{
 							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
+							// TODO: .. why does this take a lock?
 							if ((transformReady = prepareTransform(constant, *views, buffer, availableSamples + offset)))
 								doTransform(constant);
+						//}
+						//else
+						//{
 							// ignore the deferred samples and produce some views that is slightly out-of-date.
 							// this ONLY happens if something else is hogging the buffers.
 							// TODO: missing offset?
@@ -1206,7 +1210,7 @@ namespace Signalizer
 					if (transformReady)
 						addAudioFrame<ISA>(constant);
 
-					currentCounter = 0;
+					processedSamplesSinceLastFrame = 0;
 				}
 
 				offset += availableSamples;

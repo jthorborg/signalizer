@@ -409,11 +409,11 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
-			stream.constant.colourSpecs[0] = state.colourBackground;
+			stream.constant.colourSpecs[0] = ColourRotation(state.colourBackground, pairs, false);
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
-				stream.constant.colourSpecs[i + 1] = content->specColours[i].getAsJuceColour();
+				stream.constant.colourSpecs[i + 1] = ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false);
 			}
 
 			calculateSpectrumColourRatios(stream.constant);
