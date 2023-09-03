@@ -1140,25 +1140,12 @@ namespace Signalizer
 	inline void TransformPair<T>::addAudioFrame(const Constant& constant)
 	{
 		mapToLinearSpace(constant);
+		postProcessStdTransform(constant);
 
-		if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
-		{
-			auto memory = getWork<std::complex<AFloat>>(constant.axisPoints);
-			auto frame = FrameVector(memory.begin(), memory.begin() + constant.axisPoints /* channels ? */);
-			sfbuf.emplace_back(std::move(frame));
-		}
-		else if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
-		{
-			// TODO: remove this once fft type == AFloat
-			auto frame = FrameVector(constant.axisPoints);
-			auto wsp = getWork<std::complex<T>>(constant.axisPoints);
-			for (std::size_t i = 0; i < frame.size(); ++i)
-			{
-				frame[i].real = (AFloat)wsp[i].real();
-				frame[i].imag = (AFloat)wsp[i].imag();
-			}
-			sfbuf.emplace_back(std::move(frame));
-		}
+		constexpr auto i = SpectrumContent::LineGraphs::LineMain;
+
+		auto frame = ComplexSpectrumFrame(lineGraphs[i].results.begin(), lineGraphs[i].results.begin() + constant.axisPoints /* channels ? */);
+		sfbuf.emplace_back(std::move(frame));
 	}
 
 	template<typename T>
@@ -1458,16 +1445,9 @@ namespace Signalizer
 	}
 
 	template<typename T>
-	template<class InVector>
-	void TransformPair<T>::postProcessTransform(const Constant& constant, const InVector& transform)
-	{
-		mapAndTransformDFTFilters(constant, transform, constant.axisPoints);
-	}
-
-	template<typename T>
 	void TransformPair<T>::postProcessStdTransform(const Constant& constant)
 	{
-		postProcessTransform(constant, getTransformResult(constant));
+		mapAndTransformDFTFilters(constant, getTransformResult(constant), constant.axisPoints);
 	}
 
 	template<typename T>

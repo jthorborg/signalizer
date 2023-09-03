@@ -53,48 +53,6 @@ namespace Signalizer
 		flags.resetStateBuffers = true;
 	}
 
-	bool Spectrum::processNextSpectrumFrame(const Constant& constant, TransformPair& transform)
-	{
-		SFrameQueue::ElementAccess access;
-		if (processor->frameQueue.popElement(access))
-		{
-			FrameVector& curFrame(*access.getData());
-
-			std::size_t numFilters = getNumFilters();
-
-			// the size will be zero for a couple of frames, if there's some messing around with window sizes
-			// or we get audio running before anything is actually initiated.
-			if (curFrame.size() != 0)
-			{
-				if (curFrame.size() == numFilters)
-				{
-					transform.postProcessTransform(constant, cpl::as_uarray(curFrame).reinterpret<UComplex::Scalar>());
-				}
-				else
-				{
-					// linearly interpolate bins. if we win the cpu-lottery one day, change this to sinc.
-					std::vector<UComplex> tempSpace(numFilters);
-
-					// interpolation factor.
-					UComplex::Scalar wspToNext = (curFrame.size() - 1) / UComplex::Scalar(std::max<std::size_t>(1, numFilters));
-
-					for (std::size_t n = 0; n < numFilters; ++n)
-					{
-						auto y2 = n * wspToNext;
-						auto x = static_cast<std::size_t>(y2);
-						auto yFrac = y2 - x;
-						tempSpace[n] = curFrame[x] * (UComplex::Scalar(1) - yFrac) + curFrame[x + 1] * yFrac;
-					}
-					
-					transform.postProcessTransform(constant, cpl::as_uarray(tempSpace).reinterpret<UComplex::Scalar>());
-				}
-			}
-
-			return true;
-		}
-		return false;
-	}
-
 	struct AudioDispatcher
 	{
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -140,24 +98,106 @@ namespace Signalizer
 
 			if (access->constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
-				auto& state = access->pairs[0];
-
-				for (std::size_t i = 0; i < state.sfbuf.size(); ++i)
-				{
-					Spectrum::SFrameQueue::ElementAccess access;
-
-					// shouldn't be possible.
-					if (!shell.frameQueue.acquireFreeElement<true, false>(access))
-						break;
-
-					auto& buffer = *access.getData();
-					buffer = std::move(state.sfbuf[i]);
-				}
-
-				for (auto& pair : access->pairs)
-					pair.sfbuf.clear();
+				blendAndDispatchSpectrums<ISA>(shell, *access);
 			}
 		}
+
+		template<typename ISA>
+		static void blendAndDispatchSpectrums(Spectrum::ProcessorShell& shell, Spectrum::StreamState& state)
+		{
+			if (state.pairs.size() < 0 || state.pairs[0].sfbuf.size() < 1)
+				return;
+
+			// TODO: Fired once...
+			for (std::size_t i = 1; i < state.pairs.size(); ++i)
+				CPL_RUNTIME_ASSERTION(state.pairs[i].sfbuf.size() == state.pairs[0].sfbuf.size());
+
+			auto renderSf = [&](cpl::aligned_vector<FloatColour, 32>& colourBuffer, const Spectrum::TransformPair::ComplexSpectrumFrame& input)
+			{
+				for (std::size_t i = 0; i < state.constant.axisPoints; ++i)
+				{
+					const auto intensity = input[i].magnitude;
+
+					if (intensity < 0)
+						continue;
+
+					std::array<float, 3> colour;
+
+					if (intensity < 0.999f)
+					{
+						float accumulatedSum = 0;
+
+						for (std::size_t c = 1; c < state.constant.normalizedSpecRatios.size(); ++c)
+						{
+							const auto nextScale = state.constant.normalizedSpecRatios[c];
+							accumulatedSum += nextScale;
+
+							if (accumulatedSum >= intensity)
+							{
+								const auto min = accumulatedSum - nextScale;
+								const auto max = accumulatedSum;
+								const auto mix = (intensity - min) / (max - min);
+								const auto imix = 1 - mix;
+
+								const auto a = state.constant.colourSpecs[c - 1];
+								const auto b = state.constant.colourSpecs[c];
+
+								colour[0] = a[0] * imix + b[0] * mix;
+								colour[1] = a[1] * imix + b[1] * mix;
+								colour[2] = a[2] * imix + b[2] * mix;
+
+								break;
+							}
+						}
+					}
+
+					for (std::size_t c = 0; c < colour.size(); ++c)
+					{
+						// GL_ONE_MINUS_SRC_COLOR
+						colourBuffer[i][c] += (1 - colourBuffer[i][c]) * colour[c];
+					}
+				}
+			};
+
+			cpl::aligned_vector<FloatColour, 32> colourBuffer(state.constant.axisPoints);
+
+			for (std::size_t s = 0; s < state.pairs[0].sfbuf.size(); ++s)
+			{
+				colourBuffer.resize(state.constant.axisPoints);
+				Spectrum::FrameVector pixels(state.constant.axisPoints);
+
+				// render a frame for each pair and blend it into the buffer
+				for (std::size_t p = 0; p < state.pairs.size(); ++p)
+				{
+					renderSf(colourBuffer, state.pairs[p].sfbuf[s]);
+				}
+
+				Spectrum::SFrameQueue::ElementAccess access;
+
+				// shouldn't be possible.
+				if (!shell.frameQueue.acquireFreeElement<true, false>(access))
+					break;
+
+				constexpr auto maxByte = std::numeric_limits<std::uint8_t>::max();
+
+				for (std::size_t p = 0; p < state.constant.axisPoints; ++p)
+				{
+					pixels[p].pixel.r = static_cast<std::uint8_t>(colourBuffer[p][0] * maxByte);
+					pixels[p].pixel.g = static_cast<std::uint8_t>(colourBuffer[p][1] * maxByte);
+					pixels[p].pixel.b = static_cast<std::uint8_t>(colourBuffer[p][2] * maxByte);
+					pixels[p].pixel.a = maxByte;
+				}
+
+				auto& buffer = *access.getData();
+				buffer = std::move(pixels);
+
+				colourBuffer.resize(0);
+			}
+
+			for (auto& pair : state.pairs)
+				pair.sfbuf.clear();
+		}
+
 	};
 
 	void Spectrum::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)

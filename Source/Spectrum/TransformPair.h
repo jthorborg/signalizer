@@ -54,7 +54,7 @@ namespace Signalizer
 
 		typedef AudioStream::DataType AFloat;
 		typedef UComplexFilter<AFloat> UComplex;
-		typedef cpl::aligned_vector<UComplex, 32> FrameVector;
+		typedef cpl::aligned_vector<UComplex, 32> ComplexSpectrumFrame;
 		typedef TransformConstant<T> Constant;
 		typedef T ProcessingType;
 		typedef cpl::simd::consts<T> consts;
@@ -97,7 +97,7 @@ namespace Signalizer
 		/// <summary>
 		/// The complex resonator used for iir spectrums
 		/// </summary>
-		std::vector<FrameVector> sfbuf;
+		std::vector<ComplexSpectrumFrame> sfbuf;
 		/// <summary>
 		/// Copies the state from the complex resonator into the output buffer.
 		/// The output vector is assumed to accept index assigning of std::complex of fpoints.
@@ -150,13 +150,6 @@ namespace Signalizer
 		/// Needs exclusive access to audioResource.
 		/// </summary>
 		void doTransform(const Constant& constant);
-
-		/// <summary>
-		/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
-		/// The transform will be rendered into filterResults after this.
-		/// </summary>
-		template<class InVector>
-		void postProcessTransform(const Constant& constant, const InVector& transform);
 
 		/// <summary>
 		/// Post processes the transform that will be interpreted according to what's selected.

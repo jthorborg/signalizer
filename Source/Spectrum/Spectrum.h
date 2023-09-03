@@ -124,7 +124,6 @@
 			void setWindowSize(std::size_t size);
 
 		protected:
-			typedef TransformPair::FrameVector FrameVector;
 			typedef TransformPair::UComplex UComplex;
 
 			struct RenderingDispatcher
@@ -139,16 +138,12 @@
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
-			/// <summary>
-			/// internally used for now.
-			/// </summary>
-			bool processNextSpectrumFrame(const Constant& constant, TransformPair& transform);
-
-			void calculateSpectrumColourRatios();
+			void calculateSpectrumColourRatios(Constant& constant);
 		private:
-
+			typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> UPixel;
 			typedef std::array<juce::Colour, SpectrumContent::LineGraphs::LineEnd> LineColours;
 			typedef struct StreamState;
+			typedef cpl::aligned_vector<UPixel, 16> FrameVector;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
 
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
@@ -207,6 +202,8 @@
 
 			template<typename ISA>
 				void renderLineGrid(cpl::OpenGLRendering::COpenGLStack&);
+
+			void renderSpectrogramGrid(cpl::OpenGLRendering::COpenGLStack& ogs);
 
 			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, /*const*/ TransformPair& transform);
 
@@ -267,12 +264,6 @@
 				juce::Colour colourGrid, colourBackground, colourWidget;
 
 				std::array<ColourRotation, SpectrumContent::LineGraphs::LineEnd> colourOne, colourTwo;
-
-				/// <summary>
-				/// Colours for spectrum
-				/// </summary>
-				cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> colourSpecs[SpectrumContent::numSpectrumColours + 1];
-				float normalizedSpecRatios[SpectrumContent::numSpectrumColours + 1];
 
 				/// <summary>
 				/// The window size..

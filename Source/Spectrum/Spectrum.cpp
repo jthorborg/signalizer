@@ -236,7 +236,7 @@ namespace Signalizer
 
 	}
 
-	void Spectrum::calculateSpectrumColourRatios()
+	void Spectrum::calculateSpectrumColourRatios(Constant& constant)
 	{
 #pragma message cwarn("Exclude colours that are zero.")
 		double acc = 0.0;
@@ -251,10 +251,10 @@ namespace Signalizer
 		// to avoid accumulating sum >= 1.0f
 		acc += std::numeric_limits<float>::epsilon();
 
-		state.normalizedSpecRatios[0] = 0;
+		constant.normalizedSpecRatios[0] = 0;
 		for (std::size_t i = 0; i < vals.size(); ++i)
 		{
-			state.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
+			constant.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
 		}
 
 	}
@@ -409,14 +409,14 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
-			state.colourSpecs[0] = state.colourBackground;
+			stream.constant.colourSpecs[0] = state.colourBackground;
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
-				state.colourSpecs[i + 1] = content->specColours[i].getAsJuceColour();
+				stream.constant.colourSpecs[i + 1] = content->specColours[i].getAsJuceColour();
 			}
 
-			calculateSpectrumColourRatios();
+			calculateSpectrumColourRatios(stream.constant);
 		}
 
 

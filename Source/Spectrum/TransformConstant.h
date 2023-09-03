@@ -202,6 +202,14 @@
 			double lowDBs, highDBs, clipDB;
 
 			cpl::aligned_vector<T, 32> slopeMap;
+
+			/// <summary>
+			/// Colours for spectrum
+			/// </summary>
+			std::array<FloatColour, SpectrumContent::numSpectrumColours + 1> colourSpecs;
+			std::array<float, SpectrumContent::numSpectrumColours + 1> normalizedSpecRatios;
+			std::array<float, SpectrumContent::numSpectrumColours + 1> inverseSpecSection;
+
 		};
 	}
 

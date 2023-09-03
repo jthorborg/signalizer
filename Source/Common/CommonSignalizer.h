@@ -1133,6 +1133,32 @@
 			T data;
 			std::mutex mutex;
 		};
+
+		class FloatColour : public std::array<float, 3>
+		{
+		public:
+			FloatColour(const juce::Colour& colour)
+			{
+				this->operator[](0) = colour.getFloatRed();
+				this->operator[](1) = colour.getFloatGreen();
+				this->operator[](2) = colour.getFloatBlue();
+			}
+
+			FloatColour()
+			{
+				this->fill(0);
+			}
+
+			juce::Colour toJuceColour() const noexcept
+			{
+				return juce::Colour::fromFloatRGBA(
+					this->operator[](0),
+					this->operator[](1),
+					this->operator[](2),
+					1
+				);
+			}
+		};
 	};
 
 	namespace std
@@ -1142,6 +1168,6 @@
 			{
 				return sqrt(f.real * f.real + f.imag * f.imag);
 			}
-
 	}
+
 #endif

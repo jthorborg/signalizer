@@ -150,8 +150,8 @@ namespace Signalizer
 
 			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
 			{
-				gradientPos += state.normalizedSpecRatios[i];
-				gradient.addColour(gradientPos, state.colourSpecs[i].toJuceColour());
+				gradientPos += constant.normalizedSpecRatios[i];
+				gradient.addColour(gradientPos, constant.colourSpecs[i].toJuceColour());
 			}
 
 
@@ -626,49 +626,6 @@ namespace Signalizer
 			}
 		}
 
-	void ColorScale(uint8_t * pixel, float intensity)
-	{
-
-		uint8_t red = 0, blue = 0, green = 0;
-		// set blue
-
-		if (intensity <= 0)
-		{
-		}
-		else if (intensity < 0.16666f && intensity > 0)
-		{
-			blue = 6 * intensity * 0x7F;
-		}
-		else if (intensity < 0.3333f)
-		{
-			red = 6 * (intensity - 0.16666f) * 0xFF;
-			blue = 0x7F - (red >> 1);
-
-		}
-		else if (intensity < 0.6666f)
-		{
-			red = 0xFF;
-			green = 3 * (intensity - 0.3333) * 0xFF;
-		}
-		else if (intensity < 1)
-		{
-			red = 0xFF;
-			green = 0xFF;
-			blue = 3 * (intensity - 0.66666) * 0xFF;
-		}
-		else
-			red = green = blue = 0xFF;
-		// set green
-		pixel[0] = red;
-		pixel[1] = green;
-		pixel[2] = blue;
-		// set red
-
-		// saturate
-
-
-	}
-
     void Spectrum::onOpenGLRendering()
     {
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
@@ -775,11 +732,19 @@ namespace Signalizer
 				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
-				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame(constant, transform))
+				while ((!shouldCap || (processedFrames++ < framesThisTime)))
 				{
+					SFrameQueue::ElementAccess access;
+					if (!processor->frameQueue.popElement(access))
+						break;
+
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
 					// run the next frame through pixel filters and format it etc.
 
+					FrameVector& curFrame(*access.getData());
+
+					if (curFrame.size() != constant.axisPoints)
+						continue;
 
 					for (std::size_t i = 0; i < constant.axisPoints; ++i)
 					{
@@ -794,16 +759,16 @@ namespace Signalizer
 							columnUpdate[i] = { 0x00, 0x00, 0x00, 0x00 };
 						}
 #else
-						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
+						/*ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
 							columnUpdate.data() + i,
-							results[i].magnitude,
+							curFrame[i].magnitude,
 							state.colourSpecs,
 							state.normalizedSpecRatios
-						);
+						); */
 #endif
 					}
 					//CPL_DEBUGCHECKGL();
-					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
+					oglImage.updateSingleColumn(framePixelPosition, curFrame, FrameVector::value_type::glFormat());
 					//CPL_DEBUGCHECKGL();
 
 					framePixelPosition++;
@@ -821,45 +786,50 @@ namespace Signalizer
 			}
 
 			CPL_DEBUGCHECKGL();
-			ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
-			// render grid
-			{
-				auto normalizedScale = 1.0 / getHeight();
-
-				// draw vertical lines.
-				const auto & lines = frequencyGraph.getLines();
-
-				auto norm = [=](double in) { return static_cast<float>(normalizedScale * in * 2.0 - 1.0); };
-
-				float baseWidth = 0.1f;
-
-				float gradientOffset = 10.0f / getWidth() - 1.0f;
-
-				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-
-				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
-				for (auto dline : lines)
-				{
-					auto line = norm(dline);
-					lineDrawer.addVertex(gradientOffset, line, 0.0f);
-					lineDrawer.addVertex(gradientOffset + baseWidth * 0.7f, line, 0.0f);
-				}
-
-				lineDrawer.addColour(state.colourGrid);
-				const auto & divs = frequencyGraph.getDivisions();
-
-				for (auto & sdiv : divs)
-				{
-					auto line = norm(sdiv.coord);
-					lineDrawer.addVertex(gradientOffset, line, 0.0f);
-					lineDrawer.addVertex(gradientOffset + baseWidth, line, 0.0f);
-				}
-
-			}
-			CPL_DEBUGCHECKGL();
 		}
 
+
+	void Spectrum::renderSpectrogramGrid(cpl::OpenGLRendering::COpenGLStack& ogs)
+	{
+		if (state.colourGrid.getAlpha() == 0)
+			return;
+
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
+		// render grid
+		auto normalizedScale = 1.0 / getHeight();
+
+		// draw vertical lines.
+		const auto& lines = frequencyGraph.getLines();
+
+		auto norm = [=](double in) { return static_cast<float>(normalizedScale * in * 2.0 - 1.0); };
+
+		float baseWidth = 0.1f;
+
+		float gradientOffset = 10.0f / getWidth() - 1.0f;
+
+		OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+		lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+		for (auto dline : lines)
+		{
+			auto line = norm(dline);
+			lineDrawer.addVertex(gradientOffset, line, 0.0f);
+			lineDrawer.addVertex(gradientOffset + baseWidth * 0.7f, line, 0.0f);
+		}
+
+		lineDrawer.addColour(state.colourGrid);
+		const auto& divs = frequencyGraph.getDivisions();
+
+		for (auto& sdiv : divs)
+		{
+			auto line = norm(sdiv.coord);
+			lineDrawer.addVertex(gradientOffset, line, 0.0f);
+			lineDrawer.addVertex(gradientOffset + baseWidth, line, 0.0f);
+		}
+
+		CPL_DEBUGCHECKGL();
+	}
 
 	template<typename ISA>
 	void Spectrum::renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform, const LineColours& one, const LineColours& two)
