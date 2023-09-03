@@ -150,6 +150,10 @@ namespace Signalizer
 							}
 						}
 					}
+					else
+					{
+						colour = state.constant.colourSpecs.back();
+					}
 
 					for (std::size_t c = 0; c < colour.size(); ++c)
 					{
