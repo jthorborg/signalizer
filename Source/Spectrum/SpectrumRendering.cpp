@@ -126,7 +126,6 @@ namespace Signalizer
 			float height = getHeight();
 			float baseWidth = getWidth() * 0.05f;
 
-			float gradientOffset = 10.0f;
 
 			if(!skipText)
 			{
@@ -136,31 +135,20 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, gradientWidth + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 				}
 			}
 
 			// draw gradient
 
-			juce::ColourGradient gradient;
+			juce::ColourGradient gradient = constant.generateSpectrogramGradient(0);
 
-			// fill in colours
-
-			double gradientPos = 0.0;
-
-			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
-			{
-				gradientPos += constant.normalizedSpecRatios[i];
-				gradient.addColour(gradientPos, constant.colourSpecs[i].getBase());
-			}
-
-
-			gradient.point1 = {gradientOffset * 0.5f, (float)getHeight() };
-			gradient.point2 = {gradientOffset * 0.5f, 0.0f };
+			gradient.point1 = {gradientWidth * 0.5f, (float)getHeight() };
+			gradient.point2 = {gradientWidth * 0.5f, 0.0f };
 
 			g.setGradientFill(gradient);
 
-			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
+			g.fillRect(0.0f, 0.0f, gradientWidth, (float)getHeight());
 		}
 
 		float averageFps, averageCpu;
@@ -728,8 +716,8 @@ namespace Signalizer
 						{
 							columnUpdate[i] = { 0x00, 0x00, 0x00, 0x00 };
 						}
-#endif
 					}
+#endif
 
 					oglImage.updateSingleColumn(framePixelPosition, curFrame, FrameVector::value_type::glFormat());
 
@@ -750,7 +738,6 @@ namespace Signalizer
 			CPL_DEBUGCHECKGL();
 		}
 
-
 	void Spectrum::renderSpectrogramGrid(cpl::OpenGLRendering::COpenGLStack& ogs)
 	{
 		if (state.colourGrid.getAlpha() == 0)
@@ -767,7 +754,7 @@ namespace Signalizer
 
 		float baseWidth = 0.1f;
 
-		float gradientOffset = 10.0f / getWidth() - 1.0f;
+		float gradientOffset = gradientWidth / getWidth() - 1.0f;
 
 		OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
 

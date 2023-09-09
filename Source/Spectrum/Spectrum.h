@@ -124,6 +124,8 @@
 			void setWindowSize(std::size_t size);
 
 		protected:
+			static constexpr float gradientWidth = 10.0f;
+
 			typedef TransformPair::UComplex UComplex;
 
 			struct RenderingDispatcher

@@ -652,13 +652,22 @@ namespace Signalizer
 
 	void Spectrum::recalculateLegend(StreamState& cs)
 	{
-		state.legend.reset({ 10, 10 });
+		const auto legendOffsetX = state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum ? gradientWidth : 0;
+		state.legend.reset({ legendOffsetX + 10, 10 });
 
 		const auto numPairs = cs.pairs.size();
 
-		auto c = [&](int index, int subline, std::size_t channel)
+		auto staticColour = [&](int index, int subline, std::size_t channel)
 		{
 			return (index == 1 ? state.colourTwo : state.colourOne)[subline][channel];
+		};
+
+		auto c = [&](int index, std::size_t channel) -> LegendCache::ColourItem
+		{
+			if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
+				return std::make_pair(staticColour(index, 0, channel), staticColour(index, 1, channel));
+
+			return cs.constant.generateSpectrogramGradient(channel);
 		};
 
 		switch (cs.constant.configuration)
@@ -667,33 +676,33 @@ namespace Signalizer
 
 		case SpectrumChannels::Left:
 			for (std::size_t p = 0; p < numPairs; ++p)
-				state.legend.addLine(cs.channelNames[p * 2], c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2], c(0, p));
 			break;
 		case SpectrumChannels::Right:
 			for (std::size_t p = 0; p < numPairs; ++p)
-				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, p));
 			break;
 		case SpectrumChannels::Mid:
 			for (std::size_t p = 0; p < numPairs; ++p)
-				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, p));
 			break;
 		case SpectrumChannels::Side:
 			for (std::size_t p = 0; p < numPairs; ++p)
-				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, p));
 			break;
 		case SpectrumChannels::Separate:
 			for (std::size_t p = 0; p < numPairs; ++p)
 			{
-				state.legend.addLine(cs.channelNames[p * 2], c(0, 0, p), c(0, 1, p));
-				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2], c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, p));
 			}
 			break;
 		case SpectrumChannels::MidSide:
 		{
 			for (std::size_t p = 0; p < numPairs; ++p)
 			{
-				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
-				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, p));
 			}
 			break;
 		}
@@ -701,8 +710,8 @@ namespace Signalizer
 		{
 			for (std::size_t p = 0; p < numPairs; ++p)
 			{
-				state.legend.addLine("|" + cs.channelNames[p * 2] + "| + |" + cs.channelNames[p * 2 + 1] + "|", c(0, 0, p), c(0, 1, p));
-				state.legend.addLine(cs.channelNames[p * 2] + " / " + cs.channelNames[p * 2 + 1], c(1, 0, p), c(1, 1, p));
+				state.legend.addLine("|" + cs.channelNames[p * 2] + "| + |" + cs.channelNames[p * 2 + 1] + "|", c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " / " + cs.channelNames[p * 2 + 1], c(1, p));
 			}
 			break;
 		}
@@ -710,7 +719,7 @@ namespace Signalizer
 		{
 			for (std::size_t p = 0; p < numPairs; ++p)
 			{
-				state.legend.addLine(cs.channelNames[p * 2] + " + i*" + cs.channelNames[p * 2 + 1], c(0, 0, p), c(0, 1, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " + i*" + cs.channelNames[p * 2 + 1], c(0, p));
 			}
 			break;
 		}

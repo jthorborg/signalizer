@@ -64,6 +64,20 @@
 				return sca;
 			}
 
+			juce::ColourGradient generateSpectrogramGradient(std::size_t rotation) const noexcept
+			{
+				juce::ColourGradient jgrad;
+				double acc = 0;
+
+				for (std::size_t i = 0; i < colourSpecs.size(); ++i)
+				{
+					acc += normalizedSpecRatios[i];
+					jgrad.addColour(acc, colourSpecs[i][rotation]);
+				}
+
+				return jgrad;
+			}
+
 			void setStorage(std::size_t elements, std::size_t effectiveWindowSize, std::size_t& outputTransformSize)
 			{
 				windowSize = effectiveWindowSize;
