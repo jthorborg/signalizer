@@ -302,9 +302,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp" />
-    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft.c" />
-    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_common.c" />
-    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_double.c" />
     <ClCompile Include="..\..\Source\Common\HostGraph.cpp" />
     <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp" />
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
