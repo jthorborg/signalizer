@@ -35,6 +35,7 @@
 #include <cpl/simd.h>
 #include <array>
 #include "TransformDSP.inl"
+#include <cpl/JobSystem.h>
 
 namespace Signalizer
 {
@@ -620,18 +621,28 @@ namespace Signalizer
             {
             case SpectrumContent::DisplayMode::LineGraph:
 			{
-				std::size_t pairCount = 0;
-				for (auto& pair : access->pairs)
 				{
 					auto views = audioStream->getAudioBufferViews();
 
-					if (pair.prepareTransform(access->constant, { views.getView(pairCount * 2), views.getView(pairCount * 2 + 1)}))
-					{
-						pair.doTransform(access->constant);
-						pair.mapToLinearSpace(access->constant);
-						pair.postProcessStdTransform(access->constant);
-					}
+					cpl::jobs::parallel_for(
+						access->pairs.size(),
+						[&](std::size_t index)
+						{
+							auto& pair = access->pairs[index];
+							if (pair.prepareTransform(access->constant, { views.getView(index * 2), views.getView(index * 2 + 1) }))
+							{
+								pair.doTransform(access->constant);
+								pair.mapToLinearSpace(access->constant);
+								pair.postProcessStdTransform(access->constant);
+							}
+						}
+					);
+				}
 
+				std::size_t pairCount = 0;
+
+				for (auto& pair : access->pairs)
+				{
 					CPL_RUNTIME_ASSERTION(state.colourOne.size() == 2);
 
 					renderTransformAsGraph<ISA>(
