@@ -843,6 +843,15 @@
     <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp">
       <Filter>Signalizer\Source\Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_double.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\ffts\pffft\pffft_common.c">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\JuceLibraryCode\modules\juce_audio_basics\buffers\juce_AudioDataConverters.h">
@@ -2255,6 +2264,12 @@
     <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h">
       <Filter>Signalizer\Source\Common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformPair.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
@@ -2307,6 +2322,9 @@
     </None>
     <None Include="..\..\prepare.py">
       <Filter>Signalizer</Filter>
+    </None>
+    <None Include="..\..\Source\Spectrum\TransformDSP.inl">
+      <Filter>Signalizer\Source\Spectrum</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

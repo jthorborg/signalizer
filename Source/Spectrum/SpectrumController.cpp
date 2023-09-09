@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "SpectrumParameters.h"
+#include "Spectrum.h"
 
 namespace Signalizer
 {
@@ -65,6 +66,7 @@ namespace Signalizer
 			, kreferenceTuning(&parentValue.referenceTuning)
 			, kdiagnostics(&parentValue.diagnostics)
 			, kfreeQ(&parentValue.freeQ)
+			, kshowLegend(&parentValue.showLegend)
 
 			// TODO: Figure out automatic way to initialize N array in constructor
 			, kgridColour(&parentValue.gridColour)
@@ -204,6 +206,8 @@ namespace Signalizer
 			kblobSize.bSetTitle("Update speed");
 			ktrackerSmoothing.bSetTitle("Tracker smooth");
 			kwidgetColour.bSetTitle("Widget colour");
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
 
 			// ------ descriptions -----
 			kviewScaling.bSetDescription("Set the scale of the frequency-axis of the coordinate system.");
@@ -229,6 +233,7 @@ namespace Signalizer
 			kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
 			ktrackerSmoothing.bSetDescription("Eliminates small fluctuations and holds analysis values in the frequency tracker for a longer time");
 			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends and trackers)");
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
 
 			klines[SpectrumContent::LineGraphs::LineMain]->colourOne.bSetDescription("The colour of the first channel of the main graph.");
 			klines[SpectrumContent::LineGraphs::LineMain]->colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -559,6 +564,15 @@ namespace Signalizer
 			valueSerializer;
 	};
 
+
+	std::unique_ptr<cpl::CSubView> SpectrumContent::createView(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<Spectrum>(globalBehaviour, config, stream, shared_from_this());
+	}
 
 	std::unique_ptr<StateEditor> SpectrumContent::createEditor()
 	{

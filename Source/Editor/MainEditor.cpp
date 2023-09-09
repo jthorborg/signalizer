@@ -70,7 +70,7 @@ namespace Signalizer
 	{
 		{ VectorScopeContent::name, &VectorScopeContent::create },
 		{ OscilloscopeContent::name, &OscilloscopeContent::create },
-		//{ SpectrumContent::name, &SpectrumContent::create }
+		{ SpectrumContent::name, &SpectrumContent::create }
 	};
 
 	enum class RenderTypes

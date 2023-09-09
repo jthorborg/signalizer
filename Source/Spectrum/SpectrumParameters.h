@@ -241,6 +241,8 @@
 
 			virtual void serialize(cpl::CSerializer::Archiver & archive, cpl::Version v) override
 			{
+				// TODO: Values are serialized by normalized value.
+				// This means changing range is a breaking change....
 				archive << viewScaling.param;
 				archive << algorithm.param;
 				archive << channelConfiguration.param;

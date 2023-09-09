@@ -40,6 +40,7 @@
 	#include <cpl/AudioStream.h>
 	#include <cpl/gui/CViews.h>
 	#include <chrono>
+	#include <variant>
 
 	namespace cpl
 	{
@@ -157,8 +158,8 @@
 			juce::MouseCursor displayCursor;
 
 			// guis and whatnot
-			cpl::CBoxFilter<double, 60> avgDelta;
-			cpl::CBoxFilter<double, 60> avgFrame;
+			cpl::CBoxFilter<float, 64> avgDelta;
+			cpl::CBoxFilter<float, 64> avgFrame;
 
 
 			// Mouse overrides
@@ -218,13 +219,13 @@
 				return avgDelta.getAverage();
 			}
 
-			void computeAverageStats(double& fps, double& usagePercent)
+			void computeAverageStats(float& fps, float& usagePercent)
 			{
 				const auto frame = avgFrame.getAverage();
 				const auto delta = avgDelta.getAverage();
 
 				usagePercent = 100 * (frame / delta);
-				fps = 1.0 / delta;
+				fps = 1.0f / delta;
 			}
 		};
 
@@ -538,6 +539,8 @@
 		template<typename Scalar>
 		union UComplexFilter
 		{
+			typedef Scalar Scalar;
+
 			UComplexFilter() : real(0), imag(0) { }
 
 			UComplexFilter(const std::complex<Scalar> & c)
@@ -917,6 +920,8 @@
 
 		struct ColourRotation
 		{
+			ColourRotation() : base(), size(), stereo() {}
+
 			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
 				: base(base), size(size), stereo(stereo)
 			{
@@ -931,9 +936,15 @@
 				return base.withRotatedHue(index / size);
 			}
 
-			const juce::Colour base;
-			const float size;
-			const bool stereo;
+			juce::Colour getBase() const noexcept
+			{
+				return base;
+			}
+
+		private:
+			juce::Colour base;
+			float size;
+			bool stereo;
 		};
 
 		/// <summary>
@@ -975,6 +986,8 @@
 			static constexpr int offset = 5;
 			static constexpr int strokeSize = 50;
 
+			typedef std::variant<juce::Colour, std::pair<juce::Colour, juce::Colour>, juce::ColourGradient> ColourItem;
+
 			void setFont(juce::Font fontToUse)
 			{
 				font = fontToUse;
@@ -992,11 +1005,26 @@
 				colours.clear();
 			}
 
-			void addLine(const juce::String& text, juce::Colour colour)
+			void addLine(const juce::String& text, ColourItem&& item)
 			{
 				arrangement.addLineOfText(font, text, position.x, position.y);
-				colours.push_back(colour);
+				colours.emplace_back(std::move(item));
 				position.y += offset + font.getHeight();
+			}
+
+			void addLine(const juce::String& text, juce::Colour colour)
+			{
+				addLine(text, ColourItem(colour));
+			}
+
+			void addLine(const juce::String& text, juce::Colour a, juce::Colour b)
+			{
+				addLine(text, ColourItem(std::make_pair(a, b)));
+			}
+
+			void addLine(const juce::String& text, juce::ColourGradient&& gradient)
+			{
+				addLine(text, ColourItem(std::move(gradient)));
 			}
 
 			void paint(juce::Graphics& g, juce::Colour front, juce::Colour back)
@@ -1014,14 +1042,41 @@
 				for (std::size_t i = 0; i < colours.size(); ++i)
 				{
 					auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
-					g.setColour(colours[i]);
-					g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 2.0f);
+
+					std::visit(
+						[&](auto&& arg)
+						{
+							using T = std::decay_t<decltype(arg)>;
+
+							if constexpr (std::is_same_v<juce::Colour, T>)
+							{
+								g.setColour(arg);
+								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+							}
+							else if constexpr (std::is_same_v<std::pair<juce::Colour, juce::Colour>, T>)
+							{
+								g.setColour(arg.first);
+								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset - strokeSize / 2, y, 3.0f);
+								g.setColour(arg.second);
+								g.drawLine(bounds.getRight() - strokeSize / 2, y, bounds.getRight() - offset, y, 3.0f);
+							}
+							else if constexpr (std::is_same_v<juce::ColourGradient, T>)
+							{
+								arg.point1 = { bounds.getRight() - strokeSize, y };
+								arg.point2 = { bounds.getRight() - offset, y };
+								g.setGradientFill(arg);
+								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+							}
+						},
+						colours[i]
+					);
 				}
 			}
 
 		private:
+
 			juce::GlyphArrangement arrangement;
-			std::vector<juce::Colour> colours;
+			std::vector<ColourItem> colours;
 			juce::Font font;
 			juce::Point<float> position;
 			float startingY;
@@ -1106,9 +1161,41 @@
 				return { *this };
 			}
 
+			template <typename... Args>
+			CriticalSection(Args&& ...args)
+				: data{ std::forward<Args>(args)... }
+			{
+			}
+
 		private:
 			T data;
 			std::mutex mutex;
+		};
+
+		class FloatColour : public std::array<float, 3>
+		{
+		public:
+			FloatColour(const juce::Colour& colour)
+			{
+				this->operator[](0) = colour.getFloatRed();
+				this->operator[](1) = colour.getFloatGreen();
+				this->operator[](2) = colour.getFloatBlue();
+			}
+
+			FloatColour()
+			{
+				this->fill(0);
+			}
+
+			juce::Colour toJuceColour() const noexcept
+			{
+				return juce::Colour::fromFloatRGBA(
+					this->operator[](0),
+					this->operator[](1),
+					this->operator[](2),
+					1
+				);
+			}
 		};
 	};
 
@@ -1119,6 +1206,6 @@
 			{
 				return sqrt(f.real * f.real + f.imag * f.imag);
 			}
-
 	}
+
 #endif

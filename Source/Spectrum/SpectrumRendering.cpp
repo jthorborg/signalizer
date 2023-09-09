@@ -34,6 +34,8 @@
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
 #include <array>
+#include "TransformDSP.inl"
+#include <cpl/JobSystem.h>
 
 namespace Signalizer
 {
@@ -55,9 +57,6 @@ namespace Signalizer
 
 	using namespace cpl;
 
-	/// <summary>
-	///
-	/// </summary>
 	static std::string frequencyToSemitone(double a4Ref, double frequency)
 	{
 		if (!std::isnormal(frequency))
@@ -74,7 +73,7 @@ namespace Signalizer
 		return buf;
 	}
 
-	void Spectrum::paint2DGraphics(juce::Graphics & g)
+	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, TransformPair& primaryTransform)
 	{
 		auto cStart = cpl::Misc::ClockCounter();
 
@@ -125,7 +124,6 @@ namespace Signalizer
 			float height = getHeight();
 			float baseWidth = getWidth() * 0.05f;
 
-			float gradientOffset = 10.0f;
 
 			if(!skipText)
 			{
@@ -135,70 +133,64 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, gradientOffset + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, gradientWidth + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 				}
 			}
 
 			// draw gradient
 
-			juce::ColourGradient gradient;
+			juce::ColourGradient gradient = constant.generateSpectrogramGradient(0);
 
-			// fill in colours
-
-			double gradientPos = 0.0;
-
-			for (int i = 0; i < SpectrumContent::numSpectrumColours + 1; i++)
-			{
-				gradientPos += state.normalizedSpecRatios[i];
-				gradient.addColour(gradientPos, state.colourSpecs[i].toJuceColour());
-			}
-
-
-			gradient.point1 = {gradientOffset * 0.5f, (float)getHeight() };
-			gradient.point2 = {gradientOffset * 0.5f, 0.0f };
+			gradient.point1 = {gradientWidth * 0.5f, (float)getHeight() };
+			gradient.point2 = {gradientWidth * 0.5f, 0.0f };
 
 			g.setGradientFill(gradient);
 
-			g.fillRect(0.0f, 0.0f, gradientOffset, (float)getHeight());
+			g.fillRect(0.0f, 0.0f, gradientWidth, (float)getHeight());
 		}
 
-		laggedFPS = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+		float averageFps, averageCpu;
 
-		drawFrequencyTracking(g);
+		computeAverageStats(averageFps, averageCpu);
+
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+
+		if (mouseCheck)
+		{
+			if(state.drawLegend)
+				state.legend.paint(g, state.colourWidget, state.colourBackground);
+
+			drawFrequencyTracking(g, averageFps, constant, primaryTransform);
+		}
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
 			char text[1000];
+			const auto perf = audioStream->getPerfMeasures();
 
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * laggedFPS;
-			double asu = 100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed);
-			double aso = 100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed);
 			g.setColour(juce::Colours::blue);
 			//TODO: ensure format specifiers are correct always (%llu mostly)
 			cpl::sprintfs(text, "%dx%d {%.3f, %.3f}: %.1f fps - %.1f%% cpu, deltaG = %.4f, deltaO = %.4f (rt: %.2f%% - %.2f%%, d: %llu), (as: %.2f%% - %.2f%%)",
 				getWidth(), getHeight(), state.viewRect.left, state.viewRect.right,
-				laggedFPS, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				audioStream.getPerfMeasures().droppedAudioFrames.load(std::memory_order_relaxed),
-				asu,
-				aso);
+				averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				perf.droppedFrames,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead
+			);
 
+			auto old = g.getCurrentFont();
+			g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText, 0));
 			g.drawSingleLineText(text, 10, 20);
 
 		}
 	}
 
-	void Spectrum::drawFrequencyTracking(juce::Graphics & g)
+	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, TransformPair& transform)
 	{
-		if (globalBehaviour.hideWidgetsOnMouseExit)
-		{
-			if (!isMouseInside)
-				return;
-		}
-
 		auto graphN = state.frequencyTrackingGraph;
+		// TODO: feature request
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
 		if (graphN == SpectrumContent::LineGraphs::None || state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			return;
@@ -226,7 +218,7 @@ namespace Signalizer
 			peakDeviance = 0,
 			peakSlope = 0,
 			peakSlopeDbs = 0,
-			sampleRate = audioStream.getInfo().sampleRate.load(std::memory_order_relaxed),
+			sampleRate = config->sampleRate,
 			maxFrequency = sampleRate / 2;
 
 		bool frequencyIsComplex = false;
@@ -237,8 +229,8 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
 		{
-			mouseX = cmouse.x;
-			mouseY = cmouse.y;
+			mouseX = currentMouse.x;
+			mouseY = currentMouse.y;
 
 			// a possible concurrent bug
 			mouseX = cpl::Math::confineTo(mouseX, 0, getAxisPoints() - 1);
@@ -249,7 +241,7 @@ namespace Signalizer
 
 			mouseFraction = mouseX / (getWidth() - 1);
 			mouseFractionOrth = mouseY / (getHeight() - 1);
-			mouseSlope = 20 * std::log10(slopeMap[mouseX]);
+			mouseSlope = 20 * std::log10(constant.slopeMap[mouseX]);
 
 			if (state.viewScale == SpectrumContent::ViewScaling::Logarithmic)
 			{
@@ -297,7 +289,7 @@ namespace Signalizer
 		}
 		else
 		{
-			// ?
+			CPL_RUNTIME_ASSERTION(!"What?");
 		}
 
 		mouseFraction = cpl::Math::confineTo(mouseFraction, 0, 1);
@@ -315,7 +307,7 @@ namespace Signalizer
 			if (graphN == SpectrumContent::LineGraphs::Transform)
 				graphN = SpectrumContent::LineGraphs::LineMain;
 
-			auto & results = lineGraphs[graphN].results;
+			const auto &&  results = transform.lineGraphs[graphN].getResults(constant.axisPoints);
 			auto N = results.size();
 			auto pivot = cpl::Math::round<std::size_t>(N * mouseFraction);
 			auto range = cpl::Math::round<std::size_t>(N * nearbyFractionToConsider);
@@ -361,22 +353,22 @@ namespace Signalizer
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
 
-			peakFrequency = mappedFrequencies[peakOffset];
+			peakFrequency = constant.mapFrequency(peakOffset);
 
 
-			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(mappedFrequencies.size() - 1);
-			peakDeviance = mappedFrequencies[offsetIsEnd ? peakOffset : peakOffset + 1] - mappedFrequencies[offsetIsEnd ? peakOffset - 1 : peakOffset];
+			auto offsetIsEnd = peakOffset == static_cast<ptrdiff_t>(state.axisPoints - 1);
+			peakDeviance = constant.mapFrequency(offsetIsEnd ? peakOffset : peakOffset + 1) - constant.mapFrequency(offsetIsEnd ? peakOffset - 1 : peakOffset);
 
 			if (state.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
 				// non-smooth interpolations suffer from peak detection losses
 				if (state.binPolation != SpectrumContent::BinInterpolation::Lanczos)
-					peakDeviance = std::max(peakDeviance, 0.5 * getFFTSpace<std::complex<fftType>>() / N);
+					peakDeviance = std::max(peakDeviance, 0.5 * state.transformSize / N);
 			}
 
 			peakX = peakOffset;
 
-			peakSlope = slopeMap[peakOffset];
+			peakSlope = constant.slopeMap[peakOffset];
 
 
 			peakFractionY = results[peakOffset].leftMagnitude;
@@ -390,28 +382,29 @@ namespace Signalizer
 		else
 		{
 			// search the original FFT
-			auto N = getFFTSpace<std::complex<fftType>>();
+			// TODO: name hiding
+			auto N = state.transformSize;
 			auto points = getNumFilters();
 			auto lowerBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction - nearbyFractionToConsider));
-			lowerBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(lowerBound, 0, points - 1)] / sampleRate));
+			lowerBound = cpl::Math::round<cpl::ssize_t>((N * constant.mapFrequency(cpl::Math::confineTo(lowerBound, 0, points - 1)) / sampleRate));
 			auto higherBound = cpl::Math::round<cpl::ssize_t>(points * (mouseFraction + nearbyFractionToConsider));
-			higherBound = cpl::Math::round<cpl::ssize_t>((N * mappedFrequencies[cpl::Math::confineTo(higherBound, 0, points - 1)] / sampleRate));
+			higherBound = cpl::Math::round<cpl::ssize_t>((N * constant.mapFrequency(cpl::Math::confineTo(higherBound, 0, points - 1)) / sampleRate));
 
 			lowerBound = cpl::Math::confineTo(lowerBound, 0, N);
 			higherBound = cpl::Math::confineTo(higherBound, 0, N);
 
-			auto source = getAudioMemory<std::complex<fftType>>();
+			auto source = transform.getRawFFT(constant);
 
-			auto peak = std::max_element(source + lowerBound, source + higherBound + 1,
-				[](const std::complex<fftType> & left, const std::complex<fftType> & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
+			auto peak = std::max_element(source.begin() + lowerBound, source.begin() + higherBound + 1,
+				[](const auto & left, const auto & right) { return cpl::Math::square(left) < cpl::Math::square(right); });
 
 			// scan for continuously rising peaks at boundaries
-			if (peak == source + lowerBound && lowerBound != 0)
+			if (peak == source.begin() + lowerBound && lowerBound != 0)
 			{
 				while (true)
 				{
 					auto nextPeak = peak - 1;
-					if (nextPeak == source)
+					if (nextPeak == source.begin())
 						break;
 					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
 						break;
@@ -419,12 +412,12 @@ namespace Signalizer
 						peak = nextPeak;
 				}
 			}
-			else if (peak == source + (higherBound - 1))
+			else if (peak == (source.begin() + higherBound - 1))
 			{
 				while (true)
 				{
 					auto nextPeak = peak + 1;
-					if (nextPeak == source + N)
+					if (nextPeak == source.end())
 						break;
 					else if (cpl::Math::square(*nextPeak) < cpl::Math::square(*peak))
 						break;
@@ -433,9 +426,9 @@ namespace Signalizer
 				}
 			}
 
-			auto peakOffset = std::distance(source, peak);
+			const auto peakOffset = std::distance(source.begin(), peak);
 
-			auto const invSize = windowScale / (getWindowSize() * 0.5);
+			const auto invSize = static_cast<ProcessingType>(state.windowScale / (getWindowSize() * 0.5));
 
 			// interpolate using a parabolic fit
 			// https://ccrma.stanford.edu/~jos/parshl/Peak_Detection_Steps_3.html
@@ -452,13 +445,13 @@ namespace Signalizer
 			peakFrequency = 0.5 * peakFraction * sampleRate;
 			// translate to local
 
-			peakDBs = beta - 0.25*(alpha - gamma) * phi;
+			peakDBs = beta - 0.25 * (alpha - gamma) * phi;
 			if (!std::isnormal(peakDBs))
 				peakDBs = 20 * std::log10(std::abs(source[peakOffset]) / (N * 0.5));
 
 			peakX = frequencyGraph.fractionToCoordTransformed(peakFraction);
 
-			peakSlope = slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
+			peakSlope = constant.slopeMap[cpl::Math::confineTo(cpl::Math::round<std::size_t>(peakX), 0, getNumFilters() - 1)];
 
 			peakDBs += 20 * std::log10(peakSlope);
 			const auto & dbs = getDBs();
@@ -471,6 +464,7 @@ namespace Signalizer
 
 			// deviance firstly considers bin width in frequency, scaled by bin position (precision gets better as
 			// frequency increases) and scaled by assumed precision interpolation
+			// TODO: This is wrong.
 			auto normalizedDeviation = (1.0 - peakFraction) / N;
 			peakDeviance = 2 * interpolationError * normalizedDeviation * sampleRate + precisionError;
 			adjustedScallopLoss = 1.0 - ((1.0 - scallopLoss) * interpolationError + normalizedDeviation); // subtract error
@@ -488,7 +482,7 @@ namespace Signalizer
 			auto truncatedPeak = (int)peakX;
 			if (truncatedPeak != lastPeak)
 			{
-				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak);
+				scallopLoss = getScallopingLossAtCoordinate(truncatedPeak, constant);
 				lastPeak = truncatedPeak;
 			}
 
@@ -512,7 +506,7 @@ namespace Signalizer
 			peakDBs = -std::numeric_limits<double>::infinity();
 
 		peakState.clearNonNormals();
-		peakState.design(content->trackerSmoothing.parameter.getValue() * 1000, laggedFPS);
+		peakState.design(content->trackerSmoothing.parameter.getValue() * 1000, fps);
 
 		peakState.process(peakDBs, peakFrequency);
 
@@ -524,8 +518,6 @@ namespace Signalizer
 		std::string mouseNote = frequencyToSemitone(reference, mouseFrequency);
 		std::string freqNote = frequencyToSemitone(reference, peakFrequency);
 
-
-		// TODO: use a monospace font for this part
 		// also: is printf-style really more readable than C++ formatting..
 		cpl::sprintfs(buf,
 			u8"+x:  %s%11.5f Hz\n"
@@ -580,90 +572,13 @@ namespace Signalizer
 
 	void Spectrum::initOpenGL()
 	{
-		//oglImage.resize(getWidth(), getHeight(), false);
 		flags.openGLInitiation = true;
-		textures.clear();
 
 	}
 
 	void Spectrum::closeOpenGL()
 	{
-		textures.clear();
 		oglImage.offload();
-	}
-
-
-	template<std::size_t N, std::size_t V, cpl::GraphicsND::ComponentOrder order>
-		void ColourScale2(cpl::GraphicsND::UPixel<order> * CPL_RESTRICT outPixel,
-			float intensity, cpl::GraphicsND::UPixel<order> colours[N + 1], float normalizedScales[N])
-		{
-			intensity = cpl::Math::confineTo(intensity, 0.0f, 1.0f);
-
-			float accumulatedSum = 0.0f;
-
-			for (std::size_t i = 0; i < N; ++i)
-			{
-				accumulatedSum += normalizedScales[i];
-
-				if (accumulatedSum >= intensity)
-				{
-					std::uint16_t factor = cpl::Math::round<std::uint8_t>(0xFF * cpl::Math::UnityScale::Inv::linear<float>(intensity, accumulatedSum - normalizedScales[i], accumulatedSum));
-
-					std::size_t
-						x1 = std::max(signed(i) - 1, 0),
-						x2 = std::min(x1 + 1, N - 1);
-
-					for (std::size_t p = 0; p < V; ++p)
-					{
-						outPixel->pixel.data[p] = (((colours[x1].pixel.data[p] * (0x00FF - factor)) + 0x80) >> 8) + (((colours[x2].pixel.data[p] * factor) + 0x80) >> 8);
-					}
-
-					return;
-				}
-			}
-		}
-
-	void ColorScale(uint8_t * pixel, float intensity)
-	{
-
-		uint8_t red = 0, blue = 0, green = 0;
-		// set blue
-
-		if (intensity <= 0)
-		{
-		}
-		else if (intensity < 0.16666f && intensity > 0)
-		{
-			blue = 6 * intensity * 0x7F;
-		}
-		else if (intensity < 0.3333f)
-		{
-			red = 6 * (intensity - 0.16666f) * 0xFF;
-			blue = 0x7F - (red >> 1);
-
-		}
-		else if (intensity < 0.6666f)
-		{
-			red = 0xFF;
-			green = 3 * (intensity - 0.3333) * 0xFF;
-		}
-		else if (intensity < 1)
-		{
-			red = 0xFF;
-			green = 0xFF;
-			blue = 3 * (intensity - 0.66666) * 0xFF;
-		}
-		else
-			red = green = blue = 0xFF;
-		// set green
-		pixel[0] = red;
-		pixel[1] = green;
-		pixel[2] = blue;
-		// set red
-
-		// saturate
-
-
 	}
 
     void Spectrum::onOpenGLRendering()
@@ -674,31 +589,20 @@ namespace Signalizer
     template<typename ISA>
     void Spectrum::vectorGLRendering()
 	{
-		auto cStart = cpl::Misc::ClockCounter();
         {
-
-            cpl::CFastMutex audioLock;
             // starting from a clean slate?
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
 
-
-            for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-                lineGraphs[i].filter.setSampleRate(fpoint(1.0 / openGLDeltaTime()));
-
             bool lineTransformReady = false;
 
-            // lock the memory buffers, and do our thing.
-            {
-                handleFlagUpdates();
-                // line graph data for ffts are rendered now.
-                if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
-                {
-                    audioLock.acquire(audioResource);
-                    lineTransformReady = prepareTransform(audioStream.getAudioBufferViews());
-                }
+			auto&& access = processor->streamState.lock();
 
-            }
+            handleFlagUpdates(*access);
+
+			if (access->pairs.size() == 0)
+				return;
+
             // flags may have altered ogl state
             CPL_DEBUGCHECKGL();
 
@@ -706,7 +610,6 @@ namespace Signalizer
             // set up openGL
             //openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
             openGLStack.loadIdentityMatrix();
-            CPL_DEBUGCHECKGL();
             CPL_DEBUGCHECKGL();
 
             openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()));
@@ -717,35 +620,61 @@ namespace Signalizer
             switch (state.displayMode)
             {
             case SpectrumContent::DisplayMode::LineGraph:
-                // no need to lock in this case, as this display mode is exclusively switched,
-                // such that only we have access to it.
-                if (lineTransformReady)
-                {
-                    audioLock.acquire(audioResource);
-                    doTransform();
-                    mapToLinearSpace();
-                    postProcessStdTransform();
-                }
-                renderLineGraph<ISA>(openGLStack); break;
+			{
+				{
+					auto views = audioStream->getAudioBufferViews();
+
+					cpl::jobs::parallel_for(
+						access->pairs.size(),
+						[&](std::size_t index)
+						{
+							auto& pair = access->pairs[index];
+							if (pair.prepareTransform(access->constant, { views.getView(index * 2), views.getView(index * 2 + 1) }))
+							{
+								pair.doTransform(access->constant);
+								pair.mapToLinearSpace(access->constant);
+								pair.postProcessStdTransform(access->constant);
+							}
+						}
+					);
+				}
+
+				std::size_t pairCount = 0;
+
+				for (auto& pair : access->pairs)
+				{
+					CPL_RUNTIME_ASSERTION(state.colourOne.size() == 2);
+
+					renderTransformAsGraph<ISA>(
+						openGLStack, 
+						pair, 
+						{ state.colourOne[0][pairCount], state.colourOne[1][pairCount] },
+						{ state.colourTwo[0][pairCount], state.colourTwo[1][pairCount] }
+					);
+
+					pairCount++;
+				}
+
+				renderLineGrid<ISA>(openGLStack);
+				break;
+			}
+
             case SpectrumContent::DisplayMode::ColourSpectrum:
                 // mapping and processing is already done here.
-                renderColourSpectrum<ISA>(openGLStack); break;
+                renderColourSpectrum<ISA>(access->constant, access->pairs[0], openGLStack); break;
 
             }
             
+			renderGraphics([&](juce::Graphics& g) { paint2DGraphics(g, access->constant, access->pairs[0]); });
         }
-		CPL_DEBUGCHECKGL();
-		renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
-		CPL_DEBUGCHECKGL();
-        renderCycles = cpl::Misc::ClockCounter() - cStart;
-        auto tickNow = juce::Time::getHighResolutionTicks();
-        avgFps.setNext(tickNow - lastFrameTick);
-        lastFrameTick = tickNow;
+
+
+		postFrame();
 	}
 
 
 	template<typename ISA>
-		void Spectrum::renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack & ogs)
+		void Spectrum::renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
@@ -754,28 +683,37 @@ namespace Signalizer
 
 			if (!state.isFrozen)
 			{
+				const auto&& results = transform.lineGraphs[SpectrumContent::LineGraphs::LineMain].getResults(state.axisPoints);
+
 				framePixelPosition %= pW;
 				auto approximateFrames = getApproximateStoredFrames();
-				/*if (approximateFrames == 0)
-					approximateFrames = framesPerUpdate;*/
+
 				std::size_t processedFrames = 0;
 				framesPerUpdate = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
-				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
-				while ((!shouldCap || (processedFrames++ < framesThisTime)) && processNextSpectrumFrame())
+				while ((!shouldCap || (processedFrames++ < framesThisTime)))
 				{
+					SFrameQueue::ElementAccess access;
+					if (!processor->frameQueue.popElement(access))
+						break;
+
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
-					// run the next frame through pixel filters and format it etc.
 
+					FrameVector& curFrame(*access.getData());
 
-					for (int i = 0; i < getAxisPoints(); ++i)
-					{
+#pragma message cwarn("Should interpolate incoming frames instead of dropping them.")
+					if (curFrame.size() != constant.axisPoints)
+						continue;
+
 //#define SIGNALIZER_VISUALDEBUGTEST
 #ifdef SIGNALIZER_VISUALDEBUGTEST
+					for (std::size_t i = 0; i < constant.axisPoints; ++i)
+					{
+
 						if (framePixelPosition & 1 && i & 1)
 						{
 							columnUpdate[i] = { 0xff, 0xFF, 0xff, 0xff };
@@ -784,18 +722,10 @@ namespace Signalizer
 						{
 							columnUpdate[i] = { 0x00, 0x00, 0x00, 0x00 };
 						}
-#else
-						ColourScale2<SpectrumContent::numSpectrumColours + 1, 4>(
-							columnUpdate.data() + i,
-							lineGraphs[SpectrumContent::LineGraphs::LineMain].results[i].magnitude,
-							state.colourSpecs,
-							state.normalizedSpecRatios
-						);
-#endif
 					}
-					//CPL_DEBUGCHECKGL();
-					oglImage.updateSingleColumn(framePixelPosition, columnUpdate, GL_RGBA);
-					//CPL_DEBUGCHECKGL();
+#endif
+
+					oglImage.updateSingleColumn(framePixelPosition, curFrame, FrameVector::value_type::glFormat());
 
 					framePixelPosition++;
 					framePixelPosition %= pW;
@@ -812,57 +742,60 @@ namespace Signalizer
 			}
 
 			CPL_DEBUGCHECKGL();
-			ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
-			// render grid
-			{
-				auto normalizedScale = 1.0 / getHeight();
-
-				// draw vertical lines.
-				const auto & lines = frequencyGraph.getLines();
-
-				auto norm = [=](double in) { return static_cast<float>(normalizedScale * in * 2.0 - 1.0); };
-
-				float baseWidth = 0.1f;
-
-				float gradientOffset = 10.0f / getWidth() - 1.0f;
-
-				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-
-				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
-				for (auto dline : lines)
-				{
-					auto line = norm(dline);
-					lineDrawer.addVertex(gradientOffset, line, 0.0f);
-					lineDrawer.addVertex(gradientOffset + baseWidth * 0.7f, line, 0.0f);
-				}
-
-				lineDrawer.addColour(state.colourGrid);
-				const auto & divs = frequencyGraph.getDivisions();
-
-				for (auto & sdiv : divs)
-				{
-					auto line = norm(sdiv.coord);
-					lineDrawer.addVertex(gradientOffset, line, 0.0f);
-					lineDrawer.addVertex(gradientOffset + baseWidth, line, 0.0f);
-				}
-
-			}
-			CPL_DEBUGCHECKGL();
 		}
 
+	void Spectrum::renderSpectrogramGrid(cpl::OpenGLRendering::COpenGLStack& ogs)
+	{
+		if (state.colourGrid.getAlpha() == 0)
+			return;
+
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
+		// render grid
+		auto normalizedScale = 1.0 / getHeight();
+
+		// draw vertical lines.
+		const auto& lines = frequencyGraph.getLines();
+
+		auto norm = [=](double in) { return static_cast<float>(normalizedScale * in * 2.0 - 1.0); };
+
+		float baseWidth = 0.1f;
+
+		float gradientOffset = gradientWidth / getWidth() - 1.0f;
+
+		OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+		lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+		for (auto dline : lines)
+		{
+			auto line = norm(dline);
+			lineDrawer.addVertex(gradientOffset, line, 0.0f);
+			lineDrawer.addVertex(gradientOffset + baseWidth * 0.7f, line, 0.0f);
+		}
+
+		lineDrawer.addColour(state.colourGrid);
+		const auto& divs = frequencyGraph.getDivisions();
+
+		for (auto& sdiv : divs)
+		{
+			auto line = norm(sdiv.coord);
+			lineDrawer.addVertex(gradientOffset, line, 0.0f);
+			lineDrawer.addVertex(gradientOffset + baseWidth, line, 0.0f);
+		}
+
+		CPL_DEBUGCHECKGL();
+	}
 
 	template<typename ISA>
-	void Spectrum::renderLineGraph(cpl::OpenGLRendering::COpenGLStack & ogs)
+	void Spectrum::renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform, const LineColours& one, const LineColours& two)
 	{
-		int points = getAxisPoints() - 1;
 		// render the flood fill with alpha
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(static_cast<float>(oglc->getRenderingScale()));
 
 		OpenGLRendering::MatrixModification m;
 		m.translate(-1, -1, 0);
-		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
+		m.scale(static_cast<GLfloat>(1.0 / ((state.axisPoints - 1) * 0.5)), 2, 1);
 
 		// removes most of the weird black lines on flood fills.
 		ogs.disable(GL_MULTISAMPLE);
@@ -882,10 +815,12 @@ namespace Signalizer
 				case SpectrumChannels::Separate:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
-					lineDrawer.addColour(state.colourTwo[k].withAlpha(state.alphaFloodFill));
-					for (int i = 0; i < (points + 1); ++i)
+					lineDrawer.addColour(two[k].withAlpha(state.alphaFloodFill));
+					const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
+
+					for (std::size_t i = 0; i < state.axisPoints; ++i)
 					{
-						lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
+						lineDrawer.addVertex(i, results[i].rightMagnitude, -0.5);
 						lineDrawer.addVertex(i, endPoint, -0.5);
 					}
 				}
@@ -897,10 +832,12 @@ namespace Signalizer
 				case SpectrumChannels::Complex:
 				{
 					OpenGLRendering::PrimitiveDrawer<512> lineDrawer(ogs, GL_LINES);
-					lineDrawer.addColour(state.colourOne[k].withAlpha(state.alphaFloodFill));
-					for (int i = 0; i < (points + 1); ++i)
+					lineDrawer.addColour(one[k].withAlpha(state.alphaFloodFill));
+					const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
+
+					for (std::size_t i = 0; i < state.axisPoints; ++i)
 					{
-						lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
+						lineDrawer.addVertex(i, results[i].leftMagnitude, 0);
 						lineDrawer.addVertex(i, endPoint, 0);
 					}
 				}
@@ -925,10 +862,12 @@ namespace Signalizer
 			case SpectrumChannels::Separate:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-				lineDrawer.addColour(state.colourTwo[k]);
-				for (int i = 0; i < (points + 1); ++i)
+				lineDrawer.addColour(two[k]);
+				const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
+
+				for (std::size_t i = 0; i < state.axisPoints; ++i)
 				{
-					lineDrawer.addVertex(i, lineGraphs[k].results[i].rightMagnitude, -0.5);
+					lineDrawer.addVertex(i, results[i].rightMagnitude, -0.5);
 				}
 			}
 			// (fall-through intentional)
@@ -939,91 +878,97 @@ namespace Signalizer
 			case SpectrumChannels::Complex:
 			{
 				OpenGLRendering::PrimitiveDrawer<256> lineDrawer(ogs, GL_LINE_STRIP);
-				lineDrawer.addColour(state.colourOne[k]);
-				for (int i = 0; i < (points + 1); ++i)
+				lineDrawer.addColour(one[k]);
+				const auto&& results = transform.lineGraphs[k].getResults(state.axisPoints);
+
+				for (std::size_t i = 0; i < state.axisPoints; ++i)
 				{
-					lineDrawer.addVertex(i, lineGraphs[k].results[i].leftMagnitude, 0);
+					lineDrawer.addVertex(i, results[i].leftMagnitude, 0);
 				}
 			}
 			default:
 				break;
 			}
 		}
+	}
+
+	template<typename ISA>
+	void Spectrum::renderLineGrid(cpl::OpenGLRendering::COpenGLStack& ogs)
+	{
+		if (state.colourGrid.getAlpha() == 0)
+			return;
+
+		// TODO: Can be out of sync with transform?=
+		int points = getAxisPoints() - 1;
+
+		OpenGLRendering::MatrixModification m;
+		m.translate(-1, -1, 0);
+		m.scale(static_cast<GLfloat>(1.0 / (points * 0.5)), 2, 1);
 
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
 
-		// render grid
-		if (state.colourGrid.getAlpha() != 0)
+		auto normalizedScaleY = 1.0 / getHeight();
+
 		{
-			auto normalizedScaleY = 1.0 / getHeight();
-			// TODO: fix using a matrix modification instead (cheaper)
-			auto normY = [=](double in) {  return static_cast<float>(normalizedScaleY * in * 2.0); };
-
-			{
-				const float cscale = state.configuration == SpectrumChannels::Complex ? 2 : 1;
-				const float width = getWidth();
-
-				OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-				lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
-
-				// draw vertical lines.
-				const auto & lines = frequencyGraph.getLines();
-				const auto & clines = complexFrequencyGraph.getLines();
-
-				for (auto dline : lines)
-				{
-					auto line = cscale * static_cast<float>(dline);
-					lineDrawer.addVertex(line, -1.0f, 0.0f);
-					lineDrawer.addVertex(line, 1.0f, 0.0f);
-				}
-
-				for (auto dline : clines)
-				{
-					auto line = static_cast<float>(width - cscale *  dline);
-					lineDrawer.addVertex(line, -1.0f, 0.0f);
-					lineDrawer.addVertex(line, 1.0f, 0.0f);
-				}
-
-				//m.scale(1, getHeight(), 1);
-				lineDrawer.addColour(state.colourGrid);
-				const auto & divs = frequencyGraph.getDivisions();
-				const auto & cdivs = complexFrequencyGraph.getDivisions();
-
-				for (auto & sdiv : divs)
-				{
-					auto line = cscale * static_cast<float>(sdiv.coord);
-					lineDrawer.addVertex(line, -1.0f, 0.0f);
-					lineDrawer.addVertex(line, 1.0f, 0.0f);
-				}
-
-				for (auto & sdiv : cdivs)
-				{
-					auto line = static_cast<float>(width - cscale * sdiv.coord);
-					lineDrawer.addVertex(line, -1.0f, 0.0f);
-					lineDrawer.addVertex(line, 1.0f, 0.0f);
-				}
-			}
-
-
-			m.loadIdentityMatrix();
+			const float cscale = state.configuration == SpectrumChannels::Complex ? 2 : 1;
+			const float width = getWidth();
 
 			OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
-
 			lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
 
-			// draw horizontal lines:
-			for (auto & dbDiv : dbGraph.getDivisions())
+			// draw vertical lines.
+			const auto& lines = frequencyGraph.getLines();
+			const auto& clines = complexFrequencyGraph.getLines();
+
+			for (auto dline : lines)
 			{
-				auto line = 1 - (float)dbDiv.fraction * 2;
-				lineDrawer.addVertex(-1.0f, line, 0.0f);
-				lineDrawer.addVertex(1.0f, line, 0.0f);
+				auto line = cscale * static_cast<float>(dline);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
+			for (auto dline : clines)
+			{
+				auto line = static_cast<float>(width - cscale * dline);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
+			lineDrawer.addColour(state.colourGrid);
+			const auto& divs = frequencyGraph.getDivisions();
+			const auto& cdivs = complexFrequencyGraph.getDivisions();
+
+			for (auto& sdiv : divs)
+			{
+				auto line = cscale * static_cast<float>(sdiv.coord);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
+			}
+
+			for (auto& sdiv : cdivs)
+			{
+				auto line = static_cast<float>(width - cscale * sdiv.coord);
+				lineDrawer.addVertex(line, -1.0f, 0.0f);
+				lineDrawer.addVertex(line, 1.0f, 0.0f);
 			}
 		}
 
 
+		m.loadIdentityMatrix();
 
+		OpenGLRendering::PrimitiveDrawer<128> lineDrawer(ogs, GL_LINES);
+
+		lineDrawer.addColour(state.colourGrid.withMultipliedBrightness(0.5f));
+
+		// draw horizontal lines:
+		for (auto& dbDiv : dbGraph.getDivisions())
+		{
+			auto line = 1 - (float)dbDiv.fraction * 2;
+			lineDrawer.addVertex(-1.0f, line, 0.0f);
+			lineDrawer.addVertex(1.0f, line, 0.0f);
+		}
 	}
 
 };

@@ -97,7 +97,7 @@ namespace Signalizer
 
 			const auto perf = audioStream->getPerfMeasures();
 
-			double averageFps, averageCpu;
+			float averageFps, averageCpu;
 			computeAverageStats(averageFps, averageCpu);
 
 			char textbuf[1024];
