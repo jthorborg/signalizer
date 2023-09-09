@@ -491,7 +491,6 @@ namespace Signalizer
 		case SpectrumContent::TransformAlgorithm::FFT:
 		{
 			if (constant.transformSize > 0)
-				//signaldust::DustFFT_fwdDa(getAudioMemory<double>(), static_cast<unsigned int>(constant.transformSize));
 				constant.fft.forward(
 					getAudioMemory<std::complex<T>>(constant.transformSize),
 					getAudioMemory<std::complex<T>>(constant.transformSize),
@@ -1104,8 +1103,7 @@ namespace Signalizer
 		{
 			auto configurationChannels = constant.getStateConfigurationChannels();
 			auto wsp = getWork<std::complex<float>>(constant.resonator.getNumFilters() * configurationChannels);
-			// TODO: recursive lock?
-			std::size_t filtersPerChannel = copyResonatorStateInto<AFloat>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
+			std::size_t filtersPerChannel = copyResonatorStateInto<T>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
 			switch (constant.configuration)
 			{
@@ -1127,7 +1125,7 @@ namespace Signalizer
 
 				break;
 			}
-			// rest of cases does not need any handling
+			// rest of cases do not need any handling
 			}
 
 		}
@@ -1178,7 +1176,6 @@ namespace Signalizer
 				// do some resonation
 				if (constant.algo == SpectrumContent::TransformAlgorithm::RSNT)
 				{
-					// TODO: Assumptions about channels...
 					resonatingDispatch<ISA>(constant, { buffer[0] + offset, buffer[1] + offset }, availableSamples);
 				}
 
@@ -1189,22 +1186,10 @@ namespace Signalizer
 					bool transformReady = true;
 					if (constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 					{
-						//if (ctx.getNumDeferredSamples() == 0)
-						//{
-							// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
-							// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-							// TODO: .. why does this take a lock?
-							if ((transformReady = prepareTransform(constant, *views, buffer, availableSamples + offset)))
-								doTransform(constant);
-						//}
-						//else
-						//{
-							// ignore the deferred samples and produce some views that is slightly out-of-date.
-							// this ONLY happens if something else is hogging the buffers.
-							// TODO: missing offset?
-							//if ((transformReady = prepareTransform(constant, ctx.getAudioBufferViews())))
-							//	doTransform(constant);
-						//}
+						// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
+						// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
+						if ((transformReady = prepareTransform(constant, *views, buffer, availableSamples + offset)))
+							doTransform(constant);
 					}
 
 					if (transformReady)

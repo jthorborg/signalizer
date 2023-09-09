@@ -151,12 +151,6 @@
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
 			/// <summary>
-			/// Returns the number of needed channels required to process the current
-			/// channel configuration.
-			/// </summary>
-			std::size_t getStateConfigurationChannels() const noexcept;
-
-			/// <summary>
 			/// Transforms state.audioBlobSizeMs into samples.
 			/// </summary>
 			std::size_t getBlobSamples() const noexcept;

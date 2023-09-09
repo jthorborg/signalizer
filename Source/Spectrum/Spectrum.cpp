@@ -128,31 +128,6 @@ namespace Signalizer
 	{
 		content->lowDbs.setTransformedValue(low);
 		content->highDbs.setTransformedValue(high);
-		/*low = cpl::Math::confineTo(low, kMinDbs, kMaxDbs);
-		high = cpl::Math::confineTo(high, kMinDbs, kMaxDbs);
-
-		// ensure we always have a minimum of 3 dBs of range
-		// except in the case when high < kMinDbs. too lazy
-		if (low > (high - minDBRange))
-		{
-			low = high - minDBRange;
-		}
-
-		if (state.dynRange.low != low || state.dynRange.high != high)
-		{
-			if (updateControls)
-			{
-				klowDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(low, kMinDbs, kMaxDbs));
-				khighDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(high, kMinDbs, kMaxDbs));
-			}
-
-			state.dynRange.low = low;
-			state.dynRange.high = high;
-
-			flags.dynamicRangeChange = true;
-		} */
-
-
 	}
 
 
@@ -238,7 +213,6 @@ namespace Signalizer
 
 	void Spectrum::calculateSpectrumColourRatios(Constant& constant)
 	{
-#pragma message cwarn("Exclude colours that are zero.")
 		double acc = 0.0;
 
 		std::array<double, SpectrumContent::numSpectrumColours> vals;
@@ -557,7 +531,6 @@ namespace Signalizer
 			}
 			else
 			{
-
 				frequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
 				frequencyGraph.setMaxFrequency(sampleRate / 2);

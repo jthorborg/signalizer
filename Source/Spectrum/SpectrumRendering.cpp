@@ -56,9 +56,6 @@ namespace Signalizer
 
 	using namespace cpl;
 
-	/// <summary>
-	///
-	/// </summary>
 	static std::string frequencyToSemitone(double a4Ref, double frequency)
 	{
 		if (!std::isnormal(frequency))
@@ -679,14 +676,12 @@ namespace Signalizer
 
 				framePixelPosition %= pW;
 				auto approximateFrames = getApproximateStoredFrames();
-				/*if (approximateFrames == 0)
-					approximateFrames = framesPerUpdate;*/
+
 				std::size_t processedFrames = 0;
 				framesPerUpdate = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
-				//
 				bool shouldCap = content->frameUpdateSmoothing.getTransformedValue() != 0.0;
 
 				while ((!shouldCap || (processedFrames++ < framesThisTime)))
@@ -696,10 +691,10 @@ namespace Signalizer
 						break;
 
 #pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
-					// run the next frame through pixel filters and format it etc.
 
 					FrameVector& curFrame(*access.getData());
 
+#pragma message cwarn("Should interpolate incoming frames instead of dropping them.")
 					if (curFrame.size() != constant.axisPoints)
 						continue;
 
