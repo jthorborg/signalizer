@@ -70,9 +70,16 @@ namespace Signalizer
 
 			// conditional lock.
 			std::optional<AudioStream::AudioBufferAccess> aba;
+			bool historyMayBeDeferred = false;
 			if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
-				CPL_RUNTIME_ASSERTION(source.getNumDeferredSamples() == 0);
+				// TODO: Can happen if something else hogs, like a vectorscope
+				// Also only happens if GlobalBehaviour::stopProcessingOnSuspend is false
+				if (source.getNumDeferredSamples() != 0)
+				{
+					historyMayBeDeferred = true;
+					CPL_BREAKIFDEBUGGED();
+				}
 
 				aba.emplace(source.getAudioBufferViews());
 			}
@@ -95,7 +102,8 @@ namespace Signalizer
 						access->constant, 
 						views,
 						{ buffer[i * 2], buffer[i * 2 + 1] },
-						numSamples
+						numSamples,
+						historyMayBeDeferred
 					);
 				}
 			);

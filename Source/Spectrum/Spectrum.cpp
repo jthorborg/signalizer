@@ -99,13 +99,13 @@ namespace Signalizer
 
 	void Spectrum::suspend()
 	{
-		state.isSuspended = true;
+		processor->isSuspended = true;
 		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
 	void Spectrum::resume()
 	{
-		state.isSuspended = false;
+		processor->isSuspended = false;
 		if (oldWindowSize != -1)
 		{
 			//TODO: possibly unsynchronized. fix to have an internal size instead

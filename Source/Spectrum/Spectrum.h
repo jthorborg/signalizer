@@ -220,7 +220,7 @@
 			// changes state into altering flags instead (check out valueChanged()))
 			struct StateOptions
 			{
-				bool isEditorOpen, isFrozen, isSuspended;
+				bool isEditorOpen, isFrozen;
 				bool antialias;
 				bool isLinear;
 
