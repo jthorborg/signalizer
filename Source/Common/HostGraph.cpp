@@ -147,7 +147,6 @@ namespace Signalizer
 		if (isAlias)
 		{
 			// 6
-			CPL_RUNTIME_ASSERTION(staticSet.count(this) == 0);
 			CPL_RUNTIME_ASSERTION(nodeID.has_value());
 			CPL_RUNTIME_ASSERTION(aliases.empty());
 
@@ -206,6 +205,8 @@ namespace Signalizer
 
 	void HostGraph::assumeNonAliasedIdentity()
 	{
+		TriggerModelUpdateOnExit exit{ this };
+
 		const GraphLock lock(staticMutex);
 		CPL_RUNTIME_ASSERTION(isAlias);
 
@@ -216,11 +217,17 @@ namespace Signalizer
 	HostGraph::Model HostGraph::getModel()
 	{
 		Model m;
+		m.isAlias = isAlias;
 
 		GraphLock lock(staticMutex);
 
 		for (auto n : staticSet)
 		{
+			if (n->isAlias)
+			{
+				continue;
+			}
+
 			const auto offset = m.connections.size();
 			// TODO: Handle other graphs in here being aliases, and handle the user experience of resetting an alias.
 			const auto& serialized = serializeReference(n, lock);
@@ -241,7 +248,8 @@ namespace Signalizer
 					static_cast<int>(offset),
 					static_cast<int>(m.connections.size() - offset),
 					static_cast<int>(n->getNumChannels()),
-					n->version
+					n->version,
+					false
 				}
 			);
 
@@ -249,6 +257,38 @@ namespace Signalizer
 			{
 				m.hostIndex = 0;
 				std::swap(m.nodes[m.nodes.size() - 1], m.nodes[0]);
+			}
+		}
+
+		// add missing nodes, rare but slow intersection
+		if (m.nodes.size() != topology.size())
+		{
+			for (auto& entry : topology)
+			{
+				if (auto it = std::find_if(m.nodes.begin(), m.nodes.end(), [&](const auto& n) { return n.node == entry.first; }); it == m.nodes.end())
+				{
+					const auto offset = m.connections.size();
+
+					for (const auto& pair : entry.second.inputs)
+					{
+						m.connections.emplace_back(pair);
+					}
+
+					auto peer = entry.second.liveReference;
+
+					m.nodes.emplace_back(
+						Model::NodeView
+						{
+							entry.first,
+							peer ? peer->name : "<missing>",
+							static_cast<int>(offset),
+							static_cast<int>(m.connections.size() - offset),
+							static_cast<int>(peer ? peer->getNumChannels() : 2),
+							peer ? peer->version : 0,
+							true
+						}
+					);
+				}
 			}
 		}
 

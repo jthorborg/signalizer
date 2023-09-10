@@ -42,10 +42,12 @@ namespace Signalizer
 	public:
 
 		Content(GraphEditor& parent, HostGraph& graph)
-			: graph(graph), parent(parent), nameField("Name"), filterField("Filter"), isMouseDown(false)
+			: graph(graph), parent(parent), nameField("Name"), filterField("Filter"), isMouseDown(false), identityButton(*this)
 		{
 			addAndMakeVisible(nameField);
 			addAndMakeVisible(filterField);
+
+			addChildComponent(identityButton);
 
 			nameField.bAddChangeListener(this);
 			filterField.addListener(this);
@@ -67,6 +69,9 @@ namespace Signalizer
 			}
 
 			relayoutAllEdges();
+
+			filterField.setVisible(!model.isAlias);
+			identityButton.setVisible(model.isAlias);
 		}
 
 		static constexpr int textEditorHeight = 40;
@@ -394,7 +399,10 @@ namespace Signalizer
 		{
 			std::call_once(focusGrab, [&] { filterField.grabKeyboardFocus(); });
 
-			g.fillAll(cpl::GetColour(cpl::ColourEntry::Normal));
+			g.fillAll(cpl::GetColour(model.isAlias ? cpl::ColourEntry::Error : cpl::ColourEntry::Normal));
+
+			if (model.isAlias)
+				return;
 
 			const auto base = cpl::GetColour(cpl::ColourEntry::Normal);
 			const auto baseTextColour = cpl::GetColour(cpl::ColourEntry::ControlText);
@@ -429,7 +437,12 @@ namespace Signalizer
 		void resized() override
 		{
 			nameField.setBounds(getBounds().withHeight(textEditorHeight));
-			filterField.setBounds(nameField.getBounds().withY(nameField.getBottom() + space));
+
+			// these overlap, but are never shown together.
+			const auto filterSpace = nameField.getBounds().withY(nameField.getBottom() + space);
+			filterField.setBounds(filterSpace);
+			identityButton.setBounds(filterSpace.reduced(5, 0));
+
 			relayoutAllEdges();
 		}
 
@@ -613,10 +626,36 @@ namespace Signalizer
 			repaint();
 		}
 
+		void assumeIdentity()
+		{
+			graph.assumeNonAliasedIdentity();
+		}
+
+		class Button : public cpl::CButton
+		{
+		public: 
+
+			Button(Content& parent)
+				: content(parent)
+			{
+				bSetDescription("This can temporarily happen when loading projects or pasting plugins / presets on Signalizers. When clicked, this plugin assumes a new identity.");
+				setTexts("This Signalizer was duplicated, click to fix", "This Signalizer was duplicated, click to fix");
+			}
+
+			void clicked() override
+			{
+				content.assumeIdentity();
+				cpl::CButton::clicked();
+			}
+
+			Content& content;
+		};
+
 		HostGraph& graph;
 		HostGraph::Model model;
 		GraphEditor& parent;
 		cpl::CInputControl nameField;
+		Button identityButton;
 		juce::TextEditor filterField;
 		juce::Point<float> lastControlPosition, pointOfInterest;
 		std::vector<juce::Path> edges;

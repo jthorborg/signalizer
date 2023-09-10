@@ -103,6 +103,7 @@
 					int connectionCount;
 					int portCount;
 					Version version;
+					bool isMissing;
 				};
 
 				bool didChange(NodeView& v)
@@ -113,6 +114,7 @@
 				std::vector<NodeView> nodes;
 				std::vector<DirectedPortPair> connections;
 				int hostIndex{};
+				bool isAlias;
 				
 				Version previousVersion{};
 			};
