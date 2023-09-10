@@ -431,7 +431,7 @@ namespace Signalizer
 					// even for a reverse dependency.
 					// is something on the way, at least?
 
-					if(auto sh = g.second.source.lock(); sh->getApproximateInFlightPackets() > 0)
+					if(auto sh = g.second.source.lock(); sh && sh->getApproximateInFlightPackets() > 0)
 					{
 						// OK: we will get notified at a later stage.
 						return;

@@ -106,7 +106,7 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
-			HostGraph& getHostGraph() { return graph; }
+			HostGraph& getHostGraph() { return *graph; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
 
@@ -130,7 +130,7 @@
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
-			HostGraph graph;
+			std::shared_ptr<HostGraph> graph;
 		};
 	};
 #endif

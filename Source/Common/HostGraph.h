@@ -44,13 +44,14 @@
 	#include "SignalizerConfiguration.h"
 	#include "CommonSignalizer.h"
 	#include "MixGraphListener.h"
+	#include <memory>
 
 	namespace Signalizer
 	{
 
 		class MixGraphListener;
 
-		class HostGraph : public cpl::CSerializer::Serializable
+		class HostGraph : public cpl::CSerializer::Serializable, public std::enable_shared_from_this<HostGraph>
 		{
 		public:
 
@@ -135,6 +136,8 @@
 
 			void setMixGraph(MixGraphListener::Handle& handle);
 			void applyDefaultLayoutFromRuntime();
+			void assumeNonAliasedIdentity();
+			bool isAliasOfOther() const noexcept { return isAlias; }
 
 		private:
 
@@ -173,8 +176,10 @@
 
 			int getNumChannels() const;
 			bool hasSerializedRepresentation() const;
-			bool internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
-			bool internalConnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock);
+			bool internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, const GraphLock& lock);
+			bool internalConnect(const SerializedHandle& input, DirectedPortPair pair, const GraphLock& lock);
+			void resurrectNextAlias(const GraphLock& lock);
+			void changeIdentity(const std::optional<SerializedHandle>& potentialIdentity, const GraphLock& lock);
 			void submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			void submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			HHandle resolve(const SerializedHandle& h, const GraphLock&);
@@ -206,8 +211,10 @@
 			std::weak_ptr<juce::AsyncUpdater> modelChangedCallback;
 			std::shared_ptr<AudioStream::Output> realtime;
 			std::shared_ptr<MixGraphListener> mix;
+			std::vector<std::weak_ptr<HostGraph>> aliases;
 			std::size_t expectedNodesToResurrect = 0;
 			int version = 0;
+			bool isAlias = false;
 		};
 	}
 

@@ -48,7 +48,9 @@ namespace Signalizer
 
 	HostGraph::~HostGraph()
 	{
-		broadcastDestruct(GraphLock(staticMutex));
+		const GraphLock lock(staticMutex);
+		broadcastDestruct(lock);
+		resurrectNextAlias(lock);
 	}
 
 	void HostGraph::addModelListener(std::weak_ptr<juce::AsyncUpdater> shared)
@@ -89,7 +91,7 @@ namespace Signalizer
 		auto oldName = name;
 		ar >> name;
 
-		auto copyID = nodeID;
+		decltype(nodeID) copyID;
 		ar >> copyID;
 
 		clearTopology(lock);
@@ -106,18 +108,31 @@ namespace Signalizer
 		}
 
 		expectedNodesToResurrect = topology.size();
-		
+
+		changeIdentity(copyID, lock);
+
 		if (count || expectedNodesToResurrect)
 		{
 			for (auto h : staticSet)
-				tryRebuildTopology(resolve(h), lock, false);
+			{
+				if(h->hasSerializedRepresentation())
+					tryRebuildTopology(resolve(h), lock, false);
+			}
 		}
 
+		if(oldName != name)
+			broadcastDetailChange(DetailChange::Rename, lock);
+	}
+
+	void HostGraph::changeIdentity(const std::optional<HostGraph::SerializedHandle>& newIdentity, const GraphLock& lock)
+	{
 		/*
 			1. we don't have a name and we're not getting one (do nothing)
 			2. we don't have a name but we're getting one (broadcast)
 			3. we do have a name but we're erasing it ("destroy self then resurrect nameless")
 			4. we do have a name and we're replacing it (broadcast)
+			5. we are getting a name that already exists and become an alias (destroy self then orphan into existing, potentially to be resurrected)
+			6. we already were an alias, in combination with any other
 		*/
 
 		// Ideally.. serialized references live in scene serialization and not in presets.
@@ -127,23 +142,76 @@ namespace Signalizer
 		// only ever deserialize this from direct host DAW request (not presets).
 		// thus, this is serialized "outside" of the game.
 
-		if (copyID.has_value())
+		bool wereAlias = isAlias;
+
+		if (isAlias)
 		{
-			// 2 + 4
-			nodeID = copyID;
-			broadcastDetailChange(DetailChange::Reidentified, lock);
-		}
-		else if (nodeID.has_value())
-		{
-			// 3
-			broadcastDestruct(lock);
-			nodeID = copyID; // go nameless, has to happen after destruction
-			broadcastCreate(lock);
+			// 6
+			CPL_RUNTIME_ASSERTION(staticSet.count(this) == 0);
+			CPL_RUNTIME_ASSERTION(nodeID.has_value());
+			CPL_RUNTIME_ASSERTION(aliases.empty());
+
+			if (auto collision = lookupForeign(*nodeID, lock))
+			{
+				CPL_RUNTIME_ASSERTION(collision != this);
+
+				auto thisShared = shared_from_this();
+
+				auto pos = std::find_if(collision->aliases.begin(), collision->aliases.end(), [&] (auto w) { return w.lock() == thisShared; });
+				CPL_RUNTIME_ASSERTION(pos != collision->aliases.end());
+				collision->aliases.erase(pos);
+			}
+
+			isAlias = false;
 		}
 
-		if(oldName != name)
-			broadcastDetailChange(DetailChange::Rename, lock);
+		broadcastDestruct(lock);
+		if (newIdentity.has_value())
+		{
+			if (auto collision = lookupForeign(*newIdentity, lock); collision && collision != this)
+			{
+				// 5
+				isAlias = true;
+				collision->aliases.push_back(weak_from_this());
+			}
+		}
+
+		nodeID = newIdentity;
+		broadcastCreate(lock);
+
+		if (aliases.size())
+		{
+			resurrectNextAlias(lock);
+		}
 	}
+
+	void HostGraph::resurrectNextAlias(const GraphLock& lock)
+	{
+		if (aliases.empty())
+			return;
+
+		auto deadAliases = std::remove_if(aliases.begin(), aliases.end(), [] (auto w) { return w.expired(); });
+		aliases.erase(deadAliases, aliases.end());
+
+		if (aliases.size() > 0)
+		{
+			auto front = aliases.front().lock();
+			aliases.erase(aliases.begin());
+
+			front->isAlias = false;
+			std::swap(front->aliases, aliases);
+			front->broadcastDetailChange(DetailChange::Reidentified, lock);
+		}
+	}
+
+	void HostGraph::assumeNonAliasedIdentity()
+	{
+		const GraphLock lock(staticMutex);
+		CPL_RUNTIME_ASSERTION(isAlias);
+
+		changeIdentity(SerializedHandle::generateUnique(), lock);
+	}
+
 
 	HostGraph::Model HostGraph::getModel()
 	{
@@ -154,6 +222,7 @@ namespace Signalizer
 		for (auto n : staticSet)
 		{
 			const auto offset = m.connections.size();
+			// TODO: Handle other graphs in here being aliases, and handle the user experience of resetting an alias.
 			const auto& serialized = serializeReference(n, lock);
 
 			if (auto it = topology.find(serialized); it != topology.end())
@@ -209,7 +278,7 @@ namespace Signalizer
 		return internalConnect(input, pair, lock);
 	}
 
-	bool HostGraph::internalConnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock)
+	bool HostGraph::internalConnect(const SerializedHandle& input, DirectedPortPair pair, const GraphLock& lock)
 	{
 		bool known = topology.count(input);
 		auto& relation = topology[input];
@@ -314,7 +383,7 @@ namespace Signalizer
 		return true;
 	}
 
-	bool HostGraph::internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, GraphLock& lock)
+	bool HostGraph::internalDisconnect(const SerializedHandle& input, DirectedPortPair pair, const GraphLock& lock)
 	{
 		bool known = topology.count(input);
 		auto& relation = topology[input];
@@ -350,7 +419,10 @@ namespace Signalizer
 		if (expectedNodesToResurrect)
 		{
 			for (auto h : staticSet)
-				tryRebuildTopology(resolve(h), lock, true);
+			{
+				if(h->hasSerializedRepresentation())
+					tryRebuildTopology(resolve(h), lock, true);
+			}
 		}
 	}
 
@@ -385,7 +457,7 @@ namespace Signalizer
 
 	bool HostGraph::hasSerializedRepresentation() const
 	{
-		return nodeID.has_value();
+		return !isAlias && nodeID.has_value();
 	}
 
 	void HostGraph::submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&)
@@ -414,7 +486,7 @@ namespace Signalizer
 	{
 		for (auto g : staticSet)
 		{
-			if (g->nodeID.has_value() && *g->nodeID == h)
+			if (g->nodeID.has_value() && *g->nodeID == h && !g->isAlias)
 			{
 				return g;
 			}
@@ -507,6 +579,8 @@ namespace Signalizer
 
 	HostGraph::SerializedHandle HostGraph::serializeReference(HHandle h, const GraphLock&)
 	{
+		CPL_RUNTIME_ASSERTION(!h->isAlias);
+
 		if (h->nodeID.has_value())
 			return h->nodeID.value();
 		else
@@ -583,7 +657,8 @@ namespace Signalizer
 
 		const auto& serialized = serializeReference(node, g);
 
-		if (!resetInstancedTopologyFor(serialized, g))
+		// TODO: when to delete old connections? show them to user or accept transactions with dead plugins be forgotten?
+		if (!resetInstancedTopologyFor(serialized, g /*, node->aliases.empty()*/))
 			return;
 	}
 }

@@ -55,7 +55,7 @@ namespace Signalizer
 		: config(std::make_shared<ConcurrentConfig>())
 		, realtimeInput(std::move(std::get<0>(io)))
 		, realtimeOutput(std::get<1>(io))
-		, graph(std::get<1>(io))
+		, graph(std::make_shared<HostGraph>(std::get<1>(io)))
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
@@ -145,7 +145,7 @@ namespace Signalizer
 		if (!hasAnyLayoutBeenApplied)
 		{
 			hasAnyLayoutBeenApplied = true;
-			graph.applyDefaultLayoutFromRuntime();
+			graph->applyDefaultLayoutFromRuntime();
 		}
 	}
 
@@ -199,7 +199,7 @@ namespace Signalizer
 		serialize(serializer.getArchiver(), cpl::programInfo.version);
 
 		// serialize host graph independently
-		graph.serialize(serializer.getArchiver()["host-graph"], cpl::programInfo.version);
+		graph->serialize(serializer.getArchiver()["host-graph"], cpl::programInfo.version);
 
 		if (!serializer.isEmpty())
 		{
@@ -232,7 +232,7 @@ namespace Signalizer
 
 			// the host graph is serialized independently, so it doesn't appear as part of presets.
 			if (!builder["host-graph"].isEmpty())
-				graph.deserialize(builder["host-graph"], version);
+				graph->deserialize(builder["host-graph"], version);
 
 		}
 		catch (const std::exception & e)
