@@ -281,6 +281,9 @@
 			cpl::relaxed_atomic<bool> isSynchronized;
 
 			ConcurrentConfig& concurrentConfig;
+
+			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixGraphListener);
+
 		};
 	}
 

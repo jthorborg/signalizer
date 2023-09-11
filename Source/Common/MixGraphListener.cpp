@@ -461,9 +461,17 @@ namespace Signalizer
 
 			if (min > 0)
 			{
+				// make sure when we're processing more than a stereo pair to at least present a sizable buffer,
+				// since multithreading is going to be involved.
+				constexpr int minMultiChannel = 32;
+
+				if (matrix.size() > 2 && min <= minMultiChannel)
+					return;
+
 				currentLatency = latency;
 				deliver(ctx, min);
 			}
+
 		}
 	}
 
