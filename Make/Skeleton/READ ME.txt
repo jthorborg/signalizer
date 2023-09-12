@@ -11,6 +11,7 @@ The source code of the complimentary library cpl is found here: https://bitbucke
 	GNU Octave for some DSP operations, GPL v3 licensed.
 	ReaderWriterQueue, a C++ generic lock-free queue structure by Cameron Desrochers, BSD alike licensed.
 	DustFFT by SignalDust (Teemu Voipio), custom permissive license.
+	pffft, UCAR 2004 + various since.
 
 3b. Additionally, graphical resources from the following packages are includes in this package:
 
@@ -63,6 +64,6 @@ A: Make a pull request - or contact me.
 Q: I got a feature request.
 A: Contact me (7).
 
-Q: I'm getting errors when i load a preset.
+Q: I'm getting errors when I load a preset.
 A: The preset is probably from an older version. Perhaps send the error to me.
 

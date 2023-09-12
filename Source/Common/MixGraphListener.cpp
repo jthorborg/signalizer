@@ -364,7 +364,7 @@ namespace Signalizer
 			s.globalPosition = globalPosition;
 			s.endpoint = globalPosition + numSamples;
 
-			const auto neededSize = std::min(maxBufferSize, s.containedSamples + numSamples);
+			const auto neededSize = std::min<std::size_t>(maxBufferSize, s.containedSamples + numSamples);
 
 			for (auto& q : s.channelQueues)
 			{
@@ -379,7 +379,7 @@ namespace Signalizer
 			}
 
 			const auto currentContained = s.containedSamples.load() + numSamples;
-			s.containedSamples.store(std::min(currentContained, maxBufferSize));
+			s.containedSamples.store(std::min<std::int64_t>(currentContained, maxBufferSize));
 		}
 
 
@@ -463,9 +463,9 @@ namespace Signalizer
 			{
 				// make sure when we're processing more than a stereo pair to at least present a sizable buffer,
 				// since multithreading is going to be involved.
-				constexpr int minMultiChannel = 32;
+				constexpr int minMultiChannel = 64;
 
-				if (matrix.size() > 2 && min <= minMultiChannel)
+				if (matrix.size() > 2 && min < minMultiChannel)
 					return;
 
 				currentLatency = latency;

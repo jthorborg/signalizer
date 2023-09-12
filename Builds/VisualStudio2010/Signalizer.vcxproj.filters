@@ -340,6 +340,9 @@
     <Filter Include="Signalizer\Source\External">
       <UniqueIdentifier>{71fb7466-d4f5-4ecf-ab7c-d4dc450b361b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\Build">
+      <UniqueIdentifier>{614a3589-1c89-4da8-b44d-befa5594dce8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp">
@@ -2311,11 +2314,23 @@
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </None>
-    <None Include="..\..\prepare.py">
-      <Filter>Signalizer</Filter>
-    </None>
     <None Include="..\..\Source\Spectrum\TransformDSP.inl">
       <Filter>Signalizer\Source\Spectrum</Filter>
+    </None>
+    <None Include="..\..\prepare.py">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\build_win.py">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\vscompile.bat">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\config.ini">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\common.py">
+      <Filter>Signalizer\Build</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -2326,6 +2341,9 @@
   <ItemGroup>
     <Text Include="..\..\Source\Notes\Bugs.txt">
       <Filter>Signalizer</Filter>
+    </Text>
+    <Text Include="..\..\Make\windows_installation_advice.txt">
+      <Filter>Signalizer\Build</Filter>
     </Text>
   </ItemGroup>
 </Project>

@@ -841,6 +841,10 @@
     <None Include="..\..\..\SDKs\juce\modules\juce_opengl\juce_module_info" />
     <None Include="..\..\..\SDKs\juce\modules\juce_video\juce_module_info" />
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr" />
+    <None Include="..\..\Make\build_win.py" />
+    <None Include="..\..\Make\common.py" />
+    <None Include="..\..\Make\config.ini" />
+    <None Include="..\..\Make\vscompile.bat" />
     <None Include="..\..\prepare.py" />
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl" />
     <None Include="..\..\Source\Spectrum\TransformDSP.inl" />
@@ -849,6 +853,7 @@
     <ResourceCompile Include=".\resources.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Make\windows_installation_advice.txt" />
     <Text Include="..\..\Source\Notes\Bugs.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -28,3 +28,4 @@ Make/__pycache__/
 Builds/Release/
 Builds/x64/
 Releases/
+Make/Build.log
