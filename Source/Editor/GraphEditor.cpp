@@ -98,49 +98,47 @@ namespace Signalizer
 
 				}
 
-
-
-				juce::Rectangle<float> getRect()
+				juce::Rectangle<float> getRect() const noexcept
 				{
 					return rect;
 				}
 
-				juce::Point<float> getPinPosition()
+				juce::Point<float> getPinPosition() const noexcept
 				{
-					return static_cast<Derived*>(this)->getPinPositionFor(getCurrentPin());
+					return static_cast<const Derived*>(this)->getPinPositionFor(getCurrentPin());
 				}
 
-				juce::Rectangle<float> getPinRect()
+				juce::Rectangle<float> getPinRect() const noexcept
 				{
 					return expandPoint(getPinPosition());
 				}
 
-				juce::Rectangle<float> getPinRectFor(PinInt p)
+				juce::Rectangle<float> getPinRectFor(PinInt p) const noexcept
 				{
 					return expandPoint(static_cast<Derived*>(this)->getPinPositionFor(p));
 				}
 
-				PinInt getCurrentPin()
+				PinInt getCurrentPin() const noexcept
 				{
 					return port;
 				}
 
-				std::string& currentName()
+				const std::string& currentName() const noexcept
 				{
 					return model->nodes[index].name;
 				}
 
-				HostGraph::SerializedHandle getHandle()
+				HostGraph::SerializedHandle getHandle() const noexcept
 				{
 					return model->nodes[index].node;
 				}
 
-				static int calculateHeight(int numPins)
+				static int calculateHeight(int numPins) noexcept
 				{
 					return std::max(30, (numPins + 1) * pinSpacing);
 				}
 
-				static int pinOffset(int pinIndex)
+				static int pinOffset(int pinIndex) noexcept
 				{
 					return (pinIndex + 1) * pinSpacing;
 				}
@@ -201,17 +199,17 @@ namespace Signalizer
 						.withSize(bounds.getWidth() / 3, height);
 				}
 
-				HostGraph::Model::NodeView& getView()
+				const HostGraph::Model::NodeView& getView() const noexcept
 				{
 					return model->nodes[index];
 				}
 
-				juce::Rectangle<float> getPinRect()
+				juce::Rectangle<float> getPinRect() const noexcept
 				{
 					return expandPoint(getPinPosition());
 				}
 
-				juce::Point<float> getPinPositionFor(PinInt port)
+				juce::Point<float> getPinPositionFor(PinInt port) const noexcept
 				{
 					return juce::Point<float>(rect.getRight(), rect.getY() + pinOffset(port));
 				}
@@ -240,7 +238,7 @@ namespace Signalizer
 					return true;
 				}
 
-				auto getCurrentConnection(const Host& host)
+				auto getCurrentConnection(const Host& host) const
 				{
 					checkBoundsOfConnection();
 
@@ -253,17 +251,17 @@ namespace Signalizer
 					);
 				}
 
-				bool isPortConnected()
+				bool isPortConnected() const noexcept
 				{
 					return hasConnections;
 				}
 
-				void checkBoundsOfPort()
+				void checkBoundsOfPort() const
 				{
 					CPL_RUNTIME_ASSERTION(static_cast<std::size_t>(port) < model->nodes[index].portCount);
 				}
 
-				void checkBoundsOfConnection()
+				void checkBoundsOfConnection() const
 				{
 					CPL_RUNTIME_ASSERTION(static_cast<std::size_t>(con) < model->nodes[index].connectionCount);
 				}
@@ -278,7 +276,7 @@ namespace Signalizer
 			}
 
 
-			Host getHost()
+			Host getHost() const noexcept
 			{
 				return Host(model, bounds);
 			}
@@ -311,7 +309,7 @@ namespace Signalizer
 		};
 
 		template<typename TNode>
-		void paintNode(juce::Graphics& g, TNode& n, juce::Colour base, juce::Colour baseTextColour)
+		void paintNode(juce::Graphics& g, TNode n, juce::Colour base, juce::Colour baseTextColour)
 		{
 			// draw main rect 
 			juce::Rectangle<float> rect = n.getRect();

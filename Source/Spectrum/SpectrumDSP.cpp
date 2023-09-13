@@ -33,7 +33,6 @@
 #include <cpl/lib/LockFreeDataQueue.h>
 #include <cpl/stdext.h>
 #include <cpl/JobSystem.h>
-#include <execution>
 #include "TransformDSP.inl"
 
 namespace Signalizer

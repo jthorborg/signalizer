@@ -181,7 +181,7 @@
 
 			void close();
 
-			MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
+			MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
 
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 

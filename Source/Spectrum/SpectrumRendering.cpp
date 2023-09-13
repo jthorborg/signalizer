@@ -153,7 +153,7 @@ namespace Signalizer
 
 		computeAverageStats(averageFps, averageCpu);
 
-		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
 		if (mouseCheck)
 		{

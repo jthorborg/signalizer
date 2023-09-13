@@ -718,7 +718,7 @@ namespace Signalizer
 
 			auto const numChannels = data.front.channels.size();
 
-			auto const channelMode = numChannels == 1 ? OscChannels::Left : shared.channelMode;
+			auto const channelMode = numChannels == 1 ? OscChannels::Left : shared.channelMode.load();
 
 			auto const numSamples = data.front.channels.begin()->audioData.getSize();
 

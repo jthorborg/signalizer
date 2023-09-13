@@ -54,7 +54,7 @@
 
 			SpectrumColourArray generateSpectrogramColourRotation(std::size_t rotation) const noexcept
 			{
-				Spectrum::Constant::SpectrumColourArray sca;
+				SpectrumColourArray sca;
 
 				sca[0] = colourSpecs[0][0];
 

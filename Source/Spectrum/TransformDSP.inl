@@ -1154,7 +1154,7 @@ namespace Signalizer
 		// casts from std::complex<T> * to T * which is well-defined.
 		// TODO: std::ranges
 		auto buf = reinterpret_cast<AFloat*>(cpl::data(output));
-		cresonator.getWholeWindowedState<V>(constant.resonator, windowType, buf, outChannels, numResFilters);
+		cresonator.template getWholeWindowedState<V>(constant.resonator, windowType, buf, outChannels, numResFilters);
 
 		return numResFilters << (outChannels - 1);
 	}
@@ -1250,44 +1250,44 @@ namespace Signalizer
 		case SpectrumChannels::Right:
 		{
 			auto work = one([](AFloat left, AFloat right) { return right; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);			
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::Left:
 		{
 			auto work = one([](AFloat left, AFloat right) { return left; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::Mid:
 		{
 			auto work = one([](AFloat left, AFloat right) { return left + right; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::Side:
 		{
 			auto work = one([](AFloat left, AFloat right) { return left - right; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 1, numSamples);
 			break;
 		}
 		case SpectrumChannels::MidSide:
 		{
 			auto work = two([](AFloat left, AFloat right) { return std::pair{ left - right, left + right }; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
 			break;
 		}
 		case SpectrumChannels::Phase:
 		case SpectrumChannels::Separate:
 		{
 			auto work = two([](AFloat left, AFloat right) { return std::pair{ left, right }; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
 			break;
 		}
 		case SpectrumChannels::Complex:
 		{
 			auto work = two([](AFloat left, AFloat right) { return std::pair{ left, right }; });
-			cresonator.resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
+			cresonator.template resonateReal<typename ISA::V>(constant.resonator, work, 2, numSamples);
 			break;
 		}
 		}
