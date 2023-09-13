@@ -85,7 +85,7 @@
 				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 				std::shared_ptr<const ConcurrentConfig>& config,
 				std::shared_ptr<AudioStream::Output>& stream,
-				std::shared_ptr<SpectrumContent>& params
+				std::shared_ptr<SpectrumContent> params
 			);
 			virtual ~Spectrum();
 

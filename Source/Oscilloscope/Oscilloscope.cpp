@@ -51,7 +51,7 @@ namespace Signalizer
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
 		std::shared_ptr<AudioStream::Output>& stream,
-		std::shared_ptr<OscilloscopeContent>& params
+		std::shared_ptr<OscilloscopeContent> params
 	)
 		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)

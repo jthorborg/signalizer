@@ -113,7 +113,7 @@
 
 				for (std::size_t i = 0; i < axisPoints; ++i)
 				{
-					slopeMap[i] = b * std::pow<T>(mappedFrequencies[i], a);
+					slopeMap[i] = b * static_cast<T>(std::pow(mappedFrequencies[i], a));
 				}
 			}
 

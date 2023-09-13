@@ -151,7 +151,7 @@ namespace Signalizer
 			}
 		}
 
-		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
 		if (state.drawLegend && mouseCheck)
 		{

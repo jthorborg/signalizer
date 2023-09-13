@@ -36,12 +36,12 @@ namespace Signalizer
 {
 	static std::atomic_int mgCounter;
 
-	auto MixGraphListener::emplace(std::shared_ptr<AudioStream::Output>& stream)
+	auto MixGraphListener::emplace(std::shared_ptr<AudioStream::Output> stream)
 	{
 		auto its = graph.emplace(
 			std::piecewise_construct,
 			std::forward_as_tuple(stream->getHandle()),
-			std::forward_as_tuple( State::empty())
+			std::forward_as_tuple(State::empty())
 		);
 		if (its.second)
 		{
@@ -70,7 +70,7 @@ namespace Signalizer
 
 	void MixGraphListener::close()
 	{
-		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
+		cpl::unique_lock<cpl::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
 		// there might be further processing, but from now on we're in a dead state.
 		enabled = false;
@@ -191,7 +191,7 @@ namespace Signalizer
 		return isSynchronized;
 	}
 
-	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock)
+	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, cpl::unique_lock<cpl::shared_mutex>& lock)
 	{
 		auto& realInfo = ctx.getInfo();
 
@@ -246,7 +246,7 @@ namespace Signalizer
 
 	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
-		std::unique_lock<std::shared_mutex> graphLayoutAndDataLock(dataMutex);
+		cpl::unique_lock<cpl::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
 		handleStructuralChange(ctx, numSamples, graphLayoutAndDataLock);
 
@@ -350,7 +350,7 @@ namespace Signalizer
 
 		if (enabled)
 		{
-			std::shared_lock<std::shared_mutex> lock(dataMutex);
+			cpl::shared_lock<cpl::shared_mutex> lock(dataMutex);
 
 			// certain conditions can cause callbacks to temporarily appear, even though we deregistrered from this source and no longer know it.
 			auto it = graph.find(handle);
@@ -493,7 +493,7 @@ namespace Signalizer
 		isSynchronized = false;
 
 		// so we can alter mapping tables. can be done without.
-		std::unique_lock<std::shared_mutex> lock(dataMutex);
+		cpl::unique_lock<cpl::shared_mutex> lock(dataMutex);
 
 		for (auto& command : localNewToplogy)
 		{
@@ -505,7 +505,7 @@ namespace Signalizer
 				CPL_RUNTIME_ASSERTION(command.isConnection);
 				CPL_RUNTIME_ASSERTION(command.stream.get() != nullptr);
 				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.lock().get());
-				it = emplace(std::move(command.stream));
+				it = emplace(command.stream);
 			}
 
 			auto& source = it->second;

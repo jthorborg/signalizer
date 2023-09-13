@@ -97,7 +97,7 @@ namespace Signalizer
 					
 					access->pairs[i].processedSamplesSinceLastFrame = authorityCounter;
 
-					access->pairs[i].audioEntryPoint<ISA>(
+					access->pairs[i].template audioEntryPoint<ISA>(
 						access->constant, 
 						views,
 						{ buffer[i * 2], buffer[i * 2 + 1] },

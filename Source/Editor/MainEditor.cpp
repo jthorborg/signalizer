@@ -183,8 +183,9 @@ namespace Signalizer
 		notifyDestruction();
 		exitFullscreen();
 		stopTimer();
-
-		engine->getHostGraph().setMixGraph(MixGraphListener::Handle{});
+		
+		MixGraphListener::Handle h {};
+		engine->getHostGraph().setMixGraph(h);
 	}
 
 

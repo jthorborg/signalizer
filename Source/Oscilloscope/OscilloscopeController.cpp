@@ -462,8 +462,8 @@ namespace Signalizer
 	}
 
 	std::unique_ptr<cpl::CSubView> OscilloscopeContent::createView(
-		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
-		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<const SharedBehaviour> globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig> config,
 		std::shared_ptr<AudioStream::Output>& stream
 	)
 	{

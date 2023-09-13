@@ -499,8 +499,8 @@
 			virtual const char* getName() override { return name; }
 
 			virtual std::unique_ptr<cpl::CSubView> createView(
-				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
-				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
 				std::shared_ptr<AudioStream::Output>& stream
 			) override;
 

@@ -622,7 +622,7 @@ namespace Signalizer
 		CPL_RUNTIME_ASSERTION(!h->isAlias);
 
 		if (h->nodeID.has_value())
-			return h->nodeID.value();
+			return *h->nodeID;
 		else
 			return h->nodeID.emplace(SerializedHandle::generateUnique());
 	}
