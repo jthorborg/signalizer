@@ -35,6 +35,12 @@
 #include <cpl/JobSystem.h>
 #include "TransformDSP.inl"
 
+#ifdef CPL_CLANG
+#define CONTENTIOUS_TEMPLATE template
+#else
+#define CONTENTIOUS_TEMPLATE
+#endif
+
 namespace Signalizer
 {
 	Spectrum::ProcessorShell::ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
@@ -95,7 +101,7 @@ namespace Signalizer
 					
 					access->pairs[i].processedSamplesSinceLastFrame = authorityCounter;
 
-					access->pairs[i].template audioEntryPoint<ISA>(
+					access->pairs[i].CONTENTIOUS_TEMPLATE audioEntryPoint<ISA>(
 						access->constant, 
 						views,
 						{ buffer[i * 2], buffer[i * 2 + 1] },
