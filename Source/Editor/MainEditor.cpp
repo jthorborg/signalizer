@@ -155,7 +155,6 @@ namespace Signalizer
 				localState,
 				[=]
 				{
-					auto& graph = engine->getHostGraph();
 					return localState->createView(
 						std::const_pointer_cast<const SharedBehaviour>(globalState),
 						engine->getConcurrentConfig(),

@@ -79,7 +79,7 @@
 			// the maximum level of dbs to display
 			static constexpr double kMaxDbs = 24 * 4;
 
-			static constexpr char* name = "Spectrum";
+			static constexpr const char* name = "Spectrum";
 
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{

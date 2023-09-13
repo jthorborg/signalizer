@@ -367,7 +367,6 @@ namespace Signalizer
 			ImmediateLayout layout(model, graphRect(), filter);
 			ImmediateLayout::Node n;
 			auto host = layout.getHost();
-			std::size_t edgeCounter{};
 
 			while (layout.moveNextNode(n))
 			{
@@ -551,7 +550,6 @@ namespace Signalizer
 			isMouseDown = false;
 			if (sourceDrag.has_value())
 			{
-				auto& edge = sourceDrag->edge;
 				auto position = e.position;
 
 				// Snap to close pins.				

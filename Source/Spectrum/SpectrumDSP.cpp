@@ -56,8 +56,6 @@ namespace Signalizer
 	{
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
-			constexpr std::size_t concurrency = 4;
-
 			CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
 
 			auto access = shell.streamState.lock();

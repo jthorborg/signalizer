@@ -88,9 +88,6 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
-
-		auto cStart = cpl::Misc::ClockCounter();
-
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
 			g.setColour(juce::Colours::blue);

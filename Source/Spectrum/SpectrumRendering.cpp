@@ -75,8 +75,6 @@ namespace Signalizer
 
 	void Spectrum::paint2DGraphics(juce::Graphics & g, const Constant& constant, TransformPair& primaryTransform)
 	{
-		auto cStart = cpl::Misc::ClockCounter();
-
 		// ------- draw frequency graph
 
 		char buf[200];
@@ -594,8 +592,6 @@ namespace Signalizer
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
 
-            bool lineTransformReady = false;
-
 			auto&& access = processor->streamState.lock();
 
             handleFlagUpdates(*access);
@@ -683,8 +679,6 @@ namespace Signalizer
 
 			if (!state.isFrozen)
 			{
-				const auto&& results = transform.lineGraphs[SpectrumContent::LineGraphs::LineMain].getResults(state.axisPoints);
-
 				framePixelPosition %= pW;
 				auto approximateFrames = getApproximateStoredFrames();
 
@@ -908,8 +902,6 @@ namespace Signalizer
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		//ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale())));
-
-		auto normalizedScaleY = 1.0 / getHeight();
 
 		{
 			const float cscale = state.configuration == SpectrumChannels::Complex ? 2 : 1;

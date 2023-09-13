@@ -142,8 +142,6 @@ namespace Signalizer
 		// only ever deserialize this from direct host DAW request (not presets).
 		// thus, this is serialized "outside" of the game.
 
-		bool wereAlias = isAlias;
-
 		if (isAlias)
 		{
 			// 6

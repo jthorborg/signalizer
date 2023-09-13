@@ -473,8 +473,6 @@ namespace Signalizer
 			flags.audioMemoryResize = true;
 		}
 
-		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
-
 		stream.constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
 
 		if (flags.audioMemoryResize.cas())
