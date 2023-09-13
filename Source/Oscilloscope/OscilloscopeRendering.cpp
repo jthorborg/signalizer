@@ -88,9 +88,6 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
-
-		auto cStart = cpl::Misc::ClockCounter();
-
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
 			g.setColour(juce::Colours::blue);
@@ -151,7 +148,7 @@ namespace Signalizer
 			}
 		}
 
-		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside : true;
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
 		if (state.drawLegend && mouseCheck)
 		{

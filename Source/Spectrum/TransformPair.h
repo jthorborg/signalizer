@@ -218,7 +218,7 @@ namespace Signalizer
 			if(workingMemory.size() < size)
 				workingMemory.resize(size);
 
-			return cpl::as_uarray(workingMemory).reinterpret<Y>().slice(0, size);
+			return cpl::as_uarray(workingMemory).template reinterpret<Y>().slice(0, size);
 		}
 
 		template<typename Y>
@@ -229,7 +229,7 @@ namespace Signalizer
 			if (audioMemory.size() < size)
 				audioMemory.resize(size);
 
-			return cpl::as_uarray(audioMemory).reinterpret<Y>().slice(0, size);
+			return cpl::as_uarray(audioMemory).template reinterpret<Y>().slice(0, size);
 		}
 
 		/// <summary>

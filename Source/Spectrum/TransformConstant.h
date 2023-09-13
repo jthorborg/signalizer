@@ -54,7 +54,7 @@
 
 			SpectrumColourArray generateSpectrogramColourRotation(std::size_t rotation) const noexcept
 			{
-				Spectrum::Constant::SpectrumColourArray sca;
+				SpectrumColourArray sca;
 
 				sca[0] = colourSpecs[0][0];
 
@@ -113,7 +113,7 @@
 
 				for (std::size_t i = 0; i < axisPoints; ++i)
 				{
-					slopeMap[i] = b * std::pow<T>(mappedFrequencies[i], a);
+					slopeMap[i] = b * static_cast<T>(std::pow(mappedFrequencies[i], a));
 				}
 			}
 

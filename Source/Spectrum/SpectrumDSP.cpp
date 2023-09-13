@@ -33,8 +33,13 @@
 #include <cpl/lib/LockFreeDataQueue.h>
 #include <cpl/stdext.h>
 #include <cpl/JobSystem.h>
-#include <execution>
 #include "TransformDSP.inl"
+
+#ifdef CPL_CLANG
+#define CONTENTIOUS_TEMPLATE template
+#else
+#define CONTENTIOUS_TEMPLATE
+#endif
 
 namespace Signalizer
 {
@@ -57,8 +62,6 @@ namespace Signalizer
 	{
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
-			constexpr std::size_t concurrency = 4;
-
 			CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
 
 			auto access = shell.streamState.lock();
@@ -98,7 +101,7 @@ namespace Signalizer
 					
 					access->pairs[i].processedSamplesSinceLastFrame = authorityCounter;
 
-					access->pairs[i].audioEntryPoint<ISA>(
+					access->pairs[i].CONTENTIOUS_TEMPLATE audioEntryPoint<ISA>(
 						access->constant, 
 						views,
 						{ buffer[i * 2], buffer[i * 2 + 1] },

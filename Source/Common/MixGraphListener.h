@@ -32,9 +32,10 @@
 	#define SIGNALIZER_MIXGRAPHLISTENER_H
 
 	#include <cpl/Common.h>
+	#include <cpl/Core.h>
 	#include <cpl/state/Serialization.h>
 	#include <mutex>
-	#include <shared_mutex>
+	#include <cpl/shared_mutex.h>
 	#include <map>
 	#include <set>
 	#include <string>
@@ -181,7 +182,7 @@
 
 			void close();
 
-			MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
+			MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
 
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 
@@ -247,14 +248,14 @@
 				State() {}
 			};
 
-			auto emplace(std::shared_ptr<AudioStream::Output>& stream);
+			auto emplace(std::shared_ptr<AudioStream::Output> stream);
 			void remove(std::map<AudioStream::Handle, State>::iterator position);
 
 			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override final;
 			void onStreamAudio(AudioStream::ListenerContext& source, AFloat** buffer, std::size_t numChannels, std::size_t numSamples) override final;
 			void onStreamDied(AudioStream::ListenerContext& dyingSource) override final;
 
-			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples, std::unique_lock<std::shared_mutex>& lock);
+			void handleStructuralChange(AudioStream::ListenerContext&, std::size_t numSamples, cpl::unique_lock<cpl::shared_mutex>& lock);
 			void deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples);
 
 			void updateTopologyCommands();
@@ -268,7 +269,7 @@
 			AudioStream::Handle presentationOutput;
 			std::weak_ptr<AudioStream::Output> weakPresentationOutput;
 			State* self;
-			std::shared_mutex dataMutex;
+			cpl::shared_mutex dataMutex;
 
 			std::mutex connectDisconnectMutex;
 			std::vector<ConnectionCommand> connectionCommands;

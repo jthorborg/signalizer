@@ -155,7 +155,6 @@ namespace Signalizer
 				localState,
 				[=]
 				{
-					auto& graph = engine->getHostGraph();
 					return localState->createView(
 						std::const_pointer_cast<const SharedBehaviour>(globalState),
 						engine->getConcurrentConfig(),
@@ -183,8 +182,9 @@ namespace Signalizer
 		notifyDestruction();
 		exitFullscreen();
 		stopTimer();
-
-		engine->getHostGraph().setMixGraph(MixGraphListener::Handle{});
+		
+		MixGraphListener::Handle h {};
+		engine->getHostGraph().setMixGraph(h);
 	}
 
 

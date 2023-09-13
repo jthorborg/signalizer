@@ -35,7 +35,7 @@
 	#include "../Signalizer.h"
 	#include "../Common/SignalizerDesign.h"
 	#include "../Common/SentientViewState.h"
-	#include <SignalizerConfiguration.h>
+	#include "SignalizerConfiguration.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/GUI.h>
 	#include <map>

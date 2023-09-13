@@ -51,7 +51,7 @@ namespace Signalizer
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
 		std::shared_ptr<AudioStream::Output>& stream,
-		std::shared_ptr<OscilloscopeContent>& params
+		std::shared_ptr<OscilloscopeContent> params
 	)
 		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
@@ -100,7 +100,7 @@ namespace Signalizer
 	{
 		if (shared.channelMode >= OscChannels::OffsetForMono)
 		{
-			return shared.channelMode == OscChannels::Separate ? shared.numChannels : 2;
+			return shared.channelMode == OscChannels::Separate ? shared.numChannels.load() : 2;
 		}
 
 		return 1;
@@ -367,7 +367,7 @@ namespace Signalizer
 
 	inline void Oscilloscope::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
-		auto& access = streamState.lock();
+		auto access = streamState.lock();
 		access->channelNames = source.getChannelNames();
 		access->historyCapacity = source.getInfo().audioHistoryCapacity;
 		access->audioStreamChangeVersion.bump();

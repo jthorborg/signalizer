@@ -79,7 +79,7 @@
 			// the maximum level of dbs to display
 			static constexpr double kMaxDbs = 24 * 4;
 
-			static constexpr char* name = "Spectrum";
+			static constexpr const char* name = "Spectrum";
 
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
@@ -227,8 +227,8 @@
 			virtual const char* getName() override { return name; }
 
 			virtual std::unique_ptr<cpl::CSubView> createView(
-				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
-				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
 				std::shared_ptr<AudioStream::Output>& stream
 			) override;
 

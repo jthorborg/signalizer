@@ -43,7 +43,7 @@ namespace Signalizer
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
 		std::shared_ptr<AudioStream::Output>& stream,
-		std::shared_ptr<SpectrumContent>& params
+		std::shared_ptr<SpectrumContent> params
 	)
 		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
@@ -472,8 +472,6 @@ namespace Signalizer
 			remapResonator = true;
 			flags.audioMemoryResize = true;
 		}
-
-		const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
 
 		stream.constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
 

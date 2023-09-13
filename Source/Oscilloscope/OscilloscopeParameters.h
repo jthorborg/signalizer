@@ -346,7 +346,7 @@
 				const ConcurrentConfig& config;
 			};
 
-			static constexpr char* name = "Oscilloscope";
+			static constexpr const char* name = "Oscilloscope";
 
 			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
 			{
@@ -488,7 +488,7 @@
 				timeMode.param.getParameterView().removeListener(this);
 			}
 
-			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter)
+			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 			{
 				if (parameter == &timeMode.param.getParameterView())
 				{
@@ -499,8 +499,8 @@
 			virtual const char* getName() override { return name; }
 
 			virtual std::unique_ptr<cpl::CSubView> createView(
-				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
-				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
 				std::shared_ptr<AudioStream::Output>& stream
 			) override;
 

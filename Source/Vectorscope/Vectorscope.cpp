@@ -53,7 +53,7 @@ namespace Signalizer
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 		std::shared_ptr<const ConcurrentConfig>& config,
 		std::shared_ptr<AudioStream::Output>& stream, 
-		std::shared_ptr<VectorScopeContent>& params
+		std::shared_ptr<VectorScopeContent> params
 	)
 		: GraphicsWindow(params->getName())
 		, state()

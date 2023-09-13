@@ -142,8 +142,6 @@ namespace Signalizer
 		// only ever deserialize this from direct host DAW request (not presets).
 		// thus, this is serialized "outside" of the game.
 
-		bool wereAlias = isAlias;
-
 		if (isAlias)
 		{
 			// 6
@@ -622,7 +620,7 @@ namespace Signalizer
 		CPL_RUNTIME_ASSERTION(!h->isAlias);
 
 		if (h->nodeID.has_value())
-			return h->nodeID.value();
+			return *h->nodeID;
 		else
 			return h->nodeID.emplace(SerializedHandle::generateUnique());
 	}

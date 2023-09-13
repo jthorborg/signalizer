@@ -85,7 +85,7 @@
 				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
 				std::shared_ptr<const ConcurrentConfig>& config,
 				std::shared_ptr<AudioStream::Output>& stream,
-				std::shared_ptr<SpectrumContent>& params
+				std::shared_ptr<SpectrumContent> params
 			);
 			virtual ~Spectrum();
 
@@ -144,10 +144,10 @@
 		private:
 			typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> UPixel;
 			typedef std::array<juce::Colour, SpectrumContent::LineGraphs::LineEnd> LineColours;
-			typedef struct StreamState;
 			typedef cpl::aligned_vector<UPixel, 16> FrameVector;
 			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
-
+			struct StreamState;
+			
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
 
 			/// <summary>

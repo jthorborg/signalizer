@@ -94,8 +94,8 @@
 
 			virtual std::unique_ptr<StateEditor> createEditor() = 0;
 			virtual std::unique_ptr<cpl::CSubView> createView(
-				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
-				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
 				std::shared_ptr<AudioStream::Output>& stream
 			) = 0;
 
@@ -233,7 +233,7 @@
 		{
 		public:
 
-			SystemView(std::shared_ptr<const ConcurrentConfig>& config, ParameterSet::AutomatedProcessor& automatedProcessor)
+			SystemView(std::shared_ptr<const ConcurrentConfig> config, ParameterSet::AutomatedProcessor& automatedProcessor)
 				: config(config), processor(automatedProcessor)
 			{
 
@@ -539,8 +539,6 @@
 		template<typename Scalar>
 		union UComplexFilter
 		{
-			typedef Scalar Scalar;
-
 			UComplexFilter() : real(0), imag(0) { }
 
 			UComplexFilter(const std::complex<Scalar> & c)
@@ -1043,33 +1041,25 @@
 				{
 					auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
 
-					std::visit(
-						[&](auto&& arg)
-						{
-							using T = std::decay_t<decltype(arg)>;
-
-							if constexpr (std::is_same_v<juce::Colour, T>)
-							{
-								g.setColour(arg);
-								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
-							}
-							else if constexpr (std::is_same_v<std::pair<juce::Colour, juce::Colour>, T>)
-							{
-								g.setColour(arg.first);
-								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset - strokeSize / 2, y, 3.0f);
-								g.setColour(arg.second);
-								g.drawLine(bounds.getRight() - strokeSize / 2, y, bounds.getRight() - offset, y, 3.0f);
-							}
-							else if constexpr (std::is_same_v<juce::ColourGradient, T>)
-							{
-								arg.point1 = { bounds.getRight() - strokeSize, y };
-								arg.point2 = { bounds.getRight() - offset, y };
-								g.setGradientFill(arg);
-								g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
-							}
-						},
-						colours[i]
-					);
+					if (auto arg = std::get_if<juce::Colour>(&colours[i]))
+					{
+						g.setColour(*arg);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+					}
+					else if (auto arg = std::get_if<std::pair<juce::Colour, juce::Colour>>(&colours[i]))
+					{
+						g.setColour(arg->first);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset - strokeSize / 2, y, 3.0f);
+						g.setColour(arg->second);
+						g.drawLine(bounds.getRight() - strokeSize / 2, y, bounds.getRight() - offset, y, 3.0f);
+					}
+					else if (auto arg = std::get_if<juce::ColourGradient>(&colours[i]))
+					{
+						arg->point1 = { bounds.getRight() - strokeSize, y };
+						arg->point2 = { bounds.getRight() - offset, y };
+						g.setGradientFill(*arg);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+					}
 				}
 			}
 
