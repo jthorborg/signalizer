@@ -15,9 +15,9 @@ def compiler_invoke(arch, vstring, reloutdir):
 			   "-project ../builds/macosx/signalizer.xcodeproj "
 			   "clean"
 			   )
-	
-	if os.system(command) != 0:
-		return -1
+	# new build system doesn't work with cleaning, hopefully you won't need it
+	#if os.system(command) != 0:
+	#	return -1
 	
 	command = (
 			   "xcodebuild "
@@ -83,7 +83,9 @@ zipoutput = "../Releases/Signalizer OS X " + version_string
 print("------> Building Signalizer v. " + version_string + " release targets (" + str(version_int))
 
 # [0] = arg to clang, [1] = output folder
-targets = [["i386", cm.join(build_folder, "x32")], ["x86_64", cm.join(build_folder, "x64")]]
+# x86 now deprecated on macos
+# targets = [["i386", cm.join(build_folder, "x32")], ["x86_64", cm.join(build_folder, "x64")]]
+targets = [["x86_64", cm.join(build_folder, "x64")]]
 
 # rewrite program internal version
 
@@ -128,6 +130,7 @@ for option in targets:
 
 print("------> Zipping output directories...")
 
+sh.copyfile("macos_installation_advice.txt", cm.join(build_folder, "HOW TO INSTALL.txt"))
 zx = sh.make_archive(zipoutput, "zip", build_folder)
 
 print("------> Builded Signalizer successfully into:")

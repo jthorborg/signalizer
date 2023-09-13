@@ -234,6 +234,7 @@
 		16F63B111CA6BBF400816394 /* presets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = presets; path = ../../Make/Skeleton/presets; sourceTree = "<group>"; };
 		16F63B121CA6BBF400816394 /* READ ME.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = "READ ME.txt"; path = "../../Make/Skeleton/READ ME.txt"; sourceTree = "<group>"; };
 		16F63B131CA6BBF400816394 /* resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = resources; path = ../../Make/Skeleton/resources; sourceTree = "<group>"; };
+		16FD67CC2AB25BF6004B89D7 /* build_osx.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = build_osx.py; path = ../../Make/build_osx.py; sourceTree = "<group>"; };
 		175BB856301EC10A3CBA0643 /* juce_RectangleList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_RectangleList.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_RectangleList.h; sourceTree = SOURCE_ROOT; };
 		1776BE295A658BC7F0C0F92A /* juce_Path.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_Path.h; path = ../../JuceLibraryCode/modules/juce_graphics/geometry/juce_Path.h; sourceTree = SOURCE_ROOT; };
 		179F56554F4C5CA3A512069C /* juce_ApplicationCommandInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_ApplicationCommandInfo.h; path = ../../JuceLibraryCode/modules/juce_gui_basics/commands/juce_ApplicationCommandInfo.h; sourceTree = SOURCE_ROOT; };
@@ -2946,6 +2947,7 @@
 		EA24685F8B6142E3520D09E9 /* Signalizer */ = {
 			isa = PBXGroup;
 			children = (
+				16FD67CC2AB25BF6004B89D7 /* build_osx.py */,
 				16C25E9E1F003D3400C3E22C /* Common */,
 				16C25EA41F003D3400C3E22C /* Editor */,
 				16C25EA71F003D3400C3E22C /* Notes */,
