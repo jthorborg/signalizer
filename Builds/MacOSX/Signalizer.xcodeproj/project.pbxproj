@@ -14,6 +14,10 @@
 		160404B31FDC7D06009EF75C /* SpectrumController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B21FDC7D06009EF75C /* SpectrumController.cpp */; };
 		160404B51FDC7D0E009EF75C /* VectorscopeController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B41FDC7D0E009EF75C /* VectorscopeController.cpp */; };
 		160404B71FDC7D16009EF75C /* OscilloscopeController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */; };
+		163C01C12AB1F6FB0066650A /* HostGraph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 163C01BF2AB1F6FB0066650A /* HostGraph.cpp */; };
+		163C01C22AB1F6FB0066650A /* MixGraphListener.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 163C01C02AB1F6FB0066650A /* MixGraphListener.cpp */; };
+		163C01C52AB1F7060066650A /* GraphEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 163C01C42AB1F7060066650A /* GraphEditor.cpp */; };
+		163C01C92AB1F71C0066650A /* TransformDSP.inl in Resources */ = {isa = PBXBuildFile; fileRef = 163C01C62AB1F71C0066650A /* TransformDSP.inl */; };
 		165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 165278E31A9B3675003E1953 /* CPLSource.cpp */; };
 		165278E61A9B36AD003E1953 /* MacSupport.mm in Sources */ = {isa = PBXBuildFile; fileRef = 165278E51A9B36AD003E1953 /* MacSupport.mm */; };
 		16C25EC21F003D3400C3E22C /* SignalizerDesign.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16C25EA21F003D3400C3E22C /* SignalizerDesign.cpp */; };
@@ -183,6 +187,16 @@
 		160404B41FDC7D0E009EF75C /* VectorscopeController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VectorscopeController.cpp; sourceTree = "<group>"; };
 		160404B61FDC7D16009EF75C /* OscilloscopeController.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OscilloscopeController.cpp; sourceTree = "<group>"; };
 		160404B81FDC7D27009EF75C /* SignalizerConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalizerConfiguration.h; path = ../Config/SignalizerConfiguration.h; sourceTree = "<group>"; };
+		163C01BC2AB1F6FA0066650A /* HostGraph.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HostGraph.h; sourceTree = "<group>"; };
+		163C01BD2AB1F6FA0066650A /* MixGraphListener.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MixGraphListener.h; sourceTree = "<group>"; };
+		163C01BE2AB1F6FA0066650A /* ConcurrentConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConcurrentConfig.h; sourceTree = "<group>"; };
+		163C01BF2AB1F6FB0066650A /* HostGraph.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HostGraph.cpp; sourceTree = "<group>"; };
+		163C01C02AB1F6FB0066650A /* MixGraphListener.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MixGraphListener.cpp; sourceTree = "<group>"; };
+		163C01C32AB1F7060066650A /* GraphEditor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphEditor.h; sourceTree = "<group>"; };
+		163C01C42AB1F7060066650A /* GraphEditor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GraphEditor.cpp; sourceTree = "<group>"; };
+		163C01C62AB1F71C0066650A /* TransformDSP.inl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TransformDSP.inl; sourceTree = "<group>"; };
+		163C01C72AB1F71C0066650A /* TransformPair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TransformPair.h; sourceTree = "<group>"; };
+		163C01C82AB1F71C0066650A /* TransformConstant.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TransformConstant.h; sourceTree = "<group>"; };
 		1650C16B3B86FBA8808D697A /* juce_AudioCDReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = juce_AudioCDReader.h; path = ../../JuceLibraryCode/modules/juce_audio_devices/audio_cd/juce_AudioCDReader.h; sourceTree = SOURCE_ROOT; };
 		165278E31A9B3675003E1953 /* CPLSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = CPLSource.cpp; path = ../../External/cpl/CPLSource.cpp; sourceTree = "<group>"; };
 		165278E51A9B36AD003E1953 /* MacSupport.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MacSupport.mm; path = ../../External/cpl/MacSupport.mm; sourceTree = "<group>"; };
@@ -1287,6 +1301,11 @@
 				16C25EA01F003D3400C3E22C /* SentientViewState.h */,
 				160404B81FDC7D27009EF75C /* SignalizerConfiguration.h */,
 				16C25EA11F003D3400C3E22C /* SharedBehaviour.h */,
+				163C01BE2AB1F6FA0066650A /* ConcurrentConfig.h */,
+				163C01BF2AB1F6FB0066650A /* HostGraph.cpp */,
+				163C01BC2AB1F6FA0066650A /* HostGraph.h */,
+				163C01C02AB1F6FB0066650A /* MixGraphListener.cpp */,
+				163C01BD2AB1F6FA0066650A /* MixGraphListener.h */,
 				16C25EA21F003D3400C3E22C /* SignalizerDesign.cpp */,
 				16C25EA31F003D3400C3E22C /* SignalizerDesign.h */,
 			);
@@ -1298,6 +1317,8 @@
 			isa = PBXGroup;
 			children = (
 				16C25EA51F003D3400C3E22C /* MainEditor.cpp */,
+				163C01C42AB1F7060066650A /* GraphEditor.cpp */,
+				163C01C32AB1F7060066650A /* GraphEditor.h */,
 				16C25EA61F003D3400C3E22C /* MainEditor.h */,
 			);
 			name = Editor;
@@ -1347,6 +1368,9 @@
 				16C25EB81F003D3400C3E22C /* Spectrum.h */,
 				160404B21FDC7D06009EF75C /* SpectrumController.cpp */,
 				16C25EB91F003D3400C3E22C /* SpectrumDSP.cpp */,
+				163C01C82AB1F71C0066650A /* TransformConstant.h */,
+				163C01C62AB1F71C0066650A /* TransformDSP.inl */,
+				163C01C72AB1F71C0066650A /* TransformPair.h */,
 				16C25EBA1F003D3400C3E22C /* SpectrumParameters.h */,
 				16C25EBB1F003D3400C3E22C /* SpectrumRendering.cpp */,
 			);
@@ -3109,6 +3133,7 @@
 				16F63B151CA6BBF400816394 /* presets in Resources */,
 				16F63B141CA6BBF400816394 /* licenses in Resources */,
 				16F63B171CA6BBF400816394 /* resources in Resources */,
+				163C01C92AB1F71C0066650A /* TransformDSP.inl in Resources */,
 				16F63B161CA6BBF400816394 /* READ ME.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3147,6 +3172,7 @@
 			files = (
 				D9CA843EC25368BFE6682B74 /* AUBase.cpp in Sources */,
 				A30F8D1650A263B575A42DAB /* AUBuffer.cpp in Sources */,
+				163C01C52AB1F7060066650A /* GraphEditor.cpp in Sources */,
 				160404B51FDC7D0E009EF75C /* VectorscopeController.cpp in Sources */,
 				44587E74A110174500BB87D1 /* AUCarbonViewBase.cpp in Sources */,
 				81F08C2B937F3CA8498F7A70 /* AUCarbonViewControl.cpp in Sources */,
@@ -3167,6 +3193,7 @@
 				89EEA8F581017B4287788F69 /* CAMutex.cpp in Sources */,
 				F1A0C1B3237415E12906AFAD /* CarbonEventHandler.cpp in Sources */,
 				16C25ECB1F003D3400C3E22C /* SpectrumRendering.cpp in Sources */,
+				163C01C12AB1F6FB0066650A /* HostGraph.cpp in Sources */,
 				DE1C0AE58B9D316AF5582B11 /* CAStreamBasicDescription.cpp in Sources */,
 				8839786896F72B7FE1273EAE /* CAVectorUnit.cpp in Sources */,
 				770309DB8C1D3E24E1981923 /* ComponentBase.cpp in Sources */,
@@ -3187,6 +3214,7 @@
 				165278E41A9B3675003E1953 /* CPLSource.cpp in Sources */,
 				C9A73D79BA65A3ED502F30FD /* juce_data_structures.mm in Sources */,
 				D406F2FB807646E49DAE5672 /* juce_events.mm in Sources */,
+				163C01C22AB1F6FB0066650A /* MixGraphListener.cpp in Sources */,
 				73CE391D21EA72BD12875A47 /* juce_graphics.mm in Sources */,
 				16C25EC31F003D3400C3E22C /* MainEditor.cpp in Sources */,
 				B01450827D33C5B4D3907AAE /* juce_gui_basics.mm in Sources */,
@@ -3248,7 +3276,7 @@
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase",
 					"$(inherited)",
 					../../External/,
-					../../../SDKs/vstsdk2.4,
+					../../../SDKs/vstsdk3,
 					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
 				INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "";
@@ -3264,6 +3292,7 @@
 					"-lboost_filesystem",
 				);
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\"";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				SDKROOT = macosx;
 				SDKROOT_ppc = macosx10.5;
 				USER_HEADER_SEARCH_PATHS = "";
@@ -3325,7 +3354,7 @@
 					"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase",
 					"$(inherited)",
 					../../External/,
-					../../../SDKs/vstsdk2.4,
+					../../../SDKs/vstsdk3,
 					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
 				INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "";
@@ -3342,6 +3371,7 @@
 					"-lboost_filesystem",
 				);
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\"";
+				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				SDKROOT = macosx;
 				SDKROOT_ppc = macosx10.5;
 				USER_HEADER_SEARCH_PATHS = "";
