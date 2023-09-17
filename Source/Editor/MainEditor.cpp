@@ -1514,8 +1514,8 @@ namespace Signalizer
 		kantialias.setValues(AntialisingStringLevels);
 
 
-		auto config = *engine->getConcurrentConfig();
-		auto historySizeMs = (std::int64_t)std::round(1000 * config.historyCapacity / config.sampleRate);
+		auto config = engine->getConcurrentConfig();
+		auto historySizeMs = (std::int64_t)std::round(1000 * config->historyCapacity / config->sampleRate);
 		kmaxHistorySize.setInputValueInternal(std::to_string(historySizeMs));
 
 		// initiate colours

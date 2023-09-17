@@ -227,7 +227,6 @@ namespace Signalizer
 			}
 
 			const auto offset = m.connections.size();
-			// TODO: Handle other graphs in here being aliases, and handle the user experience of resetting an alias.
 			const auto& serialized = serializeReference(n, lock);
 
 			if (auto it = topology.find(serialized); it != topology.end())
@@ -310,7 +309,6 @@ namespace Signalizer
 	{
 		TriggerModelUpdateOnExit exit{ this };
 
-		// to avoid concurrent mutation from deleted nodes
 		GraphLock lock(staticMutex);
 
 		return internalConnect(input, pair, lock);
@@ -343,7 +341,6 @@ namespace Signalizer
 	{		
 		TriggerModelUpdateOnExit exit{ this };
 
-		// to avoid concurrent mutation from deleted nodes
 		GraphLock lock(staticMutex);
 
 		return internalDisconnect(input, pair, lock);
@@ -353,7 +350,6 @@ namespace Signalizer
 	{
 		TriggerModelUpdateOnExit exit{ this };
 
-		// to avoid concurrent mutation from deleted nodes
 		GraphLock lock(staticMutex);
 
 		if (handles.empty())

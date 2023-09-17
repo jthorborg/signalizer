@@ -204,8 +204,7 @@ namespace Signalizer
 				for (auto& entry : g.second.channelQueues)
 				{
 					maxDestinationPort = std::max(maxDestinationPort, entry.first.Destination);
-					setPorts |= 1ll << (std::int64_t)entry.first.Destination;
-
+					setPorts |= 1ll << static_cast<std::int64_t>(entry.first.Destination);
 					auto nameCopy = entry.second.originName;
 					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy));
 				}

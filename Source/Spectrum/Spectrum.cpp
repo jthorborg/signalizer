@@ -38,6 +38,7 @@
 
 namespace Signalizer
 {
+	constexpr double kMinDBDiff = 0.0001;
 
 	Spectrum::Spectrum(
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
@@ -59,12 +60,9 @@ namespace Signalizer
 		, framesPerUpdate()
 		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
 		, config(config)
+		, content(params)
 	{
 		setOpaque(true);
-		if (!(content = std::dynamic_pointer_cast<SpectrumContent>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to SpectrumContent");
-		}
 
 		content->getParameterSet().addRTListener(this, true);
 
@@ -126,6 +124,12 @@ namespace Signalizer
 
 	void Spectrum::setDBs(double low, double high, bool updateControls)
 	{
+		if (std::abs(high - low) < kMinDBDiff)
+		{
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
+		}
+
 		content->lowDbs.setTransformedValue(low);
 		content->highDbs.setTransformedValue(high);
 	}
@@ -133,7 +137,16 @@ namespace Signalizer
 
 	Spectrum::DBRange Spectrum::getDBs() const noexcept
 	{
-		return{ content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue()};
+		auto low = content->lowDbs.getTransformedValue();
+		auto high = content->highDbs.getTransformedValue();
+
+		if (std::abs(high - low) < kMinDBDiff)
+		{
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
+		}
+
+		return{ low, high };
 	}
 
 	void Spectrum::initPanelAndControls()

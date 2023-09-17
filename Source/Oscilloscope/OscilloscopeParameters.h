@@ -548,11 +548,6 @@
 				archive << triggerHysteresis;
 				archive << triggerThreshold;
 
-				for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
-				{
-					archive << *b;
-				}
-
 				archive << showLegend;
 				archive << triggeringChannel;
 			}
@@ -606,10 +601,18 @@
 
 				if (version >= cpl::Version(0, 3, 3))
 				{
-					for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+					if (version < cpl::Version(0, 3, 7))
 					{
-						builder >> *b;
+						// intermediate leftover from a hack version.
+						cpl::CompleteColour
+							extraColours[16 - 2];
+
+						for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+						{
+							builder >> *b;
+						}
 					}
+
 
 					builder >> showLegend;
 					builder >> triggeringChannel;
@@ -703,9 +706,6 @@
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
-
-			cpl::CompleteColour
-				extraColours[NumColourChannels - 2];
 
 		private:
 

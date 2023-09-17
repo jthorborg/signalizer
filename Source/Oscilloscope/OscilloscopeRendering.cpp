@@ -272,6 +272,9 @@ namespace Signalizer
                 
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 
+				if (state.sampleRate == 0)
+					return;
+
                 if (!checkAndInformInvalidCombinations(streamState))
                     return;
                 
@@ -289,10 +292,10 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				auto mode = streamState.channelMode;
-				// TODO: FIX CONCURRENT CHANNEL LOAD; SHOULD BE SYNCHRONIZED TO AUDIO BUFFER
-				const auto numChannels = shared.numChannels.load();
 
+				const auto numChannels = shared.numChannels.load();
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
+				// should be safe to assert equality 
 				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());
 
 				const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;

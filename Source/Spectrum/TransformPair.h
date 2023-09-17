@@ -77,7 +77,6 @@ namespace Signalizer
 
 			void resize(std::size_t n)
 			{
-				// TODO: This is only called from mapAndTransformDFTFilters. Size can go out of sync with drawing code that uses getResults().
 				states.resize(n); results.resize(n);
 			}
 
@@ -107,14 +106,14 @@ namespace Signalizer
 		///
 		/// Returns the total number of complex samples copied into the output
 		/// </summary>
-		template<typename ISA, class Vector>
-		std::size_t copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels);
+		template<typename ISA>
+		std::size_t copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, cpl::uarray<std::complex<T>> output, std::size_t outChannels);
 
 		template<typename ISA>
 		void resonatingDispatch(const Constant& constant, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		template<typename ISA>
-		void audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& pairs, std::array<AFloat*, 2> buffer, std::size_t numSamples, bool historyMayBeDeferred);
+		void audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& pairs, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		/// <summary>
 		/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
@@ -124,6 +123,7 @@ namespace Signalizer
 		/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
 		/// After the call to mapToLinearSpace, the results are written to getTransformResults().
 		/// </summary>
+		template<typename ISA>
 		void mapToLinearSpace(const Constant& constant);
 
 		/// <summary>

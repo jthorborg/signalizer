@@ -49,8 +49,6 @@
 	#include "TransformPair.h"
 	#include <cpl/lib/LockFreeDataQueue.h>
 
-	#define USE_DUST_FFT
-
 	namespace cpl
 	{
 		namespace OpenGLRendering
@@ -60,10 +58,8 @@
 		};
 	};
 
-
 	namespace Signalizer
 	{
-
 		class Spectrum final
 			: public GraphicsWindow
 			, protected AudioStream::Listener
@@ -110,8 +106,6 @@
 			void resetState() override;
 
 			// interface
-
-
 			void setDBs(double low, double high, bool updateControls = false);
 			DBRange getDBs() const noexcept;
 
@@ -249,11 +243,6 @@
 				float primitiveSize;
 
 				/// <summary>
-				/// Describes the lower and higher limit of the dynamic range of the display.
-				/// </summary>
-				cpl::relaxed_atomic<double> dynRange[2];
-
-				/// <summary>
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
@@ -292,7 +281,6 @@
 
 				bool drawLegend{ };
 				LegendCache legend;
-
 			} state;
 
 

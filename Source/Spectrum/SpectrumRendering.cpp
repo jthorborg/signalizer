@@ -596,7 +596,7 @@ namespace Signalizer
 
             handleFlagUpdates(*access);
 
-			if (access->pairs.size() == 0)
+			if (access->pairs.size() == 0 || state.sampleRate == 0)
 				return;
 
             // flags may have altered ogl state
@@ -628,7 +628,7 @@ namespace Signalizer
 							if (pair.prepareTransform(access->constant, { views.getView(index * 2), views.getView(index * 2 + 1) }))
 							{
 								pair.doTransform(access->constant);
-								pair.mapToLinearSpace(access->constant);
+								pair.mapToLinearSpace<ISA>(access->constant);
 								pair.postProcessStdTransform(access->constant);
 							}
 						}
@@ -679,11 +679,13 @@ namespace Signalizer
 
 			if (!state.isFrozen)
 			{
+				auto localFrameZ1 = framesPerUpdate;
+
 				framePixelPosition %= pW;
-				auto approximateFrames = getApproximateStoredFrames();
 
 				std::size_t processedFrames = 0;
-				framesPerUpdate = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
+				auto approximateFrames = processedFrames + getApproximateStoredFrames();
+				localFrameZ1 = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
 				auto framesThisTime = cpl::Math::round<std::size_t>(framesPerUpdate);
 
 				// if there's no buffer smoothing at all, we just capture every frame possible.
@@ -694,8 +696,6 @@ namespace Signalizer
 					SFrameQueue::ElementAccess access;
 					if (!processor->frameQueue.popElement(access))
 						break;
-
-#pragma message cwarn("Update frames per update each time inside here, but as a local variable! There may come more updates meanwhile.")
 
 					FrameVector& curFrame(*access.getData());
 
@@ -723,8 +723,19 @@ namespace Signalizer
 
 					framePixelPosition++;
 					framePixelPosition %= pW;
+
+					// run this again, to maybe capture an extra frame or two while we uploaded data.
+					if (!shouldCap)
+					{
+						approximateFrames = processedFrames + getApproximateStoredFrames();
+						localFrameZ1 = approximateFrames + content->frameUpdateSmoothing.getTransformedValue() * (framesPerUpdate - approximateFrames);
+						framesThisTime = cpl::Math::round<std::size_t>(localFrameZ1);
+					}
 				}
+
+				framesPerUpdate = localFrameZ1;
 			}
+
 
 			CPL_DEBUGCHECKGL();
 

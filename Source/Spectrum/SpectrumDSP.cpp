@@ -73,18 +73,9 @@ namespace Signalizer
 
 			// conditional lock.
 			std::optional<AudioStream::AudioBufferAccess> aba;
-			bool historyMayBeDeferred = false;
 			if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
-				// TODO: Can happen if something else hogs, like a vectorscope
-				// Also only happens if GlobalBehaviour::stopProcessingOnSuspend is false
-				if (source.getNumDeferredSamples() != 0)
-				{
-					historyMayBeDeferred = true;
-					CPL_BREAKIFDEBUGGED();
-				}
-
-				aba.emplace(source.getAudioBufferViews());
+				aba.emplace(source.getAudioBufferViews(true));
 			}
 
 			const auto authorityCounter = access->pairs[0].processedSamplesSinceLastFrame;
@@ -105,8 +96,7 @@ namespace Signalizer
 						access->constant, 
 						views,
 						{ buffer[i * 2], buffer[i * 2 + 1] },
-						numSamples,
-						historyMayBeDeferred
+						numSamples
 					);
 				}
 			);
@@ -262,7 +252,6 @@ namespace Signalizer
 
 	std::size_t Spectrum::getApproximateStoredFrames() const noexcept
 	{
-#pragma message cwarn("fix this to include channels, other processing methods.. etc.")
 		return processor->frameQueue.enqueuededElements();
 	}
 

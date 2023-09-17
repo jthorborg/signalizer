@@ -102,7 +102,6 @@ for option in targets:
 print("\n------> All builds finished, generating skeletons...")
 
 cm.create_build_file("Build.log", version_string)
-sh.copyfile("windows_installation_advice.txt", cm.join("Signalizer Windows", "HOW TO INSTALL.txt"))
 
 option_to_build = { "x86": cm.join(cm.join(vcxpath, "Release")), "x64": cm.join(cm.join(cm.join(vcxpath, "x64")), "Release") }
 
@@ -121,6 +120,7 @@ for option in targets:
 	# important that its name is signalizer.pdb
 	sh.copy(cm.join(build, "Signalizer.pdb"), cm.join(debug_dir, "Signalizer.pdb")) 
 
+sh.copyfile("windows_installation_advice.txt", cm.join("Signalizer Windows", "HOW TO INSTALL.txt"))
 
 print("------> Zipping output directories...")
 

@@ -34,6 +34,7 @@
 	#include <cpl/Common.h>
 	#include <cpl/Core.h>
 	#include <cpl/state/Serialization.h>
+	#include <cpl/dsp/ChannelMatrix.h>
 	#include <mutex>
 	#include <cpl/shared_mutex.h>
 	#include <map>
@@ -49,90 +50,6 @@
 	namespace Signalizer
 	{
 		class AudioProcessor;
-
-		// TODO: Refactor into CPL, share between ape and such.
-		class AuxMatrix
-		{
-		public:
-
-			void resizeChannels(std::size_t length)
-			{
-				auxBuffers.resize(length);
-			}
-
-			void softBufferResize(std::size_t length)
-			{
-				auto newSize = length * auxBuffers.size();
-				auxData.resize(std::max(newSize, auxData.size()));
-
-				for (std::size_t i = 0; i < auxBuffers.size(); ++i)
-					auxBuffers[i] = auxData.data() + length * i;
-
-				bufferLength = length;
-			}
-
-			void copy(const float* const* buffers, std::size_t channelMatrixOffset, std::size_t numBuffers)
-			{
-				for (std::size_t i = 0; i < numBuffers; ++i)
-				{
-					std::memcpy(auxBuffers[i + channelMatrixOffset], buffers[i], bufferLength * sizeof(float));
-				}
-			}
-
-			void accumulate(const float* const* buffers, std::size_t index, std::size_t numBuffers, float start, float end)
-			{
-				const auto delta = end - start;
-
-				for (std::size_t i = 0; i < numBuffers; ++i)
-				{
-					for (std::size_t n = 0; n < bufferLength; ++n)
-					{
-						const float progress = n / float(bufferLength - 1);
-						auxBuffers[i + index][n] += buffers[i][n] * (start + progress * delta);
-					}
-				}
-			}
-
-			void clear(std::size_t index, std::size_t numBuffers)
-			{
-				for (std::size_t i = 0; i < numBuffers; ++i)
-				{
-					std::memset(auxBuffers[i + index], 0, bufferLength * sizeof(float));
-				}
-			}
-
-			void clear()
-			{
-				std::memset(auxData.data(), 0, auxData.size() * sizeof(float));
-			}
-
-			void copyResample(const float* buffer, std::size_t index, std::size_t numSamples)
-			{
-				if (numSamples == bufferLength)
-					return copy(&buffer, index, 1);
-
-				auto ratio = (double)numSamples / bufferLength;
-				double x = 0;
-
-				cpl::Types::fsint_t samples = static_cast<cpl::Types::fsint_t>(numSamples);
-
-				for (std::size_t i = 0; i < bufferLength; ++i)
-				{
-					auxBuffers[index][i] = cpl::dsp::linearFilter<float>(buffer, samples, x);
-					x += ratio;
-				}
-			}
-
-			float* operator [] (std::size_t index) const { return auxBuffers[index]; }
-			float** data() noexcept { return auxBuffers.data(); }
-			std::size_t size() const noexcept { return auxBuffers.size(); }
-
-		private:
-			std::size_t bufferLength = 0;
-			std::vector<float> auxData;
-			std::vector<float*> auxBuffers;
-		};
-
 		
 		class MixGraphListener : public AudioStream::Listener, public std::enable_shared_from_this<MixGraphListener>
 		{
@@ -274,7 +191,7 @@
 			std::mutex connectDisconnectMutex;
 			std::vector<ConnectionCommand> connectionCommands;
 
-			AuxMatrix matrix;
+			cpl::ChannelMatrix<AudioStream::DataType> matrix;
 			std::atomic_bool structuralChange;
 			std::atomic_bool enabled;
 			cpl::weak_atomic<std::size_t> maximumLatency;

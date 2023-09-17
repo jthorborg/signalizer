@@ -143,6 +143,7 @@ namespace Signalizer
             {
                 auto && lockedView = audioStream->getAudioBufferViews();
                 handleFlagUpdates();
+
                 juce::OpenGLHelpers::clear(state.colourBackground);
 
                 {
