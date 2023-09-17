@@ -272,6 +272,9 @@ namespace Signalizer
                 
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 
+				if (state.sampleRate == 0)
+					return;
+
                 if (!checkAndInformInvalidCombinations(streamState))
                     return;
                 

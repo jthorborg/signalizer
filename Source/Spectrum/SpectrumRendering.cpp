@@ -596,7 +596,7 @@ namespace Signalizer
 
             handleFlagUpdates(*access);
 
-			if (access->pairs.size() == 0)
+			if (access->pairs.size() == 0 || state.sampleRate == 0)
 				return;
 
             // flags may have altered ogl state

@@ -370,6 +370,7 @@ namespace Signalizer
 		auto access = streamState.lock();
 		access->channelNames = source.getChannelNames();
 		access->historyCapacity = source.getInfo().audioHistoryCapacity;
+		access->sampleRate = source.getInfo().sampleRate;
 		access->audioStreamChangeVersion.bump();
 	}
 

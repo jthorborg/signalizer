@@ -38,6 +38,7 @@
 
 namespace Signalizer
 {
+	constexpr double kMinDBDiff = 0.0001;
 
 	Spectrum::Spectrum(
 		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
@@ -126,6 +127,12 @@ namespace Signalizer
 
 	void Spectrum::setDBs(double low, double high, bool updateControls)
 	{
+		if (std::abs(high - low) < kMinDBDiff)
+		{
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
+		}
+
 		content->lowDbs.setTransformedValue(low);
 		content->highDbs.setTransformedValue(high);
 	}
@@ -133,7 +140,16 @@ namespace Signalizer
 
 	Spectrum::DBRange Spectrum::getDBs() const noexcept
 	{
-		return{ content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue()};
+		auto low = content->lowDbs.getTransformedValue();
+		auto high = content->highDbs.getTransformedValue();
+
+		if (std::abs(high - low) < kMinDBDiff)
+		{
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
+		}
+
+		return{ low, high };
 	}
 
 	void Spectrum::initPanelAndControls()
