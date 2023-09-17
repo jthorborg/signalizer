@@ -502,6 +502,7 @@ namespace Signalizer
 	}
 
 	template<typename T>
+	template<typename ISA>
 	inline void TransformPair<T>::mapToLinearSpace(const Constant& constant)
 	{
 		using namespace cpl;
@@ -1102,8 +1103,8 @@ namespace Signalizer
 		case SpectrumContent::TransformAlgorithm::RSNT:
 		{
 			auto configurationChannels = constant.getStateConfigurationChannels();
-			auto wsp = getWork<std::complex<float>>(constant.resonator.getNumFilters() * configurationChannels);
-			std::size_t filtersPerChannel = copyResonatorStateInto<T>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
+			auto wsp = getWork<std::complex<T>>(constant.resonator.getNumFilters() * configurationChannels);
+			std::size_t filtersPerChannel = copyResonatorStateInto<ISA>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
 			switch (constant.configuration)
 			{
@@ -1119,7 +1120,7 @@ namespace Signalizer
 					auto mid = std::abs(iLeft) + std::abs(iRight);
 
 
-					wsp[x] = std::complex<float>(mid, AFloat(1) - (mid > 0 ? (cancellation / mid) : 0));
+					wsp[x] = std::complex<T>(mid, T(1) - (mid > 0 ? (cancellation / mid) : 0));
 
 				}
 
@@ -1137,7 +1138,7 @@ namespace Signalizer
 	template<typename ISA>
 	inline void TransformPair<T>::addAudioFrame(const Constant& constant)
 	{
-		mapToLinearSpace(constant);
+		mapToLinearSpace<ISA>(constant);
 		postProcessStdTransform(constant);
 
 		constexpr auto i = SpectrumContent::LineGraphs::LineMain;
@@ -1147,14 +1148,14 @@ namespace Signalizer
 	}
 
 	template<typename T>
-	template<typename V, class Vector>
-	inline std::size_t TransformPair<T>::copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, Vector& output, std::size_t outChannels)
+	template<typename ISA>
+	inline std::size_t TransformPair<T>::copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, cpl::uarray<std::complex<T>> output, std::size_t outChannels)
 	{
 		auto numResFilters = constant.resonator.getNumFilters();
 		// casts from std::complex<T> * to T * which is well-defined.
 		// TODO: std::ranges
-		auto buf = reinterpret_cast<AFloat*>(cpl::data(output));
-		cresonator.template getWholeWindowedState<V>(constant.resonator, windowType, buf, outChannels, numResFilters);
+		auto buf = output.template reinterpret<T>();
+		cresonator.template getWholeWindowedState<ISA>(constant.resonator, windowType, buf, outChannels, numResFilters);
 
 		return numResFilters << (outChannels - 1);
 	}

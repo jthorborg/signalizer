@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file: OscilloscopeDSP.cpp
+	file: OscilloscopeDSP.inl
 
 		Implementation of signal processing code for the oscilloscope.
 

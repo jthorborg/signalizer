@@ -628,7 +628,7 @@ namespace Signalizer
 							if (pair.prepareTransform(access->constant, { views.getView(index * 2), views.getView(index * 2 + 1) }))
 							{
 								pair.doTransform(access->constant);
-								pair.mapToLinearSpace(access->constant);
+								pair.mapToLinearSpace<ISA>(access->constant);
 								pair.postProcessStdTransform(access->constant);
 							}
 						}

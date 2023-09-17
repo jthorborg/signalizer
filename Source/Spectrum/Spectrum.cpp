@@ -60,12 +60,9 @@ namespace Signalizer
 		, framesPerUpdate()
 		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
 		, config(config)
+		, content(params)
 	{
 		setOpaque(true);
-		if (!(content = std::dynamic_pointer_cast<SpectrumContent>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to SpectrumContent");
-		}
 
 		content->getParameterSet().addRTListener(this, true);
 

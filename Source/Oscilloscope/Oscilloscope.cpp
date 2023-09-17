@@ -59,12 +59,8 @@ namespace Signalizer
 		, state()
 		, medianPos()
 		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
+		, content(params)
 	{
-		if (!(content = std::dynamic_pointer_cast<OscilloscopeContent>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
-		}
-
 		processor->streamState.lock()->content = content;
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
