@@ -49,50 +49,37 @@ namespace Signalizer
 	const double VectorScope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
 
-	VectorScope::VectorScope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
-		: COpenGLView(nameId)
-		, globalBehaviour(globalBehaviour)
-		, audioStream(data)
-		, processorSpeed(0)
-		, lastFrameTick(0)
-		, lastMousePos()
-		, editor(nullptr)
+	VectorScope::VectorScope(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream, 
+		std::shared_ptr<VectorScopeContent> params
+	)
+		: GraphicsWindow(params->getName())
 		, state()
-		, filters()
-		, oldWindowSize(-1)
+		, processor(std::make_shared<Processor>(globalBehaviour))
+		, config(config)
+		, content(params)
+		, audioStream(stream)
+		, globalBehaviour(globalBehaviour)
 	{
-		if (!(content = dynamic_cast<VectorScopeContent *>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to VectorScopeContent");
-		}
-
-
 		mtFlags.firstRun = true;
-		state.secondStereoFilterSpeed = 0.25f;
-		state.envelopeGain = 1;
 		setOpaque(true);
-		textbuf = std::unique_ptr<char>(new char[300]);
-		processorSpeed = cpl::system::CProcessor::getMHz();
+
 		initPanelAndControls();
-		listenToSource(audioStream);
+		stream->addListener(processor);
 		content->getParameterSet().addRTListener(this, true);
 	}
 
 	void VectorScope::suspend()
 	{
-		//TODO: possibly unsynchronized. fix to have an internal size instead
-		oldWindowSize = content->windowSize.getTransformedValue();
-		state.isSuspended = true;
+		processor->isSuspended = true;
 	}
 
 	void VectorScope::resume()
 	{
-		if(oldWindowSize != -1)
-		{
-			//TODO: possibly unsynchronized. fix to have an internal size instead
-			content->windowSize.setTransformedValue(oldWindowSize);
-		}
-		state.isSuspended = false;
+		mtFlags.initiateWindowResize = true;
+		processor->isSuspended = false;
 	}
 
 	juce::Component * VectorScope::getWindow()
@@ -102,7 +89,7 @@ namespace Signalizer
 
 	VectorScope::~VectorScope()
 	{
-		detachFromSource();
+		audioStream->removeListener(processor);
 		content->getParameterSet().removeRTListener(this, true);
 		notifyDestruction();
 	}
@@ -135,20 +122,18 @@ namespace Signalizer
 		}
 		else /* zoom graph */
 		{
-			auto & matrix = content->transform;
-			//matrix.scale.x += amount;
-			//matrix.scale.y += amount;
-			auto Z = matrix.getValueIndex(matrix.Scale, matrix.Z).getTransformedValue();
+			auto & tsX = content->transform;
+			auto Z = tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue();
 			auto actualAmount = (1 + amount / 5) * Z;
 			auto deltaIncrease = (actualAmount - Z) / Z;
-			matrix.getValueIndex(matrix.Scale, matrix.Z).setTransformedValue(actualAmount);
+			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(actualAmount);
 
-			matrix.getValueIndex(matrix.Scale, matrix.X).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.X).getTransformedValue() * (1 + deltaIncrease)
+			tsX.getValueIndex(tsX.Scale, tsX.X).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * (1 + deltaIncrease)
 			);
 
-			matrix.getValueIndex(matrix.Scale, matrix.Y).setTransformedValue(
-				matrix.getValueIndex(matrix.Scale, matrix.Y).getTransformedValue() * (1 + deltaIncrease)
+			tsX.getValueIndex(tsX.Scale, tsX.Y).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * (1 + deltaIncrease)
 			);
 		}
 
@@ -161,54 +146,44 @@ namespace Signalizer
 			// reset all zooming, offsets etc. when doubleclicking left
 			// TODO: reset to preset
 			content->inputGain.setTransformedValue(1);
-			auto & matrix = content->transform;
-			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(0);
-			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(0);
+			auto & tsX = content->transform;
+			tsX.getValueIndex(tsX.Position, tsX.X).setTransformedValue(0);
+			tsX.getValueIndex(tsX.Position, tsX.Y).setTransformedValue(0);
 		}
 	}
 
 	void VectorScope::mouseDrag(const juce::MouseEvent& event)
 	{
-		auto & matrix = content->transform;
+		auto & tsX = content->transform;
 		auto factor = float(getWidth()) / getHeight();
-		auto deltaDifference = event.position - lastMousePos;
+		auto deltaDifference = event.position - currentMouse.getPoint();
 		if (event.mods.isCtrlDown())
 		{
-			auto yvalue = matrix.getValueIndex(matrix.Rotation, matrix.Y).getTransformedValue();
+			auto yvalue = tsX.getValueIndex(tsX.Rotation, tsX.Y).getTransformedValue();
 			auto newValue = std::fmod(deltaDifference.x * 0.3f + yvalue, 360.f);
 			while (newValue < 0)
 				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.Y).setTransformedValue(newValue);
+			tsX.getValueIndex(tsX.Rotation, tsX.Y).setTransformedValue(newValue);
 
-			auto xvalue = matrix.getValueIndex(matrix.Rotation, matrix.X).getTransformedValue();
+			auto xvalue = tsX.getValueIndex(tsX.Rotation, tsX.X).getTransformedValue();
 			newValue = std::fmod(deltaDifference.y * 0.3f + xvalue, 360.f);
 			while (newValue < 0)
 				newValue += 360;
-			matrix.getValueIndex(matrix.Rotation, matrix.X).setTransformedValue(newValue);
+			tsX.getValueIndex(tsX.Rotation, tsX.X).setTransformedValue(newValue);
 		}
 		else
 		{
 
-			auto xvalue = matrix.getValueIndex(matrix.Position, matrix.X).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
+			auto xvalue = tsX.getValueIndex(tsX.Position, tsX.X).getTransformedValue();
+			tsX.getValueIndex(tsX.Position, tsX.X).setTransformedValue(xvalue + deltaDifference.x / 500.f);
 
-			auto yvalue = matrix.getValueIndex(matrix.Position, matrix.Y).getTransformedValue();
-			matrix.getValueIndex(matrix.Position, matrix.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
+			auto yvalue = tsX.getValueIndex(tsX.Position, tsX.Y).getTransformedValue();
+			tsX.getValueIndex(tsX.Position, tsX.Y).setTransformedValue(factor * -deltaDifference.y / 500.f + yvalue);
 		}
 
-		lastMousePos = event.position;
+		GraphicsWindow::mouseDrag(event);
 	}
 
-	void VectorScope::mouseUp(const juce::MouseEvent& event)
-	{
-		// TODO: implement beginChangeGesture()
-	}
-
-	void VectorScope::mouseDown(const juce::MouseEvent& event)
-	{
-		// TODO: implement endChangeGesture()
-		lastMousePos = event.position;
-	}
 
 	void VectorScope::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{
@@ -220,10 +195,10 @@ namespace Signalizer
 
 	void VectorScope::handleFlagUpdates()
 	{
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
-		state.normalizeGain = state.envelopeMode != EnvelopeModes::None;
-		state.envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
-		state.stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * audioStream.getInfo().sampleRate));
+		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
+		processor->envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate));
+		processor->stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate));
 
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
@@ -233,12 +208,15 @@ namespace Signalizer
 		state.rotation = content->waveZRotation.getNormalizedValue();
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.userGain = content->inputGain.getTransformedValue();
+		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
+		state.scalePolar = content->scalePolarModeToFill.getTransformedValue() > 0.5;
 
-		state.colourDraw = content->drawingColour.getAsJuceColour();
-		state.colourWire = content->skeletonColour.getAsJuceColour();
+		state.colourWaveform = content->waveformColour.getAsJuceColour();
+		state.colourWire = content->wireframeColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourMeter = content->meterColour.getAsJuceColour();
-		state.colourGraph = content->graphColour.getAsJuceColour();
+		state.colourAxis = content->axisColour.getAsJuceColour();
+		state.colourWidget = content->widgetColour.getAsJuceColour();
 
 
 		bool firstRun = false;
@@ -250,37 +228,43 @@ namespace Signalizer
 
 		if (firstRun || mtFlags.initiateWindowResize)
 		{
-
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			// we will get notified asynchronously in onStreamPropertiesChanged.
+			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				mtFlags.initiateWindowResize.cas();
 				auto value = content->windowSize.getTransformedValue();
-				audioStream.setAudioHistorySize(value);
+
+				audioStream->modifyConsumerInfo(
+					[&](auto & info)
+					{
+						info.audioHistorySize = value;
+					}
+				);
 			}
 		}
 	}
 
 
 	template<typename ISA>
-		void VectorScope::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+		void VectorScope::Processor::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
 			typedef typename ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
-			if (numChannels != 2)
+			if (numChannels < 2)
 				return;
 
-			T filterEnv[2] = { filters.envelope[0], filters.envelope[1] };
-			T stereoPoles[2] = { state.stereoCoeff, std::pow(state.stereoCoeff, state.secondStereoFilterSpeed) };
+			T filterEnv[2] { filters.envelope[0], filters.envelope[1] };
+			T balance[2][2]{ { filters.balance[0][0], filters.balance[0][1] }, { filters.balance[1][0], filters.balance[1][1] } };
+			T phase[2] { filters.phase[0], filters.phase[1] };
 
-			const T cosineRotation = (T)std::cos(M_PI * 135 / 180);
-			const T sineRotation = (T)std::sin(M_PI * 135 / 180);
-			const V vMatrixReal = set1<V>(cosineRotation);
-			const V vMatrixImag = set1<V>(sineRotation);
+			const T stereoPoles[2] = { stereoCoeff, std::pow(stereoCoeff, secondStereoFilterSpeed) };
+			const T envelope = envelopeCoeff;
+			const V vMatrixReal = consts<V>::sqrt_half_two_minus;
+			const V vMatrixImag = consts<V>::sqrt_half_two;
 
-			const V vDummyAngle = set1<V>((T)(M_PI * 0.25));
+			const V vDummyAngle = consts<V>::pi_quarter;
 			const V vZero = zero<V>();
 
 			auto const loopIncrement = elements_of<V>::value;
@@ -307,13 +291,10 @@ namespace Signalizer
 				const V vRadians = atan(vY / vX);
 				const V vPhaseAngle = vselect(vDummyAngle, vRadians, vZeroAxes);
 
-				outputPhases = vPhaseAngle;
 				// the phase angle is discontinuous around PI, so we take the cosine
 				// to avoid the discontinuity and give a small smoothing
-				// for some arcane fucking reason, the phase response of this function IN THIS CONTEXT is wrong
-				// testing reveals no problems, it just doesn't work right here. Uncomment if you find a fix.
-#pragma message cwarn("Errornous cosine output here.")
-				//outputPhases = cos(outputPhases * set1<V>(2));
+
+				outputPhases = cos(vPhaseAngle * consts<V>::two);
 
 				// scalar code segment for recursive IIR filters..
 				for (std::size_t i = 0; i < loopIncrement; ++i)
@@ -324,58 +305,70 @@ namespace Signalizer
 					const auto rSquared = buffer[1][z] * buffer[1][z];
 
 					// average envelope
-					filterEnv[0] = lSquared + state.envelopeCoeff * (filterEnv[0] - lSquared);
-					filterEnv[1] = rSquared + state.envelopeCoeff * (filterEnv[1] - rSquared);
+					filterEnv[0] = lSquared + envelope * (filterEnv[0] - lSquared);
+					filterEnv[1] = rSquared + envelope * (filterEnv[1] - rSquared);
 
 					// balance average source
 
 					using fs = FilterStates;
 
-					filters.balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Left]  - lSquared);
-					filters.balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (filters.balance[fs::Slow][fs::Right] - rSquared);
-					filters.balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Left]  - lSquared);
-					filters.balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (filters.balance[fs::Fast][fs::Right] - rSquared);
+					balance[fs::Slow][fs::Left]  = lSquared + stereoPoles[fs::Slow] * (balance[fs::Slow][fs::Left]  - lSquared);
+					balance[fs::Slow][fs::Right] = rSquared + stereoPoles[fs::Slow] * (balance[fs::Slow][fs::Right] - rSquared);
+					balance[fs::Fast][fs::Left]  = lSquared + stereoPoles[fs::Fast] * (balance[fs::Fast][fs::Left]  - lSquared);
+					balance[fs::Fast][fs::Right] = rSquared + stereoPoles[fs::Fast] * (balance[fs::Fast][fs::Right] - rSquared);
 
 					// phase averaging
-					// see larger comment above.
-					outputPhases[i] = cos(outputPhases[i] * consts<T>::two);
-					filters.phase[0] = outputPhases[i] + stereoPoles[0] * (filters.phase[0] - outputPhases[i]);
-					filters.phase[1] = outputPhases[i] + stereoPoles[1] * (filters.phase[1] - outputPhases[i]);
+					phase[fs::Slow] = outputPhases[i] + stereoPoles[fs::Slow] * (phase[fs::Slow] - outputPhases[i]);
+					phase[fs::Fast] = outputPhases[i] + stereoPoles[fs::Fast] * (phase[fs::Fast] - outputPhases[i]);
 				}
 
-
 			}
+
 			// store calculated envelope
-			if (state.envelopeMode == EnvelopeModes::RMS && state.normalizeGain)
+			if (envelopeMode == EnvelopeModes::RMS && normalizeGain)
 			{
 				// we end up calculating envelopes even though its not possibly needed, but the overhead
 				// is negligible
 				double currentEnvelope = 1.0 / (std::max(std::sqrt(filterEnv[0]), std::sqrt(filterEnv[1])));
 
-				// only update filters if this mode is on.
-				filters.envelope[0] = filterEnv[0];
-				filters.envelope[1] = filterEnv[1];
-
+				// only envelope filters if this mode is on.
+				for (std::size_t i = 0; i < 2; ++i)
+				{
+					filters.envelope[i] = filterEnv[i];
+					filters.phase[i] = phase[i];
+					for (std::size_t j = 0; j < 2; ++j)
+						filters.balance[i][j] = balance[i][j];
+				}
+				
 				if (std::isnormal(currentEnvelope))
 				{
-					state.envelopeGain = currentEnvelope;
+					envelopeGain = currentEnvelope;
 				}
 			}
-
+			else
+			{
+				// only envelope filters if this mode is on.
+				for (std::size_t i = 0; i < 2; ++i)
+				{
+					filters.phase[i] = phase[i];
+					for (std::size_t j = 0; j < 2; ++j)
+						filters.balance[i][j] = balance[i][j];
+				}
+			}
 		}
 
-	bool VectorScope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void VectorScope::Processor::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
-			return false;
+		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
+			return;
 
 		cpl::simd::dynamic_isa_dispatch<AFloat, AudioDispatcher>(*this, buffer, numChannels, numSamples);
-		return false;
 	}
 
-	void VectorScope::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
+	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
-		mtFlags.audioWindowWasResized = true;
+		audioWindowWasResized = true;
+		*channelNames.lock() = ctx.getChannelNames();
 	}
 
 };

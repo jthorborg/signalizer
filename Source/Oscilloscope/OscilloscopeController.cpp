@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "OscilloscopeParameters.h"
+#include "Oscilloscope.h"
 
 namespace Signalizer
 {
@@ -39,16 +40,16 @@ namespace Signalizer
 	{
 	public:
 
-		OscilloscopeController(OscilloscopeContent & parentValue)
-			: parent(parentValue)
+		OscilloscopeController(OscilloscopeContent& parentValue, std::shared_ptr<OscilloscopeContent>&& shared)
+			: parent(std::move(shared))
 			, kantiAlias(&parentValue.antialias)
 			, kdiagnostics(&parentValue.diagnostics)
 			, kwindow(&parentValue.windowSize)
 			, kgain(&parentValue.inputGain)
 			, kprimitiveSize(&parentValue.primitiveSize)
 			, kenvelopeSmooth(&parentValue.envelopeWindow)
-			, kprimaryColour(&parentValue.getColour(0))
-			, ksecondaryColour(&parentValue.getColour(1))
+			, kprimaryColour(&parentValue.primaryColour)
+			, ksecondaryColour(&parentValue.secondaryColour)
 			, kgraphColour(&parentValue.graphColour)
 			, kbackgroundColour(&parentValue.backgroundColour)
 			, klowColour(&parentValue.lowColour)
@@ -70,7 +71,7 @@ namespace Signalizer
 			, kchannelColouring(&parentValue.channelColouring.param)
 			, kcolourSmoothingTime(&parentValue.colourSmoothing)
 			, kcursorTracker(&parentValue.cursorTracker)
-			, ktrackerColour(&parentValue.trackerColour)
+			, kwidgetColour(&parentValue.widgetColour)
 			, kfreqColourBlend(&parentValue.frequencyColouringBlend)
 			, ktriggerHysteresis(&parentValue.triggerHysteresis)
 			, ktriggerThreshold(&parentValue.triggerThreshold)
@@ -91,8 +92,8 @@ namespace Signalizer
 			initControls();
 			initUI();
 
-			parent.getParameterSet().addUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
-			parent.getParameterSet().addUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().addUIListener(parent->timeMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().addUIListener(parent->triggerMode.param.getParameterView().getHandle(), this);
 
 			enforceTriggeringModeCompability();
 		}
@@ -100,15 +101,15 @@ namespace Signalizer
 
 		void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 		{
-			if(parameter == &parent.timeMode.param.getParameterView())
+			if(parameter == &parent->timeMode.param.getParameterView())
 				enforceTriggeringModeCompability();
 		}
 
 		void enforceTriggeringModeCompability()
 		{
-			if (parent.timeMode.param.getAsTEnum<OscilloscopeContent::TimeMode>() == OscilloscopeContent::TimeMode::Cycles)
+			if (parent->timeMode.param.getAsTEnum<OscilloscopeContent::TimeMode>() == OscilloscopeContent::TimeMode::Cycles)
 			{
-				for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+				for (int i = 0; i < parent->triggerMode.tsf.getQuantization(); ++i)
 				{
 					ktriggerMode.setEnabledStateFor(i, i == cpl::enum_cast<int>(OscilloscopeContent::TimeMode::Cycles));
 				}
@@ -117,7 +118,7 @@ namespace Signalizer
 			}
 			else
 			{
-				for (int i = 0; i < parent.triggerMode.tsf.getQuantization(); ++i)
+				for (int i = 0; i < parent->triggerMode.tsf.getQuantization(); ++i)
 				{
 					ktriggerMode.setEnabledStateFor(i, true);
 				}
@@ -129,8 +130,8 @@ namespace Signalizer
 
 		~OscilloscopeController()
 		{
-			parent.getParameterSet().removeUIListener(parent.timeMode.param.getParameterView().getHandle(), this);
-			parent.getParameterSet().removeUIListener(parent.triggerMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().removeUIListener(parent->timeMode.param.getParameterView().getHandle(), this);
+			parent->getParameterSet().removeUIListener(parent->triggerMode.param.getParameterView().getHandle(), this);
 			notifyDestruction();
 		}
 
@@ -156,7 +157,7 @@ namespace Signalizer
 			kcustomFrequency.bSetTitle("Custom trigger");
 			kchannelColouring.bSetTitle("Channel colouring");
 			kcolourSmoothingTime.bSetTitle("Colour smoothing");
-			ktrackerColour.bSetTitle("Tracker colour");
+			kwidgetColour.bSetTitle("Widget colour");
 			kfreqColourBlend.bSetTitle("Colour blend");
 			ktriggerHysteresis.bSetTitle("Hysteresis");
 			ktriggerThreshold.bSetTitle("Trigger thrshld");
@@ -209,10 +210,10 @@ namespace Signalizer
 			koverlayChannels.bSetDescription("Toggle to paint multiple channels on top of each other, otherwise they are painted in separate views");
 			kcolourSmoothingTime.bSetDescription("Smooths the colour variation over the period of time");
 			kcursorTracker.bSetDescription("Enable to create a tracker at the cursor displaying (x,y) values");
-			ktrackerColour.bSetDescription("Colour of the cursor tracker");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends and trackers)");
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
-			kshowLegend.bSetDescription("Display a legend of the signals/colours");
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
 			ktriggerChannel.bSetDescription("Adjust the channel used for triggering when in separate channel mode");
 		}
 
@@ -220,12 +221,6 @@ namespace Signalizer
 		{
 			if (auto page = addPage("Settings", "icons/svg/gear.svg"))
 			{
-				/* if (auto section = new Signalizer::CContentPage::MatrixSection())
-				{
-					section->addControl(&ktransform, 0);
-					page->addSection(section, "Transform");
-				} */
-
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
 				{
 					section->addControl(&koverlayChannels, 0);
@@ -281,7 +276,7 @@ namespace Signalizer
 
 					section->addControl(&kgraphColour, 0);
 					section->addControl(&kbackgroundColour, 1);
-					section->addControl(&ktrackerColour, 0);
+					section->addControl(&kwidgetColour, 0);
 
 					page->addSection(section, "Look");
 				}
@@ -344,7 +339,7 @@ namespace Signalizer
 			archive << ksecondaryColour;
 			archive << kcolourSmoothingTime;
 			archive << kcursorTracker;
-			archive << ktrackerColour;
+			archive << kwidgetColour;
 			archive << kfreqColourBlend;
 			archive << ktriggerHysteresis;
 			archive << ktriggerThreshold;
@@ -390,7 +385,7 @@ namespace Signalizer
 			if (version > cpl::Version(0, 3, 1))
 			{
 				builder >> kcursorTracker;
-				builder >> ktrackerColour;
+				builder >> kwidgetColour;
 				builder >> kfreqColourBlend;
 			}
 
@@ -424,7 +419,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}
@@ -441,7 +436,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
@@ -450,13 +445,12 @@ namespace Signalizer
 		cpl::CValueKnobSlider
 			kwindow, kgain, kprimitiveSize, kenvelopeSmooth, kpctForDivision, ktriggerPhaseOffset, kcolourSmoothingTime, kfreqColourBlend,
 			ktriggerHysteresis, ktriggerThreshold, ktriggerChannel;
-		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, ktrackerColour;
+		cpl::CColourControl kprimaryColour, ksecondaryColour, kgraphColour, kbackgroundColour, klowColour, kmidColour, khighColour, kwidgetColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kenvelopeMode, ksubSampleInterpolationMode, kchannelConfiguration, ktriggerMode, ktimeMode, kchannelColouring;
 		cpl::CPresetWidget kpresets;
 
-		OscilloscopeContent & parent;
-
+		std::shared_ptr<OscilloscopeContent> parent;
 		SSOSurrogate<OscilloscopeController>
 			editorSerializer,
 			valueSerializer;
@@ -464,7 +458,15 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> OscilloscopeContent::createEditor()
 	{
-		return std::make_unique<OscilloscopeController>(*this);
+		return std::make_unique<OscilloscopeController>(*this, shared_from_this());
 	}
 
+	std::unique_ptr<cpl::CSubView> OscilloscopeContent::createView(
+		std::shared_ptr<const SharedBehaviour> globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig> config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<Oscilloscope>(globalBehaviour, config, stream, shared_from_this());
+	} 
 };

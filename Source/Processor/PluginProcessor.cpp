@@ -36,12 +36,26 @@
 
 namespace Signalizer
 {
-	extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
+	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
 
 	AudioProcessor::AudioProcessor()
-		: stream(16, true)
+		: AudioProcessor(AudioStream::create(true, 16))
+	{
+
+	}
+
+	std::shared_ptr<const ConcurrentConfig> AudioProcessor::getConcurrentConfig()
+	{
+		return std::const_pointer_cast<const ConcurrentConfig>(config);
+	}
+
+	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
+		: config(std::make_shared<ConcurrentConfig>())
+		, realtimeInput(std::move(std::get<0>(io)))
+		, realtimeOutput(std::get<1>(io))
+		, graph(std::make_shared<HostGraph>(std::get<1>(io)))
 		, nChannels(2)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
@@ -49,11 +63,14 @@ namespace Signalizer
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
 	{
-		for (std::size_t i = 0; i < ParameterCreationList.size(); ++i)
+
+		SystemView view { getConcurrentConfig(), *this};
+
+		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
 			parameterMap.insert({
-				ParameterCreationList[i].first,
-				ParameterCreationList[i].second(parameterMap.numParams(), false, { stream, *this })
+				ContentCreationList[i].first,
+				ContentCreationList[i].second(parameterMap.numParams(), view)
 			});
 		}
 
@@ -83,8 +100,14 @@ namespace Signalizer
 		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
 		// TODO: convert them to be invariant.
 
-		prepareToPlay(48000, 512);
-		stream.setAudioHistorySizeAndCapacity(48000, 48000);
+		realtimeInput.initializeInfo(
+			[&](AudioStream::ProducerInfo& info) 
+			{
+				info.channels = nChannels;
+				info.anticipatedSize = 512;
+				info.sampleRate = 48000;
+			}
+		);
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -110,20 +133,19 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
-		AudioStream::AudioStreamInfo info = stream.getInfo();
+		realtimeInput.initializeInfo(
+			[&](AudioStream::ProducerInfo& info)
+			{
+				info.channels = nChannels;
+				info.anticipatedSize = samplesPerBlock;
+				info.sampleRate = sampleRate;
+			}
+		);
 
-		info.anticipatedChannels = nChannels;
-		info.anticipatedSize = samplesPerBlock;
-		info.callAsyncListeners = true;
-		info.callRTListeners = true;
-		info.sampleRate = sampleRate;
-		info.storeAudioHistory = true;
-
-		stream.initializeInfo(info);
-		
-		for (int i = 0; i < nChannels; ++i)
+		if (!hasAnyLayoutBeenApplied)
 		{
-			stream.enqueueChannelName(i, "Channel " + std::to_string(i));
+			hasAnyLayoutBeenApplied = true;
+			graph->applyDefaultLayoutFromRuntime();
 		}
 	}
 
@@ -133,19 +155,19 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
-
 		if (nChannels != buffer.getNumChannels())
 		{
 			// woah, what?
 			CPL_BREAKIFDEBUGGED();
 		}
-		// stream will take it from here.
 
-
-		if(auto ph = getPlayHead())
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
-		else
-			stream.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+		if (realtimeInput.isAnyoneListening())
+		{
+			if (auto ph = getPlayHead())
+				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+			else
+				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+		}
 
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't
@@ -176,6 +198,9 @@ namespace Signalizer
 		serializer.getArchiver().setMasterVersion(cpl::programInfo.version);
 		serialize(serializer.getArchiver(), cpl::programInfo.version);
 
+		// serialize host graph independently
+		graph->serialize(serializer.getArchiver()["host-graph"], cpl::programInfo.version);
+
 		if (!serializer.isEmpty())
 		{
 			auto compiledData = serializer.compile(true);
@@ -201,12 +226,21 @@ namespace Signalizer
 
 		try
 		{
-			deserialize(serializer.getBuilder(), serializer.getBuilder().getLocalVersion());
+			auto& builder = serializer.getBuilder();
+			auto version = serializer.getBuilder().getLocalVersion();
+			deserialize(builder, version);
+
+			// the host graph is serialized independently, so it doesn't appear as part of presets.
+			if (!builder["host-graph"].isEmpty())
+				graph->deserialize(builder["host-graph"], version);
+
 		}
 		catch (const std::exception & e)
 		{
 			cpl::Misc::MsgBox(std::string("Error serializing state information:\n") + e.what(), "Signalizer");
 		}
+
+		hasAnyLayoutBeenApplied = true;
 	}
 
 	void AudioProcessor::deserialize(cpl::CSerializer & serializer, cpl::Version version)
@@ -258,7 +292,7 @@ namespace Signalizer
 			}
 		}
 
-		auto & parameterStates = serializer.getContent("Parameters");
+		auto& parameterStates = serializer.getContent("Parameters");
 		if (!parameterStates.isEmpty())
 		{
 			for (std::size_t i = 0; i < parameterMap.numSetsAndState(); ++i)
@@ -267,6 +301,12 @@ namespace Signalizer
 				if (!serializedParameterState.isEmpty())
 					serializedParameterState >> *parameterMap.getState(i);
 			}
+		}
+
+		auto& engineState = serializer.getContent("Engine");
+		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::programInfo.version)
+		{
+			engineState >> config->historyCapacity;
 		}
 
 	}
@@ -318,7 +358,7 @@ namespace Signalizer
 
 		}
 
-		auto & parameterState = serializer.getContent("Parameters");
+		auto& parameterState = serializer.getContent("Parameters");
 		parameterState.clear();
 		parameterState.setMasterVersion(cpl::programInfo.version);
 
@@ -326,8 +366,13 @@ namespace Signalizer
 		{
 			parameterState.getContent(parameterMap.getSet(i)->getName()) << *parameterMap.getState(i);
 		}
-	}
 
+		auto& engineState = serializer.getContent("Engine");
+		engineState.clear();
+		engineState.setMasterVersion(cpl::programInfo.version);
+
+		engineState << config->historyCapacity;
+	}
 
 	//==============================================================================
 	const juce::String AudioProcessor::getName() const

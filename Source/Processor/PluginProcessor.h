@@ -32,11 +32,14 @@
 
 	#include "Signalizer.h"
 	#include <cpl/Common.h>
-	#include <cpl/CAudioStream.h>
+	#include <cpl/AudioStream.h>
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/gui/widgets/CPresetWidget.h>
 	#include "../Editor/MainEditor.h"
+	#include "../Common/HostGraph.h"
+	#include <memory>
+	#include "../Common/ConcurrentConfig.h"
 
 	namespace Signalizer
 	{
@@ -48,7 +51,7 @@
 			, cpl::DestructionNotifier
 			, ParameterSet::AutomatedProcessor
 		{
-			friend class MainEditor;
+			friend class MixGraphListener;
 
 		public:
 
@@ -103,7 +106,13 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
+			HostGraph& getHostGraph() { return *graph; }
+			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
+			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
+
 		private:
+
+			AudioProcessor(AudioStream::IO&& io);
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
 			virtual void automatedBeginChangeGesture(int parameter) override;
@@ -111,11 +120,17 @@
 
 			//==============================================================================
 			JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioProcessor)
-			Signalizer::AudioStream stream;
+
+			std::shared_ptr<ConcurrentConfig> config;
+			AudioStream::Input realtimeInput;
+			std::shared_ptr<AudioStream::Output> realtimeOutput;
+
+			bool hasAnyLayoutBeenApplied{};
 			int nChannels;
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
+			std::shared_ptr<HostGraph> graph;
 		};
 	};
 #endif

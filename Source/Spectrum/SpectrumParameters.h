@@ -38,7 +38,11 @@
 		class SpectrumContent final
 			: public cpl::Parameters::UserContent
 			, public ProcessorState
+			, public AudioStream::Listener
+			, public std::enable_shared_from_this<SpectrumContent>
 		{
+			typedef AudioHistoryTransformatter<ParameterSet::ParameterView> AudioTransformatter;
+
 		public:
 
 			enum LineGraphs
@@ -75,11 +79,20 @@
 			// the maximum level of dbs to display
 			static constexpr double kMaxDbs = 24 * 4;
 
-			SpectrumContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-				: systemView(system)
-				, parameterSet("Spectrum", "SC.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Samples)
+			static constexpr const char* name = "Spectrum";
 
+			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
+			{
+				std::shared_ptr<SpectrumContent> ptr(new SpectrumContent(parameterOffset, system));
+
+				return ptr;
+			}
+
+		private:
+
+			SpectrumContent(std::size_t offset, SystemView& system)
+				: parameterSet(name, "SC.", system.getProcessor(), static_cast<int>(offset))
+				, audioHistoryTransformatter(system.getConcurrentConfig(), AudioTransformatter::Samples)
 				, dynamicRange(kMinDbs, kMaxDbs)
 				, literalDBFormatter("dB")
 				, reverseUnitRange(1, 0)
@@ -116,13 +129,14 @@
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, freeQ("FreeQ", boolRange, boolFormatter)
 				, trackerSmoothing("TrckSmth", trackerSmoothRange, msFormatter)
+				, showLegend("Legend", boolRange, boolFormatter)
 
 				, colourBehaviour()
 
 				// TODO: Figure out automatic way to initialize N array in constructor
 				, gridColour(colourBehaviour, "Grid.")
 				, backgroundColour(colourBehaviour, "Bck.")
-				, trackerColour(colourBehaviour, "Trck.")
+				, widgetColour(colourBehaviour, "Widg.")
 				, specColours { { colourBehaviour , "Grdnt1."}, { colourBehaviour , "Grdnt2." }, { colourBehaviour , "Grdnt3." }, { colourBehaviour , "Grdnt4." }, { colourBehaviour , "Grdnt5." } }
 
 				, specRatios{
@@ -187,7 +201,7 @@
 				regBundle(slope, "Slope.");
 				regBundle(gridColour, gridColour.getBundleName());
 				regBundle(backgroundColour, backgroundColour.getBundleName());
-				regBundle(trackerColour, trackerColour.getBundleName());
+				regBundle(widgetColour, widgetColour.getBundleName());
 
 				for (std::size_t i = 0; i < std::extent<decltype(specColours)>::value; ++i)
 					regBundle(specColours[i], specColours[i].getBundleName());
@@ -199,11 +213,24 @@
 					regBundle(lines[i].colourTwo, lines[i].colourTwo.getBundleName());
 				}
 
+				// v.0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+
 				parameterSet.seal();
 
 				postParameterInitialization();
 
 			}
+
+		public:
+
+			virtual const char* getName() override { return name; }
+
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 
@@ -214,6 +241,8 @@
 
 			virtual void serialize(cpl::CSerializer::Archiver & archive, cpl::Version v) override
 			{
+				// TODO: Values are serialized by normalized value.
+				// This means changing range is a breaking change....
 				archive << viewScaling.param;
 				archive << algorithm.param;
 				archive << channelConfiguration.param;
@@ -254,7 +283,9 @@
 				archive << referenceTuning;
 				archive << audioHistoryTransformatter;
 
-				archive << trackerSmoothing << trackerColour;
+				archive << trackerSmoothing << widgetColour;
+
+				archive << showLegend;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -302,16 +333,19 @@
 
 				if (v >= cpl::Version(0, 3, 1))
 				{
-					builder >> trackerSmoothing >> trackerColour;
+					builder >> trackerSmoothing >> widgetColour;
+				}
+
+				if (v >= cpl::Version(0, 3, 6))
+				{
+					builder >> showLegend;
 				}
 			}
 
-			SystemView systemView;
 			ParameterSet parameterSet;
-			Signalizer::AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
+			AudioTransformatter audioHistoryTransformatter;
 
 			typedef cpl::ParameterValue<ParameterSet::ParameterView> Parameter;
-
 
 
 			cpl::ParameterWindowDesignValue<ParameterSet::ParameterView> dspWin;
@@ -352,13 +386,14 @@
 				freeQ,
 				diagnostics,
 				specRatios[numSpectrumColours],
-				trackerSmoothing;
+				trackerSmoothing,
+				showLegend;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
 				gridColour,
 				backgroundColour,
 				specColours[numSpectrumColours],
-				trackerColour;
+				widgetColour;
 
 			struct LineControl
 			{
@@ -396,6 +431,11 @@
 			void postParameterInitialization()
 			{
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
+			}
+
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override
+			{
+				audioHistoryTransformatter.onStreamPropertiesChanged(changedSource, before);
 			}
 		};
 

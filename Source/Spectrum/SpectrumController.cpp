@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "SpectrumParameters.h"
+#include "Spectrum.h"
 
 namespace Signalizer
 {
@@ -39,8 +40,8 @@ namespace Signalizer
 	{
 	public:
 
-		SpectrumController(SpectrumContent & parentValue)
-			: parent(parentValue)
+		SpectrumController(SpectrumContent& parentValue, std::shared_ptr<SpectrumContent>&& shared)
+			: parent(std::move(shared))
 			, kdspWin(&parentValue.dspWin)
 			, kslope(&parentValue.slope)
 					
@@ -50,7 +51,7 @@ namespace Signalizer
 			, kdisplayMode(&parentValue.displayMode.param)
 			, kbinInterpolation(&parentValue.binInterpolation.param)
 			, kfrequencyTracker(&parentValue.frequencyTracker.param)
-			, ktrackerColour(&parentValue.trackerColour)
+			, kwidgetColour(&parentValue.widgetColour)
 			, ktrackerSmoothing(&parentValue.trackerSmoothing)
 
 			, klowDbs(&parentValue.lowDbs)
@@ -65,6 +66,7 @@ namespace Signalizer
 			, kreferenceTuning(&parentValue.referenceTuning)
 			, kdiagnostics(&parentValue.diagnostics)
 			, kfreeQ(&parentValue.freeQ)
+			, kshowLegend(&parentValue.showLegend)
 
 			// TODO: Figure out automatic way to initialize N array in constructor
 			, kgridColour(&parentValue.gridColour)
@@ -118,14 +120,14 @@ namespace Signalizer
 
 		~SpectrumController()
 		{
-			parent.algorithm.param.removeListener(this);
-			parent.displayMode.param.removeListener(this);
+			parent->algorithm.param.removeListener(this);
+			parent->displayMode.param.removeListener(this);
 			notifyDestruction();
 		}
 
 		virtual void valueEntityChanged(ValueEntityListener * sender, cpl::ValueEntityBase * value) override
 		{
-			if (value == &parent.displayMode.param || value == &parent.algorithm.param)
+			if (value == &parent->displayMode.param || value == &parent->algorithm.param)
 			{
 				setTransformOptions();
 			}
@@ -133,8 +135,8 @@ namespace Signalizer
 
 		void setTransformOptions()
 		{
-			auto algo = cpl::enum_cast<SpectrumContent::TransformAlgorithm>(parent.algorithm.param.getTransformedValue());
-			auto dispMode = cpl::enum_cast<SpectrumContent::DisplayMode>(parent.displayMode.param.getTransformedValue());
+			auto algo = cpl::enum_cast<SpectrumContent::TransformAlgorithm>(parent->algorithm.param.getTransformedValue());
+			auto dispMode = cpl::enum_cast<SpectrumContent::DisplayMode>(parent->displayMode.param.getTransformedValue());
 
 			if (algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
@@ -168,8 +170,8 @@ namespace Signalizer
 
 		void initControls()
 		{
-			parent.algorithm.param.addListener(this);
-			parent.displayMode.param.addListener(this);
+			parent->algorithm.param.addListener(this);
+			parent->displayMode.param.addListener(this);
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
@@ -203,7 +205,9 @@ namespace Signalizer
 			kpctForDivision.bSetTitle("Grid div. space");
 			kblobSize.bSetTitle("Update speed");
 			ktrackerSmoothing.bSetTitle("Tracker smooth");
-			ktrackerColour.bSetTitle("Tracker colour");
+			kwidgetColour.bSetTitle("Widget colour");
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
 
 			// ------ descriptions -----
 			kviewScaling.bSetDescription("Set the scale of the frequency-axis of the coordinate system.");
@@ -228,7 +232,8 @@ namespace Signalizer
 			kfloodFillAlpha.bSetDescription("For line graphs, add a flood fill of the same colour for each line with the following alpha %");
 			kreferenceTuning.bSetDescription("Reference tuning for A4; used when converting to/from musical notes and frequencies");
 			ktrackerSmoothing.bSetDescription("Eliminates small fluctuations and holds analysis values in the frequency tracker for a longer time");
-			ktrackerColour.bSetDescription("Colour of the frequency tracker");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends and trackers)");
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
 
 			klines[SpectrumContent::LineGraphs::LineMain]->colourOne.bSetDescription("The colour of the first channel of the main graph.");
 			klines[SpectrumContent::LineGraphs::LineMain]->colourTwo.bSetDescription("The colour of the second channel of the main graph.");
@@ -317,7 +322,7 @@ namespace Signalizer
 				{
 					section->addControl(&kgridColour, 0);
 					section->addControl(&kbackgroundColour, 1);
-					section->addControl(&ktrackerColour, 0);
+					section->addControl(&kwidgetColour, 0);
 					page->addSection(section);
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -358,6 +363,7 @@ namespace Signalizer
 					section->addControl(&kreferenceTuning, 1);
 					section->addControl(&ktrackerSmoothing, 0);
 					section->addControl(&kdiagnostics, 1);
+					section->addControl(&kshowLegend, 0);
 					page->addSection(section);
 				}
 			}
@@ -405,7 +411,8 @@ namespace Signalizer
 			archive << kslope;
 			archive << kreferenceTuning;
 			archive << ktrackerSmoothing;
-			archive << ktrackerColour;
+			archive << kwidgetColour;
+			archive << kshowLegend;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -468,7 +475,12 @@ namespace Signalizer
 
 			if (version >= cpl::Version(0, 3, 1))
 			{
-				builder >> ktrackerSmoothing >> ktrackerColour;
+				builder >> ktrackerSmoothing >> kwidgetColour;
+			}
+
+			if (version >= cpl::Version(0, 3, 6))
+			{
+				builder >> kshowLegend;
 			}
 		}
 
@@ -484,7 +496,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}
@@ -501,7 +513,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
@@ -528,7 +540,7 @@ namespace Signalizer
 			kreferenceTuning,
 			ktrackerSmoothing;
 
-		cpl::CColourControl kgridColour, kbackgroundColour, ktrackerColour;
+		cpl::CColourControl kgridColour, kbackgroundColour, kwidgetColour;
 
 		struct LineControl
 		{
@@ -543,9 +555,9 @@ namespace Signalizer
 		std::vector<std::unique_ptr<cpl::CValueKnobSlider>> kspecRatios;
 
 		cpl::CPresetWidget presetManager;
-		cpl::CButton kdiagnostics, kfreeQ;
+		cpl::CButton kdiagnostics, kfreeQ, kshowLegend;
 
-		SpectrumContent & parent;
+		std::shared_ptr<SpectrumContent> parent;
 
 		SSOSurrogate<SpectrumController>
 			editorSerializer,
@@ -553,8 +565,17 @@ namespace Signalizer
 	};
 
 
+	std::unique_ptr<cpl::CSubView> SpectrumContent::createView(
+		std::shared_ptr<const SharedBehaviour> globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig> config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<Spectrum>(globalBehaviour, config, stream, shared_from_this());
+	}
+
 	std::unique_ptr<StateEditor> SpectrumContent::createEditor()
 	{
-		return std::make_unique<SpectrumController>(*this);
+		return std::make_unique<SpectrumController>(*this, shared_from_this());
 	}
 }

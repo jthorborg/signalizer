@@ -21,7 +21,7 @@
  
 **************************************************************************************
  
-	file:VectorScope.h
+	file:VectorscopeParameters.h
 
 		Interface for the vectorscope view parameters
  
@@ -37,14 +37,13 @@
 
 		class VectorScopeContent final
 			: public cpl::Parameters::UserContent
-			, public ProcessorState
+			, public ProcessorStreamState<VectorScopeContent>
+			, public std::enable_shared_from_this<VectorScopeContent>
 		{
-		public:
 
-			VectorScopeContent(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-				: systemView(system)
-				, parameterSet("Vectorscope", "VS.", system.getProcessor(), static_cast<int>(offset))
-				, audioHistoryTransformatter(system.getAudioStream(), audioHistoryTransformatter.Milliseconds)
+			VectorScopeContent(std::size_t offset, SystemView& system)
+				: parameterSet(name, "VS.", system.getProcessor(), static_cast<int>(offset))
+				, audioHistoryTransformatter(system.getConcurrentConfig(), audioHistoryTransformatter.Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
@@ -67,14 +66,16 @@
 				, interconnectSamples("Interconnect", boolRange, boolFormatter)
 				, diagnostics("Diagnostics", boolRange, boolFormatter)
 				, primitiveSize("PixelSize", ptsRange, ptsFormatter)
-
+				, showLegend("Legend", boolRange, boolFormatter)
+				, scalePolarModeToFill("PolarScale", boolRange, boolFormatter)
 
 				, colourBehaviour()
-				, drawingColour(colourBehaviour, "Draw.")
-				, graphColour(colourBehaviour, "Graph.")
+				, waveformColour(colourBehaviour, "Draw.")
+				, axisColour(colourBehaviour, "Graph.")
 				, backgroundColour(colourBehaviour, "BackG.")
-				, skeletonColour(colourBehaviour, "Skelt.")
+				, wireframeColour(colourBehaviour, "Skelt.")
 				, meterColour(colourBehaviour, "Meter.")
+				, widgetColour(colourBehaviour, "Widg.")
 
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
@@ -93,17 +94,40 @@
 					parameterSet.registerSingleParameter(sparam->generateUpdateRegistrator());
 				}
 
-				parameterSet.registerParameterBundle(&drawingColour, drawingColour.getBundleName());
-				parameterSet.registerParameterBundle(&graphColour, graphColour.getBundleName());
+				parameterSet.registerParameterBundle(&waveformColour, waveformColour.getBundleName());
+				parameterSet.registerParameterBundle(&axisColour, axisColour.getBundleName());
 				parameterSet.registerParameterBundle(&backgroundColour, backgroundColour.getBundleName());
-				parameterSet.registerParameterBundle(&skeletonColour, skeletonColour.getBundleName());
+				parameterSet.registerParameterBundle(&wireframeColour, wireframeColour.getBundleName());
 				parameterSet.registerParameterBundle(&meterColour, meterColour.getBundleName());
 				parameterSet.registerParameterBundle(&transform, "3D.");
+
+				// v. 0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+				parameterSet.registerSingleParameter(scalePolarModeToFill.generateUpdateRegistrator());
+				parameterSet.registerParameterBundle(&widgetColour, widgetColour.getBundleName());
 
 				parameterSet.seal();
 
 				postParameterInitialization();
 			}
+
+		public:
+
+			static constexpr auto name = "Vectorscope";
+
+			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
+			{
+				std::shared_ptr<VectorScopeContent> ptr(new VectorScopeContent(parameterOffset, system));
+				return ptr;
+			}
+
+			virtual const char* getName() override { return name; }
+			
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 
@@ -121,17 +145,20 @@
 				archive << fadeOlderPoints;
 				archive << diagnostics;
 				archive << interconnectSamples;
-				archive << graphColour;
+				archive << axisColour;
 				archive << backgroundColour;
-				archive << drawingColour;
+				archive << waveformColour;
 				archive << transform;
-				archive << skeletonColour;
+				archive << wireframeColour;
 				archive << primitiveSize;
 				archive << autoGain.param;
 				archive << envelopeWindow;
 				archive << operationalMode.param;
 				archive << stereoWindow;
 				archive << meterColour;
+				archive << scalePolarModeToFill;
+				archive << showLegend;
+				archive << widgetColour;
 			}
 
 			virtual void deserialize(cpl::CSerializer::Builder & builder, cpl::Version v) override
@@ -143,21 +170,27 @@
 				builder >> fadeOlderPoints;
 				builder >> diagnostics;
 				builder >> interconnectSamples;
-				builder >> graphColour;
+				builder >> axisColour;
 				builder >> backgroundColour;
-				builder >> drawingColour;
+				builder >> waveformColour;
 				builder >> transform;
-				builder >> skeletonColour;
+				builder >> wireframeColour;
 				builder >> primitiveSize;
 				builder >> autoGain.param;
 				builder >> envelopeWindow;
 				builder >> operationalMode.param;
 				builder >> stereoWindow;
 				builder >> meterColour;
+
+				if (v >= cpl::Version(0, 3, 6))
+				{
+					builder >> scalePolarModeToFill;
+					builder >> showLegend;
+					builder >> widgetColour;
+				}
 			}
 
 			AudioHistoryTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
-			SystemView systemView;
 			ParameterSet parameterSet;
 
 			cpl::UnitFormatter<double>
@@ -190,7 +223,9 @@
 				fadeOlderPoints,
 				interconnectSamples,
 				diagnostics,
-				primitiveSize;
+				primitiveSize,
+				showLegend,
+				scalePolarModeToFill;
 
 			ChoiceParameter
 				autoGain,
@@ -199,11 +234,12 @@
 			cpl::ParameterColourValue<ParameterSet::ParameterView>::SharedBehaviour colourBehaviour;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>
-				drawingColour,
-				graphColour,
+				waveformColour,
+				axisColour,
 				backgroundColour,
-				skeletonColour,
-				meterColour;
+				wireframeColour,
+				meterColour,
+				widgetColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
@@ -215,6 +251,12 @@
 			{
 				audioHistoryTransformatter.initialize(windowSize.getParameterView());
 			}
+
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override
+			{
+				audioHistoryTransformatter.onStreamPropertiesChanged(changedSource, before);
+			}
+
 		};
 	
 	};

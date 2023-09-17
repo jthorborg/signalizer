@@ -37,14 +37,15 @@
 
 		class OscilloscopeContent final
 			: public cpl::Parameters::UserContent
-			, public ProcessorState
+			, public ProcessorStreamState<OscilloscopeContent>
 			, public ParameterSet::UIListener
+			, public std::enable_shared_from_this<OscilloscopeContent>
 		{
 		public:
 
 			static constexpr std::size_t LookaheadSize = 8192;
 			static constexpr std::size_t InterpolationKernelSize = 10;
-			static constexpr std::size_t NumColourChannels = 16;
+			static constexpr std::size_t NumColourChannels = MaxInputChannels;
 
 			enum class TriggeringMode
 			{
@@ -72,12 +73,11 @@
 			public:
 
 			    typedef typename AudioHistoryTransformatter<ParameterView>::Mode Mode;
-			    typedef typename AudioHistoryTransformatter<ParameterView>::Stream Stream;
 			    typedef typename AudioHistoryTransformatter<ParameterView>::ValueType ValueType;
 			    typedef typename AudioHistoryTransformatter<ParameterView>::Scaling Scaling;
 
-				WindowSizeTransformatter(AudioStream & audioStream, std::size_t auxLookahead, Mode mode = Mode::Milliseconds)
-					: AudioHistoryTransformatter<ParameterView>(audioStream, mode)
+				WindowSizeTransformatter(std::shared_ptr<const ConcurrentConfig>& concurrentConfig, std::size_t auxLookahead, Mode mode = Mode::Milliseconds)
+					: AudioHistoryTransformatter<ParameterView>(concurrentConfig, mode)
 					, lookahead(auxLookahead)
 					, timeMode(TimeMode::Time)
 				{
@@ -92,33 +92,6 @@
 
 			private:
 
-				virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
-				{
-					// TODO: what if oldCapacity == 0?
-					const auto oldFraction = this->param->getValueNormalized();
-					auto oldCapacity = this->lastCapacity.load(std::memory_order_relaxed);
-					auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
-					if (oldCapacity == 0)
-						oldCapacity = beforeCapacity;
-
-					const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
-
-					if (newCapacity > 0)
-						this->lastCapacity.store(newCapacity, std::memory_order_relaxed);
-
-					if (oldCapacity == 0 || newCapacity == 0)
-					{
-						this->param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
-					}
-					else
-					{
-						const auto sampleSizeBefore = oldCapacity * oldFraction;
-						const auto newFraction = sampleSizeBefore / newCapacity;
-						if (oldFraction != newFraction || beforeCapacity == 0)
-							this->param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
-					}
-				}
-
 				virtual bool format(const ValueType & val, std::string & buf) override
 				{
 					char buffer[100];
@@ -126,13 +99,13 @@
 					{
 						case TimeMode::Cycles:
 						{
-							sprintf_s(buffer, u8"%.2f (%.2f r)", val, cpl::simd::consts<ValueType>::tau * val);
+							cpl::sprintfs(buffer, u8"%.2f (%.2f r)", val, cpl::simd::consts<ValueType>::tau * val);
 							buf = buffer;
 							return true;
 						}
 						case TimeMode::Beats:
 						{
-							sprintf_s(buffer, "1/%.0f", val);
+							cpl::sprintfs(buffer, "1/%.0f", val);
 							buf = buffer;
 							return true;
 						}
@@ -192,7 +165,7 @@
 							{
 								collectedValue /= 1000;
 							}
-							collectedValue *= this->stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+							collectedValue *= this->sampleRate;
 						}
 						else
 						{
@@ -200,7 +173,7 @@
 							if (this->m == Mode::Milliseconds && notSamples)
 							{
 								collectedValue /= 1000;
-								collectedValue *= this->stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+								collectedValue *= this->sampleRate;
 							}
 						}
 
@@ -228,7 +201,7 @@
 						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
-							const auto capacity = this->stream.getAudioHistoryCapacity();
+							const auto capacity = this->lastCapacity;
 
 							const auto top = capacity;
 							const auto expSamples = cpl::Math::UnityScale::exp<ValueType>(val, minExponential, top);
@@ -255,7 +228,7 @@
 						default: case TimeMode::Time:
 						{
 							const auto minExponential = 100;
-							const auto capacity = this->stream.getAudioHistoryCapacity();
+							const auto capacity = this->lastCapacity;
 							const auto top = capacity;
 							const auto linear = cpl::Math::UnityScale::Inv::linear<ValueType>(val, 2, top);
 							const auto expSamples = cpl::Math::UnityScale::linear<ValueType>(linear, minExponential, top);
@@ -266,7 +239,7 @@
 					}
 				}
 
-				std::atomic<Scaling> scale;
+				cpl::weak_atomic<Scaling> scale;
 				std::size_t lookahead;
 				TimeMode timeMode;
 			};
@@ -278,8 +251,8 @@
 
 				typedef typename ParameterView::ParameterType::ValueType ValueType;
 
-				LinearHzFormatter(AudioStream & as)
-					: stream(as)
+				LinearHzFormatter(const ConcurrentConfig& cfg)
+					: config(cfg)
 				{
 					setTuningFromA4();
 				}
@@ -292,7 +265,7 @@
 				virtual bool format(const ValueType & val, std::string & buf) override
 				{
 					char buffer[100];
-					sprintf_s(buffer, "%.5f Hz", val);
+					cpl::sprintfs(buffer, "%.5f Hz", val);
 					buf = buffer;
 					return true;
 				}
@@ -344,7 +317,7 @@
 
 						if (buf.find("smps") != std::string::npos)
 						{
-							contained = stream.getAudioHistorySamplerate() / contained;
+							contained = config.sampleRate / contained;
 						}
 						else if (buf.find("ms") != std::string::npos)
 						{
@@ -352,12 +325,11 @@
 						}
 						else if (buf.find("r") != std::string::npos)
 						{
-							contained = (contained / (2 * cpl::simd::consts<ValueType>::pi)) * stream.getAudioHistorySamplerate();
+							contained = (contained / (2 * cpl::simd::consts<ValueType>::pi)) * config.sampleRate;
 						}
 						else if (buf.find("b") != std::string::npos)
 						{
-							// TODO: Tecnically illegal to acquire the async playhead here -
-							contained = (contained * stream.getASyncPlayhead().getBPM()) / 60;
+							contained = (contained * config.bpm) / 60;
 						}
 
 						val = contained;
@@ -368,16 +340,26 @@
 					return false;
 				}
 
-
 			private:
+
 				double a4InHz;
-				const AudioStream & stream;
+				const ConcurrentConfig& config;
 			};
 
-			OscilloscopeContent(std::size_t parameterOffset, bool shouldCreateShortNames, SystemView system)
-				: systemView(system)
-				, parameterSet("Oscilloscope", "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
-				, audioHistoryTransformatter(system.getAudioStream(), LookaheadSize, audioHistoryTransformatter.Milliseconds)
+			static constexpr const char* name = "Oscilloscope";
+
+			static std::shared_ptr<ProcessorState> create(std::size_t parameterOffset, SystemView& system)
+			{
+				std::shared_ptr<OscilloscopeContent> ptr(new OscilloscopeContent(parameterOffset, system));
+				return ptr;
+			}
+
+		private:
+
+			OscilloscopeContent(std::size_t parameterOffset, SystemView& system)
+				: concurrentConfig(system.getConcurrentConfig())
+				, parameterSet(name, "OS.", system.getProcessor(), static_cast<int>(parameterOffset))
+				, audioHistoryTransformatter(system.getConcurrentConfig(), LookaheadSize, WindowSizeTransformatter<ParameterSet::ParameterView>::Milliseconds)
 
 				, dbRange(cpl::Math::dbToFraction(-120.0), cpl::Math::dbToFraction(120.0))
 				, windowRange(0, 1000)
@@ -392,7 +374,7 @@
 				, msFormatter("ms")
 				, degreeFormatter("degs")
 				, ptsFormatter("pts")
-				, customTriggerFormatter(system.getAudioStream())
+				, customTriggerFormatter(*concurrentConfig)
 
 				, autoGain("AutoGain")
 				, envelopeWindow("EnvWindow", windowRange, msFormatter)
@@ -414,7 +396,7 @@
 				, channelColouring("Colouring")
 				, colourSmoothing("ColSmooth", colourSmoothRange, msFormatter)
 				, cursorTracker("CursorTrck", unityRange, boolFormatter)
-				, showLegend(&unityRange, &boolFormatter)
+				, showLegend("Show legend", boolRange, boolFormatter)
 				, frequencyColouringBlend("FColBlend", unityRange, pctFormatter)
 				, triggerHysteresis("TrgHstrs", unityRange, pctFormatter)
 				, triggerThreshold("TrgThrhold", triggerThresholdRange, dbFormatter)
@@ -429,7 +411,7 @@
 				, lowColour(colourBehaviour, "Low.")
 				, midColour(colourBehaviour, "Mid.")
 				, highColour(colourBehaviour, "High.")
-				, trackerColour(colourBehaviour, "Trckr.")
+				, widgetColour(colourBehaviour, "Widg.")
 				, tsfBehaviour()
 				, transform(tsfBehaviour)
 
@@ -484,30 +466,43 @@
 					parameterSet.registerSingleParameter(v.generateUpdateRegistrator());
 				}
 
-				for (auto cparam : { &primaryColour, &secondaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &trackerColour })
+				for (auto cparam : { &primaryColour, &secondaryColour, &graphColour, &backgroundColour, &lowColour, &midColour, &highColour, &widgetColour })
 				{
 					parameterSet.registerParameterBundle(cparam, cparam->getBundleName());
 				}
 
 				parameterSet.registerParameterBundle(&transform, "3D.");
 
+				// v. 0.3.6
+				parameterSet.registerSingleParameter(showLegend.generateUpdateRegistrator());
+
 				parameterSet.seal();
-				audioHistoryTransformatter.initialize(windowSize.getParameterView());
+				postParameterInitialization();
 				timeMode.param.getParameterView().addListener(this);
 			}
+
+		public:
 
 			~OscilloscopeContent()
 			{
 				timeMode.param.getParameterView().removeListener(this);
 			}
 
-			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter)
+			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 			{
 				if (parameter == &timeMode.param.getParameterView())
 				{
 					audioHistoryTransformatter.setTimeModeFromUI(timeMode.param.getAsTEnum<TimeMode>());
 				}
 			}
+
+			virtual const char* getName() override { return name; }
+
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) override;
 
 			virtual std::unique_ptr<StateEditor> createEditor() override;
 
@@ -548,15 +543,10 @@
 				archive << secondaryColour;
 				archive << colourSmoothing;
 				archive << cursorTracker;
-				archive << trackerColour;
+				archive << widgetColour;
 				archive << frequencyColouringBlend;
 				archive << triggerHysteresis;
 				archive << triggerThreshold;
-
-				for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
-				{
-					archive << *b;
-				}
 
 				archive << showLegend;
 				archive << triggeringChannel;
@@ -599,7 +589,7 @@
 				if (version >= cpl::Version(0, 3, 1))
 				{
 					builder >> cursorTracker;
-					builder >> trackerColour;
+					builder >> widgetColour;
 					builder >> frequencyColouringBlend;
 				}
 
@@ -611,30 +601,29 @@
 
 				if (version >= cpl::Version(0, 3, 3))
 				{
-					for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+					if (version < cpl::Version(0, 3, 7))
 					{
-						builder >> *b;
+						// intermediate leftover from a hack version.
+						cpl::CompleteColour
+							extraColours[16 - 2];
+
+						for (auto b = std::begin(extraColours); b != std::end(extraColours); ++b)
+						{
+							builder >> *b;
+						}
 					}
+
 
 					builder >> showLegend;
 					builder >> triggeringChannel;
 				}
 			}
 
-			cpl::ColourValue& getColour(std::size_t index) noexcept
-			{
-				switch (index)
-				{
-				case 0: return primaryColour;
-				case 1: return secondaryColour;
-				default:
-					return extraColours[index - 2];
-				}
-			}
+			std::shared_ptr<const ConcurrentConfig> concurrentConfig;
 
 			WindowSizeTransformatter<ParameterSet::ParameterView> audioHistoryTransformatter;
 			LinearHzFormatter<ParameterSet::ParameterView> customTriggerFormatter;
-			SystemView systemView;
+			// TODO: if life time of parameters are extended, make this a weak pointer?
 			ParameterSet parameterSet;
 
 			cpl::UnitFormatter<double>
@@ -691,7 +680,8 @@
 				frequencyColouringBlend,
 				triggerHysteresis,
 				triggerThreshold,
-				triggeringChannel;
+				triggeringChannel,
+				showLegend;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
 
@@ -711,19 +701,19 @@
 				graphColour,
 				backgroundColour,
 				lowColour, midColour, highColour,
-				trackerColour;
+				widgetColour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
 
-			cpl::SelfcontainedValue<>
-				showLegend;
-
-			cpl::CompleteColour
-				extraColours[NumColourChannels - 2];
-
 		private:
+
+
+			void onStreamPropertiesChanged(AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before) override 
+			{
+				audioHistoryTransformatter.onStreamPropertiesChanged(changedSource, before);
+			}
 
 			void postParameterInitialization()
 			{

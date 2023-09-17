@@ -35,21 +35,24 @@
 	#include "../Signalizer.h"
 	#include "../Common/SignalizerDesign.h"
 	#include "../Common/SentientViewState.h"
+	#include "SignalizerConfiguration.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/GUI.h>
 	#include <map>
 	#include <stack>
 	#include <array>
+	#include <memory>
+	#include "../Common/MixGraphListener.h"
 
 	namespace Signalizer
 	{
 		class AudioProcessor;
+		class GraphEditor;
 
 		class MainEditor
 		:
 			public		juce::AudioProcessorEditor,
 			private		juce::Timer,
-			private		juce::HighResolutionTimer,
 			protected	cpl::CBaseControl::Listener,
 			private		cpl::CBaseControl::ValueFormatter,
 			public		cpl::CTopView,
@@ -60,7 +63,6 @@
 			public		juce::ComponentListener,
 			private		cpl::GUIUtils::NestedMouseInterceptor::Listener
 		{
-
 		public:
 
 			static const int tabBarTimeout = 1000;
@@ -95,7 +97,6 @@
 
 			// timers
 			void timerCallback() override;
-			void hiResTimerCallback() override;
 
 			// functionality
 			void setRefreshRate(int rateInMs);
@@ -105,6 +106,7 @@
 
 			void showAboutBox();
 
+			void graphEditorDied();
 
 		protected:
 
@@ -149,8 +151,7 @@
 
 			struct NewChanges
 			{
-				std::atomic<int> swapInterval;
-				std::atomic<bool> repaintContinuously;
+				cpl::weak_atomic<int> swapInterval = 1;
 			} newc;
 
 			void setTabBarVisibility(bool toggle);
@@ -180,7 +181,7 @@
 			// Constant UI
 			cpl::GUIUtils::NestedMouseInterceptor nestedMouseHook;
 			cpl::CTextTabBar<> tabs;
-			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk;
+			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk, kgraph;
 
 			// Editor controls
 			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend;
@@ -213,7 +214,10 @@
 			SentientViewState * currentView;
 			juce::ResizableCornerComponent rcc;
 			ParameterMap * params;
-			SharedBehaviour globalState;
+			std::shared_ptr<SharedBehaviour> globalState;
+			MixGraphListener::Handle mixGraph;
+			std::shared_ptr<AudioStream::Output> presentationOutput;
+			GraphEditor* graphEditor;
 		};
 	};
 

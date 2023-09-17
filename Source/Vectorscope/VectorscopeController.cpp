@@ -30,6 +30,7 @@
 #include "Signalizer.h"
 #include "../Common/SignalizerDesign.h"
 #include "VectorscopeParameters.h"
+#include "Vectorscope.h"
 
 namespace Signalizer
 {
@@ -38,8 +39,8 @@ namespace Signalizer
 	{
 	public:
 
-		VectorScopeController(VectorScopeContent & parentValue)
-			: parent(parentValue)
+		VectorScopeController(VectorScopeContent& parentValue, std::shared_ptr<VectorScopeContent>&& shared)
+			: parent(std::move(shared))
 			, kantiAlias(&parentValue.antialias)
 			, kfadeOld(&parentValue.fadeOlderPoints)
 			, kdrawLines(&parentValue.interconnectSamples)
@@ -50,15 +51,18 @@ namespace Signalizer
 			, kprimitiveSize(&parentValue.primitiveSize)
 			, kenvelopeSmooth(&parentValue.envelopeWindow)
 			, kstereoSmooth(&parentValue.stereoWindow)
-			, kdrawingColour(&parentValue.drawingColour)
-			, kgraphColour(&parentValue.graphColour)
+			, kwaveformColour(&parentValue.waveformColour)
+			, kaxisColour(&parentValue.axisColour)
 			, kbackgroundColour(&parentValue.backgroundColour)
-			, kskeletonColour(&parentValue.skeletonColour)
+			, kwireframeColour(&parentValue.wireframeColour)
 			, kmeterColour(&parentValue.meterColour)
 			, ktransform(&parentValue.transform)
 			, kopMode(&parentValue.operationalMode.param)
 			, kenvelopeMode(&parentValue.autoGain.param)
+			, kshowLegend(&parentValue.showLegend)
 			, kpresets(&valueSerializer, "vectorscope")
+			, kwidgetColour(&parentValue.widgetColour)
+			, kscalePolar(&parentValue.scalePolarModeToFill)
 			, editorSerializer(
 				*this,
 				[](auto & oc, auto & se, auto version) { oc.serializeEditorSettings(se, version); },
@@ -86,14 +90,15 @@ namespace Signalizer
 			kwindow.bSetTitle("Window size");
 			krotation.bSetTitle("Wave Z-rotation");
 			kgain.bSetTitle("Input gain");
-			kgraphColour.bSetTitle("Graph colour");
+			kaxisColour.bSetTitle("Axis colour");
 			kbackgroundColour.bSetTitle("Backg. colour");
-			kdrawingColour.bSetTitle("Drawing colour");
-			kskeletonColour.bSetTitle("Skeleton colour");
+			kwaveformColour.bSetTitle("Audio colour");
+			kwireframeColour.bSetTitle("Wireframe colour");
 			kprimitiveSize.bSetTitle("Primitive size");
 			kmeterColour.bSetTitle("Meter colour");
 			kenvelopeSmooth.bSetTitle("Env. window");
 			kstereoSmooth.bSetTitle("Stereo window");
+			kwidgetColour.bSetTitle("Widget colour");
 
 			// buttons n controls
 			kantiAlias.setSingleText("Antialias");
@@ -105,6 +110,10 @@ namespace Signalizer
 			kdiagnostics.setSingleText("Diagnostics");
 			kdiagnostics.setToggleable(true);
 			kenvelopeMode.bSetTitle("Auto-gain mode");
+			kshowLegend.bSetTitle("Show legend");
+			kshowLegend.setToggleable(true);
+			kscalePolar.bSetTitle("Scale polar");
+			kscalePolar.setToggleable(true);
 
 			// design
 			kopMode.bSetTitle("Operational mode");
@@ -119,18 +128,20 @@ namespace Signalizer
 			kantiAlias.bSetDescription("Antialiases rendering (if set - see global settings for amount). May slow down rendering.");
 			kfadeOld.bSetDescription("If set, gradually older samples will be faded linearly.");
 			kdrawLines.bSetDescription("If set, interconnect samples linearly.");
-			kdrawingColour.bSetDescription("The main colour to paint with.");
-			kgraphColour.bSetDescription("The colour of the graph.");
+			kwaveformColour.bSetDescription("The main colour of the waveform audio.");
+			kaxisColour.bSetDescription("The colour of the axis lines of the graph.");
 			kbackgroundColour.bSetDescription("The background colour of the view.");
 			kdiagnostics.bSetDescription("Toggle diagnostic information in top-left corner.");
-			kskeletonColour.bSetDescription("The colour of the box skeleton indicating the OpenGL camera clip box.");
+			kwireframeColour.bSetDescription("The colour of the wireframe attached to the graph.");
 			kmeterColour.bSetDescription("The colour of the stereo meters (balance and phase)");
 			kprimitiveSize.bSetDescription("The size of the rendered primitives (eg. lines or points).");
 			kenvelopeMode.bSetDescription("Monitors the audio stream and automatically scales the input gain such that it approaches unity intensity (envelope following).");
 			kenvelopeSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the envelope follower to decay.");
 			kopMode.bSetDescription("Changes the presentation of the data - Lissajous is the classic XY mode on oscilloscopes, while the polar mode is a wrapped circle of the former.");
 			kstereoSmooth.bSetDescription("Responsiveness (RMS window size) - or the time it takes for the stereo meters to follow.");
-
+			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours.");
+			kwidgetColour.bSetDescription("Colour of widgets on the screen (like legends).");
+			kscalePolar.bSetDescription("Scale the height of the polar mode to fill the screen.");
 		}
 
 		void initUI()
@@ -157,7 +168,6 @@ namespace Signalizer
 
 
 					page->addSection(section, "Utility");
-					//
 				}
 			}
 
@@ -168,16 +178,17 @@ namespace Signalizer
 					section->addControl(&kantiAlias, 0);
 					section->addControl(&kfadeOld, 1);
 					section->addControl(&kdrawLines, 2);
-					section->addControl(&kdiagnostics, 3);
+					section->addControl(&kshowLegend, 3);
 					page->addSection(section, "Options");
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())
 				{
-					section->addControl(&kdrawingColour, 0);
-					section->addControl(&kgraphColour, 0);
+					section->addControl(&kwaveformColour, 0);
+					section->addControl(&kaxisColour, 0);
 					section->addControl(&kbackgroundColour, 0);
-					section->addControl(&kskeletonColour, 0);
+					section->addControl(&kwireframeColour, 0);
 					section->addControl(&kmeterColour, 1);
+					section->addControl(&kwidgetColour, 1);
 					section->addControl(&kprimitiveSize, 1);
 					page->addSection(section, "Look");
 				}
@@ -189,6 +200,13 @@ namespace Signalizer
 				{
 					section->addControl(&kpresets, 0);
 					page->addSection(section, "Presets");
+				}
+
+				if (auto section = new Signalizer::CContentPage::MatrixSection())
+				{
+					section->addControl(&kdiagnostics, 0);
+					section->addControl(&kscalePolar, 1);
+					page->addSection(section, "Options");
 				}
 			}
 		}
@@ -204,17 +222,20 @@ namespace Signalizer
 			archive << kfadeOld;
 			archive << kdiagnostics;
 			archive << kdrawLines;
-			archive << kgraphColour;
+			archive << kaxisColour;
 			archive << kbackgroundColour;
-			archive << kdrawingColour;
+			archive << kwaveformColour;
 			archive << ktransform;
-			archive << kskeletonColour;
+			archive << kwireframeColour;
 			archive << kprimitiveSize;
 			archive << kenvelopeMode;
 			archive << kenvelopeSmooth;
 			archive << kopMode;
 			archive << kstereoSmooth;
 			archive << kmeterColour;
+			archive << kshowLegend;
+			archive << kwidgetColour;
+			archive << kscalePolar;
 		}
 
 		void deserializeEditorSettings(cpl::CSerializer::Archiver & builder, cpl::Version version)
@@ -232,17 +253,24 @@ namespace Signalizer
 			builder >> kfadeOld;
 			builder >> kdiagnostics;
 			builder >> kdrawLines;
-			builder >> kgraphColour;
+			builder >> kaxisColour;
 			builder >> kbackgroundColour;
-			builder >> kdrawingColour;
+			builder >> kwaveformColour;
 			builder >> ktransform;
-			builder >> kskeletonColour;
+			builder >> kwireframeColour;
 			builder >> kprimitiveSize;
 			builder >> kenvelopeMode;
 			builder >> kenvelopeSmooth;
 			builder >> kopMode;
 			builder >> kstereoSmooth;
 			builder >> kmeterColour;
+			
+			if (version > cpl::Version(0, 3, 6))
+			{
+				builder >> kshowLegend;
+				builder >> kwidgetColour;
+				builder >> kscalePolar;
+			}
 		}
 
 		// entrypoints for completely storing values and settings in independant blobs (the preset widget)
@@ -257,7 +285,7 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				serializeEditorSettings(archive.getContent("Editor"), version);
-				archive.getContent("Parameters") << parent;
+				archive.getContent("Parameters") << *parent;
 			}
 
 		}
@@ -274,18 +302,18 @@ namespace Signalizer
 			{
 				// store parameter and editor settings separately
 				deserializeEditorSettings(builder.getContent("Editor"), version);
-				builder.getContent("Parameters") >> parent;
+				builder.getContent("Parameters") >> *parent;
 			}
 		}
 
-		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics;
+		cpl::CButton kantiAlias, kfadeOld, kdrawLines, kdiagnostics, kshowLegend, kscalePolar;
 		cpl::CValueKnobSlider kwindow, krotation, kgain, kprimitiveSize, kenvelopeSmooth, kstereoSmooth;
-		cpl::CColourControl kdrawingColour, kgraphColour, kbackgroundColour, kskeletonColour, kmeterColour;
+		cpl::CColourControl kwaveformColour, kaxisColour, kbackgroundColour, kwireframeColour, kmeterColour, kwidgetColour;
 		cpl::CTransformWidget ktransform;
 		cpl::CValueComboBox kopMode, kenvelopeMode;
 		cpl::CPresetWidget kpresets;
 
-		VectorScopeContent & parent;
+		std::shared_ptr<VectorScopeContent> parent;
 
 		SSOSurrogate<VectorScopeController>
 			editorSerializer,
@@ -295,7 +323,15 @@ namespace Signalizer
 
 	std::unique_ptr<StateEditor> VectorScopeContent::createEditor()
 	{
-		return std::make_unique<VectorScopeController>(*this);
+		return std::make_unique<VectorScopeController>(*this, shared_from_this());
 	}
 
+	std::unique_ptr<cpl::CSubView> VectorScopeContent::createView(
+		std::shared_ptr<const SharedBehaviour> globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig> config,
+		std::shared_ptr<AudioStream::Output>& stream
+	)
+	{
+		return std::make_unique<VectorScope>(globalBehaviour, config, stream, shared_from_this());
+	}
 };

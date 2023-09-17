@@ -30,7 +30,7 @@
 #ifndef SIGNALIZER_SPECTRUM_H
 	#define SIGNALIZER_SPECTRUM_H
 
-	#include "Signalizer.h"
+	#include "../Signalizer.h"
 	#include <cpl/Common.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/Utility.h>
@@ -45,6 +45,9 @@
 	#include <vector>
 	#include "SpectrumParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
+	#include "TransformConstant.h"
+	#include "TransformPair.h"
+	#include <cpl/lib/LockFreeDataQueue.h>
 
 	namespace cpl
 	{
@@ -55,67 +58,43 @@
 		};
 	};
 
-
 	namespace Signalizer
 	{
-
 		class Spectrum final
-		:
-			public cpl::COpenGLView,
-			protected AudioStream::Listener,
-			private ParameterSet::RTListener
+			: public GraphicsWindow
+			, protected AudioStream::Listener
+			, private ParameterSet::RTListener
 		{
-
 		public:
-
-			typedef UComplexFilter<AudioStream::DataType> UComplex;
 			typedef AudioStream::DataType fpoint;
-			typedef double fftType;
 
-			class SFrameBuffer
-			{
-			public:
-
-				typedef cpl::aligned_vector < UComplex, 32 > FrameVector;
-
-				SFrameBuffer()
-					: sampleBufferSize(), sampleCounter(), currentCounter(), frameQueue(10, 1000)
-				{
-
-				}
-				std::size_t sampleBufferSize;
-				std::size_t currentCounter;
-				std::uint64_t sampleCounter;
-
-				cpl::CLockFreeQueue<FrameVector *> frameQueue;
-			};
-
-
+			typedef TransformPair<float> TransformPair;
+			typedef TransformPair::Constant Constant;
+			typedef TransformPair::ProcessingType ProcessingType;
 
 			struct DBRange
 			{
 				double low, high;
 			};
 
-			Spectrum(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * state);
+			Spectrum(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream,
+				std::shared_ptr<SpectrumContent> params
+			);
 			virtual ~Spectrum();
 
 			// Component overrides
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
-			void mouseMove(const juce::MouseEvent& event) override;
-			void mouseExit(const juce::MouseEvent & e) override;
-			void mouseEnter(const juce::MouseEvent & e) override;
 
 			void resized() override;
 
 
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void onGraphicsRendering(juce::Graphics & g) override;
 			void initOpenGL() override;
 			void closeOpenGL() override;
 
@@ -125,13 +104,8 @@
 			void freeze() override;
 			void unfreeze() override;
 			void resetState() override;
-			std::unique_ptr<juce::Component> createEditor();
-
-			bool isEditorOpen() const;
 
 			// interface
-
-
 			void setDBs(double low, double high, bool updateControls = false);
 			DBRange getDBs() const noexcept;
 
@@ -144,113 +118,35 @@
 			void setWindowSize(std::size_t size);
 
 		protected:
+			static constexpr float gradientWidth = 10.0f;
+
+			typedef TransformPair::UComplex UComplex;
 
 			struct RenderingDispatcher
 			{
 				template<typename ISA> static void dispatch(Spectrum & c) { c.vectorGLRendering<ISA>(); }
 			};
 
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(Spectrum & c, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
-				{
-					c.audioProcessing<ISA>(buffer, numChannels, numSamples);
-				}
-			};
-
-
             template<typename ISA>
                 void vectorGLRendering();
 
-			virtual void paint2DGraphics(juce::Graphics & g);
+			virtual void paint2DGraphics(juce::Graphics & g, const Constant& constant, /*const*/ TransformPair& primaryTransform);
 
 			virtual void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-
-
-			/// <summary>
-			/// Maps the current resonating system according to the current model (linear/logarithmic) and the current
-			/// subsection of the complete spectrum such that a linear array of output data matches pixels 1:1, as well as
-			/// formats the data into the filterResults array according to the channel mode (SpectrumChannels).
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace().
-			/// After the call to mapToLinearSpace, the results are written to getWorkingMemory().
-			/// Returns the complex amount of filters processed.
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			std::size_t mapToLinearSpace();
-
-			/// <summary>
-			/// Runs the transform (of any kind) results through potential post filters and other features, before displaying it.
-			/// The transform will be rendered into filterResults after this.
-			/// </summary>
-			template<class InVector>
-				void postProcessTransform(const InVector & transform, std::size_t size);
-
-			/// <summary>
-			/// Post processes the transform that will be interpreted according to what's selected.
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			void postProcessStdTransform();
-
-			/// <summary>
-			/// Call this when something affects the view scaling, view size, mapping of frequencies, display modes etc.
-			/// Set state accordingly first.
-			/// </summary>
-			void displayReordered();
-
-			/// <summary>
-			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-			/// or windowing, this is done here.
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			bool prepareTransform(const AudioStream::AudioBufferAccess & audio);
-
-			/// <summary>
-			/// For some transform algorithms, it may be a no-op, but for others (like FFTs) that may need zero-padding
-			/// or windowing, this is done here.
-			///
-			/// This functions considers the additional arguments as more recent audio than the audio buffers (and as of such, considers numSamples less audio from
-			/// the first argument).
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			bool prepareTransform(const AudioStream::AudioBufferAccess & audio, fpoint ** preliminaryAudio, std::size_t numChannels, std::size_t numSamples);
-
-			/// <summary>
-			/// Again, some algorithms may not need this, but this ensures the transform is done after this call.
-			///
-			/// Call prepareTransform(), then doTransform(), then mapToLinearSpace()
-			/// Needs exclusive access to audioResource.
-			/// </summary>
-			void doTransform();
-
-			/// <summary>
-			/// internally used for now.
-			/// </summary>
-			bool processNextSpectrumFrame();
-
-			void calculateSpectrumColourRatios();
+			void calculateSpectrumColourRatios(Constant& constant);
 		private:
-
-			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override;
-			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override;
-
+			typedef cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> UPixel;
+			typedef std::array<juce::Colour, SpectrumContent::LineGraphs::LineEnd> LineColours;
+			typedef cpl::aligned_vector<UPixel, 16> FrameVector;
+			typedef cpl::CLockFreeDataQueue<FrameVector> SFrameQueue;
+			struct StreamState;
+			
 			std::size_t getValidWindowSize(std::size_t in) const noexcept;
-
-			/// <summary>
-			/// Returns the number of needed channels required to process the current
-			/// channel configuration.
-			/// </summary>
-			std::size_t getStateConfigurationChannels() const noexcept;
 
 			/// <summary>
 			/// Transforms state.audioBlobSizeMs into samples.
 			/// </summary>
-			/// <returns></returns>
 			std::size_t getBlobSamples() const noexcept;
 
 			/// <summary>
@@ -266,17 +162,14 @@
 			/// <summary>
 			/// The number of pixels/points in the frequency axis.
 			/// </summary>
-			/// <returns></returns>
 			int getAxisPoints() const noexcept;
 			/// <summary>
 			/// For a certain blob size and refresh rate, N frames has to be generated each display update.
 			/// </summary>
-			/// <returns></returns>
 			double getOptimalFramesPerUpdate() const noexcept;
 			/// <summary>
 			/// Returns an estimate of how many frames whom are ready to be rendered, through processNextSpectrumFrame()
 			/// </summary>
-			/// <returns></returns>
 			std::size_t getApproximateStoredFrames() const noexcept;
 			/// <summary>
 			/// Inits the UI.
@@ -289,106 +182,25 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates();
-			/// <summary>
-			/// Computes the time-domain window kernel (see state.windowKernel) of getWindowSize() size.
-			/// </summary>
-			void computeWindowKernel();
-
-			template<typename T>
-				T * getAudioMemory()
-				{
-					return reinterpret_cast<T*>(audioMemory.data());
-				}
-
-			/// <summary>
-			/// All inputs must be normalized. Scales the input to the display decibels, and runs it through peak filters.
-			/// newVals = current vector of floats / doubles * 2 (complex), output from CSignalTransform::**dft() of size * 2
-			/// for mode = left / merge / mid / side / right
-			/// 	newVals is a complex vector of floats of size
-			/// for mode = separate, mid&side
-			/// 	newVals is a complex vector of floats of size * 2
-			/// 	newVals[n * 2 + 0] = lreal
-			/// 	newVals[n * 2 + 1] = limag
-			/// 	newVals[n * 2 + size + 0] = rreal
-			/// 	newVals[n * 2 + size + 1] = rimag
-			/// for mode = phase
-			/// 	newVals[n * 2 + 0] = mag
-			/// 	newVals[n * 2 + 1] = phase cancellation(with 1 being totally cancelled)
-			/// </summary>
-			template<class V2>
-				void mapAndTransformDFTFilters(SpectrumChannels type, const V2 & newVals, std::size_t size, double lowerFraction, double upperFraction, float clip);
-
-			/// <summary>
-			/// Returns the number of T elements available in the audio space buffer
-			/// (as returned by getAudioMemory<T>())
-			/// </summary>
-			template<typename T>
-				std::size_t getNumAudioElements() const noexcept;
-
-			/// <summary>
-			/// Gets the relay buffer for the channel.
-			/// Note: you should call ensureRelayBufferSize before.
-			/// </summary>
-			fpoint * getRelayBufferChannel(std::size_t channel);
-			/// <summary>
-			/// Ensures the storage for the relay buffer.
-			/// Not suited for real-time usage (allocates memory)
-			/// </summary>
-			void ensureRelayBufferSize(std::size_t channels, std::size_t numSamples);
-			/// <summary>
-			/// Returns the number of T elements available to be used as a FFT (power2 buffer size).
-			/// Guaranteed to be less than getNumAudioElements.
-			/// TODO: hoist into .inl file (other cases in this file as well)
-			/// </summary>
-			template<typename T>
-				std::size_t getFFTSpace() const noexcept
-				{
-					auto size = audioMemory.size();
-					return size ? (size - 1) / sizeof(T) : 0;
-				}
-
-			template<typename T>
-				T * getWorkingMemory();
-
-			template<typename T>
-				std::size_t getNumWorkingElements() const noexcept;
+			void handleFlagUpdates(StreamState& sac);
 
 			template<typename ISA>
-				void renderColourSpectrum(cpl::OpenGLRendering::COpenGLStack &);
+				void renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack &);
 
 			template<typename ISA>
-				void renderLineGraph(cpl::OpenGLRendering::COpenGLStack &);
+				void renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack &, const TransformPair& transform, const LineColours& one, const LineColours& two);
 
 			template<typename ISA>
-				void audioProcessing(float ** buffer, std::size_t numChannels, std::size_t numSamples);
+				void renderLineGrid(cpl::OpenGLRendering::COpenGLStack&);
 
-			template<typename ISA>
-				void resonatingDispatch(float ** buffer, std::size_t numChannels, std::size_t numSamples);
+			void renderSpectrogramGrid(cpl::OpenGLRendering::COpenGLStack& ogs);
 
-			template<typename ISA>
-				void addAudioFrame();
-
-			/// <summary>
-			/// Copies the state from the complex resonator into the output buffer.
-			/// The output vector is assumed to accept index assigning of std::complex of fpoints.
-			/// It is assumed the output vector can hold at least numChannels (of configuration) times
-			/// numFilters.
-			/// Output of channels are stored at numFilters offsets.
-			///
-			/// Returns the total number of complex samples copied into the output
-			/// </summary>
-			template<typename ISA, class Vector>
-				std::size_t copyResonatorStateInto(Vector & output);
-
-			void drawFrequencyTracking(juce::Graphics & g);
+			void drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, /*const*/ TransformPair& transform);
 
 			/// <summary>
 			/// Calculates the apparant worst-case scalloping loss given the current transform, size, view and window as a fraction.
 			/// </summary>
-			/// <param name="coordinate"></param>
-			/// <returns></returns>
-			double getScallopingLossAtCoordinate(std::size_t coordinate);
+			double getScallopingLossAtCoordinate(std::size_t coordinate, const Constant& constant);
 
 			/// <summary>
 			/// Some calculations rely on the view not changing so everything doesn't have to be recalculated constantly.
@@ -396,11 +208,13 @@
 			/// </summary>
 			void resetStaticViewAssumptions();
 
+			void recalculateLegend(StreamState& cs);
+
 			// TODO: technically, avoid any data races by making every member a std::atomic (or refactor everything that
 			// changes state into altering flags instead (check out valueChanged()))
 			struct StateOptions
 			{
-				bool isEditorOpen, isFrozen, isSuspended;
+				bool isEditorOpen, isFrozen;
 				bool antialias;
 				bool isLinear;
 
@@ -418,7 +232,7 @@
 				/// <summary>
 				/// The current selected algorithm that will digest the audio data into the display.
 				/// </summary>
-				std::atomic<SpectrumContent::TransformAlgorithm> algo;
+				SpectrumContent::TransformAlgorithm algo;
 				/// <summary>
 				/// How the incoming data is interpreted, channel-wise.
 				/// </summary>
@@ -429,21 +243,12 @@
 				float primitiveSize;
 
 				/// <summary>
-				/// Describes the lower and higher limit of the dynamic range of the display.
-				/// </summary>
-				std::atomic<double> dynRange[2];
-
-				/// <summary>
 				/// colourOne & two = colours for the main line graphs.
 				/// graphColour = colour for the frequency & db grid.
 				/// </summary>
-				juce::Colour colourGrid, colourBackground, colourTracker, colourOne[SpectrumContent::LineGraphs::LineEnd], colourTwo[SpectrumContent::LineGraphs::LineEnd];
+				juce::Colour colourGrid, colourBackground, colourWidget;
 
-				/// <summary>
-				/// Colours for spectrum
-				/// </summary>
-				cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL> colourSpecs[SpectrumContent::numSpectrumColours + 1];
-				float normalizedSpecRatios[SpectrumContent::numSpectrumColours + 1];
+				std::array<ColourRotation, SpectrumContent::LineGraphs::LineEnd> colourOne, colourTwo;
 
 				/// <summary>
 				/// The window size..
@@ -461,23 +266,21 @@
 				/// </summary>
 				double minLogFreq = 10;
 
-				/// <summary>
-				/// The window function applied to the input. Precomputed into windowKernel.
-				/// </summary>
-				std::atomic<cpl::dsp::WindowTypes> dspWindow;
+				cpl::weak_atomic<std::size_t> newWindowSize;
+				cpl::weak_atomic<float> sampleRate;
 
-				std::atomic<std::size_t> newWindowSize;
-				std::atomic<float> sampleRate;
-				/// <summary>
-				/// internal testing flag
-				/// </summary>
-				bool iAuxMode;
 
 				float alphaFloodFill;
 
-				std::size_t axisPoints, numFilters;
+				std::size_t axisPoints, numFilters, transformSize;
 
 				SpectrumContent::LineGraphs frequencyTrackingGraph;
+
+				ChangeVersion::Listener audioStreamChanged;
+				double windowScale;
+
+				bool drawLegend{ };
+				LegendCache legend;
 			} state;
 
 
@@ -487,11 +290,6 @@
 			/// </summary>
 			struct Flags
 			{
-				/// <summary>
-				/// Dont set this! Set by the flag handler to assert state
-				/// </summary>
-				volatile bool internalFlagHandlerRunning;
-
 				cpl::ABoolFlag
 					/// <summary>
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
@@ -501,6 +299,9 @@
 					/// <summary>
 					/// Set if anything in the audio stream changed
 					/// </summary>
+					/// <remarks>
+					/// Can be non-atomic?
+					/// </remarks>
 					audioStreamChanged,
 					/// <summary>
 					/// Set this if the audio buffer window size was changed from somewhere else.
@@ -540,10 +341,6 @@
 					/// </summary>
 					dynamicRangeChange,
 					/// <summary>
-					/// This flag will be true the first time handleFlagUpdates() is called
-					/// </summary>
-					firstChange,
-					/// <summary>
 					/// Set to update how the transforms are displayed (spectrum, graphs, etc?)
 					/// </summary>
 					displayModeChange,
@@ -554,119 +351,56 @@
 					mouseMove;
 			} flags;
 
-			/// <summary>
-			/// visual objects
-			/// </summary>
-			const SharedBehaviour & globalBehaviour;
-			juce::MouseCursor displayCursor;
+			struct StreamState
+			{
+				std::vector<TransformPair> pairs;
+				Constant constant;
+				ChangeVersion audioStreamChangeVersion;
+				double streamLocalSampleRate;				
+				std::vector<std::string> channelNames;
+			};
+
+			struct ProcessorShell : public AudioStream::Listener
+			{
+				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+				cpl::CLockFreeDataQueue<FrameVector> frameQueue;
+				CriticalSection<StreamState> streamState;
+				cpl::relaxed_atomic<bool> isSuspended;
+
+				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
+
+				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour);
+			};
+
+			friend struct AudioDispatcher;
+
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;			
+			std::shared_ptr<const ConcurrentConfig> config;
 			cpl::OpenGLRendering::COpenGLImage oglImage;
 			cpl::special::FrequencyAxis frequencyGraph, complexFrequencyGraph;
 			cpl::special::DBMeterAxis dbGraph;
-			cpl::CBoxFilter<double, 60> avgFps;
 
 			// non-state variables
-			SpectrumContent * content;
-			unsigned long long processorSpeed; // clocks / sec
-			double audioThreadUsage;
-			double laggedFPS;
-			juce::Point<float> lastMousePos;
-			std::vector<std::unique_ptr<juce::OpenGLTexture>> textures;
-			long long lastFrameTick, renderCycles;
-			bool wasResized;
+			std::shared_ptr<SpectrumContent> content;
+			std::shared_ptr<ProcessorShell> processor;
 			cpl::Utility::Bounds<double> oldViewRect;
-			std::atomic_bool hasMainThreadInitializedAudioStreamDependenant;
-			std::atomic_bool isMouseInside;
 			double scallopLoss;
 			int lastPeak;
-			/*struct NewChanges
-			{
-				std::atomic<DisplayMode> displayMode;
-				std::atomic<std::size_t> windowSize;
-				std::atomic<cpl::iCtrlPrec_t> divLimit;
-				std::atomic<SpectrumChannels> configuration;
-				std::atomic<cpl::iCtrlPrec_t> stretch;
-				std::atomic<signed int> frequencyTrackingGraph;
-				std::atomic<float> primitiveSize;
-				std::atomic<float> alphaFloodFill;
-				std::atomic<double> referenceTuning;
-			} newc; */
-
-			struct CurrentMouse
-			{
-				std::atomic<float>
-					x, y;
-			} cmouse;
-
-			/// <summary>
-			/// see cpl::dsp::windowScale
-			/// </summary>
-			fftType windowScale;
 
 			/// <summary>
 			/// Lenght/height after state updates.
 			/// </summary>
-			std::size_t relayWidth, relayHeight;
+			// TODO: Delete?
 			int framePixelPosition;
 			double oldWindowSize;
-			int droppedAudioFrames;
 			double framesPerUpdate;
-			cpl::CPeakFilter<double> fpuFilter;
 			std::vector<cpl::GraphicsND::UPixel<cpl::GraphicsND::ComponentOrder::OpenGL>> columnUpdate;
 
-			struct LineGraphDesc
-			{
-				/// <summary>
-				/// The peak filter coefficient, describing the decay rate of the filters.
-				/// </summary>
-				cpl::CPeakFilter<fpoint> filter;
-				/// <summary>
-				/// The'raw' formatted state output of the mapped transform algorithms.
-				/// </summary>
-				cpl::aligned_vector<UComplex, 32> states;
-				/// <summary>
-				/// The decay/peak-filtered and scaled outputs of the transforms,
-				/// with each element corrosponding to a complex output pixel of getAxisPoints() size.
-				/// Resized in displayReordered
-				/// </summary>
-				cpl::aligned_vector<UComplex, 32> results;
-
-				void resize(std::size_t n)
-				{
-					states.resize(n); results.resize(n);
-				}
-
-				void zero() {
-					std::memset(states.data(), 0, states.size() * sizeof(UComplex));
-					std::memset(results.data(), 0, results.size() * sizeof(UComplex));
-				}
-			};
-			// dsp objects
-			std::array<LineGraphDesc, SpectrumContent::LineGraphs::LineEnd> lineGraphs;
-			/// <summary>
-			/// The complex resonator used for iir spectrums
-			/// </summary>
-			cpl::dsp::CComplexResonator<fpoint, 2> cresonator;
-			/// <summary>
-			/// An array, of numFilters size, with each element being the frequency for the filter of
-			/// the corresponding logical display pixel unit.
-			/// </summary>
-			std::vector<fpoint> mappedFrequencies;
 			/// <summary>
 			/// The connected, incoming stream of data.
 			/// </summary>
-			AudioStream & audioStream;
-			/// <summary>
-			/// Temporary memory buffer for audio applications. Resized in setWindowSize (since the size is a function of the window size)
-			/// </summary>
-			cpl::aligned_vector<char, 32> audioMemory;
-			/// <summary>
-			/// used for 'real-time' audio processing, when the incoming buffer needs to be rearranged without changing it.
-			/// </summary>
-			struct RelayBuffer
-			{
-				cpl::aligned_vector<fpoint, 32> buffer;
-				std::size_t samples, channels;
-			} relay;
+			std::shared_ptr<AudioStream::Output> audioStream;
 
 			struct SmoothedPeakState
 			{
@@ -718,30 +452,11 @@
 				}
 
 			private:
-				SmoothParam::PoleState peakPole, filterPole;
+				SmoothParam::PoleState peakPole {}, filterPole{};
 				SmoothParam frequencyState, peakDBsState;
 				double currentFrequency{}, currentPeakDBs{}, currentPeak{};
 
 			} peakState;
-
-			/// <summary>
-			/// Temporary memory buffer for other applications.
-			/// Resized in displayReordered
-			/// </summary>
-			cpl::aligned_vector<char, 32> workingMemory;
-			/// <summary>
-			/// The time-domain representation of the dsp-window applied to fourier transforms.
-			/// </summary>
-			cpl::aligned_vector<double, 32> windowKernel;
-
-			cpl::aligned_vector<fpoint, 32> slopeMap;
-			/// <summary>
-			/// All audio processing not done in the audio thread (not real-time, async audio) must acquire this lock.
-			/// Notice, you must always acquire this lock before accessing the audio buffers (should you intend to).
-			/// </summary>
-			cpl::CMutex::Lockable audioResource;
-
-			SFrameBuffer sfbuf;
 		};
 
 	};

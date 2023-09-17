@@ -56,14 +56,13 @@
 			ChannelData& data;
 
 			std::size_t
-				channelIndex = 0,
-				colourIndex = 0;
+				channelIndex = 0;
 		};
 
 		class TriggeringProcessor;
 
 		class Oscilloscope final
-			: public cpl::COpenGLView
+			: public GraphicsWindow
 			, private AudioStream::Listener
 		{
 		public:
@@ -73,47 +72,168 @@
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
+			Oscilloscope(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream,
+				std::shared_ptr<OscilloscopeContent> params
+			);
+
 			virtual ~Oscilloscope();
 
 		protected:
 			
-			// Component overrides
-			void onGraphicsRendering(juce::Graphics & g) override;
-
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void initOpenGL() override;
-			void closeOpenGL() override;
 			// View overrides
 			juce::Component * getWindow() override;
 			void suspend() override;
 			void resume() override;
-			void freeze() override;
-			void unfreeze() override;
-
-			// cbasecontrol overrides
-			bool isEditorOpen() const;
 
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
-			void mouseMove(const juce::MouseEvent& event) override;
-			void mouseExit(const juce::MouseEvent & e) override;
-			void mouseEnter(const juce::MouseEvent & e) override;
-
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			//void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-
-			/// <summary>
-			/// Handles all set flags in mtFlags.
-			/// Make sure the audioStream is locked while doing this.
-			/// </summary>
-			virtual void handleFlagUpdates();
 
 		private:
+
+			struct Flags
+			{
+				cpl::ABoolFlag
+					/// <summary>
+					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
+					/// The argument to the resizing is the state.newWindowSize
+					/// </summary>
+					initiateWindowResize,
+					/// <summary>
+					/// Set this if the audio buffer window size was changed from somewhere else.
+					/// </summary>
+					audioWindowWasResized;
+			} mtFlags;
+
+			// TODO: scope to gfx?
+			// contains frame-updated non-atomic structures
+			struct StateOptions
+			{
+				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, drawLegend;
+				float primitiveSize;
+
+				OscilloscopeContent::TriggeringMode triggerMode;
+
+				double effectiveWindowSize;
+				double windowTimeOffset;
+				double beatDivision;
+				double customTriggerFrequency;
+				double triggerHysteresis;
+				double triggerThreshold;
+				double autoGain, manualGain;
+				double sampleRate;
+
+				double viewOffsets[4];
+				juce::Colour colourBackground, colourAxis, colourSecondary, colourWidget;
+
+				SubSampleInterpolation sampleInterpolation;
+				OscilloscopeContent::TimeMode timeMode;
+				ChangeVersion::Listener audioStreamChanged;
+				LegendCache legend;
+
+			} state {};
+
+			struct SharedStateOptions
+			{
+				// TODO: accessed from gfx and main thread
+				cpl::relaxed_atomic<std::size_t> numChannels;
+				cpl::relaxed_atomic<OscChannels> channelMode;
+				cpl::relaxed_atomic<bool> overlayChannels;
+
+			} shared {};
+
+			struct BinRecord
+			{
+				/// <summary>
+				/// The fundamental frequency, quantized to the originating DFT bin
+				/// </summary>
+				std::size_t index;
+
+				double
+					/// <summary>
+					/// Value of this bin
+					/// </summary>
+					value,
+					/// <summary>
+					/// The offset quantized bin creating the fundamental
+					/// </summary>
+					offset;
+
+				double omega() const noexcept { return index + offset; }
+			};
+
+			struct TriggerData
+			{
+
+				/// <summary>
+				/// The fundamental frequency (in hertz) in the selected window offset in time.
+				/// </summary>
+				double fundamental;
+				BinRecord record;
+				/// <summary>
+				/// The amount of samples per fundamental period
+				/// </summary>
+				double cycleSamples;
+				/// <summary>
+				/// The phase offset for the detected fundamental at T = 0 - state.effectiveWindowSize
+				/// </summary>
+				double phase;
+				/// <summary>
+				/// The sample offset for the detected fundamental at T = 0 - state.effectiveWindowSize
+				/// </summary>
+				double sampleOffset;
+			} triggerState{};
+
+			struct StreamState
+			{
+				friend struct AudioDispatcher;
+			public:
+
+				StreamState();
+				~StreamState();
+
+				ChannelData channelData;
+				// TODO: Should go back to be in place
+				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
+				std::shared_ptr<OscilloscopeContent> content;
+				std::vector<std::string> channelNames;
+				std::size_t triggeringChannel;
+				std::int64_t historyCapacity;
+				std::int64_t transportPosition;
+				double bpm {};
+				double sampleRate{};
+				double envelopeGain{};
+				EnvelopeModes envelopeMode;
+				OscChannels channelMode;
+
+				OscilloscopeContent::TriggeringMode triggerMode;
+				ChangeVersion audioStreamChangeVersion;
+
+				template<typename ISA>
+				void preAnalyseAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+
+				template<typename ISA, class Analyzer>
+				void executeSamplingWindows(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+
+				template<typename ISA>
+				void audioProcessing(
+					const AudioStream::Info& info,
+					const AudioStream::Playhead& playhead,
+					const AudioStream::DataType* const* buffer,
+					const std::size_t numChannels,
+					const std::size_t numSamples,
+					ChannelData::Buffer&
+				);
+
+				template<typename ISA>
+				void audioEntryPoint(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
+			};
+
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
 
@@ -122,13 +242,6 @@
 				template<typename ISA> static void dispatch(Oscilloscope & o) { o.vectorGLRendering<ISA>(); }
 			};
 
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(Oscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
-				{ 
-					o.audioEntryPoint<ISA>(buffer, numChannels, numSamples);
-				}
-			};
 
 			std::size_t getEffectiveChannels() const noexcept;
 
@@ -137,7 +250,7 @@
 
 			// vector-accelerated drawing, rendering and processing
 			template<typename ISA, typename Eval>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params);
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params, StreamState& cs);
 
 			template<typename ISA>
 				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
@@ -151,32 +264,16 @@
 			template<typename ISA, typename Eval>
 				void calculateTriggeringOffset(const EvaluatorParams& params);
 
-			void resizeAudioStorage();
-
 			template<typename ISA>
-				void runPeakFilter();
+				void runPeakFilter(ChannelData& data);
 
 			template<typename ISA, typename Eval>
-				void analyseAndSetupState(const EvaluatorParams& params);
-
-			template<typename ISA>
-			void preAnalyseAudio(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA, class Analyzer>
-				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA>
-				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA>
-				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer &);
+				void analyseAndSetupState(const EvaluatorParams& params, Oscilloscope::StreamState& cs);
 
 			template<typename ISA>
 				void paint2DGraphics(juce::Graphics & g);
 
-			inline AFloat& smoothEnvelopeState(std::size_t i) { return channelData.filterStates.channels[i].envelope; }
-
-			bool checkAndInformInvalidCombinations();
+			bool checkAndInformInvalidCombinations(Oscilloscope::StreamState&);
 
 			void initPanelAndControls();
 
@@ -185,121 +282,31 @@
 			/// </summary>
 			double getGain();
 
-			void setLastMousePos(const juce::Point<float> position) noexcept;
+			void handleFlagUpdates(StreamState&);
+			void recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation);
 
-			struct Flags
+			struct ProcessorShell : public AudioStream::Listener
 			{
-				cpl::ABoolFlag
-					firstRun,
-					/// <summary>
-					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
-					/// The argument to the resizing is the state.newWindowSize
-					/// </summary>
-					initiateWindowResize,
-					/// <summary>
-					/// Set this if the audio buffer window size was changed from somewhere else.
-					/// </summary>
-					audioWindowWasResized;
-			} mtFlags;
+				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+				CriticalSection<StreamState> streamState;
+				cpl::relaxed_atomic<bool> isSuspended;
 
-			// contains frame-updated non-atomic structures
-			struct StateOptions
-			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended, drawLegend;
-				float primitiveSize;
+				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
 
-				double effectiveWindowSize;
-				double windowTimeOffset;
-				double beatDivision;
-				double customTriggerFrequency;
-				double triggerHysteresis;
-				double triggerThreshold;
-				double autoGain, manualGain;
-
-				double viewOffsets[4];
-				std::int64_t transportPosition;
-				std::size_t numChannels;
-				juce::Colour colourBackground, colourGraph, colours[OscilloscopeContent::NumColourChannels], colourSecondary, colourTracker;
-
-				EnvelopeModes envelopeMode;
-				SubSampleInterpolation sampleInterpolation;
-				OscilloscopeContent::TriggeringMode triggerMode;
-				OscilloscopeContent::TimeMode timeMode;
-				OscChannels channelMode;
-
-				std::vector<std::string> channelNames;
-
-			} state;
-
-			struct SharedStateOptions
-			{
-				std::atomic<double> 
-					autoGainEnvelope;
-			} shared;
-
-			using VO = OscilloscopeContent::ViewOffsets;
-			cpl::CBoxFilter<double, 60> avgFps;
-			juce::MouseCursor displayCursor;
-			OscilloscopeContent * content;
-			AudioStream & audioStream;
-			//cpl::AudioBuffer audioStreamCopy;
-			juce::Component * editor;
-			std::vector<std::string> channelNames;
-			std::unique_ptr<char> textbuf;
-			unsigned long long processorSpeed; // clocks / sec
-			juce::Point<float> lastMousePos;
-			long long lastFrameTick, renderCycles;
-			std::atomic_bool isMouseInside;
-			/// <summary>
-			/// Updates are not guaranteed to be in order
-			/// </summary>
-			std::pair<std::atomic<float>, std::atomic<float>> threadedMousePos;
-			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
-			cpl::aligned_vector<double, 16> temporaryBuffer;
-			const SharedBehaviour & globalBehaviour;
-
-			struct BinRecord
-			{
-				/// <summary>
-				/// The fundamental frequency, quantized to the originating DFT bin
-				/// </summary>
-				std::size_t index;
-
-				double 
-					/// <summary>
-					/// Value of this bin
-					/// </summary>
-					value, 
-					/// <summary>
-					/// The offset quantized bin creating the fundamental
-					/// </summary>
-					offset;
-
-				double omega() const noexcept { return index + offset; }
+				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
+					: globalBehaviour(behaviour)
+				{
+				}
 			};
 
-			struct TriggerData
-			{ 
-				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
-				/// <summary>
-				/// The fundamental frequency (in hertz) in the selected window offset in time.
-				/// </summary>
-				double fundamental;
-				BinRecord record{};
-				/// <summary>
-				/// The amount of samples per fundamental period
-				/// </summary>
-				double cycleSamples;
-				/// <summary>
-				/// The phase offset for the detected fundamental at T = 0 - state.effectiveWindowSize
-				/// </summary>
-				double phase;
-				/// <summary>
-				/// The sample offset for the detected fundamental at T = 0 - state.effectiveWindowSize
-				/// </summary>
-				double sampleOffset;
-			} triggerState;
-
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
+				}
+			};
 
 			struct MedianData
 			{
@@ -308,12 +315,17 @@
 				BinRecord record{};
 			};
 
+			using VO = OscilloscopeContent::ViewOffsets;
+			std::shared_ptr<OscilloscopeContent> content;
+			std::shared_ptr<AudioStream::Output> audioStream;
 
+			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
+			cpl::aligned_vector<double, 16> temporaryBuffer;
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
 
-			cpl::CMutex::Lockable bufferLock;
-			ChannelData channelData;
+			std::shared_ptr<ProcessorShell> processor;
 
 			class DefaultKey;
 
@@ -328,15 +340,15 @@
 
 			};
 
-			template<OscChannels channelConfiguration, std::size_t ColourIndice>
+			template<OscChannels ChannelConfiguration>
 				class SampleColourEvaluator;
 
 			class DynamicChannelEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice>
+			template<std::size_t ChannelOffset>
 				class SimpleChannelEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice, typename BinaryFunction>
+			template<std::size_t ChannelOffset, typename BinaryFunction>
 				class MidSideEvaluatorBase;
 		};
 

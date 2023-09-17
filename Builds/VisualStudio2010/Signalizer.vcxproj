@@ -26,26 +26,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>false</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -302,7 +302,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp" />
+    <ClCompile Include="..\..\Source\Common\HostGraph.cpp" />
+    <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp" />
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />
+    <ClCompile Include="..\..\Source\Editor\GraphEditor.cpp" />
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp" />
     <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeController.cpp" />
@@ -350,10 +353,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\Common\CommonSignalizer.h" />
+    <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h" />
+    <ClInclude Include="..\..\Source\Common\HostGraph.h" />
+    <ClInclude Include="..\..\Source\Common\MixGraphListener.h" />
     <ClInclude Include="..\..\Source\Common\SentientViewState.h" />
     <ClInclude Include="..\..\Source\Common\SharedBehaviour.h" />
     <ClInclude Include="..\..\Source\Common\SignalizerDesign.h" />
     <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h" />
+    <ClInclude Include="..\..\Source\Editor\GraphEditor.h" />
     <ClInclude Include="..\..\Source\Editor\MainEditor.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h" />
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h" />
@@ -812,6 +819,8 @@
     <ClInclude Include="..\..\Source\Signalizer.h" />
     <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
     <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />
+    <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h" />
+    <ClInclude Include="..\..\Source\Spectrum\TransformPair.h" />
     <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h" />
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h" />
     <ClInclude Include="..\..\Source\version.h" />
@@ -832,13 +841,19 @@
     <None Include="..\..\..\SDKs\juce\modules\juce_opengl\juce_module_info" />
     <None Include="..\..\..\SDKs\juce\modules\juce_video\juce_module_info" />
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr" />
+    <None Include="..\..\Make\build_win.py" />
+    <None Include="..\..\Make\common.py" />
+    <None Include="..\..\Make\config.ini" />
+    <None Include="..\..\Make\vscompile.bat" />
     <None Include="..\..\prepare.py" />
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl" />
+    <None Include="..\..\Source\Spectrum\TransformDSP.inl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Make\windows_installation_advice.txt" />
     <Text Include="..\..\Source\Notes\Bugs.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
