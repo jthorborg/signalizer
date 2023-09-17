@@ -252,7 +252,6 @@ namespace Signalizer
 
 	std::size_t Spectrum::getApproximateStoredFrames() const noexcept
 	{
-#pragma message cwarn("fix this to include channels, other processing methods.. etc.")
 		return processor->frameQueue.enqueuededElements();
 	}
 
