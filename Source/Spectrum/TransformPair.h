@@ -114,7 +114,7 @@ namespace Signalizer
 		void resonatingDispatch(const Constant& constant, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		template<typename ISA>
-		void audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& pairs, std::array<AFloat*, 2> buffer, std::size_t numSamples, bool historyMayBeDeferred);
+		void audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& pairs, std::array<AFloat*, 2> buffer, std::size_t numSamples);
 
 		/// <summary>
 		/// Maps the current resonating system according to the current model (linear/logarithmic) and the current

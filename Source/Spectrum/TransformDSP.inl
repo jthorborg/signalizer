@@ -1161,7 +1161,7 @@ namespace Signalizer
 
 	template<typename T>
 	template<typename ISA>
-	inline void TransformPair<T>::audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& views, std::array<AFloat*, 2> buffer, std::size_t numSamples, bool historyMayBeDeferred)
+	inline void TransformPair<T>::audioEntryPoint(const Constant& constant, const std::optional<AudioPair>& views, std::array<AFloat*, 2> buffer, std::size_t numSamples)
 	{
 		if (constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
@@ -1188,7 +1188,7 @@ namespace Signalizer
 					{
 						// the abstract timeline consists of the old data in the audio stream, with the following audio presented in this function.
 						// thus, the more we include of the buffer ('offbuf') the newer the data segment gets.
-						if ((transformReady = prepareTransform(constant, *views, buffer, !historyMayBeDeferred ? availableSamples + offset : 0)))
+						if ((transformReady = prepareTransform(constant, *views, buffer, availableSamples)))
 							doTransform(constant);
 					}
 
