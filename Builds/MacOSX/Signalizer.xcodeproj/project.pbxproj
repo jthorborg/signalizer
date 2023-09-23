@@ -3279,20 +3279,16 @@
 					"$(inherited)",
 					../../External/,
 					../../../SDKs/vstsdk3,
-					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
 				INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/Components/";
-				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/boost/1.69.0_2/lib;
+				LIBRARY_SEARCH_PATHS = "";
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.4;
-				OTHER_LDFLAGS = (
-					"-bundle",
-					"-lboost_filesystem",
-				);
+				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				SDKROOT = macosx;
@@ -3357,21 +3353,17 @@
 					"$(inherited)",
 					../../External/,
 					../../../SDKs/vstsdk3,
-					/usr/local/Cellar/boost/1.69.0_2/include,
 				);
 				INCLUDED_RECURSIVE_SEARCH_PATH_SUBDIRECTORIES = "";
 				INFOPLIST_FILE = Info.plist;
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/Components/";
-				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/boost/1.69.0_2/lib;
+				LIBRARY_SEARCH_PATHS = "";
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.4;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"-bundle",
-					"-lboost_filesystem",
-				);
+				OTHER_LDFLAGS = "-bundle";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				SDKROOT = macosx;
