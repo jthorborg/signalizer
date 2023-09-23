@@ -1107,8 +1107,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				44299907F840D6CF916CABF4 /* Accelerate.framework in Frameworks */,
-				354DC8BE341E3237EA68AEF8 /* AudioToolbox.framework in Frameworks */,
 				EB6F70843DB19CD25A1CFE42 /* AudioUnit.framework in Frameworks */,
+				354DC8BE341E3237EA68AEF8 /* AudioToolbox.framework in Frameworks */,
 				AA1781F42177A5671DF98229 /* Carbon.framework in Frameworks */,
 				E0FF53DDCCA849A6F80E1181 /* Cocoa.framework in Frameworks */,
 				F0D4F4C4E8DD69DE154F36BC /* CoreAudio.framework in Frameworks */,
