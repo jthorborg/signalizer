@@ -425,10 +425,11 @@ namespace Signalizer
 
 		if (flags.audioStreamChanged.cas())
 		{
-			// TODO: Globals
+			if(stream.constant.sampleRate != stream.streamLocalSampleRate)
+				flags.viewChanged = true;
+
 			state.sampleRate = stream.streamLocalSampleRate;
 			stream.constant.sampleRate = state.sampleRate;
-			flags.viewChanged = true;
 		}
 
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
