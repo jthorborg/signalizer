@@ -214,7 +214,7 @@ namespace Signalizer
 			ktriggerHysteresis.bSetDescription("The hysteresis of the triggering function defines an opaque measure of how resistant the trigger is to change");
 			ktriggerThreshold.bSetDescription("The triggering function will not consider any candidates below the threshold");
 			kshowLegend.bSetDescription("Display a legend of the channels and assigned colours");
-			ktriggerChannel.bSetDescription("Adjust the channel used for triggering when in separate channel mode");
+			ktriggerChannel.bSetDescription("Set the channel used for triggering. In mid/side/left/right modes, it will be the Nth pair selected. For mid+side, even numbers select mid triggering and odd select side triggering for the pair.");
 		}
 
 		void initUI()

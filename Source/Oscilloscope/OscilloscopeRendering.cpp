@@ -292,32 +292,38 @@ namespace Signalizer
 				CPL_DEBUGCHECKGL();
 
 				auto mode = streamState.channelMode;
-
 				const auto numChannels = shared.numChannels.load();
+				
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 				// should be safe to assert equality 
 				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());
 
-				const auto triggerChannel = std::min(numChannels, static_cast<std::size_t>(cs->triggeringChannel)) - 1;
+				const auto trigger1Base = content->triggeringChannel.getTransformedValue();
+				auto triggerSeparate = std::min(numChannels, cpl::Math::round<std::size_t>(trigger1Base)) - 1;
+				auto triggerPair = std::min(numChannels / 2, cpl::Math::round<std::size_t>((trigger1Base - 1) * 2));
+
+				CPL_RUNTIME_ASSERTION(triggerSeparate < numChannels);
+				CPL_RUNTIME_ASSERTION((triggerPair + 1) < numChannels);
+
 				// Pre-analyse triggering and state
 				switch (mode)
 				{
 					default: case OscChannels::Left:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left>>({ channelData, triggerChannel / 2 }, streamState); break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Right:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right>>({ channelData, triggerChannel / 2 }, streamState); break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Mid:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerChannel / 2 }, streamState); break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Side:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerChannel / 2 }, streamState); break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Separate:
-						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerChannel }, streamState); break;
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerSeparate }, streamState); break;
 					case OscChannels::MidSide:
 					{
-						if ((triggerChannel & 0x1) == 0)
-							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerChannel }, streamState);
+						if ((triggerSeparate & 0x1) == 0)
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerSeparate }, streamState);
 						else
-							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerChannel & ~0x1 }, streamState);
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerSeparate & ~0x1 }, streamState);
 						break;
 					}
 				}

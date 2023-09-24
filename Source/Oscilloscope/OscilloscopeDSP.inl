@@ -311,19 +311,30 @@ namespace Signalizer
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::StreamState::executeSamplingWindows(AudioStream::ListenerContext& ctx, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (numChannels < 1)
+		if (numChannels < 2)
 			return;
 
 		Analyzer ana(numChannels, numSamples, ctx.getPlayhead().getSteadyClock(), *triggeringProcessor);
 
-		auto mode = content->channelConfiguration.param.getAsTEnum<OscChannels>();
-		auto triggeringChannel = std::min(numChannels, static_cast<std::size_t>(content->triggeringChannel.getTransformedValue())) - 1;
+		const auto trigger1Base = content->triggeringChannel.getTransformedValue();
+
+		CPL_RUNTIME_ASSERTION(trigger1Base >= 1);
+		CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
+
+		auto localMode = channelMode;
+
+		auto triggerSeparate = std::min(numChannels, cpl::Math::round<std::size_t>(trigger1Base)) - 1;
+		auto triggerPair = std::min(numChannels / 2, cpl::Math::round<std::size_t>((trigger1Base - 1) * 2));
+
+		CPL_RUNTIME_ASSERTION(triggerSeparate < numChannels);
+		CPL_RUNTIME_ASSERTION((triggerPair + 1) < numChannels);
 
 		if (numChannels == 1)
-			mode = OscChannels::Left;
+			localMode = OscChannels::Left;
 
 		if (numChannels == 1)
 		{
+			// currently unreachable
 			for (std::size_t n = 0; n < numSamples; ++n)
 			{
 				ana.process(buffer[0][n]);
@@ -331,42 +342,53 @@ namespace Signalizer
 		}
 		else
 		{
-			std::size_t offset = 0;
-			switch (mode)
+			if (localMode == OscChannels::MidSide)
 			{
-			case OscChannels::Right: offset = 1;
+				// Mid/side mode user can choose either from a pair, depending on the odd bit.
+				if (triggerSeparate & 0x1)
+				{
+					localMode = OscChannels::Mid;
+				}
+				else
+				{
+					localMode = OscChannels::Mid;
+				}
+
+				triggerPair = triggerSeparate & ~0x1;
+			}
+
+			switch (localMode)
+			{
+			case OscChannels::Right: triggerPair++;
 			case OscChannels::Left:
 			{
-				const auto channel = buffer[offset];
+				const auto channel = buffer[triggerPair];
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
 					ana.process(channel[n]);
 				}
 				break;
 			}
-			case OscChannels::Side:
-				for (std::size_t n = 0; n < numSamples; ++n)
-				{
-					ana.process(0.5 * (buffer[0][n] - buffer[1][n]));
-				}
-				break;
 			case OscChannels::Separate:
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
-					ana.process(buffer[triggeringChannel][n]);
+					ana.process(buffer[triggerSeparate][n]);
 				}
-
 				break;
-			case OscChannels::Mid: case OscChannels::MidSide:
+			case OscChannels::Mid:
 				for (std::size_t n = 0; n < numSamples; ++n)
 				{
-					ana.process(0.5 * (buffer[0][n] + buffer[1][n]));
+					ana.process(0.5f * (buffer[triggerPair + 0][n] + buffer[triggerPair + 1][n]));
+				}
+				break;
+			case OscChannels::Side:
+				for (std::size_t n = 0; n < numSamples; ++n)
+				{
+					ana.process(0.5f * (buffer[triggerPair + 0][n] - buffer[triggerPair + 1][n]));
 				}
 				break;
 			}
 		}
-
-
 	}
 
 	template<typename ISA>

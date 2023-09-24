@@ -202,7 +202,6 @@
 				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
 				std::shared_ptr<OscilloscopeContent> content;
 				std::vector<std::string> channelNames;
-				std::size_t triggeringChannel;
 				std::int64_t historyCapacity;
 				std::int64_t transportPosition;
 				double bpm {};
