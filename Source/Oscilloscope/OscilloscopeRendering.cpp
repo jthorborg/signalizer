@@ -265,6 +265,18 @@ namespace Signalizer
 		{
             CPL_DEBUGCHECKGL();
             
+			if (globalBehaviour->hideWidgetsOnMouseExit)
+			{
+
+				auto sleepAmount = 1000 * this->content->triggeringChannel.getNormalizedValue();
+				if(sleepAmount > 0)
+					::Sleep(sleepAmount);
+
+				if(content->triggerOnCustomFrequency.getNormalizedValue() > 0)
+				return;
+			}
+
+
 			{
 				auto cs = processor->streamState.lock();
 				auto& streamState = *cs;
@@ -297,13 +309,9 @@ namespace Signalizer
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 				// should be safe to assert equality 
 				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());
-
-				const auto trigger1Base = content->triggeringChannel.getTransformedValue();
-				auto triggerSeparate = std::min(numChannels, cpl::Math::round<std::size_t>(trigger1Base)) - 1;
-				auto triggerPair = std::min(numChannels / 2, cpl::Math::round<std::size_t>((trigger1Base - 1) * 2));
-
-				CPL_RUNTIME_ASSERTION(triggerSeparate < numChannels);
-				CPL_RUNTIME_ASSERTION((triggerPair + 1) < numChannels);
+				
+				std::size_t triggerSeparate, triggerPair;
+				content->calculateTriggerIndices(numChannels, triggerSeparate, triggerPair);
 
 				// Pre-analyse triggering and state
 				switch (mode)

@@ -316,18 +316,12 @@ namespace Signalizer
 
 		Analyzer ana(numChannels, numSamples, ctx.getPlayhead().getSteadyClock(), *triggeringProcessor);
 
-		const auto trigger1Base = content->triggeringChannel.getTransformedValue();
-
-		CPL_RUNTIME_ASSERTION(trigger1Base >= 1);
 		CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
 
 		auto localMode = channelMode;
 
-		auto triggerSeparate = std::min(numChannels, cpl::Math::round<std::size_t>(trigger1Base)) - 1;
-		auto triggerPair = std::min(numChannels / 2, cpl::Math::round<std::size_t>((trigger1Base - 1) * 2));
-
-		CPL_RUNTIME_ASSERTION(triggerSeparate < numChannels);
-		CPL_RUNTIME_ASSERTION((triggerPair + 1) < numChannels);
+		std::size_t triggerSeparate, triggerPair;
+		content->calculateTriggerIndices(numChannels, triggerSeparate, triggerPair);
 
 		if (numChannels == 1)
 			localMode = OscChannels::Left;

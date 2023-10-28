@@ -488,6 +488,22 @@
 				timeMode.param.getParameterView().removeListener(this);
 			}
 
+			void calculateTriggerIndices(const std::size_t numChannels, std::size_t& separate, std::size_t& pair)
+			{
+				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
+
+				const auto trigger1Base = triggeringChannel.getTransformedValue();
+
+				CPL_RUNTIME_ASSERTION(trigger1Base >= 1);
+
+				separate = std::min(numChannels - 1, cpl::Math::round<std::size_t>(trigger1Base - 1));
+				pair = std::min(numChannels / 4, cpl::Math::round<std::size_t>((trigger1Base - 1))) * 2;
+
+				CPL_RUNTIME_ASSERTION(separate < numChannels);
+				CPL_RUNTIME_ASSERTION((pair + 1) < numChannels);
+			}
+
+
 			void parameterChangedUI(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::ParameterView * parameter) override
 			{
 				if (parameter == &timeMode.param.getParameterView())
