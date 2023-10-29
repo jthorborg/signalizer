@@ -1372,7 +1372,7 @@ namespace Signalizer
 		{
 			auto now = cpl::Misc::QuickTime();
 
-			if (!getTopEditor() && !mouseHoversTabArea && now - tabBarTimer > tabBarTimeout)
+			if (!getTopEditor() && ((!mouseHoversTabArea && now - tabBarTimer > tabBarTimeout) || now - tabBarTimer > tabBarNoMouseTimeout))
 				setTabBarVisibility(false);
 
 			if (idleInBack)

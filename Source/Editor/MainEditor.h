@@ -66,6 +66,7 @@
 		public:
 
 			static const int tabBarTimeout = 1000;
+			static const int tabBarNoMouseTimeout = 7000;
 
 			MainEditor(AudioProcessor * e, ParameterMap * params);
 			~MainEditor();
