@@ -33,7 +33,6 @@
 #include "Oscilloscope.h"
 #include "StreamPreprocessing.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/simd.h>
 #include <cpl/lib/variable_array.h>

@@ -31,7 +31,6 @@
 #include "Vectorscope.h"
 #include "VectorscopeParameters.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
