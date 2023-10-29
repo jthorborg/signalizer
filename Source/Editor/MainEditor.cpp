@@ -171,6 +171,8 @@ namespace Signalizer
 		oglc.setComponentPaintingEnabled(false);
 
 		nestedMouseHook.hook(this, this, true);
+
+		cpl::CheckPruneExceptionLogFile();
 	}
 
 	MainEditor::~MainEditor()
