@@ -95,10 +95,10 @@ namespace Signalizer
 				transformBuffer[i] = eval.evaluateSampleInc();
 			}
 
+			triggerFFT.forward(transformBuffer, transformBuffer, triggerWork);
 
-			signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data()), TransformSize);
 #ifdef PHASE_VOCODER
-			signaldust::DustFFT_fwdDa(reinterpret_cast<double*>(transformBuffer.data() + TransformSize), TransformSize);
+			triggerFFT.forward(cpl::as_uarray(transformBuffer).slice(TransformSize, TransformSize), cpl::as_uarray(transformBuffer).slice(0, TransformSize), triggerWork);
 #endif
 			// estimates the true frequency by calculating a bin offset to the current bin w
 			auto quadDelta = [&](auto w) {
@@ -120,7 +120,7 @@ namespace Signalizer
 					x1 = transformBuffer[w + 1],
 					xm1 = transformBuffer[w == 0 ? 1 : w - 1];
 
-				const auto denom = x0 * 2.0 - xm1 - x1;
+				const auto denom = x0 * ChannelFloat(2) - xm1 - x1;
 
 				return (denom.real() + denom.imag()) != 0 ? std::real((xm1 - x1) / denom) : 0;
 #endif
@@ -132,7 +132,7 @@ namespace Signalizer
 			const auto invHysteresis = 1 - hysteresis;
 
 			// Reduce to 1/4 (to slip through "vastly better case" + half transform size
-			BinRecord max{ 1, std::max(threshold * TransformSize / 6.0, std::abs(transformBuffer[1])), quadDelta(1) };
+			BinRecord max{ 1, std::max<double>(threshold * TransformSize / 6.0, std::abs(transformBuffer[1])), quadDelta(1) };
 
 			for (std::size_t i = 2; i < (TransformSize >> 1); ++i)
 			{
@@ -271,11 +271,11 @@ namespace Signalizer
 
 		for (std::size_t i = 0; i < OscilloscopeContent::LookaheadSize; ++i)
 		{
-			temporaryBuffer[i] = eval.evaluateSampleInc();
+			transformBuffer[i] = eval.evaluateSampleInc();
 		}
 
 		// get the complex sinusoid phase
-		auto z = cpl::dsp::goertzel(temporaryBuffer, OscilloscopeContent::LookaheadSize, radians);
+		auto z = cpl::dsp::goertzel(transformBuffer, OscilloscopeContent::LookaheadSize, radians);
 
 		// rotate the sinusoid by the fractional difference in samples
 		// a basic identity of the DFT, if the time domain is moved by k,

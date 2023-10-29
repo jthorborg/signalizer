@@ -39,6 +39,7 @@
 	#include <utility>
 	#include "ChannelData.h"
 	#include <cpl/gui/CViews.h>
+	#include <cpl/ffts.h>
 
 	namespace cpl
 	{
@@ -315,14 +316,15 @@
 			};
 
 			using VO = OscilloscopeContent::ViewOffsets;
+			using ChannelFloat = ChannelData::AudioBuffer::ProxyView::value_type;
 			std::shared_ptr<OscilloscopeContent> content;
 			std::shared_ptr<AudioStream::Output> audioStream;
 
-			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
-			cpl::aligned_vector<double, 16> temporaryBuffer;
+			cpl::aligned_vector<std::complex<ChannelFloat>, 32> transformBuffer, triggerWork;
 			std::shared_ptr<const SharedBehaviour> globalBehaviour;
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
+			cpl::dsp::UniFFT<std::complex<ChannelFloat>> triggerFFT;
 
 			std::shared_ptr<ProcessorShell> processor;
 
@@ -331,12 +333,10 @@
 			class SampleColourEvaluatorBase
 			{
 			public:
-
 				typedef ChannelData::AudioBuffer::ProxyView::const_iterator AudioIt;
 				typedef ChannelData::ColourBuffer::ProxyView::const_iterator ColourIt;
-				typedef ChannelData::AudioBuffer::ProxyView::value_type AudioT;
+				typedef ChannelFloat AudioT;
 				typedef ChannelData::ColourBuffer::ProxyView::value_type ColourT;
-
 			};
 
 			template<OscChannels ChannelConfiguration>

@@ -64,7 +64,8 @@ namespace Signalizer
 		processor->streamState.lock()->content = content;
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
-		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
+		triggerWork.resize(OscilloscopeContent::LookaheadSize);
+		triggerFFT = { OscilloscopeContent::LookaheadSize };
 
 		setOpaque(true);
 		initPanelAndControls();
