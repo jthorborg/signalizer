@@ -14,3 +14,6 @@ You may need to restart your computer after you've done this.
 -------------------
 
 If you're unsure about where your Plug-Ins folder is, it can be very custom and I'd advise to research the internet for your particular operating system if you didn't choose it yourself.
+
+You may need to allow opening apps from unindenfied developers, because Apple otherwise requires developers to pay them fees annually.
+https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac
