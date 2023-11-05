@@ -5,6 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.8 - 2023-10-29
+
+### Added
+
+- Graph editor window that can be opened through a new global button in the upper right. From here you can sidechain any Signalizer into another, freely routing channels to at most 16 inputs. This configuration is saved in the project and presets as well.
+- All views can now visualize up 8 channel pairs (16 channels in total), colours beyond the first pair are automatically distinct but based on the primary pair
+- Signalizer will now utilize more CPU cores when processing more than one stereo pair
+- VST3 support and builds on Windows
+- Ask to prune the exception log file if it is becoming large
+- Option to enable Legends in the views displaying the source name and colour used to draw it
+- A control for changing what channel the Oscilloscope triggers on
+
+### Fixed
+
+- Crash in Oscilloscope when running in mono
+- Spurious crash in Oscilloscope on startup
+- Spurious crash when channel layout changes
+- Class of hangs or crashes complaining about "Acquired non-recursed mutex had non-zero ref count!"
+- Class of hangs or crashes complaining about "Unsafe writer created, while reader exists!"
+- Bug where stereo filters in Vectorscope would not update when "Peak" mode was selected for envelopes
+- Bug where vector scope channels would go out of sync and looks noisy
+- Bug where graphical glitches would happen when switching to spectrogram mode
+- Decay rate in the spectrogram that was incorrectly affected by the frame rate
+- Issue where discontinuities would be present in the spectrogram under heavy usage
+- Issue with latency in the spectrogram when frame smoothing was enabled
+- Issue where the spectrum would produce a slightly out of data view
+- Flicker when reducing the window size in the spectrum
+- Graphical issue when the Spectrum has a dB range of zero (there's now a small minimum enforced)
+- Graphical stutter or lag in hosts on Windows 10 and 11
+
+### Changed
+
+- Polar mode in Vectorscope fills the whole screen instead of being incorrectly scaled (going forward)
+- Optimized wireframe drawing code
+- Further optimized Vectorscope DSP code 
+- Constant angular resolution for arcs
+- Spectrum is now computed in 32-bit instead of 64-bit
+- All frequency domain math is now considerably faster
+- Dramatically reduced drawcalls using batching instead, vastly improving performance and responsiveness especially on less capable hardware
+- Ultimately hide tabs after 7 seconds, hiding a problem where they would not auto-hide anyway
+- Reduced scale of scrolling when altering gain in multichannel viewing mode of the Oscilloscope
+- Improved treshold offset for trigger detection in spectral mode when analysing harmonic but sinusoidal signals
+
+### Removed
+
+- Hi-res timer. Use V-Sync for precision instead.
+
+## 0.3.7 - 2023-09-17
+
+## 0.3.5 - 2022-11-28
+
+## 0.3.4 - 2021-11-15
+
+## 0.3.3 - 2019-09-22
+
+### Added
+
+- Unity build option, you now add `Source/Unity/SignalizerSource.cpp` to build all symbols necessary for embedding Oscilloscope, Vectorscope or Spectrum into another project
+- CPL is now a direct submodule instead of parallel checkout
+- `prepare.py` for fetching submodules and setting up the dev environment
+
+### Changed
+
+- Visual studio updated to 2019.
+- Xcode updated 10.2
+
+
 ## 0.3.2 (alpha) - 2017-07-12
 
 ### Added
