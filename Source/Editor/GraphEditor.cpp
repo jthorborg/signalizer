@@ -403,7 +403,7 @@ namespace Signalizer
 
 			const auto base = cpl::GetColour(cpl::ColourEntry::Normal);
 			const auto baseTextColour = cpl::GetColour(cpl::ColourEntry::ControlText);
-			const auto edgeColour = juce::Colours::violet;
+			const auto edgeColour = cpl::GetColour(cpl::ColourEntry::SelectedText);
 			ImmediateLayout layout(model, graphRect(), filter);
 
 			ImmediateLayout::Node n;
