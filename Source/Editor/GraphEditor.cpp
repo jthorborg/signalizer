@@ -29,6 +29,8 @@
 
 #include "GraphEditor.h"
 #include "MainEditor.h"
+#include <algorithm>
+#include <cctype>
 
 namespace Signalizer
 {
@@ -291,7 +293,7 @@ namespace Signalizer
 					current = static_cast<std::size_t>(++index);
 					if (current >= model.nodes.size())
 						return false;
-				} while (!filter.empty() && model.nodes[current].name.find(filter) == std::string::npos);
+				} while (!filter.empty() && !match(model.nodes[current].name, filter));
 
 
 				auto previousBottom = result.model ? result.getRect().getBottom() : bounds.getY();
@@ -301,6 +303,18 @@ namespace Signalizer
 				return true;
 			}
 
+			bool match(const std::string& string, const std::string& filter)
+			{
+				const auto it = std::search(
+					string.begin(),
+					string.end(),
+					filter.begin(),
+					filter.end(),
+					[](auto a, auto b) { return std::toupper(a) == std::toupper(b); }
+				);
+
+				return it != string.end();
+			}
 
 			int index;
 			juce::Rectangle<float> bounds;

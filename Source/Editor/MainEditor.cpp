@@ -1557,7 +1557,7 @@ namespace Signalizer
 		krefreshRate.bSetDescription("How often the view is redrawn.");
 		khelp.bSetDescription("About this program");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
-		kgraph.bSetDescription("Open the graph editor to control multichannel routing");
+		kgraph.bSetDescription("Open the graph editor to control channel routing and side chaining from other Signalizers");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");
