@@ -355,17 +355,21 @@ namespace Signalizer
 		if (handles.empty())
 			return true;
 
-		bool isEverythingConnected = true;
+		bool wasEverythingConnected = true;
+		std::size_t disconnections = 0;
 
 		// check whether everything is connected, and disconnect everything on the way
 		for (const auto& h : handles)
 		{
 			bool didDisconnections = resetInstancedTopologyFor(h, lock, true);
-			isEverythingConnected = isEverythingConnected && didDisconnections;
+			wasEverythingConnected = wasEverythingConnected && didDisconnections;
+			
+			if (didDisconnections)
+				disconnections++;
 		}
 
 		// if everything was connected, we've now disconnected everything
-		if (isEverythingConnected)
+		if (wasEverythingConnected || disconnections >= MaxInputChannels / 2)
 			return true;
 
 		// otherwise, let's reconstruct a new set of topology 
