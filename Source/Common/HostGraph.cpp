@@ -211,6 +211,36 @@ namespace Signalizer
 		changeIdentity(SerializedHandle::generateUnique(), lock);
 	}
 
+	bool HostGraph::computeIsDefaultLayout(const TriggerModelUpdateOnExit& lock) const noexcept
+	{
+		if (!hasSerializedRepresentation())
+			return true;
+
+		if (topology.size() != 1)
+			return false;
+
+		if (auto it = topology.find(*nodeID); it != topology.end())
+		{
+			if (it->first != *nodeID)
+				return false;
+
+			if (it->second.inputs.size() != 2)
+				return false;
+
+			if (it->second.inputs.count({ 0, 0 }) == 0)
+				return false;
+
+			if (it->second.inputs.count({ 1, 1 }) == 0)
+				return false;
+		}
+		else
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 
 	HostGraph::Model HostGraph::getModel()
 	{
@@ -484,6 +514,7 @@ namespace Signalizer
 			}
 		}
 
+		isDefaultRuntimeLayout = true;
 	}
 
 

@@ -154,7 +154,7 @@ namespace Signalizer
 
 		if (mouseCheck)
 		{
-			if(state.drawLegend)
+			if(globalBehaviour->showLegend)
 				state.legend.paint(g, state.colourWidget, state.colourBackground);
 
 			drawFrequencyTracking(g, averageFps, constant, primaryTransform);

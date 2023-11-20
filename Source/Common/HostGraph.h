@@ -75,6 +75,12 @@
 					return !std::memcmp(a.contents, b.contents, sizeof(contents));
 				}
 
+				friend inline bool operator != (const HostGraph::SerializedHandle& a, const HostGraph::SerializedHandle& b)
+				{
+					return !(a == b);
+				}
+
+
 				friend inline bool operator < (const HostGraph::SerializedHandle& a, const HostGraph::SerializedHandle& b)
 				{
 					return std::memcmp(a.contents, b.contents, sizeof(contents)) < 0;
@@ -140,6 +146,7 @@
 			void applyDefaultLayoutFromRuntime();
 			void assumeNonAliasedIdentity();
 			bool isAliasOfOther() const noexcept { return isAlias; }
+			bool isDefaultLayout() const noexcept { return isDefaultRuntimeLayout; }
 
 		private:
 
@@ -166,6 +173,8 @@
 
 				~TriggerModelUpdateOnExit()
 				{
+					graph.isDefaultRuntimeLayout = graph.computeIsDefaultLayout(*this);
+
 					if (auto e = graph.modelChangedCallback.lock())
 					{
 						e->triggerAsyncUpdate();
@@ -184,6 +193,8 @@
 			void changeIdentity(const std::optional<SerializedHandle>& potentialIdentity, const GraphLock& lock);
 			void submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			void submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&);
+			bool computeIsDefaultLayout(const TriggerModelUpdateOnExit&) const noexcept;
+
 			HHandle resolve(const SerializedHandle& h, const GraphLock&);
 			HHandle lookupPotentiallyForeign(const SerializedHandle& h, const GraphLock&);
 			static HHandle lookupForeign(const SerializedHandle& h, const GraphLock&);
@@ -217,6 +228,7 @@
 			std::size_t expectedNodesToResurrect = 0;
 			int version = 0;
 			bool isAlias = false;
+			bool isDefaultRuntimeLayout = false;
 		};
 	}
 

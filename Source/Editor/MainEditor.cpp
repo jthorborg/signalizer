@@ -1372,6 +1372,8 @@ namespace Signalizer
 		}
 		if (hasCurrentView())
 		{
+			globalState->showLegend = !engine->getHostGraph().isDefaultLayout();
+
 			auto now = cpl::Misc::QuickTime();
 
 			if (!getTopEditor() && ((!mouseHoversTabArea && now - tabBarTimer > tabBarTimeout) || now - tabBarTimer > tabBarNoMouseTimeout))

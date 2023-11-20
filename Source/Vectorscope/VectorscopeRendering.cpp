@@ -85,7 +85,7 @@ namespace Signalizer
 
 		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
-		if (state.drawLegend && mouseCheck)
+		if (globalBehaviour->showLegend && mouseCheck)
 		{
 			PaintLegend(
 				g,

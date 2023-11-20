@@ -149,7 +149,7 @@ namespace Signalizer
 
 		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
-		if (state.drawLegend && mouseCheck)
+		if (globalBehaviour->showLegend && mouseCheck)
 		{
 			state.legend.paint(g, state.colourWidget, state.colourBackground);
 		}
