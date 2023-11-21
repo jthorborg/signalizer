@@ -178,7 +178,7 @@ namespace Signalizer
 					section->addControl(&kantiAlias, 0);
 					section->addControl(&kfadeOld, 1);
 					section->addControl(&kdrawLines, 2);
-					section->addControl(&kshowLegend, 3);
+					//section->addControl(&kshowLegend, 3);
 					page->addSection(section, "Options");
 				}
 				if (auto section = new Signalizer::CContentPage::MatrixSection())

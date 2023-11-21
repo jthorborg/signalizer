@@ -224,6 +224,7 @@
 				interconnectSamples,
 				diagnostics,
 				primitiveSize,
+				// serialized, but not used yet (controlled by MainEditor::klegendChoice)
 				showLegend,
 				scalePolarModeToFill;
 

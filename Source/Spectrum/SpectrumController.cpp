@@ -363,7 +363,7 @@ namespace Signalizer
 					section->addControl(&kreferenceTuning, 1);
 					section->addControl(&ktrackerSmoothing, 0);
 					section->addControl(&kdiagnostics, 1);
-					section->addControl(&kshowLegend, 0);
+					//section->addControl(&kshowLegend, 0);
 					page->addSection(section);
 				}
 			}

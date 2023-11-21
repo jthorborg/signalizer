@@ -225,7 +225,7 @@ namespace Signalizer
 				{
 					section->addControl(&koverlayChannels, 0);
 					section->addControl(&kcursorTracker, 1);
-					section->addControl(&kshowLegend, 2);
+					//section->addControl(&kshowLegend, 2);
 					page->addSection(section, "Options");
 				}
 

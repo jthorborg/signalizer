@@ -59,7 +59,6 @@ namespace Signalizer
 	const static int kdefaultMaxSkippedFrames = 10;
 
 	const static int kdefaultLength = 700, kdefaultHeight = 480;
-	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 
 	const static juce::String MainEditorName = "Main Editor Settings";
 
@@ -73,6 +72,7 @@ namespace Signalizer
 		{ SpectrumContent::name, &SpectrumContent::create }
 	};
 
+	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 	enum class RenderTypes
 	{
 		Software,
@@ -80,19 +80,19 @@ namespace Signalizer
 		end
 	};
 
-	enum class Utility
+	const static std::vector<std::string> LegendChoicesList = { "When irregular", "Always", "Never" };
+	enum class LegendChoice
 	{
-		Freeze,
-		Sync,
-		IdleInBack,
+		OnlyWhenIrregular,
+		Always,
+		Never,
 		end
-
 	};
 
 	/// <summary>
 	/// TODO: Query this at runtime
 	/// </summary>
-	const static std::array<int, 5> AntialisingLevels =
+	const static std::array<int, 5> AntialiasingLevels =
 	{
 		1,
 		2,
@@ -104,7 +104,7 @@ namespace Signalizer
 	/// <summary>
 	/// TODO: Query this at runtime
 	/// </summary>
-	const static std::vector<std::string> AntialisingStringLevels =
+	const static std::vector<std::string> AntialiasingStringLevels =
 	{
 		"1",
 		"2",
@@ -222,6 +222,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kmaxHistorySize, 0);
+				section->addControl(&klegendChoice, 1);
 				page->addSection(section, "Globals");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -729,16 +730,16 @@ namespace Signalizer
 
 		if(multisamplingLevel == -1)
 		{
-			auto val = cpl::Math::confineTo(kantialias.getZeroBasedSelIndex(), 0, AntialisingLevels.size() - 1);
-			sanitizedLevel = AntialisingLevels[val];
+			auto val = cpl::Math::confineTo(kantialias.getZeroBasedSelIndex(), 0, AntialiasingLevels.size() - 1);
+			sanitizedLevel = AntialiasingLevels[val];
 		}
 		else
 		{
-			for(unsigned i = 0; i < AntialisingLevels.size(); ++i)
+			for(unsigned i = 0; i < AntialiasingLevels.size(); ++i)
 			{
-				if(AntialisingLevels[i] == multisamplingLevel)
+				if(AntialiasingLevels[i] == multisamplingLevel)
 				{
-					sanitizedLevel = AntialisingLevels[i];
+					sanitizedLevel = AntialiasingLevels[i];
 					break;
 				}
 			}
@@ -1063,6 +1064,7 @@ namespace Signalizer
 
 		data << khideTabs;
 		data << khideWidgets << kstopProcessingOnSuspend;
+		data << klegendChoice;
 	}
 
 	void MainEditor::nestedOnMouseMove(const juce::MouseEvent & e)
@@ -1199,6 +1201,11 @@ namespace Signalizer
 		if (version >= cpl::Version(0, 3, 1))
 		{
 			data >> khideWidgets >> kstopProcessingOnSuspend;
+		}
+
+		if (version >= cpl::Version(0, 4, 0))
+		{
+			data >> klegendChoice;
 		}
 	}
 
@@ -1370,9 +1377,21 @@ namespace Signalizer
 		{
 			params->getSet(i)->pulseUI();
 		}
+
 		if (hasCurrentView())
 		{
-			globalState->showLegend = !engine->getHostGraph().isDefaultLayout();
+			switch (cpl::Math::distribute<LegendChoice>(klegendChoice.bGetValue()))
+			{
+			case LegendChoice::OnlyWhenIrregular:
+				globalState->showLegend = !engine->getHostGraph().isDefaultLayout();
+				break;
+			case LegendChoice::Always:
+				globalState->showLegend = true;
+				break;
+			case LegendChoice::Never:
+				globalState->showLegend = false;
+				break;
+			}
 
 			auto now = cpl::Misc::QuickTime();
 
@@ -1470,6 +1489,7 @@ namespace Signalizer
 		kgraph.bAddChangeListener(this);
 		kidle.bAddChangeListener(this);
 		krenderEngine.bAddChangeListener(this);
+		klegendChoice.bAddChangeListener(this);
 		krefreshRate.bAddChangeListener(this);
 		ksettings.bAddChangeListener(this);
 		kstableFps.bAddChangeListener(this);
@@ -1505,6 +1525,7 @@ namespace Signalizer
 		krefreshRate.bSetTitle("Refresh Rate");
 		krefreshState.setSingleText("Reset state");
 		kantialias.bSetTitle("Antialiasing");
+		klegendChoice.bSetTitle("Show legend");
 		kidle.setSingleText("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
 		kstableFps.setSingleText("Stable FPS");
@@ -1515,7 +1536,8 @@ namespace Signalizer
 
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
-		kantialias.setValues(AntialisingStringLevels);
+		klegendChoice.setValues(LegendChoicesList);
+		kantialias.setValues(AntialiasingStringLevels);
 
 
 		auto config = engine->getConcurrentConfig();
@@ -1570,7 +1592,7 @@ namespace Signalizer
 		khideTabs.bSetDescription("Auto-hides the top tabs and buttons when not used.");
 		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
-
+		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
 		resized();
 	}
 };

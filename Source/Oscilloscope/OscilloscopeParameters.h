@@ -697,6 +697,7 @@
 				triggerHysteresis,
 				triggerThreshold,
 				triggeringChannel,
+				// serialized, but not used yet (controlled by MainEditor::klegendChoice)
 				showLegend;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
