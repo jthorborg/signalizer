@@ -272,7 +272,7 @@ namespace Signalizer
 		shared.numChannels = cs.channelData.numChannels();
 		const auto oldChannelMode = shared.channelMode.load();
 		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
-		const auto resetLegend = state.audioStreamChanged.consumeChanges(cs.audioStreamChangeVersion) || cs.channelMode != oldChannelMode;
+		auto resetLegend = state.audioStreamChanged.consumeChanges(cs.audioStreamChangeVersion) || cs.channelMode != oldChannelMode;
 
 		state.sampleRate = cs.sampleRate;
 		state.autoGain = cs.envelopeGain;
@@ -283,7 +283,7 @@ namespace Signalizer
 		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
 			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
-			cs.channelData.filterStates.channels[c].defaultKey = colour;
+			resetLegend |= assignAndChanged(cs.channelData.filterStates.channels[c].defaultKey, colour);
 		}
 
 		// recalculate legend

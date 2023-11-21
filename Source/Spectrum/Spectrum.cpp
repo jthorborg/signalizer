@@ -381,8 +381,8 @@ namespace Signalizer
 
 		for (std::size_t i = 0; i < SpectrumContent::LineEnd; ++i)
 		{
-			state.colourOne[i] = ColourRotation(content->lines[i].colourOne.getAsJuceColour(), pairs, false);
-			state.colourTwo[i] = ColourRotation(content->lines[i].colourTwo.getAsJuceColour(), pairs, false);
+			calculateLegend |= assignAndChanged(state.colourOne[i], ColourRotation(content->lines[i].colourOne.getAsJuceColour(), pairs, false));
+			calculateLegend |= assignAndChanged(state.colourTwo[i], ColourRotation(content->lines[i].colourTwo.getAsJuceColour(), pairs, false));
 
 			double unitFrameTime;
 			if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
@@ -395,11 +395,11 @@ namespace Signalizer
 
 		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
-			stream.constant.colourSpecs[0] = ColourRotation(state.colourBackground, pairs, false);
+			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
-				stream.constant.colourSpecs[i + 1] = ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false);
+				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
 			}
 
 			calculateSpectrumColourRatios(stream.constant);

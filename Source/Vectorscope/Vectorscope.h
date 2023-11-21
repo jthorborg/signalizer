@@ -110,9 +110,15 @@
 
 			};
 
+			struct StreamState
+			{
+				std::vector<std::string> channelNames;
+				std::size_t numChannels;
+			};
+
 			struct Processor : public AudioStream::Listener
 			{
-				Signalizer::CriticalSection<std::vector<std::string>> channelNames;
+				Signalizer::CriticalSection<StreamState> streamState;
 				FilterStates filters{};
 				cpl::relaxed_atomic<double> envelopeGain;
 				cpl::relaxed_atomic<float> 
@@ -129,7 +135,7 @@
 				/// <summary>
 				/// Set this if the audio buffer window size was changed from somewhere else.
 				/// </summary>
-				cpl::ABoolFlag audioWindowWasResized;
+				cpl::ABoolFlag streamPropertiesChanged;
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
 
 				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
@@ -164,6 +170,7 @@
 			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
+			void recalculateLegend();
 
 			template<typename ISA>
 				void vectorGLRendering();
@@ -207,6 +214,7 @@
 				float primitiveSize, rotation;
 				juce::Colour colourBackground, colourWire, colourAxis, colourWaveform, colourMeter, colourWidget;
 				cpl::ValueT userGain;
+				LegendCache legend;
 			} state;
 
 			std::shared_ptr<VectorScopeContent> content;

@@ -87,19 +87,9 @@ namespace Signalizer
 
 		if (globalBehaviour->showLegend && mouseCheck)
 		{
-			PaintLegend(
-				g,
-				state.colourWidget,
-				state.colourBackground,
-				{ 10, paintDiag ? 35.f : 10.f },
-				*processor->channelNames.lock(),
-				ColourRotation(state.colourWaveform, numChannels, true),
-				numChannels
-			);
+			state.legend.paint(g, state.colourWidget, state.colourBackground);
 		}
 	}
-
-
 
 	void VectorScope::initOpenGL()
 	{
