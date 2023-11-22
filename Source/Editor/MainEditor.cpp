@@ -1452,7 +1452,7 @@ namespace Signalizer
 		std::string contents =
 			programInfo.name + " " + programInfo.version.toString() + newl +
 			"Build info: \n" + programInfo.customBuildInfo + newl +
-			"Written by Janus Lynggaard Thorborg, (C) 2017" + newl +
+			"Written by Janus Lynggaard Thorborg, (C) 2023" + newl +
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
 			"Open the readme file (contains information you must read upon first use)?";
 
