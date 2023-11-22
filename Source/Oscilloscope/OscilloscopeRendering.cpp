@@ -263,19 +263,6 @@ namespace Signalizer
 		void Oscilloscope::vectorGLRendering()
 		{
             CPL_DEBUGCHECKGL();
-            
-			if (globalBehaviour->hideWidgetsOnMouseExit)
-			{
-
-				auto sleepAmount = 1000 * this->content->triggeringChannel.getNormalizedValue();
-				if(sleepAmount > 0)
-					::Sleep(sleepAmount);
-
-				if(content->triggerOnCustomFrequency.getNormalizedValue() > 0)
-				return;
-			}
-
-
 			{
 				auto cs = processor->streamState.lock();
 				auto& streamState = *cs;
