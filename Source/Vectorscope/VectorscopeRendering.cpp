@@ -181,7 +181,7 @@ namespace Signalizer
                     CPL_DEBUGCHECKGL();
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-
+					openGLStack.enable(GL_MULTISAMPLE);
                     // draw graph and wireframe
                     drawWireFrame<ISA>(openGLStack);
                     CPL_DEBUGCHECKGL();
