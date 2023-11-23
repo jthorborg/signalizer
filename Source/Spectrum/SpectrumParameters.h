@@ -387,6 +387,7 @@
 				diagnostics,
 				specRatios[numSpectrumColours],
 				trackerSmoothing,
+				// serialized, but not used yet (controlled by MainEditor::klegendChoice)
 				showLegend;
 
 			cpl::ParameterColourValue<ParameterSet::ParameterView>

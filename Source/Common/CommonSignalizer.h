@@ -939,6 +939,12 @@
 				return base;
 			}
 
+			friend bool operator != (const ColourRotation& a, const ColourRotation& b)
+			{
+				return a.base != b.base || a.size != b.size || a.stereo != b.stereo;
+			}
+
+
 		private:
 			juce::Colour base;
 			float size;
@@ -1072,40 +1078,6 @@
 			float startingY;
 		};
 
-		template<typename NameVector, typename ColourVector>
-		inline void PaintLegend(juce::Graphics& g, juce::Colour front, juce::Colour back, juce::Point<float> position, const NameVector& names, const ColourVector& colours, std::size_t count)
-		{
-			juce::GlyphArrangement arrangement;
-			constexpr auto offset = 5;
-			constexpr auto strokeSize = 50;
-			position.y += offset * 3;
-			position.x += offset;
-			auto startingY = position.y;
-			auto lineHeight = g.getCurrentFont().getHeight();
-
-			for (std::size_t i = 0; i < count; ++i)
-			{
-				arrangement.addLineOfText(g.getCurrentFont(), names[i], position.x, position.y);
-				position.y += offset + g.getCurrentFont().getHeight();
-			}
-
-			auto bounds = arrangement.getBoundingBox(0, -1, true).reduced(-offset).withTrimmedRight(-strokeSize);
-
-			g.setColour(back);
-			g.fillRoundedRectangle(bounds, offset);
-			g.setColour(front);
-			g.drawRoundedRectangle(bounds, offset, 1);
-
-			arrangement.draw(g);
-
-			for (std::size_t i = 0; i < count; ++i)
-			{
-				auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
-				g.setColour(colours[i]);
-				g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 2.0f);
-			}
-		}
-
 		template<typename T>
 		class CriticalSection
 		{
@@ -1187,6 +1159,16 @@
 				);
 			}
 		};
+
+		template<typename T>
+		inline bool assignAndChanged(T& source, const T& operand)
+		{
+			if (!(source != operand))
+				return false;
+
+			source = operand;
+			return true;
+		}
 	};
 
 	namespace std

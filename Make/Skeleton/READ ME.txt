@@ -67,3 +67,6 @@ A: Contact me (7).
 Q: I'm getting errors when I load a preset.
 A: The preset is probably from an older version. Perhaps send the error to me.
 
+Q: I can't get Signalizer to load as a VST3 plugin (Windows)
+A: Try renaming the Signalizer.dll file to Signalizer.vst3
+

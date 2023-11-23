@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Flicker when reducing the window size in the spectrum
 - Graphical issue when the Spectrum has a dB range of zero (there's now a small minimum enforced)
 - Graphical stutter or lag in hosts on Windows 10 and 11
+- Issue where wireframe in the vectorscope would be rendered with jagged lines
 
 ### Changed
 

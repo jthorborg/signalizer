@@ -211,6 +211,36 @@ namespace Signalizer
 		changeIdentity(SerializedHandle::generateUnique(), lock);
 	}
 
+	bool HostGraph::computeIsDefaultLayout(const TriggerModelUpdateOnExit& lock) const noexcept
+	{
+		if (!hasSerializedRepresentation())
+			return true;
+
+		if (topology.size() != 1)
+			return false;
+
+		if (auto it = topology.find(*nodeID); it != topology.end())
+		{
+			if (it->first != *nodeID)
+				return false;
+
+			if (it->second.inputs.size() != 2)
+				return false;
+
+			if (it->second.inputs.count({ 0, 0 }) == 0)
+				return false;
+
+			if (it->second.inputs.count({ 1, 1 }) == 0)
+				return false;
+		}
+		else
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 
 	HostGraph::Model HostGraph::getModel()
 	{
@@ -355,17 +385,21 @@ namespace Signalizer
 		if (handles.empty())
 			return true;
 
-		bool isEverythingConnected = true;
+		bool wasEverythingConnected = true;
+		std::size_t disconnections = 0;
 
 		// check whether everything is connected, and disconnect everything on the way
 		for (const auto& h : handles)
 		{
 			bool didDisconnections = resetInstancedTopologyFor(h, lock, true);
-			isEverythingConnected = isEverythingConnected && didDisconnections;
+			wasEverythingConnected = wasEverythingConnected && didDisconnections;
+			
+			if (didDisconnections)
+				disconnections++;
 		}
 
 		// if everything was connected, we've now disconnected everything
-		if (isEverythingConnected)
+		if (wasEverythingConnected || disconnections >= MaxInputChannels / 2)
 			return true;
 
 		// otherwise, let's reconstruct a new set of topology 
@@ -480,6 +514,7 @@ namespace Signalizer
 			}
 		}
 
+		isDefaultRuntimeLayout = true;
 	}
 
 

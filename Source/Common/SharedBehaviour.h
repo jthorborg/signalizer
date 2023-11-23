@@ -40,7 +40,8 @@ namespace Signalizer
 
 		cpl::relaxed_atomic<bool>
 			hideWidgetsOnMouseExit = false,
-			stopProcessingOnSuspend = false;
+			stopProcessingOnSuspend = false,
+			showLegend = false;
 	};
 };
 

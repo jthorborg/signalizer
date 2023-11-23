@@ -697,6 +697,7 @@
 				triggerHysteresis,
 				triggerThreshold,
 				triggeringChannel,
+				// serialized, but not used yet (controlled by MainEditor::klegendChoice)
 				showLegend;
 
 			std::vector<cpl::ParameterValue<ParameterSet::ParameterView>> viewOffsets;
@@ -721,6 +722,7 @@
 
 			cpl::ParameterTransformValue<ParameterSet::ParameterView>::SharedBehaviour<ParameterSet::ParameterView::ValueType> tsfBehaviour;
 
+#pragma message cwarn("Get rid of this, but without breaking format")
 			cpl::ParameterTransformValue<ParameterSet::ParameterView> transform;
 
 		private:

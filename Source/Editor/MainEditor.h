@@ -188,7 +188,7 @@
 			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend;
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
-			cpl::CComboBox krenderEngine, kantialias;
+			cpl::CComboBox krenderEngine, kantialias, klegendChoice;
 			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours> colourControls;
 

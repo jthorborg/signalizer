@@ -85,21 +85,11 @@ namespace Signalizer
 
 		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
-		if (state.drawLegend && mouseCheck)
+		if (globalBehaviour->showLegend && mouseCheck)
 		{
-			PaintLegend(
-				g,
-				state.colourWidget,
-				state.colourBackground,
-				{ 10, paintDiag ? 35.f : 10.f },
-				*processor->channelNames.lock(),
-				ColourRotation(state.colourWaveform, numChannels, true),
-				numChannels
-			);
+			state.legend.paint(g, state.colourWidget, state.colourBackground);
 		}
 	}
-
-
 
 	void VectorScope::initOpenGL()
 	{
@@ -191,7 +181,7 @@ namespace Signalizer
                     CPL_DEBUGCHECKGL();
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-
+					openGLStack.enable(GL_MULTISAMPLE);
                     // draw graph and wireframe
                     drawWireFrame<ISA>(openGLStack);
                     CPL_DEBUGCHECKGL();

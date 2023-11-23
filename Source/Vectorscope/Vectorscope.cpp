@@ -194,6 +194,8 @@ namespace Signalizer
 
 	void VectorScope::handleFlagUpdates()
 	{
+		bool calculateLegend = processor->streamPropertiesChanged.cas();
+
 		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
 		processor->envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate));
@@ -210,13 +212,12 @@ namespace Signalizer
 		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 		state.scalePolar = content->scalePolarModeToFill.getTransformedValue() > 0.5;
 
-		state.colourWaveform = content->waveformColour.getAsJuceColour();
+		calculateLegend |= assignAndChanged(state.colourWaveform, content->waveformColour.getAsJuceColour());
 		state.colourWire = content->wireframeColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
 		state.colourMeter = content->meterColour.getAsJuceColour();
 		state.colourAxis = content->axisColour.getAsJuceColour();
 		state.colourWidget = content->widgetColour.getAsJuceColour();
-
 
 		bool firstRun = false;
 
@@ -227,6 +228,7 @@ namespace Signalizer
 
 		if (firstRun || mtFlags.initiateWindowResize)
 		{
+			calculateLegend = true;
 			// we will get notified asynchronously in onStreamPropertiesChanged.
 			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
@@ -242,6 +244,24 @@ namespace Signalizer
 				);
 			}
 		}
+
+		if (calculateLegend)
+			recalculateLegend();
+	}
+
+	void VectorScope::recalculateLegend()
+	{
+		state.legend.reset({ 10, 10 });
+
+		auto streamState = processor->streamState.lock();
+		auto& names = streamState->channelNames;
+
+		const auto numPairs = streamState->numChannels / 2;
+
+		ColourRotation primaryRotation(state.colourWaveform, numPairs, false);
+
+		for (std::size_t c = 0; c < numPairs; ++c)
+			state.legend.addLine(names[c * 2] + ", " + names[c * 2 + 1], primaryRotation[c]);
 	}
 
 
@@ -366,8 +386,10 @@ namespace Signalizer
 
 	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
-		audioWindowWasResized = true;
-		*channelNames.lock() = ctx.getChannelNames();
+		streamPropertiesChanged = true;
+		auto stream = streamState.lock();
+		stream->channelNames = ctx.getChannelNames();
+		stream->numChannels = ctx.getInfo().channels;
 	}
 
 };
