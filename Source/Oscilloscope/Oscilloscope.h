@@ -32,14 +32,13 @@
 
 	#include "Signalizer.h"
 	#include <cpl/Utility.h>
-	#include <cpl/gui/controls/Controls.h>
-	#include <cpl/gui/widgets/Widgets.h>
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "OscilloscopeParameters.h"
 	#include <cpl/dsp/SmoothedParameterState.h>
 	#include <utility>
 	#include "ChannelData.h"
+	#include <cpl/gui/CViews.h>
 
 	namespace cpl
 	{
@@ -51,148 +50,55 @@
 
 	namespace Signalizer
 	{
-		class PreprocessingTrigger;
+
+		struct EvaluatorParams
+		{
+			ChannelData& data;
+
+			std::size_t
+				channelIndex = 0;
+		};
+
+		class TriggeringProcessor;
 
 		class Oscilloscope final
-			: public cpl::COpenGLView
+			: public GraphicsWindow
 			, private AudioStream::Listener
 		{
 		public:
 
-			friend class PreprocessingTrigger;
+			friend class TriggeringProcessor;
 
 			static const double higherAutoGainBounds;
 			static const double lowerAutoGainBounds;
 
-			Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params);
+			Oscilloscope(
+				std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig>& config,
+				std::shared_ptr<AudioStream::Output>& stream,
+				std::shared_ptr<OscilloscopeContent> params
+			);
+
 			virtual ~Oscilloscope();
 
 		protected:
 			
-			// Component overrides
-			void onGraphicsRendering(juce::Graphics & g) override;
-
 			// OpenGLRender overrides
 			void onOpenGLRendering() override;
-			void initOpenGL() override;
-			void closeOpenGL() override;
 			// View overrides
 			juce::Component * getWindow() override;
 			void suspend() override;
 			void resume() override;
-			void freeze() override;
-			void unfreeze() override;
-
-			// cbasecontrol overrides
-			bool isEditorOpen() const;
 
 			void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 			void mouseDoubleClick(const juce::MouseEvent& event) override;
 			void mouseDrag(const juce::MouseEvent& event) override;
-			void mouseUp(const juce::MouseEvent& event) override;
-			void mouseDown(const juce::MouseEvent& event) override;
-			void mouseMove(const juce::MouseEvent& event) override;
-			void mouseExit(const juce::MouseEvent & e) override;
-			void mouseEnter(const juce::MouseEvent & e) override;
-
-			bool onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples) override;
-			//void onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before) override;
-
-			/// <summary>
-			/// Handles all set flags in mtFlags.
-			/// Make sure the audioStream is locked while doing this.
-			/// </summary>
-			virtual void handleFlagUpdates();
 
 		private:
-			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
-			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
-
-			struct RenderingDispatcher
-			{
-				template<typename ISA> static void dispatch(Oscilloscope & o) { o.vectorGLRendering<ISA>(); }
-			};
-
-			struct AudioDispatcher
-			{
-				template<typename ISA> static void dispatch(Oscilloscope & o, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples) 
-				{ 
-					o.audioEntryPoint<ISA>(buffer, numChannels, numSamples);
-				}
-			};
-
-
-			template<typename ISA>
-				void vectorGLRendering();
-
-			// vector-accelerated drawing, rendering and processing
-			template<typename ISA, typename Eval>
-				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &);
-
-			template<typename ISA>
-				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
-
-			template<typename ISA>
-				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
-
-			template<typename ISA, typename Eval>
-				void calculateFundamentalPeriod();
-
-			template<typename ISA, typename Eval>
-				void calculateTriggeringOffset();
-
-			void resizeAudioStorage();
-
-			template<typename ISA>
-				void runPeakFilter();
-
-			template<typename ISA, typename Eval>
-				void analyseAndSetupState();
-
-			template<typename ISA>
-			void preprocessAudio(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
-
-			template<typename ISA, class Analyzer>
-				void executeSamplingWindows(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples);
-
-			template<typename ISA>
-				void audioEntryPoint(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples);
-
-			template<typename ISA>
-				void audioProcessing(AFloat ** buffer, std::size_t numChannels, std::size_t numSamples, ChannelData::Buffer &);
-
-			template<typename ISA>
-				void paint2DGraphics(juce::Graphics & g);
-
-			bool checkAndInformInvalidCombinations();
-
-			void initPanelAndControls();
-
-			/// <summary>
-			/// Returns the combined gain value for the current frame.
-			/// </summary>
-			double getGain();
-
-			void setLastMousePos(const juce::Point<float> position) noexcept;
-
-			struct FilterStates
-			{
-				enum Entry
-				{
-					Slow = 0,
-					Left = 0,
-					Fast = 1,
-					Right = 1
-				};
-
-				AudioStream::DataType envelope[2];
-
-			} filters;
 
 			struct Flags
 			{
 				cpl::ABoolFlag
-					firstRun,
 					/// <summary>
 					/// Set this to resize the audio windows (like, when the audio window size (as in fft size) is changed.
 					/// The argument to the resizing is the state.newWindowSize
@@ -204,11 +110,14 @@
 					audioWindowWasResized;
 			} mtFlags;
 
+			// TODO: scope to gfx?
 			// contains frame-updated non-atomic structures
 			struct StateOptions
 			{
-				bool isFrozen, antialias, diagnostics, dotSamples, customTrigger, overlayChannels, colourChannelsByFrequency, drawCursorTracker, isSuspended;
+				bool antialias, diagnostics, dotSamples, customTrigger, colourChannelsByFrequency, drawCursorTracker, drawLegend;
 				float primitiveSize;
+
+				OscilloscopeContent::TriggeringMode triggerMode;
 
 				double effectiveWindowSize;
 				double windowTimeOffset;
@@ -217,45 +126,26 @@
 				double triggerHysteresis;
 				double triggerThreshold;
 				double autoGain, manualGain;
+				double sampleRate;
 
 				double viewOffsets[4];
-				std::int64_t transportPosition;
-				juce::Colour colourBackground, colourGraph, colourPrimary, colourSecondary, colourTracker;
+				juce::Colour colourBackground, colourAxis, colourSecondary, colourWidget;
 
-				EnvelopeModes envelopeMode;
 				SubSampleInterpolation sampleInterpolation;
-				OscilloscopeContent::TriggeringMode triggerMode;
 				OscilloscopeContent::TimeMode timeMode;
-				OscChannels channelMode;
+				ChangeVersion::Listener audioStreamChanged;
+				LegendCache legend;
 
-			} state;
+			} state {};
 
 			struct SharedStateOptions
 			{
-				std::atomic<double> 
-					autoGainEnvelope;
-			} shared;
+				// TODO: accessed from gfx and main thread
+				cpl::relaxed_atomic<std::size_t> numChannels;
+				cpl::relaxed_atomic<OscChannels> channelMode;
+				cpl::relaxed_atomic<bool> overlayChannels;
 
-			using VO = OscilloscopeContent::ViewOffsets;
-			cpl::CBoxFilter<double, 60> avgFps;
-			juce::MouseCursor displayCursor;
-			OscilloscopeContent * content;
-			AudioStream & audioStream;
-			//cpl::AudioBuffer audioStreamCopy;
-			juce::Component * editor;
-			// unused.
-			std::unique_ptr<char> textbuf;
-			unsigned long long processorSpeed; // clocks / sec
-			juce::Point<float> lastMousePos;
-			long long lastFrameTick, renderCycles;
-			std::atomic_bool isMouseInside;
-			/// <summary>
-			/// Updates are not guaranteed to be in order
-			/// </summary>
-			std::pair<std::atomic<float>, std::atomic<float>> threadedMousePos;
-			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
-			cpl::aligned_vector<double, 16> temporaryBuffer;
-			const SharedBehaviour & globalBehaviour;
+			} shared {};
 
 			struct BinRecord
 			{
@@ -264,11 +154,11 @@
 				/// </summary>
 				std::size_t index;
 
-				double 
+				double
 					/// <summary>
 					/// Value of this bin
 					/// </summary>
-					value, 
+					value,
 					/// <summary>
 					/// The offset quantized bin creating the fundamental
 					/// </summary>
@@ -278,13 +168,13 @@
 			};
 
 			struct TriggerData
-			{ 
-				std::unique_ptr<PreprocessingTrigger> preprocessingTrigger;
+			{
+
 				/// <summary>
 				/// The fundamental frequency (in hertz) in the selected window offset in time.
 				/// </summary>
 				double fundamental;
-				BinRecord record{};
+				BinRecord record;
 				/// <summary>
 				/// The amount of samples per fundamental period
 				/// </summary>
@@ -297,8 +187,125 @@
 				/// The sample offset for the detected fundamental at T = 0 - state.effectiveWindowSize
 				/// </summary>
 				double sampleOffset;
-			} triggerState;
+			} triggerState{};
 
+			struct StreamState
+			{
+				friend struct AudioDispatcher;
+			public:
+
+				StreamState();
+				~StreamState();
+
+				ChannelData channelData;
+				// TODO: Should go back to be in place
+				std::unique_ptr<TriggeringProcessor> triggeringProcessor;
+				std::shared_ptr<OscilloscopeContent> content;
+				std::vector<std::string> channelNames;
+				std::int64_t historyCapacity;
+				std::int64_t transportPosition;
+				double bpm {};
+				double sampleRate{};
+				double envelopeGain{};
+				EnvelopeModes envelopeMode;
+				OscChannels channelMode;
+
+				OscilloscopeContent::TriggeringMode triggerMode;
+				ChangeVersion audioStreamChangeVersion;
+
+				template<typename ISA>
+				void preAnalyseAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+
+				template<typename ISA, class Analyzer>
+				void executeSamplingWindows(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
+
+				template<typename ISA>
+				void audioProcessing(
+					const AudioStream::Info& info,
+					const AudioStream::Playhead& playhead,
+					const AudioStream::DataType* const* buffer,
+					const std::size_t numChannels,
+					const std::size_t numSamples,
+					ChannelData::Buffer&
+				);
+
+				template<typename ISA>
+				void audioEntryPoint(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples);
+			};
+
+			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
+			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
+
+			struct RenderingDispatcher
+			{
+				template<typename ISA> static void dispatch(Oscilloscope & o) { o.vectorGLRendering<ISA>(); }
+			};
+
+
+			std::size_t getEffectiveChannels() const noexcept;
+
+			template<typename ISA>
+				void vectorGLRendering();
+
+			// vector-accelerated drawing, rendering and processing
+			template<typename ISA, typename Eval>
+				void drawWavePlot(cpl::OpenGLRendering::COpenGLStack &, const EvaluatorParams& params, StreamState& cs);
+
+			template<typename ISA>
+				void drawWireFrame(juce::Graphics & g, juce::Rectangle<float> rect, float gain);
+
+			template<typename ISA>
+				void drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect);
+
+			template<typename ISA, typename Eval>
+				void calculateFundamentalPeriod(const EvaluatorParams& params);
+
+			template<typename ISA, typename Eval>
+				void calculateTriggeringOffset(const EvaluatorParams& params);
+
+			template<typename ISA>
+				void runPeakFilter(ChannelData& data);
+
+			template<typename ISA, typename Eval>
+				void analyseAndSetupState(const EvaluatorParams& params, Oscilloscope::StreamState& cs);
+
+			template<typename ISA>
+				void paint2DGraphics(juce::Graphics & g);
+
+			bool checkAndInformInvalidCombinations(Oscilloscope::StreamState&);
+
+			void initPanelAndControls();
+
+			/// <summary>
+			/// Returns the combined gain value for the current frame.
+			/// </summary>
+			double getGain();
+
+			void handleFlagUpdates(StreamState&);
+			void recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation);
+
+			struct ProcessorShell : public AudioStream::Listener
+			{
+				std::shared_ptr<const SharedBehaviour> globalBehaviour;
+				CriticalSection<StreamState> streamState;
+				cpl::relaxed_atomic<bool> isSuspended;
+
+				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
+				void onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before) override;
+
+				ProcessorShell(std::shared_ptr<const SharedBehaviour>& behaviour)
+					: globalBehaviour(behaviour)
+				{
+				}
+			};
+
+			struct AudioDispatcher
+			{
+				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+				{
+					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
+				}
+			};
 
 			struct MedianData
 			{
@@ -307,12 +314,17 @@
 				BinRecord record{};
 			};
 
+			using VO = OscilloscopeContent::ViewOffsets;
+			std::shared_ptr<OscilloscopeContent> content;
+			std::shared_ptr<AudioStream::Output> audioStream;
 
+			cpl::aligned_vector<std::complex<double>, 32> transformBuffer;
+			cpl::aligned_vector<double, 16> temporaryBuffer;
+			std::shared_ptr<const SharedBehaviour> globalBehaviour;
 			std::size_t medianPos;
 			std::array<MedianData, MedianData::FilterSize> medianTriggerFilter;
 
-			cpl::CMutex::Lockable bufferLock;
-			ChannelData channelData;
+			std::shared_ptr<ProcessorShell> processor;
 
 			class DefaultKey;
 
@@ -327,13 +339,15 @@
 
 			};
 
-			template<OscChannels channelConfiguration, std::size_t ColourIndice>
+			template<OscChannels ChannelConfiguration>
 				class SampleColourEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice>
+			class DynamicChannelEvaluator;
+
+			template<std::size_t ChannelOffset>
 				class SimpleChannelEvaluator;
 
-			template<std::size_t ChannelIndex, std::size_t ColourIndice, typename BinaryFunction>
+			template<std::size_t ChannelOffset, typename BinaryFunction>
 				class MidSideEvaluatorBase;
 		};
 

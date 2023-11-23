@@ -29,13 +29,15 @@
 
 #include "MainEditor.h"
 #include "../Processor/PluginProcessor.h"
-#include "../Vectorscope/Vectorscope.h"
-#include "../Oscilloscope/Oscilloscope.h"
-#include "../Spectrum/Spectrum.h"
+#include "../Vectorscope/VectorscopeParameters.h"
+#include "../Oscilloscope/OscilloscopeParameters.h"
+#include "../Spectrum/SpectrumParameters.h"
+#include "../Common/MixGraphListener.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
 #include "version.h"
 #include <cpl/Mathext.h>
+#include "GraphEditor.h"
 
 namespace cpl
 {
@@ -57,54 +59,20 @@ namespace Signalizer
 	const static int kdefaultMaxSkippedFrames = 10;
 
 	const static int kdefaultLength = 700, kdefaultHeight = 480;
-	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 
 	const static juce::String MainEditorName = "Main Editor Settings";
 
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 
-	enum class ViewTypes
+	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
-		Vectorscope,
-		Oscilloscope,
-		Spectrum,
-		end
+		{ VectorScopeContent::name, &VectorScopeContent::create },
+		{ OscilloscopeContent::name, &OscilloscopeContent::create },
+		{ SpectrumContent::name, &SpectrumContent::create }
 	};
 
-	std::array<const char *, static_cast<std::size_t>(ViewTypes::end)> ViewIndexToMap =
-	{
-		"Vectorscope",
-		"Oscilloscope",
-		"Spectrum"
-		//"Statistics"
-	};
-
-	template<typename T>
-	inline std::unique_ptr<ProcessorState> CreateState(std::size_t offset, bool shouldCreateShortNames, SystemView system)
-	{
-		return std::unique_ptr<ProcessorState>(new T(offset, shouldCreateShortNames, system));
-	}
-
-	std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList =
-	{
-		{ ViewIndexToMap[(int)ViewTypes::Vectorscope], &CreateState<VectorScopeContent> },
-		{ ViewIndexToMap[(int)ViewTypes::Oscilloscope], &CreateState<OscilloscopeContent> },
-		{ ViewIndexToMap[(int)ViewTypes::Spectrum], &CreateState<SpectrumContent> }
-	};
-
-	template<typename... Args>
-	std::unique_ptr<cpl::CSubView> GenerateView(ViewTypes type, Args&&... args)
-	{
-		switch (type)
-		{
-		case ViewTypes::Vectorscope: return std::make_unique<VectorScope>(args...);
-		case ViewTypes::Oscilloscope: return std::make_unique<Oscilloscope>(args...);
-		case ViewTypes::Spectrum: return std::make_unique<Spectrum>(args...);
-		}
-		CPL_RUNTIME_EXCEPTION("Unknown view generation index");
-	}
-
+	const static std::vector<std::string> RenderingEnginesList = { "Software", "OpenGL" };
 	enum class RenderTypes
 	{
 		Software,
@@ -112,19 +80,19 @@ namespace Signalizer
 		end
 	};
 
-	enum class Utility
+	const static std::vector<std::string> LegendChoicesList = { "When irregular", "Always", "Never" };
+	enum class LegendChoice
 	{
-		Freeze,
-		Sync,
-		IdleInBack,
+		OnlyWhenIrregular,
+		Always,
+		Never,
 		end
-
 	};
 
 	/// <summary>
 	/// TODO: Query this at runtime
 	/// </summary>
-	const static std::array<int, 5> AntialisingLevels =
+	const static std::array<int, 5> AntialiasingLevels =
 	{
 		1,
 		2,
@@ -136,7 +104,7 @@ namespace Signalizer
 	/// <summary>
 	/// TODO: Query this at runtime
 	/// </summary>
-	const static std::vector<std::string> AntialisingStringLevels =
+	const static std::vector<std::string> AntialiasingStringLevels =
 	{
 		"1",
 		"2",
@@ -168,26 +136,33 @@ namespace Signalizer
 		, tabBarTimer()
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
+		, graphEditor(nullptr)
+		, globalState(std::make_shared<SharedBehaviour>())
 	{
-		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
-		views.reserve((std::size_t)ViewTypes::end);
+		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
+		e->getHostGraph().setMixGraph(mixGraph);
 
-		cpl::foreach_enum<ViewTypes>(
-			[&](ViewTypes index)
-			{
-				int i = cpl::enum_cast<int>(index);
-				auto & name = ViewIndexToMap[i];
-				auto & localState = *params->getState(i);
-				views.emplace_back(
-					name,
-					localState,
-					[=, &localState]
-					{
-						return GenerateView(index, globalState, name, engine->stream, &localState);
-					}
-				);
-			}
-		);
+		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
+		views.reserve(ContentCreationList.size());
+
+		for (int i = 0; i < ContentCreationList.size(); ++i)
+		{
+			auto localState = params->getState(i);
+
+			localState->onPresentationStreamCreated(presentationOutput);
+
+			views.emplace_back(
+				localState,
+				[=]
+				{
+					return localState->createView(
+						std::const_pointer_cast<const SharedBehaviour>(globalState),
+						engine->getConcurrentConfig(),
+						presentationOutput
+					);
+				}
+			);
+		}
 
 		setOpaque(true);
 		setMinimumSize(50, 50);
@@ -196,6 +171,22 @@ namespace Signalizer
 		oglc.setComponentPaintingEnabled(false);
 
 		nestedMouseHook.hook(this, this, true);
+
+		cpl::CheckPruneExceptionLogFile();
+	}
+
+	MainEditor::~MainEditor()
+	{
+		if (graphEditor)
+			graphEditor->mainEditorDied();
+
+		suspendView(views[selTab]);
+		notifyDestruction();
+		exitFullscreen();
+		stopTimer();
+		
+		MixGraphListener::Handle h {};
+		engine->getHostGraph().setMixGraph(h);
 	}
 
 
@@ -231,6 +222,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kmaxHistorySize, 0);
+				section->addControl(&klegendChoice, 1);
 				page->addSection(section, "Globals");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -392,14 +384,8 @@ namespace Signalizer
 	void MainEditor::setRefreshRate(int rate)
 	{
 		refreshRate = cpl::Math::confineTo(rate, 10, 1000);
-		if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
-		{
-			juce::HighResolutionTimer::startTimer(refreshRate);
-		}
-		else
-		{
-			juce::Timer::startTimer(refreshRate);
-		}
+		startTimer(refreshRate);
+
 		if (hasCurrentView())
 			activeView().setApproximateRefreshRate(refreshRate);
 
@@ -411,8 +397,7 @@ namespace Signalizer
 
 	void MainEditor::suspend()
 	{
-		juce::HighResolutionTimer::stopTimer();
-		juce::Timer::stopTimer();
+		stopTimer();
 	}
 
 	// these handle cases where our component is being thrown off the kiosk mode by (possibly)
@@ -462,15 +447,13 @@ namespace Signalizer
 	{
 		// TODO: refactor all behaviour here out to semantic functions
 		// bail out early if we aren't showing anything.
-		//if (!hasCurrentView())
-		//	return;
 
 		auto value = c->bGetValue();
 
 		// freezing of displays
 		if (c == &kfreeze)
 		{
-			engine->stream.setSuspendedState(value > 0.5);
+			mixGraph.setSuspended(value > 0.5);
 		}
 		// lower display rate if we are unfocused
 		else if (c == &kidle)
@@ -545,25 +528,9 @@ namespace Signalizer
 				}
 			}
 		}
-		else if (c == &kstableFps)
-		{
-			if (kstableFps.getValueReference().getNormalizedValue() > 0.5)
-			{
-				juce::Timer::stopTimer();
-				juce::HighResolutionTimer::startTimer(refreshRate);
-			}
-			else
-			{
-				juce::HighResolutionTimer::stopTimer();
-				juce::Timer::startTimer(refreshRate);
-			}
-		}
 		else if (c == &kswapInterval)
 		{
-			newc.swapInterval.store(
-				cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames),
-				std::memory_order_release
-			);
+			newc.swapInterval = cpl::Math::round<int>(kswapInterval.bGetValue() * kdefaultMaxSkippedFrames);
 
 			mtFlags.swapIntervalChanged = true;
 		}
@@ -653,64 +620,58 @@ namespace Signalizer
 		{
 			showAboutBox();
 		}
+		else if (c == &kgraph)
+		{
+			if (!graphEditor)
+				graphEditor = new GraphEditor(this, engine->getHostGraph());
+			else
+				graphEditor->toFront(true);
+		}
 		else if (c == &kmaxHistorySize)
 		{
+			auto config = engine->getConcurrentConfig();
 
-			struct RetryResizeCapacity
+			CPL_RUNTIME_ASSERTION(config->sampleRate > 0);
+
+			std::int64_t value;
+			std::string contents = kmaxHistorySize.getInputValue();
+			if (cpl::lexicalConversion(contents, value) && value >= 0)
 			{
-				RetryResizeCapacity(MainEditor * h) : handle(h) {};
-				MainEditor * handle;
+				auto samplesCapacity = cpl::Math::round<std::size_t>(config->sampleRate * 0.001 * value);
 
-				void operator()()
+				presentationOutput->modifyConsumerInfo(
+					[=](auto& config)
+					{
+						config.audioHistoryCapacity = samplesCapacity;
+					}
+				);
+
+				if (contents.find_first_of("ms") == std::string::npos)
 				{
-					auto currentSampleRate = handle->engine->stream.getInfo().sampleRate.load(std::memory_order_acquire);
-					if (currentSampleRate > 0)
-					{
-						std::int64_t value;
-						std::string contents = handle->kmaxHistorySize.getInputValue();
-						if (cpl::lexicalConversion(contents, value) && value >= 0)
-						{
-							auto msCapacity = cpl::Math::round<std::size_t>(currentSampleRate * 0.001 * value);
-
-							handle->engine->stream.setAudioHistoryCapacity(msCapacity);
-
-							if (contents.find_first_of("ms") == std::string::npos)
-							{
-								contents.append(" ms");
-								handle->kmaxHistorySize.setInputValueInternal(contents);
-							}
-
-							handle->kmaxHistorySize.indicateSuccess();
-						}
-						else
-						{
-							std::string result;
-							auto msCapacity = cpl::Math::round<std::size_t>(1000 * handle->engine->stream.getAudioHistoryCapacity() / handle->engine->stream.getInfo().sampleRate);
-							if (cpl::lexicalConversion(msCapacity, result))
-								handle->kmaxHistorySize.setInputValueInternal(result + " ms");
-							else
-								handle->kmaxHistorySize.setInputValueInternal("error");
-							handle->kmaxHistorySize.indicateError();
-						}
-					}
-					else
-					{
-						cpl::GUIUtils::FutureMainEvent(200, RetryResizeCapacity(handle), handle);
-					}
-
+					contents.append(" ms");
+					kmaxHistorySize.setInputValueInternal(contents);
 				}
-			};
 
-			RetryResizeCapacity(this)();
-
+				kmaxHistorySize.indicateSuccess();
+			}
+			else
+			{
+				std::string result;
+				auto msCapacity = cpl::Math::round<std::size_t>(1000 * config->historyCapacity / config->sampleRate);
+				if (cpl::lexicalConversion(msCapacity, result))
+					kmaxHistorySize.setInputValueInternal(result + " ms");
+				else
+					kmaxHistorySize.setInputValueInternal("error");
+				kmaxHistorySize.indicateError();
+			}
 		}
 		else if (c == &kstopProcessingOnSuspend)
 		{
-			globalState.stopProcessingOnSuspend.store(kstopProcessingOnSuspend.bGetBoolState(), std::memory_order_release);
+			globalState->stopProcessingOnSuspend = kstopProcessingOnSuspend.bGetBoolState();
 		}
 		else if (c == &khideWidgets)
 		{
-			globalState.hideWidgetsOnMouseExit.store(khideWidgets.bGetBoolState(), std::memory_order_release);
+			globalState->hideWidgetsOnMouseExit = khideWidgets.bGetBoolState();
 		}
 		else
 		{
@@ -769,16 +730,16 @@ namespace Signalizer
 
 		if(multisamplingLevel == -1)
 		{
-			auto val = cpl::Math::confineTo(kantialias.getZeroBasedSelIndex(), 0, AntialisingLevels.size() - 1);
-			sanitizedLevel = AntialisingLevels[val];
+			auto val = cpl::Math::confineTo(kantialias.getZeroBasedSelIndex(), 0, AntialiasingLevels.size() - 1);
+			sanitizedLevel = AntialiasingLevels[val];
 		}
 		else
 		{
-			for(unsigned i = 0; i < AntialisingLevels.size(); ++i)
+			for(unsigned i = 0; i < AntialiasingLevels.size(); ++i)
 			{
-				if(AntialisingLevels[i] == multisamplingLevel)
+				if(AntialiasingLevels[i] == multisamplingLevel)
 				{
-					sanitizedLevel = AntialisingLevels[i];
+					sanitizedLevel = AntialiasingLevels[i];
 					break;
 				}
 			}
@@ -945,7 +906,7 @@ namespace Signalizer
 
 	void MainEditor::tabSelected(cpl::CTextTabBar<> * obj, int index)
 	{
-		index = cpl::Math::confineTo(index, 0, (int)ViewTypes::end - 1);
+		index = cpl::Math::confineTo(index, 0, (int)ContentCreationList.size() - 1);
 		hasAnyTabBeenSelected = true;
 		// these lines disable the global editor if you switch view.
 		//if (ksettings.getToggleState())
@@ -1101,16 +1062,9 @@ namespace Signalizer
 			data.getContent("Serialized Editors").getContent(views[i].getName()) = views[i].getEditorDSO().getState();
 		}
 
-		std::int64_t historySize;
-		std::string contents = kmaxHistorySize.getInputValue();
-		if (cpl::lexicalConversion(contents, historySize))
-			data << std::max(0ll, (long long)historySize);
-		else
-			data << 1000ll;
-
 		data << khideTabs;
-
 		data << khideWidgets << kstopProcessingOnSuspend;
+		data << klegendChoice;
 	}
 
 	void MainEditor::nestedOnMouseMove(const juce::MouseEvent & e)
@@ -1201,7 +1155,7 @@ namespace Signalizer
 			if (kkiosk.bGetValue() > 0.5)
 				firstKioskMode = true;
 
-			selTab = std::min(selTab, cpl::enum_cast<int32_t>(ViewTypes::end) - 1);
+			selTab = std::min(selTab, static_cast<int>(ContentCreationList.size()) - 1);
 
 			if(tabs.getSelectedTab() == selTab)
 			{
@@ -1226,10 +1180,20 @@ namespace Signalizer
 
 		if (version >= cpl::Version(0, 2, 8))
 		{
-			std::int64_t historySize;
-			data >> historySize;
-			if (historySize > 0)
-				kmaxHistorySize.setInputValue(std::to_string(historySize));
+			// before version 0.3.5, history size was serialized as a part of the editor, leading to a problem
+			// where parameters wouldn't have sensible state before the editor was opened.
+			// After this version, this information is automatically recovered from the engine in the mix graph.
+			if (version < cpl::Version(0, 3, 5))
+			{
+				std::int64_t historySize;
+				data >> historySize;			
+				
+				if (historySize > 0)
+				{
+					// TODO: needed?
+					kmaxHistorySize.setInputValue(std::to_string(historySize));
+				}
+			}
 
 			data >> khideTabs;
 		}
@@ -1237,6 +1201,11 @@ namespace Signalizer
 		if (version >= cpl::Version(0, 3, 1))
 		{
 			data >> khideWidgets >> kstopProcessingOnSuspend;
+		}
+
+		if (version >= cpl::Version(0, 4, 0))
+		{
+			data >> klegendChoice;
 		}
 	}
 
@@ -1286,7 +1255,7 @@ namespace Signalizer
 		else if (ctrl == &kswapInterval)
 		{
 			char buf[100];
-			sprintf_s(buf, "%d frames", cpl::Math::round<int>(val * kdefaultMaxSkippedFrames));
+			cpl::sprintfs(buf, "%d frames", cpl::Math::round<int>(val * kdefaultMaxSkippedFrames));
 			valString = buf;
 			return true;
 		}
@@ -1306,16 +1275,6 @@ namespace Signalizer
 			}
 		}
 		return false;
-	}
-
-	MainEditor::~MainEditor()
-	{
-		suspendView(views[selTab]);
-		notifyDestruction();
-		exitFullscreen();
-		juce::Timer::stopTimer();
-		juce::HighResolutionTimer::stopTimer();
-
 	}
 
 	void MainEditor::resizeEnd()
@@ -1371,6 +1330,8 @@ namespace Signalizer
 		khelp.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 		leftBorder -= elementSize - elementBorder;
 		kkiosk.setBounds(leftBorder, top, buttonSizeW, buttonSize);
+		leftBorder -= elementSize - elementBorder;
+		kgraph.setBounds(leftBorder, top, buttonSizeW, buttonSize);
 
 		tabs.setBounds
 		(
@@ -1407,8 +1368,6 @@ namespace Signalizer
 		{
 			activeView().getWindow()->setBounds(0, viewTopCoord, getWidth(), getHeight() - viewTopCoord);
 		}
-
-		//rightButtonOutlines.addRectangle(juce::Rectangle<float>(0.5f, 0.5f, getWidth() - 1.5f, editor ? editor->getBottom() : elementSize - 1.5f));
 	}
 
 
@@ -1418,11 +1377,25 @@ namespace Signalizer
 		{
 			params->getSet(i)->pulseUI();
 		}
+
 		if (hasCurrentView())
 		{
+			switch (cpl::Math::distribute<LegendChoice>(klegendChoice.bGetValue()))
+			{
+			case LegendChoice::OnlyWhenIrregular:
+				globalState->showLegend = !engine->getHostGraph().isDefaultLayout();
+				break;
+			case LegendChoice::Always:
+				globalState->showLegend = true;
+				break;
+			case LegendChoice::Never:
+				globalState->showLegend = false;
+				break;
+			}
+
 			auto now = cpl::Misc::QuickTime();
 
-			if (!getTopEditor() && !mouseHoversTabArea && now - tabBarTimer > tabBarTimeout)
+			if (!getTopEditor() && ((!mouseHoversTabArea && now - tabBarTimer > tabBarTimeout) || now - tabBarTimer > tabBarNoMouseTimeout))
 				setTabBarVisibility(false);
 
 			if (idleInBack)
@@ -1434,24 +1407,6 @@ namespace Signalizer
 			}
 
 			if(!kvsync.bGetBoolState())
-				activeView().repaintMainContent();
-		}
-	}
-
-	void MainEditor::hiResTimerCallback()
-	{
-		if (hasCurrentView())
-		{
-			if (idleInBack)
-			{
-				const juce::MessageManagerLock mml;
-				if (!hasKeyboardFocus(true))
-					focusLost(FocusChangeType::focusChangedDirectly);
-				else if (unFocused)
-					focusGained(FocusChangeType::focusChangedDirectly);
-			}
-
-			if (!kvsync.bGetBoolState())
 				activeView().repaintMainContent();
 		}
 	}
@@ -1475,8 +1430,8 @@ namespace Signalizer
 	{
 		if (mtFlags.swapIntervalChanged.cas())
 		{
-			oglc.setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
-			view->setSwapInterval(newc.swapInterval.load(std::memory_order_acquire));
+			oglc.setSwapInterval(newc.swapInterval);
+			view->setSwapInterval(newc.swapInterval);
 		}
 	}
 
@@ -1497,7 +1452,7 @@ namespace Signalizer
 		std::string contents =
 			programInfo.name + " " + programInfo.version.toString() + newl +
 			"Build info: \n" + programInfo.customBuildInfo + newl +
-			"Written by Janus Lynggaard Thorborg, (C) 2017" + newl +
+			"Written by Janus Lynggaard Thorborg, (C) 2023" + newl +
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
 			"Open the readme file (contains information you must read upon first use)?";
 
@@ -1518,6 +1473,11 @@ namespace Signalizer
 		khelp.bSetInternal(0);
 	}
 
+	void MainEditor::graphEditorDied()
+	{
+		graphEditor = nullptr;
+	}
+
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1526,8 +1486,10 @@ namespace Signalizer
 		krefreshRate.bAddFormatter(this);
 		kfreeze.bAddChangeListener(this);
 		kkiosk.bAddChangeListener(this);
+		kgraph.bAddChangeListener(this);
 		kidle.bAddChangeListener(this);
 		krenderEngine.bAddChangeListener(this);
+		klegendChoice.bAddChangeListener(this);
 		krefreshRate.bAddChangeListener(this);
 		ksettings.bAddChangeListener(this);
 		kstableFps.bAddChangeListener(this);
@@ -1547,6 +1509,7 @@ namespace Signalizer
 		ksettings.setImage("icons/svg/gears.svg");
 		khelp.setImage("icons/svg/help.svg");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
+		kgraph.setImage("icons/svg/share.svg");
 
 		//kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		//kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
@@ -1556,11 +1519,13 @@ namespace Signalizer
 		khideTabs.setToggleable(true);
 		kstopProcessingOnSuspend.setToggleable(true);
 		khideWidgets.setToggleable(true);
+		kgraph.setClickingTogglesState(false);
 
 		khideTabs.setSingleText("Auto-hide tabs");
 		krefreshRate.bSetTitle("Refresh Rate");
 		krefreshState.setSingleText("Reset state");
 		kantialias.bSetTitle("Antialiasing");
+		klegendChoice.bSetTitle("Show legend");
 		kidle.setSingleText("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
 		kstableFps.setSingleText("Stable FPS");
@@ -1571,7 +1536,13 @@ namespace Signalizer
 
 		// setup
 		krenderEngine.setValues(RenderingEnginesList);
-		kantialias.setValues(AntialisingStringLevels);
+		klegendChoice.setValues(LegendChoicesList);
+		kantialias.setValues(AntialiasingStringLevels);
+
+
+		auto config = engine->getConcurrentConfig();
+		auto historySizeMs = (std::int64_t)std::round(1000 * config->historyCapacity / config->sampleRate);
+		kmaxHistorySize.setInputValueInternal(std::to_string(historySizeMs));
 
 		// initiate colours
 		for (unsigned i = 0; i < colourControls.size(); ++i)
@@ -1589,11 +1560,12 @@ namespace Signalizer
 		addAndMakeVisible(kfreeze);
 		addAndMakeVisible(khelp);
 		addAndMakeVisible(kkiosk);
+		addAndMakeVisible(kgraph);
 		addAndMakeVisible(tabs);
 
 		tabs.setOrientation(tabs.Horizontal);
-		for(auto & viewName : ViewIndexToMap)
-			tabs.addTab(viewName);
+		for(auto& content : ContentCreationList)
+			tabs.addTab(content.first);
 
 		// additions
 		addAndMakeVisible(rcc);
@@ -1601,16 +1573,15 @@ namespace Signalizer
 		// TODO: reattach?
 		//currentView = &defaultView; // note: enables callbacks on value set in this function
 		addAndMakeVisible(defaultView);
-		krefreshRate.bSetValue(0.12);
-
 
 		// descriptions
-		kstableFps.bSetDescription("Stabilize frame rate using a high precision timer.");
+		kstableFps.bSetDescription("(deprecated - use vertical sync) Stabilize frame rate using a high precision timer.");
 		kvsync.bSetDescription("Synchronizes graphic view rendering to your monitors refresh rate.");
 		kantialias.bSetDescription("Set the level of hardware antialising applied.");
 		krefreshRate.bSetDescription("How often the view is redrawn.");
 		khelp.bSetDescription("About this program");
 		kkiosk.bSetDescription("Puts the view into fullscreen mode. Press Escape to untoggle, or tab out of the view.");
+		kgraph.bSetDescription("Open the graph editor to control channel routing and side chaining from other Signalizers");
 		kidle.bSetDescription("If set, lowers the frame rate of the view if this plugin is not in the front.");
 		ksettings.bSetDescription("Open the global settings for the plugin (presets, themes and graphics).");
 		kfreeze.bSetDescription("Stops the view from updating, allowing you to examine the current point in time.");
@@ -1621,13 +1592,7 @@ namespace Signalizer
 		khideTabs.bSetDescription("Auto-hides the top tabs and buttons when not used.");
 		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
-
-
-		// initial values that should be through handlers
-		// TODO: remove if changed to parameter
-		kmaxHistorySize.setInputValue("1000");
-
-
+		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
 		resized();
 	}
 };

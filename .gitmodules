@@ -1,0 +1,3 @@
+[submodule "External/cpl"]
+	path = External/cpl
+	url = https://bitbucket.org/Mayae/cpl

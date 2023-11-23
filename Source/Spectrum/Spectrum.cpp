@@ -29,7 +29,6 @@
 
 #include "Spectrum.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
@@ -38,73 +37,72 @@
 
 namespace Signalizer
 {
+	constexpr double kMinDBDiff = 0.0001;
 
-	Spectrum::Spectrum(const SharedBehaviour& globalBehaviour, const std::string & nameId, AudioStream & stream, ProcessorState * processorState)
-		: COpenGLView(nameId)
+	Spectrum::Spectrum(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream,
+		std::shared_ptr<SpectrumContent> params
+	)
+		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
-		, processorSpeed(0)
-		, lastFrameTick(0)
-		, lastMousePos()
 		, state()
 		, framePixelPosition()
 		, frequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, complexFrequencyGraph({ 0, 1 }, { 0, 1 }, 1, 10)
 		, flags()
-		, droppedAudioFrames()
-		, audioThreadUsage()
-		, relayWidth()
-		, relayHeight()
-		, cmouse()
 		, lastPeak()
 		, scallopLoss()
 		, oldWindowSize(-1)
 		, framesPerUpdate()
-		, laggedFPS()
-		, isMouseInside(false)
+		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
+		, config(config)
+		, content(params)
 	{
 		setOpaque(true);
-		if (!(content = dynamic_cast<SpectrumContent *>(processorState)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to SpectrumContent");
-		}
 
 		content->getParameterSet().addRTListener(this, true);
 
-        processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
-		flags.firstChange = true;
+
+		// "first change" flags
+		flags.initiateWindowResize = true;
+		flags.audioWindowWasResized = true;
+		flags.displayModeChange = true;
+		flags.audioStreamChanged = true;
 
 		state.viewRect = { 0.0, 1.0 }; // default full-view
 		state.sampleRate = 0;
-		state.newWindowSize.store(cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue()), std::memory_order_release);
+		state.newWindowSize = cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue());
 
 		oldViewRect = state.viewRect;
 		oglImage.setFillColour(juce::Colours::black);
-		listenToSource(stream);
 
 		state.minLogFreq = 10;
 
-		//setWindowSize(200);
+		{
+			auto access = processor->streamState.lock();
+			access->constant.setStorage(10, 16, state.transformSize);
+		}
+		audioStream->addListener(processor);
 
-
-		state.iAuxMode = true;
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
-		sfbuf.sampleBufferSize = 200;
 		resetStaticViewAssumptions();
 	}
 
 
 	void Spectrum::suspend()
 	{
-		state.isSuspended = true;
+		processor->isSuspended = true;
 		oldWindowSize = content->windowSize.getTransformedValue();
 	}
 
 	void Spectrum::resume()
 	{
-		state.isSuspended = false;
+		processor->isSuspended = false;
 		if (oldWindowSize != -1)
 		{
 			//TODO: possibly unsynchronized. fix to have an internal size instead
@@ -117,68 +115,42 @@ namespace Signalizer
 	Spectrum::~Spectrum()
 	{
 		content->getParameterSet().removeRTListener(this, true);
-		detachFromSource();
-#pragma message cwarn("Fix this as well.")
-		SFrameBuffer::FrameVector * frame;
-		while (sfbuf.frameQueue.popElement(frame))
-			delete frame;
-
+	
+		audioStream->removeListener(processor);
 		notifyDestruction();
 	}
 
 
 	void Spectrum::setDBs(double low, double high, bool updateControls)
 	{
-		content->lowDbs.setTransformedValue(low);
-		content->highDbs.setTransformedValue(high);
-		/*low = cpl::Math::confineTo(low, kMinDbs, kMaxDbs);
-		high = cpl::Math::confineTo(high, kMinDbs, kMaxDbs);
-
-		// ensure we always have a minimum of 3 dBs of range
-		// except in the case when high < kMinDbs. too lazy
-		if (low > (high - minDBRange))
+		if (std::abs(high - low) < kMinDBDiff)
 		{
-			low = high - minDBRange;
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
 		}
 
-		if (state.dynRange.low != low || state.dynRange.high != high)
-		{
-			if (updateControls)
-			{
-				klowDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(low, kMinDbs, kMaxDbs));
-				khighDbs.bSetValue(cpl::Math::UnityScale::Inv::linear<float>(high, kMinDbs, kMaxDbs));
-			}
-
-			state.dynRange.low = low;
-			state.dynRange.high = high;
-
-			flags.dynamicRangeChange = true;
-		} */
-
-
+		content->lowDbs.setTransformedValue(low);
+		content->highDbs.setTransformedValue(high);
 	}
 
 
 	Spectrum::DBRange Spectrum::getDBs() const noexcept
 	{
-		return{ content->lowDbs.getTransformedValue(), content->highDbs.getTransformedValue()};
+		auto low = content->lowDbs.getTransformedValue();
+		auto high = content->highDbs.getTransformedValue();
+
+		if (std::abs(high - low) < kMinDBDiff)
+		{
+			high += kMinDBDiff / 2;
+			low -= kMinDBDiff / 2;
+		}
+
+		return{ low, high };
 	}
 
 	void Spectrum::initPanelAndControls()
 	{
-		// preliminary initialization - this will update all controls to match audio properties.
-		// it may seem like a hack, but it's well-defined and avoids code duplications.
-		onAsyncChangedProperties(audioStream, audioStream.getInfo());
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
-	}
-
-	void Spectrum::serialize(cpl::CSerializer::Archiver & archive, cpl::Version version)
-	{
-
-	}
-
-	void Spectrum::deserialize(cpl::CSerializer::Builder & builder, cpl::Version version)
-	{
 	}
 
 	void Spectrum::resized()
@@ -251,9 +223,8 @@ namespace Signalizer
 
 	}
 
-	void Spectrum::calculateSpectrumColourRatios()
+	void Spectrum::calculateSpectrumColourRatios(Constant& constant)
 	{
-#pragma message cwarn("Exclude colours that are zero.")
 		double acc = 0.0;
 
 		std::array<double, SpectrumContent::numSpectrumColours> vals;
@@ -266,20 +237,12 @@ namespace Signalizer
 		// to avoid accumulating sum >= 1.0f
 		acc += std::numeric_limits<float>::epsilon();
 
-		state.normalizedSpecRatios[0] = 0;
+		constant.normalizedSpecRatios[0] = 0;
 		for (std::size_t i = 0; i < vals.size(); ++i)
 		{
-			state.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
+			constant.normalizedSpecRatios[i + 1] = static_cast<float>(vals[i] / acc);
 		}
 
-	}
-
-	void Spectrum::mouseMove(const juce::MouseEvent & event)
-	{
-		cmouse.x.store(event.position.x, std::memory_order_release);
-		cmouse.y.store(event.position.y, std::memory_order_release);
-
-		flags.mouseMove = true;
 	}
 
 	void Spectrum::mouseDoubleClick(const juce::MouseEvent& event)
@@ -295,7 +258,8 @@ namespace Signalizer
 	{
 		if (event.mods.isLeftButtonDown())
 		{
-			auto mouseDelta = event.position - lastMousePos;
+			// TODO: use delta?
+			auto mouseDelta = event.position - this->currentMouse.getPoint();
 			auto left = content->viewLeft.getTransformedValue();
 			auto right = content->viewRight.getTransformedValue();
 			auto freqDelta = left - right;
@@ -314,36 +278,15 @@ namespace Signalizer
 			content->viewLeft.setTransformedValue(left + freqInc);
 			content->viewRight.setTransformedValue(right + freqInc);
 
-			lastMousePos = event.position;
 			flags.dynamicRangeChange = true;
 			flags.viewChanged = true;
 		}
 
-		cmouse.x.store(event.position.x, std::memory_order_release);
-		cmouse.y.store(event.position.y, std::memory_order_release);
-
 		flags.mouseMove = true;
+
+		GraphicsWindow::mouseDrag(event);
 	}
 
-	void Spectrum::mouseUp(const juce::MouseEvent& event)
-	{
-
-	}
-
-	void Spectrum::mouseDown(const juce::MouseEvent& event)
-	{
-		lastMousePos = event.position;
-	}
-
-	void Spectrum::mouseExit(const juce::MouseEvent & e)
-	{
-		isMouseInside.store(false, std::memory_order_relaxed);
-	}
-
-	void Spectrum::mouseEnter(const juce::MouseEvent & e)
-	{
-		isMouseInside.store(true, std::memory_order_relaxed);
-	}
 
 	void Spectrum::parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param)
 	{
@@ -351,7 +294,7 @@ namespace Signalizer
 		// TODO: create parameter indices and turn into switch statement
 		if (param == &content->windowSize.parameter)
 		{
-			state.newWindowSize.store(cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue()), std::memory_order_release);
+			state.newWindowSize  = cpl::Math::round<std::size_t>(content->windowSize.getTransformedValue());
 			flags.initiateWindowResize = true;
 		}
 		if (param == &content->viewScaling.param.parameter || param == &content->viewLeft.parameter || param == &content->viewRight.parameter)
@@ -385,7 +328,6 @@ namespace Signalizer
 		}
 		else if (param == &content->freeQ.parameter)
 		{
-			cresonator.setFreeQ(content->freeQ.getTransformedValue() > 0.5);
 			flags.windowKernelChange = true;
 		}
 		else if (param == &content->spectrumStretching.parameter)
@@ -406,55 +348,61 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates()
+	void Spectrum::handleFlagUpdates(StreamState& stream)
 	{
-		cpl::CMutex audioLock;
-		if (flags.internalFlagHandlerRunning)
-			CPL_RUNTIME_EXCEPTION("Function is NOT reentrant!");
-
-		flags.internalFlagHandlerRunning = true;
-		bool firstRun = false;
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
-
-
-		if (flags.firstChange.cas())
+		bool calculateLegend = false;
+		// did audio stream change since last sync?
+		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
-			flags.initiateWindowResize = true;
-			flags.audioWindowWasResized = true;
-			flags.displayModeChange = true;
 			flags.audioStreamChanged = true;
-			firstRun = true;
+			flags.audioWindowWasResized = true;
+			calculateLegend = true;
 		}
 
-
-		state.algo.store(content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>(), std::memory_order_release);
+		stream.constant.sampleBufferSize = getBlobSamples();
+		
+		stream.constant.algo = state.algo = content->algorithm.param.getAsTEnum<SpectrumContent::TransformAlgorithm>();
 		state.frequencyTrackingGraph = cpl::enum_cast<SpectrumContent::LineGraphs>(content->frequencyTracker.param.getTransformedValue() + SpectrumContent::LineGraphs::None);
-		state.dspWindow.store(content->dspWin.getWindowType(), std::memory_order_release);
-		state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
+		stream.constant.dspWindow = content->dspWin.getWindowType();
+		stream.constant.binPolation = state.binPolation = content->binInterpolation.param.getAsTEnum<SpectrumContent::BinInterpolation>();
 		state.colourGrid = content->gridColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
-		state.colourTracker = content->trackerColour.getAsJuceColour();
+		state.colourWidget = content->widgetColour.getAsJuceColour();
 		state.viewRect = { content->viewLeft.getTransformedValue(), content->viewRight.getTransformedValue() };
+		state.drawLegend = content->showLegend.getNormalizedValue() > 0.5f;
+		stream.constant.lowDBs = content->lowDbs.getTransformedValue();	
+		stream.constant.clipDB = content->lowDbs.getTransformer().transform(0);
+		stream.constant.highDBs = content->highDbs.getTransformedValue();
+
+		const auto pairs = stream.pairs.size();
 
 		for (std::size_t i = 0; i < SpectrumContent::LineEnd; ++i)
 		{
-			state.colourOne[i] = content->lines[i].colourOne.getAsJuceColour();
-			state.colourTwo[i] = content->lines[i].colourTwo.getAsJuceColour();
-			lineGraphs[i].filter.setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
+			calculateLegend |= assignAndChanged(state.colourOne[i], ColourRotation(content->lines[i].colourOne.getAsJuceColour(), pairs, false));
+			calculateLegend |= assignAndChanged(state.colourTwo[i], ColourRotation(content->lines[i].colourTwo.getAsJuceColour(), pairs, false));
+
+			double unitFrameTime;
+			if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+				unitFrameTime = content->blobSize.getTransformedValue() / 1000;
+			else
+				unitFrameTime = openGLDeltaTime();
+			stream.constant.filter[i].setSampleRate(fpoint(1.0 / unitFrameTime));
+			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.algo.load(std::memory_order_relaxed) != SpectrumContent::TransformAlgorithm::FFT)
+		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
-			state.colourSpecs[0] = state.colourBackground;
+			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
 
 			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
 			{
-				state.colourSpecs[i + 1] = content->specColours[i].getAsJuceColour();
+				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
 			}
 
-			calculateSpectrumColourRatios();
+			calculateSpectrumColourRatios(stream.constant);
 		}
 
 
@@ -465,19 +413,22 @@ namespace Signalizer
 
 		if (newconf != state.configuration)
 		{
-			state.configuration = newconf;
+			stream.constant.configuration = state.configuration = newconf;
 			if (newconf != SpectrumChannels::Complex)
 			{
 				complexFrequencyGraph.clear();
 			}
 			flags.viewChanged = true;
+			calculateLegend = true;
 		}
 
 		if (flags.audioStreamChanged.cas())
 		{
-			audioLock.acquire(audioResource);
-			state.sampleRate.store(static_cast<float>(audioStream.getAudioHistorySamplerate()), std::memory_order_release);
-			flags.viewChanged = true;
+			if(stream.constant.sampleRate != stream.streamLocalSampleRate)
+				flags.viewChanged = true;
+
+			state.sampleRate = stream.streamLocalSampleRate;
+			stream.constant.sampleRate = state.sampleRate;
 		}
 
 		// TODO: on numFilters change (and resizing of buffers), lock the working/audio buffers so that async processing doesn't corrupt anything.
@@ -485,18 +436,16 @@ namespace Signalizer
 
 		if (flags.displayModeChange.cas())
 		{
-			// ensures any concurrent processing modes gets to finish.
-			audioLock.acquire(audioResource);
-			state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
+			stream.constant.displayMode = state.displayMode = cpl::enum_cast<SpectrumContent::DisplayMode>(content->displayMode.param.getTransformedValue());
 			flags.resized = true;
 			flags.resetStateBuffers = true;
+			calculateLegend = true;
 		}
 
 		std::size_t axisPoints = state.displayMode == SpectrumContent::DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
 		{
-			audioLock.acquire(audioResource);
 			flags.resized = true;
 			state.axisPoints = state.numFilters = axisPoints;
 		}
@@ -512,37 +461,35 @@ namespace Signalizer
 
 		if (flags.initiateWindowResize)
 		{
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
+			// TODO: globals
+			// we will get notified asynchronously in onStreamPropertiesChanged.
+			// TODO: cache them there?
+			if (config->historyCapacity > 0 && config->sampleRate > 0)
 			{
 				// only reset this flag if there's valid data, otherwise keep checking.
 				flags.initiateWindowResize.cas();
-				audioStream.setAudioHistorySize(state.newWindowSize.load(std::memory_order_acquire));
-			}
 
+				audioStream->modifyConsumerInfo(
+					[&](auto& info)
+					{
+						info.audioHistorySize = state.newWindowSize;
+					}
+				);
+			}
 
 		}
 		if (flags.audioWindowWasResized.cas())
 		{
-			audioLock.acquire(audioResource);
 			// TODO: possible difference between parameter and audiostream?
-
-			auto current = audioStream.getAudioHistorySize();
-
-			state.windowSize = getValidWindowSize(current);
-			cresonator.setWindowSize(8, getWindowSize());
+			state.windowSize = getValidWindowSize(config->historySize);
 			remapResonator = true;
 			flags.audioMemoryResize = true;
 		}
 
+		stream.constant.setStorage(state.axisPoints, state.windowSize, state.transformSize);
+
 		if (flags.audioMemoryResize.cas())
 		{
-			audioLock.acquire(audioResource);
-			const auto bufSize = cpl::Math::nextPow2Inc(state.windowSize);
-			// some cases it is nice to have an extra entry (see handling of
-			// separating real and imaginary transforms)
-			audioMemory.resize((bufSize + 1) * sizeof(std::complex<double>));
-			windowKernel.resize(bufSize);
 			flags.windowKernelChange = true;
 		}
 
@@ -552,18 +499,9 @@ namespace Signalizer
 			oglImage.resize(getWidth(), getHeight(), true);
 			glImageHasBeenResized = true;
 		}
+
 		if (flags.resized.cas())
 		{
-			audioLock.acquire(audioResource);
-
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-			{
-				lineGraphs[i].resize(numFilters); lineGraphs[i].zero();
-			}
-
-			slopeMap.resize(numFilters);
-			workingMemory.resize(numFilters * 2 * sizeof(std::complex<double>));
-
 			columnUpdate.resize(getHeight());
 			// avoid doing it twice.
 			if (!glImageHasBeenResized)
@@ -604,20 +542,13 @@ namespace Signalizer
 			}
 			else
 			{
-
 				frequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				frequencyGraph.setView({ state.viewRect.left * axisPoints, state.viewRect.right * axisPoints });
-				//frequencyGraph.setView({ state.viewRect.left * axisPoints * 0.5, (state.viewRect.right - 0.5) * axisPoints * 0.5});
 				frequencyGraph.setMaxFrequency(sampleRate / 2);
 				frequencyGraph.setScaling(state.viewScale == SpectrumContent::ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
 
 				complexFrequencyGraph.setBounds({ 0.0, axisPoints * 0.5 });
 				complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - state.viewRect.left) * axisPoints });
-
-				//complexFrequencyGraph.setBounds({ axisPoints * 0.5, axisPoints * 1.0 });
-				//complexFrequencyGraph.setView({ (1 - state.viewRect.right) * axisPoints, (1 - (state.viewRect.right - state.viewRect.left) * 0.5 - 0.5) * axisPoints });
-
-
 
 				complexFrequencyGraph.setMaxFrequency(sampleRate / 2);
 				complexFrequencyGraph.setScaling(state.viewScale == SpectrumContent::ViewScaling::Linear ? frequencyGraph.Linear : frequencyGraph.Logarithmic);
@@ -631,100 +562,36 @@ namespace Signalizer
 
 			oldViewRect = state.viewRect;
 
-			audioLock.acquire(audioResource);
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-				lineGraphs[i].zero();
+			for (auto& pair : stream.pairs)
+				pair.clearLineGraphStates();
 
 			resetStaticViewAssumptions();
 		}
 
 		if (remapFrequencies)
 		{
-			audioLock.acquire(audioResource);
-			mappedFrequencies.resize(numFilters);
-
-			double viewSize = state.viewRect.dist();
-
-
-			switch (state.viewScale)
-			{
-				case SpectrumContent::ViewScaling::Linear:
-				{
-					double halfSampleRate = sampleRate * 0.5;
-					double complexFactor = state.configuration == SpectrumChannels::Complex ? 2.0 : 1.0;
-					double freqPerPixel = halfSampleRate / (numFilters - 1);
-
-					for (std::size_t i = 0; i < numFilters; ++i)
-					{
-						mappedFrequencies[i] = static_cast<float>(complexFactor * state.viewRect.left * halfSampleRate + complexFactor * viewSize * i * freqPerPixel);
-					}
-
-					break;
-				}
-				case SpectrumContent::ViewScaling::Logarithmic:
-				{
-					double sampleSize = (numFilters - 1);
-
-					double minFreq = state.minLogFreq;
-
-					double end = sampleRate / 2;
-					if (state.configuration != SpectrumChannels::Complex)
-					{
-						for (std::size_t i = 0; i < numFilters; ++i)
-						{
-							mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, state.viewRect.left + viewSize * (i / sampleSize)));
-						}
-
-					}
-					else
-					{
-						for (std::size_t i = 0; i < numFilters; ++i)
-						{
-							auto arg = state.viewRect.left + viewSize * i / sampleSize;
-							if (arg < 0.5)
-							{
-								mappedFrequencies[i] = static_cast<float>(minFreq * std::pow(end / minFreq, arg * 2));
-							}
-							else
-							{
-								arg -= 0.5;
-								auto power = minFreq * std::pow(end / minFreq, 1.0 - arg * 2);
-								mappedFrequencies[i] = static_cast<float>(end + (end - power));
-							}
-						}
-
-					}
-					break;
-				}
-			}
+			stream.constant.remapFrequencies(state.viewRect, state.viewScale, state.minLogFreq);
 			remapResonator = true;
 			flags.slopeMapChanged = true;
 		}
 
 		if (flags.slopeMapChanged.cas())
 		{
-			cpl::PowerSlopeValue::PowerFunction slopeFunction = content->slope.derive();
-
-			for (std::size_t i = 0; i < numFilters; ++i)
-			{
-				slopeMap[i] = slopeFunction.b * std::pow(mappedFrequencies[i], slopeFunction.a);
-			}
+			stream.constant.generateSlopeMap(content->slope.derive());
 		}
 
 		if (flags.windowKernelChange.cas())
 		{
-			windowScale = content->dspWin.generateWindow<fftType>(windowKernel, getWindowSize());
 			remapResonator = true;
+			stream.constant.regenerateWindowKernel(content->dspWin);
+			state.windowScale = stream.constant.windowKernelScale;
 		}
 
 		if (remapResonator)
 		{
-			audioLock.acquire(audioResource);
 			auto window = content->dspWin.getWindowType();
-			cresonator.mapSystemHz(mappedFrequencies, mappedFrequencies.size(), cpl::dsp::windowCoefficients<fpoint>(window).second, sampleRate);
+			stream.constant.remapResonator(content->freeQ.getTransformedValue() > 0.5, cpl::dsp::windowCoefficients<fpoint>(window).second);
 			flags.frequencyGraphChange = true;
-			relayWidth = getWidth();
-			relayHeight = getHeight();
 		}
 
 		if (flags.frequencyGraphChange.cas())
@@ -740,35 +607,26 @@ namespace Signalizer
 
 		if (flags.resetStateBuffers.cas())
 		{
-			audioLock.acquire(audioResource);
-			cresonator.resetState();
-			for (std::size_t i = 0; i < SpectrumContent::LineGraphs::LineEnd; ++i)
-				lineGraphs[i].zero();
-			std::memset(audioMemory.data(), 0, audioMemory.size() /* * sizeof(char) */);
-			std::memset(workingMemory.data(), 0, workingMemory.size() /* * sizeof(char) */);
+			for(auto& pair : stream.pairs)
+				pair.clearAudioState();
 		}
 
-		// reset all flags through value-initialization
-		flags.internalFlagHandlerRunning = false;
+		if (calculateLegend)
+			recalculateLegend(stream);
 	}
 
+
+	// TODO: Get rid of this pair
 	std::size_t Spectrum::getValidWindowSize(std::size_t in) const noexcept
 	{
-		std::size_t n = std::min(audioStream.getAudioHistoryCapacity(), in);
+		std::size_t n = std::min(config->historyCapacity.load(), in);
 		return n;
 	}
 
 	void Spectrum::setWindowSize(std::size_t size)
 	{
-		state.newWindowSize.store(getValidWindowSize(size), std::memory_order_release);
+		state.newWindowSize = getValidWindowSize(size);
 		flags.initiateWindowResize = true;
-	}
-
-
-	void Spectrum::onAsyncChangedProperties(const AudioStream & source, const AudioStream::AudioStreamInfo & before)
-	{
-		flags.audioStreamChanged = true;
-		flags.audioWindowWasResized = true;
 	}
 
 	void Spectrum::resetStaticViewAssumptions()
@@ -776,4 +634,79 @@ namespace Signalizer
 		lastPeak = -1;
 	}
 
+	void Spectrum::recalculateLegend(StreamState& cs)
+	{
+		const auto legendOffsetX = state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum ? gradientWidth : 0;
+		state.legend.reset({ legendOffsetX + 10, 10 });
+
+		const auto numPairs = cs.pairs.size();
+
+		auto staticColour = [&](int index, int subline, std::size_t channel)
+		{
+			return (index == 1 ? state.colourTwo : state.colourOne)[subline][channel];
+		};
+
+		auto c = [&](int index, std::size_t channel) -> LegendCache::ColourItem
+		{
+			if (state.displayMode == SpectrumContent::DisplayMode::LineGraph)
+				return std::make_pair(staticColour(index, 0, channel), staticColour(index, 1, channel));
+
+			return cs.constant.generateSpectrogramGradient(channel);
+		};
+
+		switch (cs.constant.configuration)
+		{
+		default:
+
+		case SpectrumChannels::Left:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2], c(0, p));
+			break;
+		case SpectrumChannels::Right:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, p));
+			break;
+		case SpectrumChannels::Mid:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, p));
+			break;
+		case SpectrumChannels::Side:
+			for (std::size_t p = 0; p < numPairs; ++p)
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, p));
+			break;
+		case SpectrumChannels::Separate:
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2], c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2 + 1], c(1, p));
+			}
+			break;
+		case SpectrumChannels::MidSide:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2] + " + " + cs.channelNames[p * 2 + 1], c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " - " + cs.channelNames[p * 2 + 1], c(1, p));
+			}
+			break;
+		}
+		case SpectrumChannels::Phase:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine("|" + cs.channelNames[p * 2] + "| + |" + cs.channelNames[p * 2 + 1] + "|", c(0, p));
+				state.legend.addLine(cs.channelNames[p * 2] + " / " + cs.channelNames[p * 2 + 1], c(1, p));
+			}
+			break;
+		}
+		case SpectrumChannels::Complex:
+		{
+			for (std::size_t p = 0; p < numPairs; ++p)
+			{
+				state.legend.addLine(cs.channelNames[p * 2] + " + i*" + cs.channelNames[p * 2 + 1], c(0, p));
+			}
+			break;
+		}
+		}
+	}
 };

@@ -32,14 +32,41 @@
 	#define SIGNALIZER_COMMON_SIGNALIZER_H
 
 	#include <cpl/Common.h>
-	#include <cpl/gui/GUI.h>
-	#include <cpl/CAudioStream.h>
 	#include <complex>
-	#include <cpl/infrastructure/parameters/ParameterSystem.h>
-	#include "SignalizerDesign.h"
+	#include "SignalizerConfiguration.h"
+	#include <cpl/lib/weak_atomic.h>
+	#include "ConcurrentConfig.h"
+	#include <mutex>
+	#include <cpl/AudioStream.h>
+	#include <cpl/gui/CViews.h>
+	#include <chrono>
+	#include <variant>
+
+	namespace cpl
+	{
+		class CSubView;
+	}
 
 	namespace Signalizer
 	{
+		typedef std::make_signed<std::size_t>::type ssize_t;
+
+		template<class T>
+		using vector_set = std::set<T>;
+
+		typedef std::int32_t PinInt;
+
+		struct DirectedPortPair
+		{
+			PinInt Source;
+			PinInt Destination;
+
+			inline friend bool operator < (DirectedPortPair a, DirectedPortPair b)
+			{
+				return std::tie(a.Destination, a.Source) < std::tie(b.Destination, b.Source);
+			}
+		};
+
 		enum class EnvelopeModes : int
 		{
 			None,
@@ -55,55 +82,170 @@
 			Lanczos
 		};
 
-		/// <summary>
-		/// Floating-point type used for parameters etc. in Signalizer
-		/// </summary>
-		typedef double SFloat;
-		/// <summary>
-		/// Floating point type used for audio
-		/// </summary>
-		typedef float AFloat;
-		/// <summary>
-		/// Floating point type used for parameters of the host system
-		/// </summary>
-		typedef float PFloat;
-
-		typedef cpl::FormattedParameter<SFloat, cpl::ThreadedParameter<SFloat>> Parameter;
-		typedef cpl::ParameterGroup<SFloat, PFloat, Parameter> ParameterSet;
-
-
-		// TODO: Figure out why sizes around 256 causes buffer overruns
-		typedef cpl::CAudioStream<AFloat, 64> AudioStream;
-		typedef std::pair<cpl::CBaseControl *, cpl::iCtrlPrec_t> CtrlUpdate;
-
+		class StateEditor;
+		class SystemView;
+		class SharedBehaviour;
+		struct ConcurrentConfig;
+		
 		class ProcessorState
 			: public cpl::SafeSerializableObject
 		{
 		public:
 
 			virtual std::unique_ptr<StateEditor> createEditor() = 0;
-			virtual ParameterSet & getParameterSet() = 0;
+			virtual std::unique_ptr<cpl::CSubView> createView(
+				std::shared_ptr<const SharedBehaviour> globalBehaviour,
+				std::shared_ptr<const ConcurrentConfig> config,
+				std::shared_ptr<AudioStream::Output>& stream
+			) = 0;
+
+			virtual ParameterSet& getParameterSet() = 0;
+			virtual const char* getName() = 0;
+			virtual void onPresentationStreamCreated(std::shared_ptr<AudioStream::Output>& output) {}
 
 			virtual ~ProcessorState() {}
+		};
 
+		template<typename Derived>
+		class ProcessorStreamState
+			: public ProcessorState
+			, public AudioStream::Listener
+		{
+		public:
+
+			void onPresentationStreamCreated(std::shared_ptr<AudioStream::Output>& output) override
+			{ 
+				auto base = static_cast<Derived*>(this)->shared_from_this();
+
+				if (auto old = previousOutput.lock())
+					old->removeListener(base);
+
+				output->addListener(base);
+			}
+
+		protected:
+			std::weak_ptr<AudioStream::Output> previousOutput;
+		};
+
+		class GraphicsWindow : public cpl::COpenGLView
+		{
+		protected:
+
+			GraphicsWindow(std::string name) 
+				: COpenGLView(std::move(name)) 
+			{
+			
+			}
+
+			struct CurrentMouse
+			{
+				void setFromPoint(juce::Point<float> mousePosition)
+				{
+					x = mousePosition.x;
+					y = mousePosition.y;
+				}
+
+				juce::Point<float> getPoint()
+				{
+					return juce::Point<float>(x, y);
+				}
+
+				cpl::relaxed_atomic<float>
+					x, y;
+			} originMouse, currentMouse;
+
+			cpl::relaxed_atomic<bool> isMouseInside;
+			juce::MouseCursor displayCursor;
+
+			// guis and whatnot
+			cpl::CBoxFilter<float, 64> avgDelta;
+			cpl::CBoxFilter<float, 64> avgFrame;
+
+
+			// Mouse overrides
+			void mouseMove(const juce::MouseEvent& event) override
+			{
+				// TODO: implement beginChangeGesture()
+				currentMouse.setFromPoint(event.position);
+			}
+
+			void mouseDrag(const juce::MouseEvent& event) override
+			{
+				// TODO: implement beginChangeGesture()
+				currentMouse.setFromPoint(event.position);
+			}
+
+			void mouseDown(const juce::MouseEvent& event) override
+			{
+				// TODO: implement endChangeGesture()
+				originMouse.setFromPoint(event.position);
+			}
+
+			void mouseExit(const juce::MouseEvent& e)  override
+			{
+				isMouseInside = false;
+			}
+
+			void mouseEnter(const juce::MouseEvent& e) override
+			{
+				isMouseInside = true;
+			}
+
+			// Graphics overrides
+			void onGraphicsRendering(juce::Graphics& g) override
+			{
+				// do software rendering
+				if (!isOpenGL())
+				{
+					g.fillAll(juce::Colours::black);
+					g.setColour(juce::Colours::white);
+					g.drawText("Enable OpenGL in settings to use the " + CView::getName(), getLocalBounds(), juce::Justification::centred);
+				}
+			}
+
+			void postFrame()
+			{
+				avgDelta.setNext(openGlEndToEndTime());
+				avgFrame.setNext(openGLFrameTime());
+			}
+
+			double getAverageFrameTime()
+			{
+				return avgFrame.getAverage();
+			}
+
+			double getAverageDelta()
+			{
+				return avgDelta.getAverage();
+			}
+
+			void computeAverageStats(float& fps, float& usagePercent)
+			{
+				const auto frame = avgFrame.getAverage();
+				const auto delta = avgDelta.getAverage();
+
+				usagePercent = 100 * (frame / delta);
+				fps = 1.0f / delta;
+			}
 		};
 
 		class SystemView
 		{
 		public:
 
-			SystemView(AudioStream & audioStream, ParameterSet::AutomatedProcessor & automatedProcessor)
-				: stream(audioStream), processor(automatedProcessor)
+			SystemView(std::shared_ptr<const ConcurrentConfig> config, ParameterSet::AutomatedProcessor& automatedProcessor)
+				: config(config), processor(automatedProcessor)
 			{
 
 			}
 
-			ParameterSet::AutomatedProcessor & getProcessor() noexcept { return processor; }
-			AudioStream & getAudioStream() noexcept { return stream; }
+			ParameterSet::AutomatedProcessor& getProcessor() noexcept { return processor; }
+			std::shared_ptr<const ConcurrentConfig>& getConcurrentConfig() noexcept { return config; }
 
 		private:
-			AudioStream & stream;
-			ParameterSet::AutomatedProcessor & processor;
+
+			std::shared_ptr<const ConcurrentConfig> config;			
+			ParameterSet::AutomatedProcessor& processor;
 		};
 
 		struct ChoiceParameter
@@ -124,7 +266,6 @@
 			: public ParameterView::ParameterType::Transformer
 			, public ParameterView::ParameterType::Formatter
 			, public cpl::CSerializer::Serializable
-			, protected AudioStream::Listener
 		{
 		public:
 
@@ -142,8 +283,11 @@
 				Exponential
 			};
 
-			AudioHistoryTransformatter(AudioStream & audioStream, Mode mode = Milliseconds)
-				: param(nullptr), stream(audioStream), m(mode), lastCapacity(0)
+			AudioHistoryTransformatter(std::shared_ptr<const ConcurrentConfig>& config, Mode mode = Milliseconds)
+				: param(nullptr)
+				, m(mode)
+				, lastCapacity(config->historyCapacity)
+				, sampleRate(config->sampleRate)
 			{
 
 			}
@@ -160,44 +304,40 @@
 
 			void initialize(ParameterView & view)
 			{
+				// TODO: This can leave scope before us.
 				param = &view;
-				listenToSource(stream, true);
 			}
 
 			void serialize(cpl::CSerializer::Archiver & ar, cpl::Version v) override
 			{
-				ar << lastCapacity.load(std::memory_order_relaxed);
+				std::uint64_t val = lastCapacity;
+				ar << val;
 			}
 
 			void deserialize(cpl::CSerializer::Builder & ar, cpl::Version v) override
 			{
 				std::uint64_t val;
 				ar >> val;
-				lastCapacity.store(val, std::memory_order_relaxed);
+				lastCapacity = val;
 			}
 
-			~AudioHistoryTransformatter()
-			{
-				detachFromSource();
-			}
-
-		protected:
-
-			virtual void onAsyncChangedProperties(const Stream & changedSource, const typename Stream::AudioStreamInfo & before) override
+			void onStreamPropertiesChanged(const AudioStream::ListenerContext& changedSource, const AudioStream::AudioStreamInfo& before)
 			{
 				// TODO: what if oldCapacity == 0?
 				const auto oldFraction = param->getValueNormalized();
-				auto oldCapacity = lastCapacity.load(std::memory_order_relaxed);
-				auto beforeCapacity = before.audioHistoryCapacity.load(std::memory_order_acquire);
+				auto oldCapacity = lastCapacity;
+				auto beforeCapacity = before.audioHistoryCapacity;
 				if (oldCapacity == 0)
 					oldCapacity = beforeCapacity;
 
-				const auto newCapacity = changedSource.getInfo().audioHistoryCapacity.load(std::memory_order_relaxed);
+				const auto& info = changedSource.getInfo();
+				const auto newCapacity = info.audioHistoryCapacity;
+				sampleRate = info.sampleRate;
 
 				if (newCapacity > 0)
-					lastCapacity.store(newCapacity, std::memory_order_relaxed);
+					lastCapacity = newCapacity;
 
-				if(oldCapacity == 0 || newCapacity == 0)
+				if (oldCapacity == 0 || newCapacity == 0)
 				{
 					param->updateFromProcessorNormalized(oldFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
@@ -209,6 +349,8 @@
 						param->updateFromProcessorNormalized(newFraction, cpl::Parameters::UpdateFlags::All & ~cpl::Parameters::UpdateFlags::RealTimeSubSystem);
 				}
 			}
+			
+		protected:
 
 			virtual bool format(const ValueType & val, std::string & buf) override
 			{
@@ -216,11 +358,11 @@
 
 				if (m == Milliseconds)
 				{
-					sprintf_s(buffer, "%.2f ms", 1000 * val / stream.getInfo().sampleRate.load(std::memory_order_relaxed));
+					cpl::sprintfs(buffer, "%.2f ms", 1000 * val / sampleRate);
 				}
 				else
 				{
-					sprintf_s(buffer, "%.0f smps", val);
+					cpl::sprintfs(buffer, "%.0f smps", val);
 				}
 
 				buf = buffer;
@@ -230,7 +372,6 @@
 			virtual bool interpret(const cpl::string_ref buf, ValueType & val) override
 			{
 				ValueType collectedValue;
-
 
 				if (cpl::lexicalConversion(buf, collectedValue))
 				{
@@ -242,7 +383,7 @@
 						{
 							collectedValue /= 1000;
 						}
-						collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+						collectedValue *= sampleRate;
 					}
 					else
 					{
@@ -250,7 +391,7 @@
 						if (m == Milliseconds && notSamples)
 						{
 							collectedValue /= 1000;
-							collectedValue *= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
+							collectedValue *= sampleRate;
 						}
 					}
 
@@ -260,12 +401,17 @@
 				}
 
 				return false;
-
 			}
 
 			virtual ValueType transform(ValueType val) const noexcept override
 			{
-				auto samples = std::round(val * stream.getAudioHistoryCapacity());
+				if (lastCapacity == 0)
+				{
+					// Don't really want to transform something if we don't know the capacity.
+					CPL_BREAKIFDEBUGGED();
+				}
+
+				auto samples = std::round(val * lastCapacity);
 
 				/* if (m == Milliseconds)
 				{
@@ -280,31 +426,32 @@
 
 			virtual ValueType normalize(ValueType val) const noexcept override
 			{
+				if (lastCapacity == 0)
+				{
+					// Don't really want to normalize something if we don't know the capacity.
+					CPL_BREAKIFDEBUGGED();
+				}
+
 				/* if (m == Milliseconds)
 				{
 					val /= stream.getInfo().sampleRate.load(std::memory_order_relaxed);
 					val *= 1000;
 				} */
 
-				return val / stream.getAudioHistoryCapacity();
+				return val / lastCapacity;
 			}
 
-			ParameterView * param;
-			AudioStream & stream;
+			ParameterView* param;
 			Mode m;
 			/// <summary>
 			/// Represents the last capacity change we were informated about,
 			/// and thus currently represents the magnitude scale of the fraction.
 			/// </summary>
-			std::atomic<std::uint64_t> lastCapacity;
+			cpl::relaxed_atomic<std::uint64_t> lastCapacity;
+			cpl::relaxed_atomic<double> sampleRate;
 		};
 
-		typedef std::unique_ptr<ProcessorState>(*ParameterCreater)(std::size_t offset, bool createShortNames, SystemView system);
-
-
-		extern std::vector<std::pair<std::string, ParameterCreater>> ParameterCreationList;
-		extern std::string MainPresetName;
-		extern std::string DefaultPresetName;
+		typedef std::shared_ptr<ProcessorState>(*ContentCreater)(std::size_t offset, SystemView& system);
 
 		enum class OscChannels
 		{
@@ -702,7 +849,7 @@
 
 		struct ParameterMap
 		{
-			void insert(std::pair<std::string, std::unique_ptr<ProcessorState>> entry)
+			void insert(std::pair<std::string, std::shared_ptr<ProcessorState>> entry)
 			{
 				parameterSets.push_back(&entry.second->getParameterSet());
 				map.emplace_back(std::move(entry));
@@ -717,6 +864,7 @@
 				CPL_RUNTIME_EXCEPTION("Parameter index from host is out of bounds");
 			}
 
+			// TODO: Move these into private access?
 			ParameterSet * getSet(const std::string & s) noexcept
 			{
 				for (std::size_t i = 0; i < map.size(); ++i)
@@ -733,21 +881,20 @@
 				return parameterSets[i];
 			}
 
-			ProcessorState * getState(std::size_t i) noexcept
+			std::shared_ptr<ProcessorState>& getState(std::size_t i) noexcept
 			{
-				return map[i].second.get();
+				return map[i].second;
 			}
 
-
-			ProcessorState * getState(const std::string & s) noexcept
+			std::shared_ptr<ProcessorState>& getState(const std::string & s) noexcept
 			{
 				for (std::size_t i = 0; i < map.size(); ++i)
 				{
 					if (map[i].first == s)
-						return map[i].second.get();
+						return map[i].second;
 				}
 
-				return nullptr;
+				CPL_UNREACHABLE();
 			}
 
 			std::size_t numSetsAndState() const noexcept
@@ -755,19 +902,275 @@
 				return parameterSets.size();
 			}
 
-			std::size_t numParams() const noexcept {
+			std::size_t numParams() const noexcept 
+			{
 				std::size_t r(0);
 				for (auto & i : parameterSets)
 					r += i->size();
 				return r;
-			};
+			}
 
 		private:
 
 			std::vector<ParameterSet *> parameterSets;
-			std::vector<std::pair<std::string, std::unique_ptr<ProcessorState>>> map;
+			std::vector<std::pair<std::string, std::shared_ptr<ProcessorState>>> map;
 		};
+
+		struct ColourRotation
+		{
+			ColourRotation() : base(), size(), stereo() {}
+
+			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
+				: base(base), size(size), stereo(stereo)
+			{
+
+			}
+
+			juce::Colour operator [](std::size_t index) const noexcept
+			{
+				if (stereo)
+					index &= ~0x1ull;
+
+				return base.withRotatedHue(index / size);
+			}
+
+			juce::Colour getBase() const noexcept
+			{
+				return base;
+			}
+
+			friend bool operator != (const ColourRotation& a, const ColourRotation& b)
+			{
+				return a.base != b.base || a.size != b.size || a.stereo != b.stereo;
+			}
+
+
+		private:
+			juce::Colour base;
+			float size;
+			bool stereo;
+		};
+
+		/// <summary>
+		/// Not atomic.
+		/// </summary>
+		struct ChangeVersion
+		{
+			struct Listener
+			{
+			public:
+				bool consumeChanges(const ChangeVersion& v)
+				{
+					CPL_RUNTIME_ASSERTION(version <= v.version);
+
+					if (v.version > version)
+					{
+						version = v.version;
+						return true;
+					}
+
+					return false;
+				}
+
+			private:
+				int version {};
+			};
+
+			void bump() 
+			{
+				version++;
+			}
+
+		private:
+			int version{};
+		};
+
+		struct LegendCache
+		{
+			static constexpr int offset = 5;
+			static constexpr int strokeSize = 50;
+
+			typedef std::variant<juce::Colour, std::pair<juce::Colour, juce::Colour>, juce::ColourGradient> ColourItem;
+
+			void setFont(juce::Font fontToUse)
+			{
+				font = fontToUse;
+			}
+
+			void reset(juce::Point<float> positionToUse)
+			{
+				position = positionToUse;
+
+				position.y += offset * 3;
+				position.x += offset;
+				startingY = position.y;
+
+				arrangement.clear();
+				colours.clear();
+			}
+
+			void addLine(const juce::String& text, ColourItem&& item)
+			{
+				arrangement.addLineOfText(font, text, position.x, position.y);
+				colours.emplace_back(std::move(item));
+				position.y += offset + font.getHeight();
+			}
+
+			void addLine(const juce::String& text, juce::Colour colour)
+			{
+				addLine(text, ColourItem(colour));
+			}
+
+			void addLine(const juce::String& text, juce::Colour a, juce::Colour b)
+			{
+				addLine(text, ColourItem(std::make_pair(a, b)));
+			}
+
+			void addLine(const juce::String& text, juce::ColourGradient&& gradient)
+			{
+				addLine(text, ColourItem(std::move(gradient)));
+			}
+
+			void paint(juce::Graphics& g, juce::Colour front, juce::Colour back)
+			{
+				auto bounds = arrangement.getBoundingBox(0, -1, true).reduced(-offset).withTrimmedRight(-strokeSize);
+				auto lineHeight = font.getHeight();
+
+				g.setColour(back);
+				g.fillRoundedRectangle(bounds, offset);
+				g.setColour(front);
+				g.drawRoundedRectangle(bounds, offset, 1);
+
+				arrangement.draw(g);
+
+				for (std::size_t i = 0; i < colours.size(); ++i)
+				{
+					auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;
+
+					if (auto arg = std::get_if<juce::Colour>(&colours[i]))
+					{
+						g.setColour(*arg);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+					}
+					else if (auto arg = std::get_if<std::pair<juce::Colour, juce::Colour>>(&colours[i]))
+					{
+						g.setColour(arg->first);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset - strokeSize / 2, y, 3.0f);
+						g.setColour(arg->second);
+						g.drawLine(bounds.getRight() - strokeSize / 2, y, bounds.getRight() - offset, y, 3.0f);
+					}
+					else if (auto arg = std::get_if<juce::ColourGradient>(&colours[i]))
+					{
+						arg->point1 = { bounds.getRight() - strokeSize, y };
+						arg->point2 = { bounds.getRight() - offset, y };
+						g.setGradientFill(*arg);
+						g.drawLine(bounds.getRight() - strokeSize, y, bounds.getRight() - offset, y, 3.0f);
+					}
+				}
+			}
+
+		private:
+
+			juce::GlyphArrangement arrangement;
+			std::vector<ColourItem> colours;
+			juce::Font font;
+			juce::Point<float> position;
+			float startingY;
+		};
+
+		template<typename T>
+		class CriticalSection
+		{
+		public:
+
+			class Access
+			{
+				friend class CriticalSection<T>;
+
+			public:
+				
+				T* operator -> () noexcept
+				{
+					return &data;
+				}
+
+				T& operator * () noexcept
+				{
+					return data;
+				}
+
+				Access(const Access& other) = delete;
+				Access& operator =(const Access& other) = delete;
+
+				Access(Access&& other) = default;
+				Access& operator =(Access&& other) = default;
+
+			private:
+
+				Access(CriticalSection<T>& data)
+					: data(data.data)
+					, lock(data.mutex)
+				{
+
+				}
+
+				T& data;
+				std::lock_guard<std::mutex> lock;
+			};
+
+			Access lock()
+			{
+				return { *this };
+			}
+
+			template <typename... Args>
+			CriticalSection(Args&& ...args)
+				: data{ std::forward<Args>(args)... }
+			{
+			}
+
+		private:
+			T data;
+			std::mutex mutex;
+		};
+
+		class FloatColour : public std::array<float, 3>
+		{
+		public:
+			FloatColour(const juce::Colour& colour)
+			{
+				this->operator[](0) = colour.getFloatRed();
+				this->operator[](1) = colour.getFloatGreen();
+				this->operator[](2) = colour.getFloatBlue();
+			}
+
+			FloatColour()
+			{
+				this->fill(0);
+			}
+
+			juce::Colour toJuceColour() const noexcept
+			{
+				return juce::Colour::fromFloatRGBA(
+					this->operator[](0),
+					this->operator[](1),
+					this->operator[](2),
+					1
+				);
+			}
+		};
+
+		template<typename T>
+		inline bool assignAndChanged(T& source, const T& operand)
+		{
+			if (!(source != operand))
+				return false;
+
+			source = operand;
+			return true;
+		}
 	};
+
 	namespace std
 	{
 		template<typename T>
@@ -775,6 +1178,6 @@
 			{
 				return sqrt(f.real * f.real + f.imag * f.imag);
 			}
-
 	}
+
 #endif

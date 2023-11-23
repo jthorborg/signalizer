@@ -30,7 +30,6 @@
 
 #include "Oscilloscope.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
@@ -40,9 +39,6 @@
 
 namespace Signalizer
 {
-	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
-	static std::vector<std::string> EnvelopeModeNames = {"None", "RMS", "Peak Decay"};
-
 	const double Oscilloscope::lowerAutoGainBounds = cpl::Math::dbToFraction(-120.0);
 	const double Oscilloscope::higherAutoGainBounds = cpl::Math::dbToFraction(120.0);
 
@@ -50,46 +46,38 @@ namespace Signalizer
     constexpr std::size_t OscilloscopeContent::InterpolationKernelSize;
     
 
-	Oscilloscope::Oscilloscope(const SharedBehaviour & globalBehaviour, const std::string & nameId, AudioStream & data, ProcessorState * params)
-		: COpenGLView(nameId)
+	Oscilloscope::Oscilloscope(
+		std::shared_ptr<const SharedBehaviour>& globalBehaviour,
+		std::shared_ptr<const ConcurrentConfig>& config,
+		std::shared_ptr<AudioStream::Output>& stream,
+		std::shared_ptr<OscilloscopeContent> params
+	)
+		: GraphicsWindow(params->getName())
 		, globalBehaviour(globalBehaviour)
-		, audioStream(data)
-		, processorSpeed(0)
-		, lastFrameTick(0)
-		, lastMousePos()
-		, editor(nullptr)
+		, audioStream(stream)
 		, state()
-		, filters()
-		, triggerState()
 		, medianPos()
-		, isMouseInside(false)
+		, processor(std::make_shared<ProcessorShell>(globalBehaviour))
+		, content(params)
 	{
-		if (!(content = dynamic_cast<OscilloscopeContent *>(params)))
-		{
-			CPL_RUNTIME_EXCEPTION("Cannot cast parameter set's user data to OscilloscopeContent");
-		}
-
-		triggerState.preprocessingTrigger = std::make_unique<PreprocessingTrigger>();
+		processor->streamState.lock()->content = content;
 
 		transformBuffer.resize(OscilloscopeContent::LookaheadSize);
 		temporaryBuffer.resize(OscilloscopeContent::LookaheadSize);
 
-		mtFlags.firstRun = true;
 		setOpaque(true);
-		textbuf = std::unique_ptr<char>(new char[400]);
-		processorSpeed = cpl::system::CProcessor::getMHz();
 		initPanelAndControls();
-		listenToSource(audioStream);
+		stream->addListener(processor);
 	}
 
 	void Oscilloscope::suspend()
 	{
-		state.isSuspended = true;
+		processor->isSuspended = true;
 	}
 
 	void Oscilloscope::resume()
 	{
-		state.isSuspended = false;
+		processor->isSuspended = false;
 	}
 
 	juce::Component * Oscilloscope::getWindow()
@@ -99,8 +87,18 @@ namespace Signalizer
 
 	Oscilloscope::~Oscilloscope()
 	{
-		detachFromSource();
+		audioStream->removeListener(processor);
 		notifyDestruction();
+	}
+
+	std::size_t Oscilloscope::getEffectiveChannels() const noexcept
+	{
+		if (shared.channelMode >= OscChannels::OffsetForMono)
+		{
+			return shared.channelMode == OscChannels::Separate ? shared.numChannels.load() : 2;
+		}
+
+		return 1;
 	}
 
 	void Oscilloscope::initPanelAndControls()
@@ -109,37 +107,20 @@ namespace Signalizer
 		setMouseCursor(juce::MouseCursor::DraggingHandCursor);
 	}
 
-	void Oscilloscope::freeze()
-	{
-		state.isFrozen = true;
-	}
-
-	void Oscilloscope::unfreeze()
-	{
-		state.isFrozen = false;
-	}
-
-	void Oscilloscope::setLastMousePos(const juce::Point<float> position) noexcept
-	{
-		lastMousePos = position;
-		threadedMousePos.first.store(position.x, std::memory_order_release);
-		threadedMousePos.second.store(position.y, std::memory_order_release);
-	}
-
 	void Oscilloscope::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
 
 		double yp;
 
-		if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+		if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 		{
-			auto halfHeight = 0.5 * (getHeight() - 1);
+			auto heightPerScope = (getHeight() - 1.0) / getEffectiveChannels();
 			yp = event.position.y;
-			if (yp > halfHeight)
-				yp -= halfHeight;
+			while (yp > heightPerScope)
+				yp -= heightPerScope;
 
-			yp = yp / halfHeight;
+			yp = yp / heightPerScope;
 		}
 		else
 		{
@@ -167,7 +148,7 @@ namespace Signalizer
 			else
 			{
 				// TODO: fix to pow()
-				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
+				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 80);
 			}
 
 
@@ -203,6 +184,7 @@ namespace Signalizer
 		}
 
 	}
+
 	void Oscilloscope::mouseDoubleClick(const juce::MouseEvent& event)
 	{
 		using V = OscilloscopeContent::ViewOffsets;
@@ -222,9 +204,10 @@ namespace Signalizer
 			content->viewOffsets[V::Bottom].setNormalizedValue(0);
 		}
 	}
+
 	void Oscilloscope::mouseDrag(const juce::MouseEvent& event)
 	{
-		auto deltaDifference = event.position - lastMousePos;
+		auto deltaDifference = event.position - currentMouse.getPoint();
 
 		using V = OscilloscopeContent::ViewOffsets;
 
@@ -242,88 +225,75 @@ namespace Signalizer
 			content->viewOffsets[i].setTransformedValue(cpl::Math::confineTo(get(i) + val, 0.0, 1.0));
 		};
 
-		auto verticalFactor = !state.overlayChannels && state.channelMode > OscChannels::OffsetForMono ? 2 : 1;
+		auto verticalFactor = shared.overlayChannels ? 1 : getEffectiveChannels();
 
 		addClamped(V::Left, xp * (left - right));
 		addClamped(V::Right, xp * (left - right));
 		addClamped(V::Top, verticalFactor * yp * (top - bottom));
 		addClamped(V::Bottom, verticalFactor * yp * (top - bottom));
 
-		setLastMousePos(event.position);
-	}
-	void Oscilloscope::mouseUp(const juce::MouseEvent& event)
-	{
-		// TODO: implement beginChangeGesture()
-	}
-	void Oscilloscope::mouseDown(const juce::MouseEvent& event)
-	{
-		// TODO: implement endChangeGesture()
-		setLastMousePos(event.position);
+		GraphicsWindow::mouseDrag(event);
 	}
 
-	void Oscilloscope::mouseMove(const juce::MouseEvent & event)
-	{
-		setLastMousePos(event.position);
-	}
-
-	void Oscilloscope::mouseExit(const juce::MouseEvent & e)
-	{
-		isMouseInside.store(false, std::memory_order_relaxed);
-	}
-
-	void Oscilloscope::mouseEnter(const juce::MouseEvent & e)
-	{
-		isMouseInside.store(true, std::memory_order_relaxed);
-	}
-
-	void Oscilloscope::handleFlagUpdates()
+	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
 	{
 		const auto windowValue = content->windowSize.getTransformedValue();
 
-		state.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
+
 		state.sampleInterpolation = cpl::enum_cast<SubSampleInterpolation>(content->subSampleInterpolation.param.getTransformedValue());
 		state.manualGain = content->inputGain.getTransformedValue();
-		state.autoGain = shared.autoGainEnvelope.load(std::memory_order_relaxed);
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
-		state.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
+		state.triggerMode = cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
 		state.colourChannelsByFrequency = content->channelColouring.param.getAsTEnum<OscilloscopeContent::ColourMode>() == OscilloscopeContent::ColourMode::SpectralEnergy;
-		state.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
 		state.drawCursorTracker = content->cursorTracker.parameter.getValue() > 0.5;
-
-		state.colourPrimary = content->primaryColour.getAsJuceColour();
-		state.colourSecondary = content->secondaryColour.getAsJuceColour();
 		state.colourBackground = content->backgroundColour.getAsJuceColour();
-		state.colourGraph = content->graphColour.getAsJuceColour();
-		state.colourTracker = content->trackerColour.getAsJuceColour();
+		state.colourAxis = content->graphColour.getAsJuceColour();
+		state.colourWidget = content->widgetColour.getAsJuceColour();
 
 		state.timeMode = cpl::enum_cast<OscilloscopeContent::TimeMode>(content->timeMode.param.getTransformedValue());
 		state.beatDivision = windowValue;
 		state.dotSamples = content->dotSamples.getNormalizedValue() > 0.5;
-		state.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
 
 		state.triggerHysteresis = content->triggerHysteresis.parameter.getValue();
 		state.triggerThreshold = content->triggerThreshold.getTransformedValue();
+
+		state.drawLegend = content->showLegend.getTransformedValue() > 0.5;
 
 		cpl::foreach_enum<VO>([this](auto i) {
 			state.viewOffsets[i] = content->viewOffsets[i].getTransformedValue();
 		});
 
-		for (std::size_t c = 0; c < channelData.filterStates.channels.size(); ++c)
+		shared.overlayChannels = content->overlayChannels.getTransformedValue() > 0.5;
+		shared.numChannels = cs.channelData.numChannels();
+		const auto oldChannelMode = shared.channelMode.load();
+		shared.channelMode = cs.channelMode = cpl::enum_cast<OscChannels>(content->channelConfiguration.param.getTransformedValue());
+		auto resetLegend = state.audioStreamChanged.consumeChanges(cs.audioStreamChangeVersion) || cs.channelMode != oldChannelMode;
+
+		state.sampleRate = cs.sampleRate;
+		state.autoGain = cs.envelopeGain;
+
+		ColourRotation primaryRotation(content->primaryColour.getAsJuceColour(), shared.numChannels >> 1, false);
+		ColourRotation secondaryRotation(content->secondaryColour.getAsJuceColour(), shared.numChannels >> 1, false);
+
+		for (std::size_t c = 0; c < shared.numChannels; ++c)
 		{
-			if (c == 0)
-				channelData.filterStates.channels[c].defaultKey = state.colourPrimary;
-			else
-				channelData.filterStates.channels[c].defaultKey = state.colourSecondary;
+			const auto colour = (c & 0x1) ? secondaryRotation[c >> 1] : primaryRotation[c >> 1];
+			resetLegend |= assignAndChanged(cs.channelData.filterStates.channels[c].defaultKey, colour);
 		}
+
+		// recalculate legend
+		if (resetLegend)
+			recalculateLegend(cs, primaryRotation, secondaryRotation);
 
 		switch (state.timeMode)
 		{
 		case OscilloscopeContent::TimeMode::Beats:
-			state.effectiveWindowSize = audioStream.getAudioHistorySamplerate() * (60 / (std::max(10.0, audioStream.getASyncPlayhead().getBPM()) * state.beatDivision));
+			state.effectiveWindowSize = state.sampleRate * (60 / (std::max(10.0, cs.bpm) * state.beatDivision));
 			state.effectiveWindowSize = std::max(state.effectiveWindowSize, 128.0);
 			break;
 		case OscilloscopeContent::TimeMode::Cycles:
@@ -337,37 +307,74 @@ namespace Signalizer
 			break;
 		}
 
-		triggerState.preprocessingTrigger->setSettings(state.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
-
-		bool firstRun = false;
-
-		if (mtFlags.firstRun.cas())
-		{
-			firstRun = true;
-		}
-
-
-		/* if (firstRun || mtFlags.initiateWindowResize)
-		{
-
-			// we will get notified asynchronously in onAsyncChangedProperties.
-			if (audioStream.getAudioHistoryCapacity() && audioStream.getAudioHistorySamplerate())
-			{
-				// only reset this flag if there's valid data, otherwise keep checking.
-				mtFlags.initiateWindowResize.cas();
-				auto value = content->windowSize.getTransformedValue();
-				//audioStream.setAudioHistorySize(value);
-			}
-		} */
+		cs.triggeringProcessor->setSettings(cs.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
 	}
 
-	inline bool Oscilloscope::onAsyncAudio(const AudioStream & source, AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
+	void Oscilloscope::recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation)
 	{
-		if (state.isSuspended && globalBehaviour.stopProcessingOnSuspend.load(std::memory_order_relaxed))
-			return false;
+		state.legend.reset({ 10, 10 });
 
-		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, buffer, numChannels, numSamples);
-		return false;
+		switch (cs.channelMode)
+		{
+			default:
+			case OscChannels::Left:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2], primaryRotation[c]);
+				break;
+			case OscChannels::Right:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				break;
+			case OscChannels::Mid:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2] + " + " + cs.channelNames[c * 2 + 1], primaryRotation[c]);
+				break;
+			case OscChannels::Side:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+					state.legend.addLine(cs.channelNames[c * 2] + " - " + cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				break;
+			case OscChannels::Separate:
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+				{
+					state.legend.addLine(cs.channelNames[c * 2], primaryRotation[c]);
+					state.legend.addLine(cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				}
+				break;
+			case OscChannels::MidSide:
+			{
+				for (std::size_t c = 0; c < shared.numChannels / 2; ++c)
+				{
+					state.legend.addLine(cs.channelNames[c * 2] + " + " + cs.channelNames[c * 2 + 1], primaryRotation[c]);
+					state.legend.addLine(cs.channelNames[c * 2] + " - " + cs.channelNames[c * 2 + 1], secondaryRotation[c]);
+				}
+				break;
+			}
+		}
 	}
 
+	inline void Oscilloscope::ProcessorShell::onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
+	{
+		if (isSuspended && globalBehaviour->stopProcessingOnSuspend)
+			return;
+
+		cpl::simd::dynamic_isa_dispatch<float, AudioDispatcher>(*this, source, buffer, numChannels, numSamples);
+	}
+
+	inline void Oscilloscope::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
+	{
+		auto access = streamState.lock();
+		access->channelNames = source.getChannelNames();
+		access->historyCapacity = source.getInfo().audioHistoryCapacity;
+		access->sampleRate = source.getInfo().sampleRate;
+		access->audioStreamChangeVersion.bump();
+	}
+
+	Oscilloscope::StreamState::StreamState()
+		: triggeringProcessor(std::make_unique<TriggeringProcessor>())
+	{
+
+	}
+	Oscilloscope::StreamState::~StreamState()
+	{
+	}
 };

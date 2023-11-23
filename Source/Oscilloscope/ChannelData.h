@@ -45,33 +45,45 @@
 			typedef cpl::CLIFOStream<AFloat, 32> AudioBuffer;
 			typedef cpl::CLIFOStream<PixelType, 32> ColourBuffer;
 
+			enum Entry
+			{
+				Slow = 0,
+				Left = 0,
+				Mid = 0,
+				Fast = 1,
+				Right = 1,
+				Side = 1
+			};
+
 			struct Channel
 			{
 				AudioBuffer audioData;
 				ColourBuffer colourData;
+				/// <summary>
+				/// Even-indices are mid, odd-indices are side
+				/// </summary>
+				ColourBuffer auxColourData;
 			};
 
 			struct FilterStates
 			{
 				struct ChannelState
 				{
+					// TODO: rename to colourSmoothFilters
 					Crossover::BandArray smoothFilters{};
+					Crossover::BandArray auxSmoothFilter{};
 					Crossover network;
 					juce::Colour defaultKey;
+					AFloat envelope;
 				};
 
 				std::vector<ChannelState> channels;
 
-				Crossover network;
-
-
-				Crossover::BandArray midSideSmoothsFilters[2];
 			};
 
 			struct Buffer
 			{
-				std::vector<Channel> channels{ 1 };
-				ColourBuffer midSideColour[2];
+				std::vector<Channel> channels{ 0};
 
 				Channel & defaultChannel()
 				{
@@ -87,36 +99,49 @@
 					{
 						c.audioData.setStorageRequirements(samples, capacity);
 						c.colourData.setStorageRequirements(samples, capacity);
-					}
-
-					for (auto & c : midSideColour)
-					{
-						c.setStorageRequirements(samples, capacity);
+						c.auxColourData.setStorageRequirements(samples, capacity);
 					}
 				}
 			};
+
+			void resizeAudioStorage(OscilloscopeContent::TriggeringMode triggerMode, double effectiveWindowSize, double cycleSamples, const std::int64_t audioHistoryCapacity)
+			{
+				std::int64_t requiredSampleBufferSize = 0;
+				// TODO: Add
+				// std::size_t additionalSamples = state.sampleInterpolation == SubSampleInterpolation::Lanczos ? OscilloscopeContent::InterpolationKernelSize : 0;
+
+				if (triggerMode == OscilloscopeContent::TriggeringMode::Spectral)
+				{
+					// buffer size = length of detected freq in samples + display window size + lookahead
+					requiredSampleBufferSize = std::max(static_cast<std::size_t>(0.5 + cycleSamples + std::ceil(effectiveWindowSize)), OscilloscopeContent::LookaheadSize);
+				}
+				else
+				{
+					//requiredSampleBufferSize = static_cast<std::size_t>(0.5 + triggerState.cycleSamples + std::ceil(state.effectiveWindowSize) * 2) + OscilloscopeContent::LookaheadSize;
+					requiredSampleBufferSize = static_cast<std::size_t>(std::ceil(effectiveWindowSize + 1));
+				}
+
+				auto finalCapacity = static_cast<std::size_t>(std::max(requiredSampleBufferSize, audioHistoryCapacity));
+
+				front.resizeStorage(requiredSampleBufferSize, finalCapacity);
+				back.resizeStorage(requiredSampleBufferSize, finalCapacity);
+			}
 
 			void resizeChannels(std::size_t newChannels)
 			{
 				for (auto buffer : { &back, &front })
 				{
-					auto & channels = buffer->channels;
+					auto& channelsForBuffer = buffer->channels;
 
-					if (newChannels > channels.size())
-					{
-						auto original = channels.size();
-						auto diff = newChannels - original;
+					bool alreadyHasData = channelsForBuffer.size() > 0;
 
-						while (diff--)
-						{
-							channels.emplace_back();
-							filterStates.channels.emplace_back();
-						}
+					channelsForBuffer.resize(newChannels);
 
-						if (original > 0)
-							buffer->resizeStorage(channels.back().audioData.getSize(), channels.back().audioData.getCapacity());
-					}
+					if (alreadyHasData)
+						buffer->resizeStorage(channelsForBuffer.front().audioData.getSize(), channelsForBuffer.front().audioData.getCapacity());
 				}
+
+				filterStates.channels.resize(std::max(filterStates.channels.size(), newChannels));
 
 			}
 
@@ -127,15 +152,11 @@
 					outBuf.createWriter().copyIntoHead(inBuf.createProxyView(), historySize, offset);
 				};
 
-				for (std::size_t i = 0; i < std::extent<decltype(Buffer::midSideColour)>::value; ++i)
-				{
-					swapBuf(back.midSideColour[i], front.midSideColour[i]);
-				}
-
 				for (std::size_t i = 0; i < back.channels.size(); ++i)
 				{
 					swapBuf(back.channels[i].audioData, front.channels[i].audioData);
 					swapBuf(back.channels[i].colourData, front.channels[i].colourData);
+					swapBuf(back.channels[i].auxColourData, front.channels[i].auxColourData);
 				}
 			}
 
@@ -148,6 +169,9 @@
 			{
 				smoothFilterPole = cpl::dsp::SmoothedParameterState<AFloat, 1>::design(milliseconds, sampleRate);
 			}
+
+			std::size_t numChannels() const noexcept { return front.channels.size(); }
+			bool empty() const noexcept { return numChannels() > 0; }
 
 			Crossover::Coefficients networkCoeffs;
 			cpl::dsp::SmoothedParameterState<AFloat, 1>::PoleState smoothFilterPole;

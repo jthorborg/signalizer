@@ -47,17 +47,17 @@ namespace Signalizer
 			, editor(std::move(other.editor))
 			, view(std::move(other.view))
 		{
-			editor.replaceGenerator([this] { return state.createEditor(); });
+			editor.replaceGenerator([this] { return state->createEditor(); });
 		}
 
 		SentientViewState & operator = (SentientViewState && other) = delete;
 		SentientViewState(const SentientViewState & other) = delete;
 
-		SentientViewState(const std::string & name, ProcessorState & viewProcessorState, DecoupledStateObject<cpl::CSubView>::FGenerator generator)
-			: state(viewProcessorState)
-			, name(name)
+		SentientViewState(std::shared_ptr<ProcessorState> viewProcessorState, DecoupledStateObject<cpl::CSubView>::FGenerator generator)
+			: state(std::move(viewProcessorState))
+			, name(state->getName())
 			, editor(
-				[this] { return state.createEditor(); }, 
+				[this] { return state->createEditor(); }, 
 				[](StateEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.getEditorSO().serializeObject(sz, v); },
 				[](StateEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.getEditorSO().deserializeObject(sz, v); }
 			)
@@ -73,11 +73,11 @@ namespace Signalizer
 		DecoupledStateObject<StateEditor> & getEditorDSO() noexcept { return editor; }
 		DecoupledStateObject<cpl::CSubView> & getViewDSO() noexcept { return view; }
 		const std::string & getName() const noexcept { return name; }
-		ProcessorState & getProcessorState() noexcept { return state; }
+		ProcessorState & getProcessorState() noexcept { return *state; }
 
 	private:
 
-		ProcessorState & state;
+		std::shared_ptr<ProcessorState> state;
 		std::string name;
 		DecoupledStateObject<StateEditor> editor;
 		DecoupledStateObject<cpl::CSubView> view;

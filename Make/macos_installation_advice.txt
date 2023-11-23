@@ -1,0 +1,19 @@
+Choose a build variant, like x86 if you are running a 32-bit DAW or x64 if you're running 64-bit.
+
+For instance, for 64-bit, open the "x64" folder. Note that Apple has deprecated x86 builds even a while back, so I'm generally unable to provide them.
+
+Select the "Signalizer" folder plugin:
+- Signalizer.component for AudioUnit
+- Signalizer.vst for VST2.4
+- Signalizer.vst3 for VST3
+
+and copy the plugin appropriately into your (user) Library/Audio/Plug-Ins/ folder. That's it!
+
+You may need to restart your computer after you've done this.
+
+-------------------
+
+If you're unsure about where your Plug-Ins folder is, it can be very custom and I'd advise to research the internet for your particular operating system if you didn't choose it yourself.
+
+You may need to allow opening apps from unindenfied developers, because Apple otherwise requires developers to pay them fees annually.
+https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac

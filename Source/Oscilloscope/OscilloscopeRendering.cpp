@@ -30,7 +30,6 @@
 
 #include "Oscilloscope.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
@@ -43,86 +42,103 @@ namespace Signalizer
 
 	struct VerticalScreenSplitter
 	{
-		VerticalScreenSplitter(juce::Rectangle<int> clipRectangle, cpl::OpenGLRendering::COpenGLStack & stack, bool doSeparate)
-			: stack(stack), width(clipRectangle.getWidth()), halfHeight(clipRectangle.getHeight() >> 1), separate(doSeparate)
+		VerticalScreenSplitter(juce::Rectangle<int> clipRectangle, cpl::OpenGLRendering::COpenGLStack & stack, int amountOfPasses, bool doSeparate)
+			: stack(stack)
+			, width(clipRectangle.getWidth())
+			, height(clipRectangle.getHeight())
+			, passesDone(0)
+			, numPasses(amountOfPasses)
+			, separate(doSeparate)
 		{
-
-		}
-
-		void firstPass()
-		{
-			if (separate)
+			if (doSeparate)
 			{
-				m.scale(1, 0.5f, 1);
-				m.translate(0, 1, 0);
+				m.scale(1, 1.0f / amountOfPasses, 1);
+				// center on upper rect, equiv. to (1 - 1 / amountOfPasses) / (1 / amountOfPasses)
+				m.translate(0, amountOfPasses - 1, 0);
 				stack.enable(GL_SCISSOR_TEST);
-				glScissor(0, halfHeight, width, halfHeight);
+				glScissor(0, cpl::Math::round<GLint>(GLfloat((numPasses - passesDone - 1) * height) / numPasses), width, height / numPasses);
+
 			}
+
 		}
 
-		void secondPass()
+		void nextPass()
 		{
 			if (separate)
-			{
+			{				
+				// one unit of vertical displacement is half a clipped region, so move two to center on next rect
 				m.translate(0, -2, 0);
-				glScissor(0, 0, width, halfHeight);
+				passesDone++;
+
+				glScissor(0, cpl::Math::round<GLint>(GLfloat((numPasses - passesDone - 1) * height) / numPasses), width, height / numPasses);
 			}
+
 		}
 
 		~VerticalScreenSplitter() { if (separate) stack.disable(GL_SCISSOR_TEST); }
+
 		cpl::OpenGLRendering::MatrixModification m;
-		cpl::OpenGLRendering::COpenGLStack & stack;
-		GLint width, halfHeight;
+		cpl::OpenGLRendering::COpenGLStack& stack;
+		GLint width, height;
+		GLint passesDone, numPasses;
 		bool separate;
 	};
 
 	template<typename ISA>
 	void Oscilloscope::paint2DGraphics(juce::Graphics & g)
 	{
-
-		auto cStart = cpl::Misc::ClockCounter();
-
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed),
+
+			const auto perf = audioStream->getPerfMeasures();
+
+			float averageFps, averageCpu;
+			computeAverageStats(averageFps, averageCpu);
+
+			char textbuf[1024];
+
+			cpl::sprintfs(textbuf, "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%), qHZ: %.5f - HZ: %.5f - PHASE: %.5f",
+				getWidth(), getHeight(), averageFps, averageCpu, graphicsDeltaTime(), openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead,
 				(double)triggerState.record.index,
 				triggerState.fundamental,
-				triggerState.sampleOffset);
-			g.drawSingleLineText(textbuf.get(), 10, 20);
+				triggerState.sampleOffset
+			);
+
+			g.drawSingleLineText(textbuf, 10, 20);
 
 		}
 
 		auto bounds = getLocalBounds().toFloat();
 
-		if (state.colourGraph.getAlpha() != 0)
+		if (state.colourAxis.getAlpha() != 0)
 		{
 			auto gain = static_cast<float>(getGain());
 			drawTimeDivisions<ISA>(g, bounds);
 
-			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 			{
-				juce::Graphics::ScopedSaveState s(g);
+				const auto cappedChannels = getEffectiveChannels();
 
-				bounds.setHeight(bounds.getHeight() * 0.5f);
-				const auto rectBottom = bounds.withY(bounds.getY() + bounds.getHeight());
+				auto window = bounds.withHeight(bounds.getHeight() / cappedChannels);
 
-				g.setColour(state.colourGraph);
-				g.drawLine(0, rectBottom.getY(), bounds.getWidth(), rectBottom.getY());
+				for (std::size_t c = 0; c < cappedChannels; ++c)
+				{
+					juce::Graphics::ScopedSaveState s(g);
 
-				drawWireFrame<ISA>(g, rectBottom, gain);
+					g.setColour(state.colourAxis);
+					g.drawLine(0, window.getY(), window.getWidth(), window.getY());
+					g.reduceClipRegion(window.toType<int>());
 
-				g.reduceClipRegion(bounds.toType<int>());
-				drawWireFrame<ISA>(g, bounds, gain);
+					drawWireFrame<ISA>(g, window, gain);
+
+					window = window.withY(window.getY() + window.getHeight());
+
+				}
 
 			}
 			else
@@ -131,13 +147,18 @@ namespace Signalizer
 			}
 		}
 
-		auto mouseCheck = globalBehaviour.hideWidgetsOnMouseExit.load(std::memory_order_acquire) ? isMouseInside.load(std::memory_order_relaxed) : true;
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
-		if (state.drawCursorTracker && mouseCheck)
+		if (globalBehaviour->showLegend && mouseCheck)
 		{
-			g.setColour(state.colourTracker);
+			state.legend.paint(g, state.colourWidget, state.colourBackground);
+		}
 
-			const auto mouseX = threadedMousePos.first.load(std::memory_order_acquire), mouseY = threadedMousePos.second.load(std::memory_order_acquire);
+		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
+		{
+			g.setColour(state.colourWidget);
+
+			const auto mouseX = currentMouse.x.load(), mouseY = currentMouse.y.load();
 
 			double estimatedSize[2] = { 180, 70 };
 			double textOffset[2] = { 20, -estimatedSize[1] };
@@ -152,16 +173,24 @@ namespace Signalizer
 
 			auto fraction = (double)mouseY / (getHeight() - 1);
 
-			juce::Point<float> verticalMouseSection{ 0, (state.overlayChannels ? 1 : 0.5f) * getBounds().getHeight()};
+			juce::Point<float> verticalMouseSection{ 0.0f, static_cast<float>(getBounds().getHeight()) };
 
-			if (!state.overlayChannels && state.channelMode > OscChannels::OffsetForMono)
+			const auto cappedChannels = getEffectiveChannels();
+
+			const auto normalizedSpace = 1.0 / cappedChannels;
+
+			if (!shared.overlayChannels && shared.channelMode > OscChannels::OffsetForMono)
 			{
-				if (fraction > 0.5)
-				{
-					verticalMouseSection = { getBounds().getHeight() * 0.5f, getBounds().getHeight() * 0.5f };
-					fraction -= 0.5;
-				}
-				fraction *= 2;
+				const auto position = fraction / normalizedSpace;
+				const auto rounded = static_cast<int>(position);
+
+				verticalMouseSection = { 
+					static_cast<float>(getBounds().getHeight() * rounded * normalizedSpace), 
+					static_cast<float>(getBounds().getHeight() * normalizedSpace)
+				};
+
+				fraction = std::fmod(fraction, normalizedSpace);
+				fraction *= cappedChannels;
 			}
 
 			g.drawLine(0, mouseY, bounds.getWidth(), mouseY);
@@ -179,7 +208,7 @@ namespace Signalizer
 			g.fillRoundedRectangle(rect, 2);
 
 			// reset colour
-			g.setColour(state.colourTracker);
+			g.setColour(state.colourWidget);
 			g.drawRoundedRectangle(rect, 2, 0.7f);
 
 			auto const horizontalFraction = cpl::Math::UnityScale::linear((double)mouseX / (getWidth() - 1), state.viewOffsets[VO::Left], state.viewOffsets[VO::Right]);
@@ -192,11 +221,11 @@ namespace Signalizer
 
 			char text[1024];
 
-			sprintf_s(text,
+			cpl::sprintfs(text,
 				"y: %+.10f\ny: %+.10f\tdB\nx: %.10f\tms\nx: %.10f\tsmps",
 				fraction,
 				20 * std::log10(std::abs(fraction)),
-				1e3 * samples / audioStream.getAudioHistorySamplerate(),
+				1e3 * samples / state.sampleRate,
 				samples
 			);
 
@@ -204,31 +233,6 @@ namespace Signalizer
 
 			g.drawFittedText(text, rectInside, juce::Justification::centredLeft, 6);
 		}
-	}
-
-	void Oscilloscope::onGraphicsRendering(juce::Graphics & g)
-	{
-		// do software rendering
-		if(!isOpenGL())
-		{
-			g.fillAll(state.colourBackground.withAlpha(1.0f));
-			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
-			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
-
-			// post fps anyway
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-		}
-	}
-
-	void Oscilloscope::initOpenGL()
-	{
-
-	}
-
-	void Oscilloscope::closeOpenGL()
-	{
 
 	}
 
@@ -237,9 +241,9 @@ namespace Signalizer
 		cpl::simd::dynamic_isa_dispatch<float, RenderingDispatcher>(*this);
 	}
 
-	bool Oscilloscope::checkAndInformInvalidCombinations()
+	bool Oscilloscope::checkAndInformInvalidCombinations(Oscilloscope::StreamState& cs)
 	{
-		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && state.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
+		if (state.timeMode == OscilloscopeContent::TimeMode::Cycles && cs.triggerMode != OscilloscopeContent::TriggeringMode::Spectral)
 		{
 			renderGraphics(
 				[&](juce::Graphics & g)
@@ -258,86 +262,105 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::vectorGLRendering()
 		{
-            auto cStart = cpl::Misc::ClockCounter();
             CPL_DEBUGCHECKGL();
-            
 			{
-                cpl::CMutex lock(bufferLock);
-                
-                handleFlagUpdates();
+				auto cs = processor->streamState.lock();
+				auto& streamState = *cs;
+                handleFlagUpdates(streamState);
                 
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 
-                if (!checkAndInformInvalidCombinations())
+				if (state.sampleRate == 0)
+					return;
+
+                if (!checkAndInformInvalidCombinations(streamState))
                     return;
                 
+				auto& channelData = streamState.channelData;
+
 				cpl::OpenGLRendering::COpenGLStack openGLStack;
 				// set up openGL
 				openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 				openGLStack.loadIdentityMatrix();
-				//cpl::GraphicsND::Transform3D<GLfloat> transform(1);
-				//content->transform.fillTransform3D(transform);
-				//openGLStack.applyTransform3D(transform);
 				state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 				openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 				openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
-				const GLint halfHeight = static_cast<GLint>(getHeight() * 0.5f);
 
 				CPL_DEBUGCHECKGL();
 
-				auto mode = state.channelMode;
+				auto mode = streamState.channelMode;
+				const auto numChannels = shared.numChannels.load();
+				
+				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
+				// should be safe to assert equality 
+				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());
+				
+				std::size_t triggerSeparate, triggerPair;
+				content->calculateTriggerIndices(numChannels, triggerSeparate, triggerPair);
 
-				if (mode > OscChannels::OffsetForMono && channelData.front.channels.size() < 2)
-					mode = OscChannels::Left;
-
-				if (channelData.front.channels.size() > 0 && channelData.filterStates.channels.size() > 0)
+				// Pre-analyse triggering and state
+				switch (mode)
 				{
-					switch (mode)
-					{
 					default: case OscChannels::Left:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Right:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 0>>(openGLStack);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Right>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Mid:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Side:
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side, 0>>();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 0>>(openGLStack);
-						break;
+						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerPair }, streamState); break;
 					case OscChannels::Separate:
-					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Left, 0>>();
-						w.firstPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left, 0>>(openGLStack);
-						w.secondPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right, 1>>(openGLStack);
-						break;
-					}
+						analyseAndSetupState<ISA, DynamicChannelEvaluator>({ channelData, triggerSeparate }, streamState); break;
 					case OscChannels::MidSide:
 					{
-						VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, !state.overlayChannels);
-						analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>();
-						w.firstPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid, 0>>(openGLStack);
-						w.secondPass();
-						drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side, 1>>(openGLStack);
+						if ((triggerSeparate & 0x1) == 0)
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Mid>>({ channelData, triggerSeparate }, streamState);
+						else
+							analyseAndSetupState<ISA, SampleColourEvaluator<OscChannels::Side>>({ channelData, triggerSeparate & ~0x1 }, streamState);
 						break;
-					}
 					}
 				}
 
+				const auto numSplits = static_cast<int>(numChannels / (mode > OscChannels::OffsetForMono ? 1 : 2));
+				VerticalScreenSplitter w(getLocalBounds() * oglc->getRenderingScale(), openGLStack, numSplits, !shared.overlayChannels);
+
+				for (std::size_t channelPair = 0; channelPair < numChannels; channelPair += 2)
+				{
+					EvaluatorParams params { channelData, channelPair };
+
+					switch (mode)
+					{
+						default: case OscChannels::Left:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Left>>(openGLStack, params, streamState); break;
+						case OscChannels::Right:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Right>>(openGLStack, params, streamState); break;
+						case OscChannels::Mid:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid>>(openGLStack, params, streamState); break;
+						case OscChannels::Side:
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side>>(openGLStack, params, streamState); break;
+						case OscChannels::Separate:
+						{
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, params, streamState);
+							w.nextPass();
+							params.channelIndex++;
+							drawWavePlot<ISA, DynamicChannelEvaluator>(openGLStack, params, streamState);
+
+							break;
+						}
+						case OscChannels::MidSide:
+						{
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Mid>>(openGLStack, params, streamState);
+							w.nextPass();
+							drawWavePlot<ISA, SampleColourEvaluator<OscChannels::Side>>(openGLStack, params, streamState);
+							break;
+						}
+					}
+
+					w.nextPass();
+				}
 
 				CPL_DEBUGCHECKGL();
-
-				renderCycles = cpl::Misc::ClockCounter() - cStart;
 			}
 
 			renderGraphics(
@@ -348,10 +371,7 @@ namespace Signalizer
 				}
 			);
 
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-
+			postFrame();
 		}
 
 	template<typename ISA>
@@ -366,11 +386,10 @@ namespace Signalizer
 			// quantize to multiples of 3
 			auto const numLines = 2 * (std::size_t)(1.5 + 0.5 * (1 - content->pctForDivision.getNormalizedValue()) * minSpacing) - 1;
 
-			g.setColour(state.colourGraph);
+			g.setColour(state.colourAxis);
 
 			const auto offset = gain;
 			char textBuf[200];
-
 
 			auto viewTransform = [&](auto pos) {
 				return (pos + (state.viewOffsets[VO::Bottom] - 1)) / verticalDelta;
@@ -386,7 +405,7 @@ namespace Signalizer
 				auto const y = coord;
 				auto const dBs = 20 * std::log10(waveSpace / offset);
 
-				sprintf_s(textBuf, "%.3f dB", dBs);
+				cpl::sprintfs(textBuf, "%.3f dB", dBs);
 
 				g.drawSingleLineText(textBuf, xoff + 5, yoff + rect.getHeight() - (y - 15), juce::Justification::left);
 
@@ -410,7 +429,6 @@ namespace Signalizer
 				if(std::abs(unitSpacePos - 0.5) > zeroDBEpsilon)
 					drawMarkerAt(unitSpacePos, 1.5f);
 
-
 				unitSpacePos += inc;
 			}
 
@@ -431,7 +449,7 @@ namespace Signalizer
 		if (wantedVerticalLines > 0)
 		{
 			char textBuf[200];
-			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / audioStream.getAudioHistorySamplerate();
+			auto const windowSize = 1000 * (state.effectiveWindowSize - 1) / state.sampleRate;
 			if (windowSize == 0)
 				return;
 
@@ -448,7 +466,7 @@ namespace Signalizer
 			{
 				auto numLinesPerCycles = wantedVerticalLines / cyclesTotal;
 				roundedPower = std::pow(2, std::round(std::log2(numLinesPerCycles)));
-				msIncrease = 1000 * (triggerState.cycleSamples) / audioStream.getAudioHistorySamplerate();
+				msIncrease = 1000 * (triggerState.cycleSamples) / state.sampleRate;
 				msIncrease /= roundedPower;
 
 			}
@@ -459,7 +477,7 @@ namespace Signalizer
 			}
 
 
-			g.setColour(state.colourGraph);
+			g.setColour(state.colourAxis);
 
 			auto transformView = [&](auto x) {
 				return (x - state.viewOffsets[VO::Left]) / horizontalDelta;
@@ -489,14 +507,14 @@ namespace Signalizer
 
 				auto const fraction = (currentMsPos + offset) / windowSize;
 				auto const x = xoff + transformView(fraction) * rect.getWidth();
-				auto const samples = 1e-3 * currentMsPos * audioStream.getAudioHistorySamplerate();
+				auto const samples = 1e-3 * currentMsPos * state.sampleRate;
 
 				g.drawLine(x, yoff, x, rect.getHeight(), samples == 0 ? 1.5f : 1.0f);
 
 				float offset = 10;
 
 				auto textOut = [&](auto format, auto... args) {
-					sprintf_s(textBuf, format, args...);
+					cpl::sprintfs(textBuf, format, args...);
 					g.drawSingleLineText(textBuf, std::floor(x + 5), yoff + rect.getHeight() - offset, juce::Justification::left);
 					offset += 15;
 				};
@@ -531,7 +549,7 @@ namespace Signalizer
 	}
 
 	template<typename ISA, typename Evaluator>
-		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack & openGLStack)
+		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack& openGLStack, const EvaluatorParams& params, Oscilloscope::StreamState& cs)
 		{
 
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
@@ -559,7 +577,7 @@ namespace Signalizer
 			cpl::ssize_t bufferOffset = 0;
 			double subSampleOffset = 0, offset = 0;
 			auto const pixelsPerSample = oglc->getRenderingScale() * std::abs((getWidth() - 1) / (sizeMinusOne * (horizontalDelta)));
-
+			const auto triggerMode = state.triggerMode;
 
 			auto interpolation = state.sampleInterpolation;
 			if (pixelsPerSample < 1 && state.sampleInterpolation != SubSampleInterpolation::None)
@@ -567,13 +585,13 @@ namespace Signalizer
 				interpolation = SubSampleInterpolation::Linear;
 			}
 
-			if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+			if (triggerMode == OscilloscopeContent::TriggeringMode::Window)
 			{
-				auto const realOffset = std::fmod(state.transportPosition, state.effectiveWindowSize);
+				auto const realOffset = std::fmod(cs.transportPosition, state.effectiveWindowSize);
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
 				offset = subSampleOffset = 0;
 			}
-			else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
+			else if (triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 			{
 				auto const realOffset = triggerState.sampleOffset;
 				bufferOffset = static_cast<cpl::ssize_t>(std::ceil(realOffset));
@@ -621,7 +639,7 @@ namespace Signalizer
 				// scale to sample/pixels space
 				matrixMod.scale(sampleDisplacement, 1, 1);
 
-				Evaluator eval(channelData);
+				Evaluator eval(params);
 				if (!eval.isWellDefined())
 					return;
 
@@ -777,11 +795,11 @@ namespace Signalizer
 
 					double samplePos = 0;
 
-					if (state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					if (triggerMode == OscilloscopeContent::TriggeringMode::Window)
 					{
-						samplePos = std::fmod(state.transportPosition, state.effectiveWindowSize) - 1;
+						samplePos = std::fmod(cs.transportPosition, state.effectiveWindowSize) - 1;
 					}
-					else if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
+					else if (triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 					{
 						samplePos = triggerState.sampleOffset;
 					}
@@ -793,7 +811,7 @@ namespace Signalizer
 					}
 
 					// otherwise we will have a discontinuity as the interpolation kernel moves past T = 0
-					if (state.triggerMode == OscilloscopeContent::TriggeringMode::None || state.triggerMode == OscilloscopeContent::TriggeringMode::Window)
+					if (triggerMode == OscilloscopeContent::TriggeringMode::None || triggerMode == OscilloscopeContent::TriggeringMode::Window)
 					{
 						samplePos = std::ceil(samplePos);
 						//if (state.timeMode == OscilloscopeContent::TimeMode::Time)
@@ -808,7 +826,7 @@ namespace Signalizer
 					samplePos += -unitSpacePos / inc * samplesPerPixel;
 					double currentSample = std::floor(samplePos);
 
-					Evaluator eval(channelData);
+					Evaluator eval(params);
 
 					if (!eval.isWellDefined())
 						return;

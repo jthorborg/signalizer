@@ -37,7 +37,7 @@
 
 	namespace Signalizer
 	{
-		class PreprocessingTrigger
+		class TriggeringProcessor
 		{
 		public:
 
@@ -76,7 +76,7 @@
 			}
 
 			template<typename ISA>
-			void processMutating(Oscilloscope & o, AFloat ** localPointers, std::size_t numChannels, std::size_t numSamples)
+			void processMutating(Oscilloscope::StreamState &o, const AudioStream::ListenerContext& ctx, AFloat** localPointers, std::size_t numChannels, std::size_t numSamples)
 			{
 				if (frontOrigin + bufferedSamples < steadyClock)
 				{
@@ -89,7 +89,7 @@
 
 				auto processIntoBackBuffer = [&](auto samples)
 				{
-					o.audioProcessing<ISA>(localPointers, numChannels, samples, o.channelData.back);
+					o.audioProcessing<ISA>(ctx.getInfo(), ctx.getPlayhead(), localPointers, numChannels, samples, o.channelData.back);
 					numSamples -= samples;
 					for (std::size_t c = 0; c < numChannels; ++c)
 						localPointers[c] += samples;
@@ -230,9 +230,8 @@
 		{
 		public:
 
-			SignalStreamBaseProcessor(AFloat ** buffer, std::size_t numChannels, std::size_t & numSamples, std::uint64_t steadyClock, PreprocessingTrigger & outsideState)
-				: buffer(buffer)
-				, numSamples(numSamples)
+			SignalStreamBaseProcessor(std::size_t numChannels, std::size_t numSamples, std::uint64_t steadyClock, TriggeringProcessor & outsideState)
+				: numSamples(numSamples)
 				, outsideState(outsideState)
 				, state(outsideState.state)
 				, numChannels(numChannels)
@@ -255,11 +254,10 @@
 
 		protected:
 
-			AFloat ** buffer;
-			std::size_t & numSamples;
+			std::size_t numSamples;
 			const std::uint64_t steadyClock;
 			std::uint64_t crossOrigin;
-			PreprocessingTrigger & outsideState;
+			TriggeringProcessor & outsideState;
 			std::queue<std::uint64_t> & peaks;
 			bool isPeakHolding;
 			const double threshold, hysteresis;

@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:CVectorScopeRendering.cpp
+	file:VectorScopeRendering.cpp
 
 		Implementation of all rendering code for the vector scope.
 
@@ -29,8 +29,8 @@
 
 
 #include "Vectorscope.h"
+#include "VectorscopeParameters.h"
 #include <cstdint>
-#include <cpl/CMutex.h>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
 #include <cpl/simd.h>
@@ -40,17 +40,8 @@ namespace Signalizer
 	// swapping the right channel might give an more intuitive view
 
 	static const char * ChannelDescriptions[] = { "+L", "+R", "-L", "-R", "L", "R", "C"};
-	static std::vector<std::string> OperationalModeNames = {"Lissajous", "Polar"};
 
-	static const float quarterPISinCos = 0.707106781186547f;
 	static const float circleScaleFactor = 1.1f;
-
-	enum class OperationalModes
-	{
-		Lissajous,
-		Polar
-
-	};
 
 	enum Textures
 	{
@@ -63,47 +54,41 @@ namespace Signalizer
 		Center
 	};
 
-	void VectorScope::paint2DGraphics(juce::Graphics & g)
+	void VectorScope::paint2DGraphics(juce::Graphics & g, std::size_t numChannels)
 	{
-
-		auto cStart = cpl::Misc::ClockCounter();
-
-		if (content->diagnostics.getNormalizedValue() > 0.5)
+		bool paintDiag = content->diagnostics.getNormalizedValue() > 0.5;
+		if (paintDiag)
 		{
-			auto fps = 1.0 / (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
-
-			auto totalCycles = renderCycles + cpl::Misc::ClockCounter() - cStart;
-			double cpuTime = (double(totalCycles) / (processorSpeed * 1000 * 1000) * 100) * fps;
 			g.setColour(juce::Colours::blue);
-			sprintf(textbuf.get(), "%dx%d: %.1f fps - %.1f%% cpu, deltaG = %f, deltaO = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
-				getWidth(), getHeight(), fps, cpuTime, graphicsDeltaTime(), openGLDeltaTime(),
-				100 * audioStream.getPerfMeasures().rtUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().rtOverhead.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncUsage.load(std::memory_order_relaxed),
-				100 * audioStream.getPerfMeasures().asyncOverhead.load(std::memory_order_relaxed));
-			g.drawSingleLineText(textbuf.get(), 10, 20);
+
+			const auto perf = audioStream->getPerfMeasures();
+
+			char textbuf[4096];
+
+			float averageFps, averageCpu;
+
+			computeAverageStats(averageFps, averageCpu);
+
+			auto scale = oglc->getRenderingScale();
+
+			cpl::sprintfs(textbuf, "%dx%d (%.2f): %.1f fps - %.1f%% cpu, deltaT = %f (rt: %.2f%% - %.2f%%), (as: %.2f%% - %.2f%%)",
+				getWidth(), getHeight(), scale, averageFps, averageCpu, openGLDeltaTime(),
+				100 * perf.producerUsage,
+				100 * perf.producerOverhead,
+				100 * perf.consumerUsage,
+				100 * perf.consumerOverhead
+			);
+
+			g.drawSingleLineText(textbuf, 10, 20);
 
 		}
-	}
 
-	void VectorScope::onGraphicsRendering(juce::Graphics & g)
-	{
+		auto mouseCheck = globalBehaviour->hideWidgetsOnMouseExit ? isMouseInside.load() : true;
 
-		// do software rendering
-		if(!isOpenGL())
+		if (globalBehaviour->showLegend && mouseCheck)
 		{
-			g.fillAll(state.colourBackground.withAlpha(1.0f));
-			g.setColour(state.colourBackground.withAlpha(1.0f).contrasting());
-			g.drawText("Enable OpenGL in settings to use the vectorscope", getLocalBounds(), juce::Justification::centred);
-
-			// post fps anyway
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
-
+			state.legend.paint(g, state.colourWidget, state.colourBackground);
 		}
-
-
 	}
 
 	void VectorScope::initOpenGL()
@@ -142,13 +127,14 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::vectorGLRendering()
 		{
-
+			std::size_t numChannels;
 			CPL_DEBUGCHECKGL();
             {
-                auto cStart = cpl::Misc::ClockCounter();
-                auto && lockedView = audioStream.getAudioBufferViews();
+                auto && lockedView = audioStream->getAudioBufferViews();
                 handleFlagUpdates();
+
                 juce::OpenGLHelpers::clear(state.colourBackground);
+
                 {
                     cpl::OpenGLRendering::COpenGLStack openGLStack;
                     // set up openGL
@@ -160,34 +146,42 @@ namespace Signalizer
                     state.antialias ? openGLStack.enable(GL_MULTISAMPLE) : openGLStack.disable(GL_MULTISAMPLE);
 
                     // the peak filter has to run on the whole buffer each time.
-                    if (state.envelopeMode == EnvelopeModes::PeakDecay)
+                    if (processor->envelopeMode == EnvelopeModes::PeakDecay)
                     {
                         runPeakFilter<ISA>(lockedView);
                     }
-                    else if (state.envelopeMode == EnvelopeModes::None)
+                    else if (processor->envelopeMode == EnvelopeModes::None)
                     {
-                        state.envelopeGain = 1;
+						processor->envelopeGain = 1;
                     }
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
                     openGLStack.setPointSize(static_cast<float>(oglc->getRenderingScale()) * state.primitiveSize);
 
+					numChannels = lockedView.getNumChannels();
+
                     // draw actual stereoscopic plot
-                    if (lockedView.getNumChannels() >= 2)
+                    if (numChannels >= 2)
                     {
-                        if (state.isPolar)
-                        {
-                            drawPolarPlot<ISA>(openGLStack, lockedView);
-                        }
-                        else // is Lissajous
-                        {
-                            drawRectPlot<ISA>(openGLStack, lockedView);
-                        }
+						ColourRotation rotation(state.colourWaveform, lockedView.getNumChannels(), true);
+
+						for (std::size_t c = 0; c < numChannels; c += 2)
+						{
+							if (state.isPolar)
+							{
+								drawPolarPlot<ISA>(openGLStack, lockedView, c, rotation);
+							}
+							else // is Lissajous
+							{
+								drawRectPlot<ISA>(openGLStack, lockedView, c, rotation);
+							}
+						}
+
                     }
                     CPL_DEBUGCHECKGL();
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
-
+					openGLStack.enable(GL_MULTISAMPLE);
                     // draw graph and wireframe
                     drawWireFrame<ISA>(openGLStack);
                     CPL_DEBUGCHECKGL();
@@ -197,15 +191,12 @@ namespace Signalizer
                     // draw 2d stuff (like stereo meters)
                     drawStereoMeters<ISA>(openGLStack, lockedView);
                     CPL_DEBUGCHECKGL();
-                    renderCycles = cpl::Misc::ClockCounter() - cStart;
                 }
             }
-			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g); });
 
-			auto tickNow = juce::Time::getHighResolutionTicks();
-			avgFps.setNext(tickNow - lastFrameTick);
-			lastFrameTick = tickNow;
+			renderGraphics([&](juce::Graphics & g) { paint2DGraphics(g, numChannels); });
 
+			postFrame();
 		}
 
 
@@ -250,7 +241,7 @@ namespace Signalizer
 				xcoords = vsines * vscale * vheightToWidthFactor + vadd;
 				ycoords = vcosines * vscale + vadd;
 
-				auto jcolour = state.colourGraph;
+				auto jcolour = state.colourAxis;
 				// render texture text at coordinates.
 				for (int i = 0; i < 4; ++i)
 				{
@@ -268,10 +259,10 @@ namespace Signalizer
 				// this undoes the text squashing due to variable aspect ratios.
 				m.scale(heightToWidthFactor, 1.0f, 1.0f);
 
-				auto jcolour = state.colourGraph;
+				auto jcolour = state.colourAxis;
 				float nadd = 1.0f - circleScaleFactor;
 				float xcoord = consts::sqrt_half_two * circleScaleFactor / heightToWidthFactor + nadd;
-				float ycoord = consts::sqrt_half_two * circleScaleFactor + nadd;
+				float ycoord = (state.scalePolar ? consts::half : consts::sqrt_half_two) * circleScaleFactor + nadd;
 
 				// render texture text at coordinates.
 				{
@@ -292,16 +283,32 @@ namespace Signalizer
 			}
 		}
 
+		struct Conditional01To11HeightTransform
+		{
+			Conditional01To11HeightTransform(bool doApply)
+			{
+				if (doApply)
+				{
+					m->scale(1, 2, 1);
+					m->translate(0, -0.5f, 0);
+				}
+			}
+
+			cpl::OpenGLRendering::MatrixModification& additional() { return m.reference(); }
+
+			cpl::Utility::LazyStackPointer<cpl::OpenGLRendering::MatrixModification> m;
+		};
 
 	template<typename ISA>
 		void VectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
-			using consts = cpl::simd::consts<float>;
 			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+			Conditional01To11HeightTransform m(state.scalePolar && state.isPolar);
+			cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
+
 			// draw skeleton graph
 			if (!state.isPolar)
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
 				drawer.addColour(state.colourWire);
 				int nlines = 14;
 				auto rel = 1.0f / nlines;
@@ -333,63 +340,99 @@ namespace Signalizer
 			}
 			else
 			{
-				// draw two half circles
-				auto lut = circleData.get();
+				typedef typename ISA::V V;
 
-				int numInt = lut->tableSize;
-				float advance = 1.0f / (numInt - 1);
+				using namespace cpl::simd;
+				using cpl::simd::abs;
+				typedef typename scalar_of<V>::type Ty;
+				constexpr ssize_t lanes = elements_of<V>::value;
+
+				const auto angularResolution = static_cast<int>(4 * std::sqrt(getWidth() * getHeight()) / 75.0);
+
+				const auto step = (consts<Ty>::pi_half) / (angularResolution);
+
+				suitable_container<V> phases, sines, cosines;
+				drawer.addColour(state.colourWire);
+
+				Ty oldX = 1, oldY = 0;
+
+				int i = 1;
+
+				auto emitXY = [&](float newX, float newY)
 				{
-					cpl::OpenGLRendering::PrimitiveDrawer<512> drawer(openGLStack, GL_LINES);
-					drawer.addColour(state.colourWire);
+					drawer.addVertex(oldX, oldY, 0);
+					drawer.addVertex(newX, newY, 0);
+					drawer.addVertex(oldX, oldY, -1);
+					drawer.addVertex(newX, newY, -1);
 
-					float oldY = 0.0f;
-					for (int i = 1; i < numInt; ++i)
+					// left part
+					drawer.addVertex(-oldX, oldY, 0);
+					drawer.addVertex(-newX, newY, 0);
+					drawer.addVertex(-oldX, oldY, -1);
+					drawer.addVertex(-newX, newY, -1);
+
+					oldX = newX;
+					oldY = newY;
+				};
+
+				for (; i < angularResolution && i + lanes < angularResolution; i += lanes)
+				{
+					auto baseAngle = i * step;
+
+					for (std::size_t c = 0; c < lanes; ++c)
 					{
-						auto fraction = advance * i;
-						auto yCoordinate = lut->linearLookup(fraction);
-						auto leftX = -1.0f + fraction;
-						auto rightX = 1.0f - fraction;
-						// left part
-						drawer.addVertex(leftX - advance, oldY, 0);
-						drawer.addVertex(leftX, yCoordinate, 0);
-						drawer.addVertex(leftX - advance, oldY, -1);
-						drawer.addVertex(leftX, yCoordinate, -1);
-
-						// right part
-						drawer.addVertex(rightX + advance, oldY, 0);
-						drawer.addVertex(rightX, yCoordinate, 0);
-						drawer.addVertex(rightX + advance, oldY, -1);
-						drawer.addVertex(rightX, yCoordinate, -1);
-						//drawer.addVertex(1 - fraction, yCoordinate, 0);
-
-						oldY = yCoordinate;
+						phases[c] = baseAngle + step * c;
 					}
 
-					// add front and back horizontal lines.
-					drawer.addVertex(-1.0f, 0.0f, 0.0f);
-					drawer.addVertex(1.0f, 0.0f, 0.0f);
-					drawer.addVertex(-1.0f, 0.0f, -1.0f);
-					drawer.addVertex(1.0f, 0.0f, -1.0f);
+					V vSines, vCosines;
 
-					// add critical diagonal phase lines.
-					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
-					drawer.addVertex(0.0f, 0.0f, 0.0f);
-					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, 0.0f);
+					sincos(phases.toType(), &vSines, &vCosines);
 
-					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);
-					drawer.addVertex(0.0f, 0.0f, -1.0f);
-					drawer.addVertex(-consts::sqrt_half_two, consts::sqrt_half_two, -1.0f);;
+					sines = vSines;
+					cosines = vCosines;
+
+					for (std::size_t c = 0; c < lanes; ++c)
+					{
+						emitXY(cosines[c], sines[c]);
+					}
 				}
+
+				// scalar loop
+				for (; i < angularResolution; i++)
+				{
+					Ty sine, cosine;
+
+					sincos(i * step, &sine, &cosine);
+					emitXY(cosine, sine);
+				}
+
+				// connect half circles to final coordinates
+				emitXY(0, 1); 
+
+				// add front and back horizontal lines.
+				drawer.addVertex(-1.0f, 0.0f, 0.0f);
+				drawer.addVertex(1.0f, 0.0f, 0.0f);
+				drawer.addVertex(-1.0f, 0.0f, -1.0f);
+				drawer.addVertex(1.0f, 0.0f, -1.0f);
+
+				const auto sqrtHalfTwo = consts<float>::sqrt_half_two;
+
+				// add critical diagonal phase lines.
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(sqrtHalfTwo, sqrtHalfTwo, 0.0f);
+				drawer.addVertex(0.0f, 0.0f, 0.0f);
+				drawer.addVertex(-sqrtHalfTwo, sqrtHalfTwo, 0.0f);
+
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(sqrtHalfTwo, sqrtHalfTwo, -1.0f);
+				drawer.addVertex(0.0f, 0.0f, -1.0f);
+				drawer.addVertex(-sqrtHalfTwo, sqrtHalfTwo, -1.0f);
 			}
 
-
-			// Draw basic graph
+			// Draw basic axis
 			{
-				cpl::OpenGLRendering::PrimitiveDrawer<16> drawer(openGLStack, GL_LINES);
 				// TODO: consider whether all rendering should use premultiplied alpha - src compositing or true transparancy
-				drawer.addColour(state.colourGraph);
+				drawer.addColour(state.colourAxis);
 				// front x, y axii
 				drawer.addVertex(-1.0f, 0.0f, 0.0f);
 				drawer.addVertex(1.0f, 0.0f, 0.0f);
@@ -398,15 +441,14 @@ namespace Signalizer
 			}
 		}
 
-
-	template<typename ISA>
-		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+	template<typename ISA, typename ColourArray>
+		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
 			// and apply the gain:
-			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
+			const auto gain = static_cast<GLfloat>(processor->envelopeGain * state.userGain);
 			matrixMod.scale(gain, gain, 1);
 			float sampleFade = 1.0f / std::max<int>(1, static_cast<int>(audio.getNumSamples() - 1));
 
@@ -414,15 +456,16 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				drawer.addColour(state.colourDraw);
+				drawer.addColour(colours[offset]);
 
 				// TODO: glDrawArrays
 				audio.iterate<2, true>
 				(
-					[&] (std::size_t sampleFrame, AudioStream::DataType & left, AudioStream::DataType & right)
+					[&] (std::size_t sampleFrame, AudioStream::DataType left, AudioStream::DataType right)
 					{
 						drawer.addVertex(right, left, sampleFrame * sampleFade - 1);
-					}
+					},
+					offset
 				);
 
 			}
@@ -430,7 +473,7 @@ namespace Signalizer
 			{
 				cpl::OpenGLRendering::PrimitiveDrawer<1024> drawer(openGLStack, state.fillPath ? GL_LINE_STRIP : GL_POINTS);
 
-				auto jcolour = state.colourDraw;
+				auto jcolour = colours[offset];
 				float red = jcolour.getFloatRed(), blue = jcolour.getFloatBlue(),
 				green = jcolour.getFloatGreen(), alpha = jcolour.getFloatGreen();
 
@@ -444,7 +487,8 @@ namespace Signalizer
 						fade = sampleFrame * sampleFade;
 						drawer.addColour(fade * red, fade * green, fade * blue, alpha);
 						drawer.addVertex(right, left, fade - 1);
-					}
+					},
+					offset
 				);
 
 			}
@@ -453,23 +497,24 @@ namespace Signalizer
 		}
 
 
-	template<typename ISA>
-		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
+	template<typename ISA, typename ColourArray>
+		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
 			typedef typename ISA::V V;
-			AudioStream::AudioBufferView views[2] = { audio.getView(0), audio.getView(1) };
+			AudioStream::AudioBufferView views[2] = { audio.getView(0 + offset), audio.getView(1 + offset) };
 
 			using namespace cpl::simd;
 			using cpl::simd::abs;
 			typedef typename scalar_of<V>::type Ty;
 
-			cpl::OpenGLRendering::MatrixModification matrixMod;
-			const auto gain = static_cast<GLfloat>(state.envelopeGain * state.userGain);
+			Conditional01To11HeightTransform m(state.scalePolar);
+
+			const auto gain = static_cast<GLfloat>(processor->envelopeGain * state.userGain);
 			auto const numSamples = views[0].size();
 			// TODO: handle all cases of potential signed overflow.
 			typedef std::make_signed<std::size_t>::type ssize_t;
-			ssize_t vectorLength = elements_of<V>::value;
-			matrixMod.scale(gain, gain, 1);
+			constexpr ssize_t vectorLength = elements_of<V>::value;
+			m.additional().scale(gain, gain, 1);
 			suitable_container<V> outX, outY, outFade;
 
 			// simd consts
@@ -483,10 +528,12 @@ namespace Signalizer
 			auto const fadePerSample = (Ty)1.0 / numSamples;
 			auto const vIncrementalFade = set1<V>(fadePerSample * vectorLength);
 
+			const auto colour = colours[offset];
+
 			const float
-				red = state.colourDraw.getFloatRed(),
-				green = state.colourDraw.getFloatGreen(),
-				blue = state.colourDraw.getFloatBlue();
+				red = colour.getFloatRed(),
+				green = colour.getFloatGreen(),
+				blue = colour.getFloatBlue();
 
 			for (int i = 0; i < vectorLength; ++i)
 			{
@@ -553,7 +600,7 @@ namespace Signalizer
 						vSampleFade += vIncrementalFade;
 
 					}
-					//continue;
+
 					// deal with remainder, scalar route
 					ssize_t remaindingSamples = 0;
 					auto currentSampleFade = outFade[vectorLength - 1];
@@ -582,9 +629,6 @@ namespace Signalizer
 						sincos(angle, &vX, &vY);
 
 						drawer.addVertex(vX * length, vY * length, (currentSampleFade - remaindingSamples * fadePerSample));
-
-
-
 					}
 					// fractionally increase sample fade levels
 					vSampleFade += set1<V>(fadePerSample * remaindingSamples);
@@ -704,6 +748,9 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::drawStereoMeters(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio)
 		{
+			if (state.colourMeter.getBrightness() == 0)
+				return;
+
 			using namespace cpl;
 			OpenGLRendering::MatrixModification m;
 			m.loadIdentityMatrix();
@@ -714,10 +761,10 @@ namespace Signalizer
 			const float stereoY = -0.85f;
 			const float stereoLength = 1.7f;
 			const float sideSize = 0.05f;
-			//const float stereoSideSize = sideSize * heightToWidthFactor;
 			const float indicatorSize = 0.05f;
 
 			// remember, y / x
+			auto& filters = processor->filters;
 			float balanceQuick = std::atan(filters.balance[0][1] / filters.balance[0][0]) / (simd::consts<float>::pi * 0.5f);
 			if (!std::isnormal(balanceQuick))
 				balanceQuick = 0.5f;
@@ -729,7 +776,6 @@ namespace Signalizer
 			const float stereoSlow = filters.phase[1] * 0.5f + 0.5f;
 
 			// this undoes the squashing due to variable aspect ratios.
-			//m.scale(1.0f, 1.0f / heightToWidthFactor, 1.0f);
 			OpenGLRendering::RectangleDrawer2D<> rect(openGLStack);
 
 			// draw slow balance
@@ -767,11 +813,11 @@ namespace Signalizer
 			auto pieceColour = state.colourBackground.contrasting().withMultipliedBrightness(state.colourMeter.getPerceivedBrightness() * 0.5f);
 			rect.setColour(pieceColour);
 			// draw contrasting center piece for balance
-			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 0.125f, balanceX, indicatorSize * 0.125f, sideSize);
+			rect.setBounds(balanceX + balanceLength * 0.5f - indicatorSize * 1/16.f, balanceX, indicatorSize * 0.125f, sideSize);
 			rect.fill();
 
 			// draw contrasting center piece for stereo
-			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 0.125f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
+			rect.setBounds(-balanceX, stereoY + stereoLength * 0.5f - indicatorSize * 1 / 16.f, sideSize * heightToWidthFactor, indicatorSize * 0.125f);
 			rect.fill();
 		}
 
@@ -791,9 +837,9 @@ namespace Signalizer
 
 				// since this runs in every frame, we need to scale the coefficient by how often this function runs
 				// (and the amount of samples)
-				double power = numSamples * (avgFps.getAverage() / juce::Time::getHighResolutionTicksPerSecond());
+				double power = numSamples * openGLDeltaTime();
 
-				double coeff = std::pow(state.envelopeCoeff, power);
+				double coeff = std::pow(processor->envelopeCoeff.load(), power);
 
 				// there is a number of optimisations we can do here, mostly that we actually don't care about
 				// timing, we are only interested in the current largest value in the set.
@@ -830,16 +876,15 @@ namespace Signalizer
 				double highestLeft = *std::max_element(lmax.begin(), lmax.end());
 				double highestRight = *std::max_element(rmax.begin(), rmax.end());
 
-				filters.envelope[0] = std::max(filters.envelope[0] * coeff, highestLeft  * highestLeft);
-				filters.envelope[1] = std::max(filters.envelope[1] * coeff, highestRight * highestRight);
+				processor->filters.envelope[0] = std::max(processor->filters.envelope[0] * coeff, highestLeft  * highestLeft);
+				processor->filters.envelope[1] = std::max(processor->filters.envelope[1] * coeff, highestRight * highestRight);
 
-				currentEnvelope = 1.0 / std::max(std::sqrt(filters.envelope[0]), std::sqrt(filters.envelope[1]));
-
+				currentEnvelope = 1.0 / std::max(std::sqrt(processor->filters.envelope[0]), std::sqrt(processor->filters.envelope[1]));
 			}
 
 			if (std::isnormal(currentEnvelope))
 			{
-				state.envelopeGain = currentEnvelope;
+				processor->envelopeGain = currentEnvelope;
 			}
 		}
 };

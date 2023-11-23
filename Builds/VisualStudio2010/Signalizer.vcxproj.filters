@@ -316,42 +316,6 @@
     <Filter Include="Signalizer\Source">
       <UniqueIdentifier>{e08f6bc5-853f-451e-9289-e89d238e6996}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Signalizer\Source\cpl">
-      <UniqueIdentifier>{49dca61e-2632-464e-a3da-8f2d6c069fda}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\gui">
-      <UniqueIdentifier>{ead79001-9fc4-495c-8b6d-19cf3bba7bac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\dsp">
-      <UniqueIdentifier>{4922e930-71ee-40df-8030-50efdb95cbbe}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\rendering">
-      <UniqueIdentifier>{945bd1e7-c1d6-41f7-aeaa-fa8c4d4f9f08}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\lib">
-      <UniqueIdentifier>{f395211e-2489-44b4-b26f-a43811fb71c8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\gui\controls">
-      <UniqueIdentifier>{979ac688-4f81-4d83-b63c-0fc302a9a8ae}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\gui\widgets">
-      <UniqueIdentifier>{6a70281e-8ad0-4f7f-9e5d-e68b3e6ceb10}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\ffts">
-      <UniqueIdentifier>{3576f285-8884-48bc-ad88-d4336a279e4b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\lib\readerwriterqueue">
-      <UniqueIdentifier>{eaf27063-d3f3-4973-aa8a-a7dea18bc2da}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\octave">
-      <UniqueIdentifier>{a099bae3-126c-4224-ad06-2bcabb715d5a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\octave\signal">
-      <UniqueIdentifier>{acae8268-c2d6-4242-ac9d-6177eaf06562}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\simd">
-      <UniqueIdentifier>{462c6008-6c82-4df6-abea-06a6d5245520}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Signalizer\Source\Spectrum">
       <UniqueIdentifier>{d28c03ee-f932-41be-9574-1b9aecfa6b06}</UniqueIdentifier>
     </Filter>
@@ -360,15 +324,6 @@
     </Filter>
     <Filter Include="Signalizer\Source\Vectorscope">
       <UniqueIdentifier>{79aa4f2c-7a69-4dd7-bb34-f55ead80aafa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\infrastructure">
-      <UniqueIdentifier>{81fe5ef3-1e78-42d1-92be-2f2386f8fab7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\infrastructure\parameters">
-      <UniqueIdentifier>{b73eb454-4a34-4f9c-91aa-a70e50dd50ad}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Signalizer\Source\cpl\infrastructure\values">
-      <UniqueIdentifier>{18b101a8-5f4d-47e1-b2b3-abd498e989a5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Signalizer\Source\Common">
       <UniqueIdentifier>{4ffea8b6-156b-4d1f-b8ed-9c66d005122a}</UniqueIdentifier>
@@ -379,11 +334,14 @@
     <Filter Include="Signalizer\Source\Processor">
       <UniqueIdentifier>{a6d0243e-d651-489a-b133-bc3ed22d21e7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Signalizer\Source\cpl\dsp\filters">
-      <UniqueIdentifier>{a3f1f081-be88-4f79-922c-c9844d6dd635}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Signalizer\Source\Global">
       <UniqueIdentifier>{fc6514a4-3d8b-4434-92bb-e70f91d961b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Source\External">
+      <UniqueIdentifier>{71fb7466-d4f5-4ecf-ab7c-d4dc450b361b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Signalizer\Build">
+      <UniqueIdentifier>{614a3589-1c89-4da8-b44d-befa5594dce8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -433,9 +391,6 @@
       <Filter>Juce Library Code</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST3\juce_VST3_Wrapper.cpp">
-      <Filter>Juce Library Code</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp">
       <Filter>Juce Library Code</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\AAX\juce_AAX_Wrapper.cpp" />
@@ -837,9 +792,6 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_video\juce_video.cpp">
       <Filter>Signalizer\juce source files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\SDKs\cpl\CPLSource.cpp">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClCompile>
@@ -869,6 +821,30 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Processor\PluginProcessor.cpp">
       <Filter>Signalizer\Source\Processor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Spectrum\SpectrumController.cpp">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Vectorscope\VectorscopeController.cpp">
+      <Filter>Signalizer\Source\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeController.cpp">
+      <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\CPLSource.cpp">
+      <Filter>Signalizer\Source\External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Common\HostGraph.cpp">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Editor\GraphEditor.cpp">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp">
+      <Filter>Juce Modules\juce_audio_plugin_client\VST</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2216,366 +2192,6 @@
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h">
       <Filter>Juce Library Code</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\CComplexResonator.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\CPeakFilter.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\CSignalTransform.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\DSPWindows.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\IIRResonator.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SDFTSystem.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\BuildingBlocks.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CBaseControl.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CCtrlEditSpace.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CEditSpaceSpawner.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\ControlBase.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CToolTip.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\CViews.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\DesignBase.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\FormatNormalizers.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\GraphicComponents.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\gui.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\NewStuffAndLook.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Tools.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\WidgetContainers.h">
-      <Filter>Signalizer\Source\cpl\gui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\ControlBase.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CColourControl.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\Controls.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CKnobSlider.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CButton.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CKnobSliderEditor.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueControl.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CComboBox.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CInputControl.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\WidgetBase.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CPowerSlopeWidget.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CTransformWidget.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CDSPWindowWidget.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\CPresetWidget.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Widgets\Widgets.h">
-      <Filter>Signalizer\Source\cpl\gui\widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\ffts\dustfft.h">
-      <Filter>Signalizer\Source\cpl\ffts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\AlignedAllocator.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\BlockingLockFreeQueue.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\CDataBuffer.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\CFIFOEventSystem.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\CLIFOStream.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\CMessageSystem.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\LockFreeDataQueue.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\LockFreeQueue.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\StackBuffer.h">
-      <Filter>Signalizer\Source\cpl\lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\readerwriterqueue\atomicops.h">
-      <Filter>Signalizer\Source\cpl\lib\readerwriterqueue</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\lib\readerwriterqueue\readerwriterqueue.h">
-      <Filter>Signalizer\Source\cpl\lib\readerwriterqueue</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\octave\octave_all.h">
-      <Filter>Signalizer\Source\cpl\octave</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\octave\signal\octave_signal.h">
-      <Filter>Signalizer\Source\cpl\octave\signal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\octave\signal\octave_signal_ultrawin.h">
-      <Filter>Signalizer\Source\cpl\octave\signal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\CSubpixelSoftwareGraphics.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\CDisplaySetup.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\CCircularOpenGLImage.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\COpenGLImage.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\SubpixelRendering.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\graphics.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRendering.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\CSubpixelScanlineRenderer.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\OpenGLRasterizers.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\rendering\DisplayOrientation.h">
-      <Filter>Signalizer\Source\cpl\rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_cast.h">
-      <Filter>Signalizer\Source\cpl\simd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_consts.h">
-      <Filter>Signalizer\Source\cpl\simd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_interface.h">
-      <Filter>Signalizer\Source\cpl\simd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_math.h">
-      <Filter>Signalizer\Source\cpl\simd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd\simd_traits.h">
-      <Filter>Signalizer\Source\cpl\simd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Aliases.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CAudioStream.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CDBMeterGraph.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CDrawableSVG.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CExclusiveFile.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CFrequencyGraph.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CMutex.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Common.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\ConcurrentServices.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CPlistEditor.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CPLTests.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CPresetManager.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CProcessorTimer.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CRsrcEditor.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CSerializer.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CThread.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\CTimer.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\ffts.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\InstructionSet.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\intrintypes.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\LexicalConversion.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\LibraryOptions.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\MacroConstants.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\MacSupport.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Mathext.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Misc.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\PlatformSpecific.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\ProgramVersion.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Protected.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Resources.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\SafeSerializableObject.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\simd.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\stdext.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\SysStats.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Types.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\Utility.h">
-      <Filter>Signalizer\Source\cpl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueKnobSlider.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\Controls\CValueComboBox.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomFormatters.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\CustomTransforms.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\parameters\ParameterSystem.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\parameters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\ColourValue.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\PowerFunctionValue.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\TransformValue.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\Values.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\infrastructure\Values\WindowDesignValue.h">
-      <Filter>Signalizer\Source\cpl\infrastructure\values</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\gui\controls\CValueInputControl.h">
-      <Filter>Signalizer\Source\cpl\gui\controls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\AC_SVF.h">
-      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\Allpass.h">
-      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\FilterBasics.h">
-      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\filters\OnePole.h">
-      <Filter>Signalizer\Source\cpl\dsp\filters</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\OnePoleNetwork.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\LinkwitzRileyNetwork.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\SDKs\cpl\dsp\SmoothedParameterState.h">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClInclude>
@@ -2627,6 +2243,27 @@
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\HostGraph.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Editor\GraphEditor.h">
+      <Filter>Signalizer\Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\MixGraphListener.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Common\ConcurrentConfig.h">
+      <Filter>Signalizer\Source\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformConstant.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Spectrum\TransformPair.h">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
@@ -2674,14 +2311,26 @@
     <None Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinResources.rsr">
       <Filter>Signalizer\juce source files</Filter>
     </None>
-    <None Include="..\..\..\SDKs\cpl\dsp\CSignalTransform.inl">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </None>
-    <None Include="..\..\..\SDKs\cpl\dsp\mqdft.inl">
-      <Filter>Signalizer\Source\cpl\dsp</Filter>
-    </None>
     <None Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl">
       <Filter>Signalizer\Source\Oscilloscope</Filter>
+    </None>
+    <None Include="..\..\Source\Spectrum\TransformDSP.inl">
+      <Filter>Signalizer\Source\Spectrum</Filter>
+    </None>
+    <None Include="..\..\prepare.py">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\build_win.py">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\vscompile.bat">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\config.ini">
+      <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\Make\common.py">
+      <Filter>Signalizer\Build</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -2692,6 +2341,9 @@
   <ItemGroup>
     <Text Include="..\..\Source\Notes\Bugs.txt">
       <Filter>Signalizer</Filter>
+    </Text>
+    <Text Include="..\..\Make\windows_installation_advice.txt">
+      <Filter>Signalizer\Build</Filter>
     </Text>
   </ItemGroup>
 </Project>

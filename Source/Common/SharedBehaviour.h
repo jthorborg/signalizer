@@ -30,19 +30,18 @@
 #ifndef SIGNALIZER_SHAREDBEHAVIOUR_H
 #define SIGNALIZER_SHAREDBEHAVIOUR_H
 
-#include <atomic>
+#include <cpl/lib/weak_atomic.h>
 
 namespace Signalizer
 {
 	class SharedBehaviour
 	{
 	public:
-		/// <summary>
-		/// std::memory_order_release guaranteed.
-		/// </summary>
-		std::atomic<bool>
-			hideWidgetsOnMouseExit,
-			stopProcessingOnSuspend;
+
+		cpl::relaxed_atomic<bool>
+			hideWidgetsOnMouseExit = false,
+			stopProcessingOnSuspend = false,
+			showLegend = false;
 	};
 };
 

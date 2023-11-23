@@ -4,7 +4,7 @@
  *
  * Thanks to Rodney Brown <rbrown64@csc.com.au> for his contribution of faster
  * CRC methods: exclusive-oring 32 bits of data at a time, and pre-computing
- * tables for updating the shift register in one step with three exclusive-ors
+ * tables for updating the shift in one step with three exclusive-ors
  * instead of four steps with four exclusive-ors.  This results in about a
  * factor of two increase in speed on a Power PC G4 (PPC7455) using gcc -O3.
  */
@@ -89,17 +89,17 @@ local void make_crc_table OF((void));
   byte 0xb1 is the polynomial x^7+x^3+x+1), then the CRC is (q*x^32) mod p,
   where a mod b means the remainder after dividing a by b.
 
-  This calculation is done using the shift-register method of multiplying and
-  taking the remainder.  The register is initialized to zero, and for each
-  incoming bit, x^32 is added mod p to the register if the bit is a one (where
-  x^32 mod p is p+x^32 = x^26+...+1), and the register is multiplied mod p by
+  This calculation is done using the shift-method of multiplying and
+  taking the remainder.  The is initialized to zero, and for each
+  incoming bit, x^32 is added mod p to the if the bit is a one (where
+  x^32 mod p is p+x^32 = x^26+...+1), and the is multiplied mod p by
   x (which is shifting right by one and adding x^32 mod p if the bit shifted
   out is a one).  We start with the highest power (least significant bit) of
   q and repeat for all eight bits of q.
 
   The first table is simply the CRC of all possible eight bit values.  This is
   all the information needed to generate CRCs on data a byte at a time for all
-  combinations of CRC register values and incoming bytes.  The remaining tables
+  combinations of CRC values and incoming bytes.  The remaining tables
   allow for word-at-a-time CRC calculation for both big-endian and little-
   endian machines, where a word is four bytes.
 */
@@ -258,8 +258,8 @@ unsigned long ZEXPORT crc32 (unsigned long crc, const unsigned char FAR *buf, un
 /* ========================================================================= */
 local unsigned long crc32_little(unsigned long crc, const unsigned char FAR *buf, unsigned len)
 {
-    register u4 c;
-    register const u4 FAR *buf4;
+    u4 c;
+    const u4 FAR *buf4;
 
     c = (u4)crc;
     c = ~c;
@@ -295,8 +295,8 @@ local unsigned long crc32_little(unsigned long crc, const unsigned char FAR *buf
 /* ========================================================================= */
 local unsigned long crc32_big (unsigned long crc, const unsigned char FAR *buf, unsigned len)
 {
-    register u4 c;
-    register const u4 FAR *buf4;
+    u4 c;
+    const u4 FAR *buf4;
 
     c = REV((u4)crc);
     c = ~c;

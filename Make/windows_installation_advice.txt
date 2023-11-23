@@ -1,0 +1,11 @@
+Choose a build variant, like x86 if you are running a 32-bit DAW or x64 if you're running 64-bit.
+
+For instance, for 64-bit, open the "Release x.y.z x64" folder.
+
+Select the "Signalizer" folder and copy the folder (and not just the .DLL inside!) into your VSTPlugins folder. That's it!
+
+-------------------
+
+If you're unsure about where your VSTPlugins folder is, it can be very custom and I'd advise to research the internet for your particular DAW if you didn't choose it yourself.
+
+If you're having issues, you can try above again but use the "Debug" variant that can provide better error messages.
