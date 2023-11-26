@@ -232,15 +232,16 @@ namespace Signalizer
 
 			// the host graph is serialized independently, so it doesn't appear as part of presets.
 			if (!builder["host-graph"].isEmpty())
+			{
 				graph->deserialize(builder["host-graph"], version);
+				hasAnyLayoutBeenApplied = true;
+			}
 
 		}
 		catch (const std::exception & e)
 		{
 			cpl::Misc::MsgBox(std::string("Error serializing state information:\n") + e.what(), "Signalizer");
 		}
-
-		hasAnyLayoutBeenApplied = true;
 	}
 
 	void AudioProcessor::deserialize(cpl::CSerializer & serializer, cpl::Version version)

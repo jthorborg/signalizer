@@ -490,6 +490,7 @@
 
 			void calculateTriggerIndices(const std::size_t numChannels, std::size_t& separate, std::size_t& pair)
 			{
+				CPL_RUNTIME_ASSERTION(numChannels > 0);
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 
 				const auto trigger1Base = triggeringChannel.getTransformedValue();

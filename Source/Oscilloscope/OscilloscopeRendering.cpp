@@ -270,7 +270,10 @@ namespace Signalizer
                 
                 juce::OpenGLHelpers::clear(state.colourBackground);
                 
-				if (state.sampleRate == 0)
+				auto mode = streamState.channelMode;
+				const auto numChannels = shared.numChannels.load();
+
+				if (state.sampleRate == 0 || numChannels < 2)
 					return;
 
                 if (!checkAndInformInvalidCombinations(streamState))
@@ -289,9 +292,6 @@ namespace Signalizer
 
 				CPL_DEBUGCHECKGL();
 
-				auto mode = streamState.channelMode;
-				const auto numChannels = shared.numChannels.load();
-				
 				CPL_RUNTIME_ASSERTION((numChannels % 2) == 0);
 				// should be safe to assert equality 
 				CPL_RUNTIME_ASSERTION(numChannels <= channelData.filterStates.channels.size());

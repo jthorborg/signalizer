@@ -134,7 +134,9 @@ namespace Signalizer
                 handleFlagUpdates();
 
                 juce::OpenGLHelpers::clear(state.colourBackground);
+				numChannels = lockedView.getNumChannels();
 
+				if(numChannels >= 2)
                 {
                     cpl::OpenGLRendering::COpenGLStack openGLStack;
                     // set up openGL
@@ -161,23 +163,21 @@ namespace Signalizer
 					numChannels = lockedView.getNumChannels();
 
                     // draw actual stereoscopic plot
-                    if (numChannels >= 2)
-                    {
-						ColourRotation rotation(state.colourWaveform, lockedView.getNumChannels(), true);
 
-						for (std::size_t c = 0; c < numChannels; c += 2)
+					ColourRotation rotation(state.colourWaveform, lockedView.getNumChannels(), true);
+
+					for (std::size_t c = 0; c < numChannels; c += 2)
+					{
+						if (state.isPolar)
 						{
-							if (state.isPolar)
-							{
-								drawPolarPlot<ISA>(openGLStack, lockedView, c, rotation);
-							}
-							else // is Lissajous
-							{
-								drawRectPlot<ISA>(openGLStack, lockedView, c, rotation);
-							}
+							drawPolarPlot<ISA>(openGLStack, lockedView, c, rotation);
 						}
+						else // is Lissajous
+						{
+							drawRectPlot<ISA>(openGLStack, lockedView, c, rotation);
+						}
+					}
 
-                    }
                     CPL_DEBUGCHECKGL();
 
                     openGLStack.setLineSize(static_cast<float>(oglc->getRenderingScale()) * 2.0f);
