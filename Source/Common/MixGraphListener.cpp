@@ -31,6 +31,7 @@
 #include <atomic>
 #include <memory>
 #include "../Processor/PluginProcessor.h"
+#include "CommonSignalizer.h"
 
 namespace Signalizer
 {
@@ -503,6 +504,7 @@ namespace Signalizer
 			{
 				CPL_RUNTIME_ASSERTION(command.isConnection);
 				CPL_RUNTIME_ASSERTION(command.stream.get() != nullptr);
+				// TODO: This assertion has fired in the wild. See added NONTERMINAL_ASSUMPTION below.
 				CPL_RUNTIME_ASSERTION(command.stream.get() != self->source.lock().get());
 				it = emplace(command.stream);
 			}
@@ -524,7 +526,7 @@ namespace Signalizer
 			{
 				source.channelQueues.erase(command.pair);
 
-				if (--source.refCount == 0)
+				if (--source.refCount == 0 && NONTERMINAL_ASSUMPTION(&source != self))
 					remove(it);
 			}
 		}

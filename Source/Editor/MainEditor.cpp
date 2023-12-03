@@ -46,6 +46,7 @@ namespace cpl
 		"Signalizer",
 		cpl::Version::fromParts(SIGNALIZER_MAJOR, SIGNALIZER_MINOR, SIGNALIZER_BUILD),
 		"Janus Thorborg",
+		"contact@jthorborg.com",
 		"sgn",
 		false,
 		nullptr,
@@ -64,6 +65,7 @@ namespace Signalizer
 
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
+	CriticalSection<std::vector<std::string>> FailedAssumptions;
 
 	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
@@ -1409,6 +1411,34 @@ namespace Signalizer
 			if(!kvsync.bGetBoolState())
 				activeView().repaintMainContent();
 		}
+
+		int failedAnswer = 0;
+		std::vector<std::string> assumptions;
+		std::swap(*FailedAssumptions.lock(), assumptions);
+
+		for (auto& failedAssumption : assumptions)
+		{
+			using namespace cpl;
+			failedAnswer = Misc::MsgBox(
+				"Congratulations! You've found the following bug:\n\n" + failedAssumption + "\n\n" +
+
+				"It should be safe to continue, but to be safe please restart the program. "
+				"The author would be most appreciative of receiving a report on the circumstances, by sending a mail to " + programInfo.mail + " describing the circumstances leading to this problem."
+				"\nIdeally attach the exception log - do you want to open the location of the log now?",
+				programInfo.name + " " + programInfo.version.toString() + ": Assumption failed!",
+				Misc::MsgStyle::sYesNoCancel,
+				getPeer() ? getPeer()->getNativeHandle() : nullptr
+			);
+
+			if (failedAnswer == Misc::MsgButton::bYes)
+			{
+				RevealExceptionLog();
+			} 
+			else if (failedAnswer == Misc::MsgButton::bCancel)
+			{
+				break;
+			}
+		}
 	}
 
 	void MainEditor::paint(juce::Graphics& g)
@@ -1456,20 +1486,11 @@ namespace Signalizer
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
 			"Open the readme file (contains information you must read upon first use)?";
 
-		auto ret = Misc::MsgBox(contents, "About " + programInfo.name, Misc::MsgStyle::sYesNo | Misc::MsgIcon::iInfo);
-		switch (ret) {
-			case Misc::MsgButton::bYes:
-				#ifdef CPL_WINDOWS
-					std::system(("Notepad.exe \"" + Misc::DirectoryPath() + "/READ ME.txt\"").c_str());
-				#elif defined(CPL_MAC)
-					std::string cmdLine = "open \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
-					std::system((cmdLine).c_str());
-				#else
-					std::string cmdLine = "gedit \"" + Misc::DirectoryPath() + "/READ ME.txt\"";
-					std::system((cmdLine).c_str());
-				#endif
-				break;
-		}
+		auto ret = Misc::MsgBox(contents, "About " + programInfo.name, Misc::MsgStyle::sYesNo | Misc::MsgIcon::iInfo, getPeer() ? getPeer()->getNativeHandle() : nullptr);
+
+		if (ret == Misc::MsgButton::bYes)
+			cpl::Misc::TextEditFile(Misc::DirectoryPath() + "/READ ME.txt");
+
 		khelp.bSetInternal(0);
 	}
 

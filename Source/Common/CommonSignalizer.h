@@ -41,6 +41,7 @@
 	#include <cpl/gui/CViews.h>
 	#include <chrono>
 	#include <variant>
+	#include <cpl/Exceptions.h>
 
 	namespace cpl
 	{
@@ -1078,14 +1079,14 @@
 			float startingY;
 		};
 
-		template<typename T>
+		template<typename T, class Mutex = std::mutex>
 		class CriticalSection
 		{
 		public:
 
 			class Access
 			{
-				friend class CriticalSection<T>;
+				friend class CriticalSection<T, Mutex>;
 
 			public:
 				
@@ -1107,7 +1108,7 @@
 
 			private:
 
-				Access(CriticalSection<T>& data)
+				Access(CriticalSection<T, Mutex>& data)
 					: data(data.data)
 					, lock(data.mutex)
 				{
@@ -1115,7 +1116,7 @@
 				}
 
 				T& data;
-				std::lock_guard<std::mutex> lock;
+				std::lock_guard<Mutex> lock;
 			};
 
 			Access lock()
@@ -1131,7 +1132,7 @@
 
 		private:
 			T data;
-			std::mutex mutex;
+			Mutex mutex;
 		};
 
 		class FloatColour : public std::array<float, 3>
@@ -1168,6 +1169,33 @@
 
 			source = operand;
 			return true;
+		}
+
+#define NONTERMINAL_ASSUMPTION(condition) (condition || TriggerNonTerminalAssumption(#condition, __FILE__, __LINE__, __func__))
+
+		inline bool TriggerNonTerminalAssumption(const char* assumption, const char* file, const int line, const char* function)
+		{
+			extern CriticalSection<std::vector<std::string>> FailedAssumptions;
+
+			std::string message = 
+				::cpl::programInfo.name + " (" + ::cpl::programInfo.version.toString() + "): in " + file + ":" + ::std::to_string(line) + " -> " + function + ":\n" +
+				"Runtime assumption \"" + assumption + "\" failed.";
+			
+			CPL_BREAKIFDEBUGGED();
+			CPL_DEBUGOUT((message + "\n").c_str()); 
+			cpl::LogException(message); 
+
+			FailedAssumptions.lock()->emplace_back(std::move(message));
+
+			return false;
+		}
+
+		inline void RevealExceptionLog()
+		{
+			juce::File f(cpl::GetExceptionLogFilePath());
+
+			if (f.existsAsFile())
+				f.revealToUser();
 		}
 	};
 

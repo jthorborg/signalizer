@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed an assertion when loading a preset through a DAW on a Signalizer that is in an alias state of another (or having become one as a part of loading the preset)
+- Recoverability and notification for a situation where the mixgraph completely detaches from itself, previously leading to an assertion about "command.stream.get() != self->source.lock().get()"
+
 
 ## 0.4.1 - 2023-11-26
 
@@ -21,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Issue where loading old Signalizer presets (or opening old projects) would not connect the input to the output in the graph editor
 - Crash when sustaining Signalizer on a non-playing track in the Oscilloscope when loading an old preset or project
+
 
 ## 0.4.0 - 2023-11-24
 
@@ -69,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Hi-res timer. Use V-Sync for precision instead.
+
 
 ## 0.3.8 - 2023-10-29
 
