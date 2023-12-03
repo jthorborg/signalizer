@@ -258,11 +258,16 @@ namespace Signalizer
 		}
 		if (auto page = content->addPage("Presets", "icons/svg/save.svg"))
 		{
-
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&kpresets, 0);
 				page->addSection(section, "Presets");
+			}
+
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&krevealExceptionLog, 0);
+				page->addSection(section, "Utility");
 			}
 		}
 
@@ -670,6 +675,10 @@ namespace Signalizer
 		else if (c == &kstopProcessingOnSuspend)
 		{
 			globalState->stopProcessingOnSuspend = kstopProcessingOnSuspend.bGetBoolState();
+		}
+		else if (c == &krevealExceptionLog)
+		{
+			RevealExceptionLog();
 		}
 		else if (c == &khideWidgets)
 		{
@@ -1524,6 +1533,7 @@ namespace Signalizer
 		kswapInterval.bAddFormatter(this);
 		kstopProcessingOnSuspend.bAddChangeListener(this);
 		khideWidgets.bAddChangeListener(this);
+		krevealExceptionLog.bAddChangeListener(this);
 
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1551,6 +1561,7 @@ namespace Signalizer
 		kswapInterval.bSetTitle("Swap interval");
 		kstableFps.setSingleText("Stable FPS");
 		kvsync.setSingleText("Vertical Sync");
+		krevealExceptionLog.setSingleText("Reveal log");
 
 		kstopProcessingOnSuspend.setSingleText("Suspend processing");
 		khideWidgets.setSingleText("Hide widgets");
@@ -1614,6 +1625,7 @@ namespace Signalizer
 		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
 		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
+		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
 		resized();
 	}
 };
