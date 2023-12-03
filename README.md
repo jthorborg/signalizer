@@ -1,7 +1,9 @@
 # Signalizer
 
 Public repository for the real-time audio visualization plugin Signalizer.
+
 More info can be found at this page: www.jthorborg.com/index.html?ipage=signalizer
+
 Pre-built binaries can be found at this page: https://bitbucket.org/Mayae/signalizer/downloads/
 
 ![signalizer_screensaver.png](https://bitbucket.org/repo/jnBRk8/images/675350869-signalizer_screensaver.png)
@@ -27,7 +29,12 @@ Additionally, you may need to set up include directories to point to your specif
 
 ## Performance
 
-Program maxing out a whole core with VSync enabled? If you are using NVidia graphics, it is a driver issue.. Or, "feature", as they call it. Check this out: http://www.retrocopy.com/blog/29/nvidia-threaded-optimization-oxymoron.aspx
-Notice, that it is not actually using all of the CPU, it is merely busywaiting (but yielding). What this means in reality is, that your core will be maxed out, but everything will remain as responsive. See this: http://forum.openscenegraph.org/viewtopic.php?t=3653#18283
+Program maxing out a whole core with VSync enabled? If you are using NVidia graphics, it is a driver issue.. Or, "feature", as they call it. 
+Check this out: http://www.retrocopy.com/blog/29/nvidia-threaded-optimization-oxymoron.aspx
+
+Notice, that it is not actually using all of the CPU, it is merely busywaiting (but yielding). What this means in reality is, that your core will be maxed out, but everything will remain as responsive. 
+See this: http://forum.openscenegraph.org/viewtopic.php?t=3653#18283
 
 ## Known issues
+
+- "Plugin is damaged and can't be opened" on newer versions of macOS (due to lack of notarization): See the commentary in [this file](Make/macos_installation_advice.txt)

@@ -401,7 +401,6 @@
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_WinUtilities.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST3\juce_VST3_Wrapper.cpp" />
-    <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\AAX\juce_AAX_Wrapper.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\utility\juce_PluginUtilities.cpp" />
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\RTAS\juce_RTAS_DigiCode1.cpp" />
@@ -842,6 +841,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp">
       <Filter>Signalizer\Source\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp">
+      <Filter>Juce Modules\juce_audio_plugin_client\VST</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\modules\juce_audio_plugin_client\VST\juce_VST_Wrapper.cpp">
       <Filter>Juce Modules\juce_audio_plugin_client\VST</Filter>
@@ -2331,6 +2333,12 @@
     </None>
     <None Include="..\..\Make\common.py">
       <Filter>Signalizer\Build</Filter>
+    </None>
+    <None Include="..\..\CHANGELOG.md">
+      <Filter>Signalizer</Filter>
+    </None>
+    <None Include="..\..\README.md">
+      <Filter>Signalizer</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

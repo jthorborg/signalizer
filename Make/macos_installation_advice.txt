@@ -11,9 +11,26 @@ and copy the plugin appropriately into your (user) Library/Audio/Plug-Ins/ folde
 
 You may need to restart your computer after you've done this.
 
--------------------
-
 If you're unsure about where your Plug-Ins folder is, it can be very custom and I'd advise to research the internet for your particular operating system if you didn't choose it yourself.
 
-You may need to allow opening apps from unidentified developers, because Apple otherwise requires developers to pay them fees annually.
+-------------------
+
+*** IF MACOS TELLS YOU THE PLUGIN IS DAMAGED AND CAN'T BE OPENED: ***
+
+First, make sure you downloaded this from the only official source:
+https://bitbucket.org/Mayae/signalizer/downloads/
+
+This happens because Apple's Gatekeeper quarantines software not downloaded from Apple's own store and/or unsigned software. It costs me $99 a year to notarize this program, and I don't currently have plans on paying Apple for this. Some thoughts are offered on this from Ardour developers here:
+
+https://discourse.ardour.org/t/solved-macos-ventura-ardour7-is-damaged-and-cant-be-opened-you-should-move-it-to-the-trash/107916/3
+
+It's possible to circumvent these checks but for obvious reasons I cannot recommend this unless you are experienced with using the terminal and trust the source program.
+You can find further information on this here:
+
+https://discussions.apple.com/thread/253714860?answerId=257037956022#257037956022
+https://apple.stackexchange.com/questions/58050/damaged-and-cant-be-open-app-error-message
+
+Here are the man pages for xattr: https://ss64.com/osx/xattr.html
+
+Alternatively, you can allow opening apps from unidentified developers:
 https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac
