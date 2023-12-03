@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Further description and tips for dealing with "damaged" plugins that "can't be opened" on newer versions of macOS in the installation advice of the release folder.
 
+### Fixed
+
+- Fixed an assertion when loading a preset through a DAW on a Signalizer that is in an alias state of another (or having become one as a part of loading the preset)
+
 ## 0.4.1 - 2023-11-26
 
 ### Fixed

@@ -204,7 +204,7 @@
 			// returns true if anything happend
 			bool resetInstancedTopologyFor(const SerializedHandle& h, const GraphLock&, bool eraseSerializedInfo = false);
 
-			static SerializedHandle serializeReference(HHandle h, const GraphLock&);
+			SerializedHandle serializeReference(HHandle h, const GraphLock&);
 			HostGraph* resolve(HHandle h);
 			void broadcastDetailChange(DetailChange change, const GraphLock&);
 			void broadcastCreate(const GraphLock&);

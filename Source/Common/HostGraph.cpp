@@ -648,7 +648,8 @@ namespace Signalizer
 
 	HostGraph::SerializedHandle HostGraph::serializeReference(HHandle h, const GraphLock&)
 	{
-		CPL_RUNTIME_ASSERTION(!h->isAlias);
+		// We should only serialize references to aliases in the edge case where it's ourselves.
+		CPL_RUNTIME_ASSERTION(!h->isAlias || resolve(h) == this);
 
 		if (h->nodeID.has_value())
 			return *h->nodeID;
