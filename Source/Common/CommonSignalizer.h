@@ -42,6 +42,7 @@
 	#include <chrono>
 	#include <variant>
 	#include <cpl/Exceptions.h>
+	#include <functional>
 
 	namespace cpl
 	{
@@ -1176,6 +1177,26 @@
 		inline bool TriggerNonTerminalAssumption(const char* assumption, const char* file, const int line, const char* function)
 		{
 			extern CriticalSection<std::vector<std::string>> FailedAssumptions;
+			extern std::set<std::size_t> HashedAssumptions;
+
+			std::size_t seed = 0;
+
+			// boost::hash_combine
+			auto hash = [](std::size_t& seed, auto thing)
+			{
+				auto hasher = std::hash<decltype(thing)>();
+				seed ^= hasher(thing) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			};
+
+			hash(seed, assumption); hash(seed, file); hash(seed, line); hash(seed, function);
+
+			auto assumptionAccess = FailedAssumptions.lock();
+
+			// only report once
+			if (HashedAssumptions.count(seed))
+				return false;
+
+			HashedAssumptions.insert(seed);
 
 			std::string message = 
 				::cpl::programInfo.name + " (" + ::cpl::programInfo.version.toString() + "): in " + file + ":" + ::std::to_string(line) + " -> " + function + ":\n" +
@@ -1185,7 +1206,7 @@
 			CPL_DEBUGOUT((message + "\n").c_str()); 
 			cpl::LogException(message); 
 
-			FailedAssumptions.lock()->emplace_back(std::move(message));
+			assumptionAccess->emplace_back(std::move(message));
 
 			return false;
 		}

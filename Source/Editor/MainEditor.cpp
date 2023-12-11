@@ -38,6 +38,7 @@
 #include "version.h"
 #include <cpl/Mathext.h>
 #include "GraphEditor.h"
+#include <set>
 
 namespace cpl
 {
@@ -66,6 +67,7 @@ namespace Signalizer
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
 	CriticalSection<std::vector<std::string>> FailedAssumptions;
+	std::set<std::size_t> HashedAssumptions;
 
 	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
