@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed an assertion when loading a preset through a DAW on a Signalizer that is in an alias state of another (or having become one as a part of loading the preset)
 - Recoverability and notification for a situation where the mixgraph completely detaches from itself, previously leading to an assertion about "command.stream.get() != self->source.lock().get()"
-
+- A division by zero under certain channel configurations in specific timing scenarios
 
 ## 0.4.1 - 2023-11-26
 
