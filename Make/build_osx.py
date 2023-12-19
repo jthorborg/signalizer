@@ -115,7 +115,7 @@ for option in targets:
 		exit(1)
 	else:
 		cm.create_build_file(cm.join(cm.join(cm.join(cm.join(option[1], "Signalizer.component"), "Contents"), "Resources"), "Build.log"), version_string)
-
+		sh.copyfile("../CHANGELOG.md", cm.join(cm.join(cm.join(cm.join(option[1], "Signalizer.component"), "Contents"), "Resources"), "CHANGELOG.md"))
 
 print("\n------> All builds finished, generating plugin permutations ...")
 

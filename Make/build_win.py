@@ -113,6 +113,7 @@ for option in targets:
 	for p in [release_dir, debug_dir]:
 		sh.copytree("Skeleton", p)
 		sh.copyfile("Build.log", cm.join(p, "Build.log"))
+		sh.copyfile("../CHANGELOG.md", cm.join(p, "CHANGELOG.md"))
 		
 	# copy in builds
 	sh.copy(cm.join(build, "Signalizer.dll"), cm.join(release_dir, "Signalizer.dll"))
