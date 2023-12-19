@@ -302,6 +302,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\External\cpl\CPLSource.cpp" />
+    <ClCompile Include="..\..\Source\Common\CommonSignalizer.cpp" />
     <ClCompile Include="..\..\Source\Common\HostGraph.cpp" />
     <ClCompile Include="..\..\Source\Common\MixGraphListener.cpp" />
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp" />

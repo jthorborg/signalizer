@@ -1172,52 +1172,26 @@
 			return true;
 		}
 
-#define NONTERMINAL_ASSUMPTION(condition) (condition || TriggerNonTerminalAssumption(#condition, __FILE__, __LINE__, __func__))
+#define NONTERMINAL_ASSUMPTION(condition) ((condition) || triggerNonTerminalAssumption(#condition, __FILE__, __LINE__, __func__))
 
-		inline bool TriggerNonTerminalAssumption(const char* assumption, const char* file, const int line, const char* function)
+		struct Assumptions
 		{
-			extern CriticalSection<std::vector<std::string>> FailedAssumptions;
-			extern std::set<std::size_t> HashedAssumptions;
+			typedef std::vector<std::string> Messages;
+			Messages current;
+			std::set<std::size_t> set;
 
-			std::size_t seed = 0;
-
-			// boost::hash_combine
-			auto hash = [](std::size_t& seed, auto thing)
+			Messages takeAllMessages()
 			{
-				auto hasher = std::hash<decltype(thing)>();
-				seed ^= hasher(thing) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			};
+				Messages messages;
+				std::swap(current, messages);
 
-			hash(seed, assumption); hash(seed, file); hash(seed, line); hash(seed, function);
+				return messages;
+			}
+		};
 
-			auto assumptionAccess = FailedAssumptions.lock();
-
-			// only report once
-			if (HashedAssumptions.count(seed))
-				return false;
-
-			HashedAssumptions.insert(seed);
-
-			std::string message = 
-				::cpl::programInfo.name + " (" + ::cpl::programInfo.version.toString() + "): in " + file + ":" + ::std::to_string(line) + " -> " + function + ":\n" +
-				"Runtime assumption \"" + assumption + "\" failed.";
-			
-			CPL_BREAKIFDEBUGGED();
-			CPL_DEBUGOUT((message + "\n").c_str()); 
-			cpl::LogException(message); 
-
-			assumptionAccess->emplace_back(std::move(message));
-
-			return false;
-		}
-
-		inline void RevealExceptionLog()
-		{
-			juce::File f(cpl::GetExceptionLogFilePath());
-
-			if (f.existsAsFile())
-				f.revealToUser();
-		}
+		CriticalSection<Assumptions>& getFailedAssumptions();
+		bool triggerNonTerminalAssumption(const char* assumption, const char* file, const int line, const char* function);
+		void revealExceptionLog();
 	};
 
 	namespace std

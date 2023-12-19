@@ -66,8 +66,6 @@ namespace Signalizer
 
 	std::string MainPresetName = "main";
 	std::string DefaultPresetName = "default";
-	CriticalSection<std::vector<std::string>> FailedAssumptions;
-	std::set<std::size_t> HashedAssumptions;
 
 	std::vector<std::pair<std::string, ContentCreater>> ContentCreationList =
 	{
@@ -680,7 +678,7 @@ namespace Signalizer
 		}
 		else if (c == &krevealExceptionLog)
 		{
-			RevealExceptionLog();
+			revealExceptionLog();
 		}
 		else if (c == &khideWidgets)
 		{
@@ -1424,10 +1422,8 @@ namespace Signalizer
 		}
 
 		int failedAnswer = 0;
-		std::vector<std::string> assumptions;
-		std::swap(*FailedAssumptions.lock(), assumptions);
 
-		for (auto& failedAssumption : assumptions)
+		for (auto& failedAssumption : getFailedAssumptions().lock()->takeAllMessages())
 		{
 			using namespace cpl;
 			failedAnswer = Misc::MsgBox(
@@ -1443,7 +1439,7 @@ namespace Signalizer
 
 			if (failedAnswer == Misc::MsgButton::bYes)
 			{
-				RevealExceptionLog();
+				revealExceptionLog();
 			} 
 			else if (failedAnswer == Misc::MsgButton::bCancel)
 			{
