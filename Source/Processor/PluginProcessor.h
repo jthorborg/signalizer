@@ -40,6 +40,7 @@
 	#include "../Common/HostGraph.h"
 	#include <memory>
 	#include "../Common/ConcurrentConfig.h"
+	#include "ProcessorPersistentState.h"
 
 	namespace Signalizer
 	{
@@ -109,6 +110,7 @@
 			HostGraph& getHostGraph() { return *graph; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
+			ProcessorPersistentState& getPersistentState() { return persistentState; }
 
 		private:
 
@@ -131,6 +133,7 @@
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
 			std::shared_ptr<HostGraph> graph;
+			ProcessorPersistentState persistentState;
 		};
 	};
 #endif

@@ -140,6 +140,7 @@ namespace Signalizer
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
 		, globalState(std::make_shared<SharedBehaviour>())
+		, kgraphSerialization(e->getPersistentState().getGraphSerializationValue())
 	{
 		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
 		e->getHostGraph().setMixGraph(mixGraph);
@@ -266,7 +267,8 @@ namespace Signalizer
 
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
-				section->addControl(&krevealExceptionLog, 0);
+				section->addControl(&kgraphSerialization, 0);
+				section->addControl(&krevealExceptionLog, 2);
 				page->addSection(section, "Utility");
 			}
 		}
@@ -1555,6 +1557,7 @@ namespace Signalizer
 		krefreshState.setSingleText("Reset state");
 		kantialias.bSetTitle("Antialiasing");
 		klegendChoice.bSetTitle("Show legend");
+		kgraphSerialization.bSetTitle("Sidechain saving");
 		kidle.setSingleText("Idle in back");
 		kswapInterval.bSetTitle("Swap interval");
 		kstableFps.setSingleText("Stable FPS");
@@ -1623,6 +1626,7 @@ namespace Signalizer
 		kstopProcessingOnSuspend.bSetDescription("If set, only the selected running view will process audio - improves performance, but views are out of sync when frozen");
 		khideWidgets.bSetDescription("Hides widgets on the screen (frequency trackers, for instance) when the mouse leaves the editor");
 		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
+		kgraphSerialization.bSetDescription(engine->getPersistentState().getGraphSerializationDescription());
 		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
 		resized();
 	}

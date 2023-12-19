@@ -224,11 +224,15 @@ namespace Signalizer
 	void AudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 	{
 		cpl::CPresetWidget::SerializerType serializer("HostState");
-		serializer.getArchiver().setMasterVersion(cpl::programInfo.version);
-		serialize(serializer.getArchiver(), cpl::programInfo.version);
+		auto& archive = serializer.getArchiver();
+		archive.setMasterVersion(cpl::programInfo.version);
+		archive << this;
 
-		// serialize host graph independently
-		graph->serialize(serializer.getArchiver()["host-graph"], cpl::programInfo.version);
+		// serialize host graph and persistent state independently
+		archive["processor-persistent-state"] << persistentState;
+
+		if(persistentState.shouldSerializeGraph())
+			archive["host-graph"] << *graph;
 
 		if (!serializer.isEmpty())
 		{
@@ -259,10 +263,18 @@ namespace Signalizer
 			auto version = serializer.getBuilder().getLocalVersion();
 			deserialize(builder, version);
 
-			// the host graph is serialized independently, so it doesn't appear as part of presets.
-			if (!builder["host-graph"].isEmpty())
+			auto& serializedPersistentState = builder["processor-persistent-state"];
+			auto& serializedHostGraph = builder["host-graph"];
+
+			// the host graph and persistent state is serialized independently, so it doesn't appear as part of presets.
+			if (!serializedPersistentState.isEmpty())
 			{
-				graph->deserialize(builder["host-graph"], version);
+				serializedPersistentState >> persistentState;
+			}
+
+			if (!serializedHostGraph.isEmpty())
+			{
+				serializedHostGraph >> *graph;
 				hasAnyLayoutBeenApplied = true;
 			}
 

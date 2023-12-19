@@ -189,6 +189,7 @@
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias, klegendChoice;
+			cpl::CValueComboBox kgraphSerialization;
 			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours> colourControls;
 

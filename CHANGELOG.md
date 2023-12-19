@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Further description and tips for dealing with "damaged" plugins that "can't be opened" on newer versions of macOS in the installation advice of the release folder.
 - Button in the global settings by the presets to reveal the exception log
+- Drop-down menu in the global settings by the presets to control how the sidechaining graph is saved when creating custom presets from within DAWs
 - This file into releases
 
 ### Fixed

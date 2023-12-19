@@ -817,6 +817,7 @@
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
     <ClInclude Include="..\..\Source\Processor\PluginProcessor.h" />
+    <ClInclude Include="..\..\Source\Processor\ProcessorPersistentState.h" />
     <ClInclude Include="..\..\Source\Signalizer.h" />
     <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
     <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />
@@ -856,6 +857,7 @@
     <ResourceCompile Include=".\resources.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Make\Skeleton\READ ME.txt" />
     <Text Include="..\..\Make\windows_installation_advice.txt" />
     <Text Include="..\..\Source\Notes\Bugs.txt" />
   </ItemGroup>

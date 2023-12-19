@@ -46,7 +46,8 @@ Note: All licenses can be found and examined in the /licenses/ folder.
 
 	For knobs, they obey being more precise if you hold down control while dragging them.
 	Many controls support 'editor spaces' which allows typing of precise values, or design them
-	(like colours). This functionality is accessed through double-clicking the control.
+	(like colours). This functionality is accessed through double-clicking the control, and more
+	advanced functionality can be accessed by expanding the triangle in the popped up editor space.
 	Esc will dismiss active modal boxes, full screen modes and so on. Tab will move to the
 	next input control. Context menus are available where you would expect them.
 
@@ -56,7 +57,7 @@ Q: Framerate appears slow, even though diagnostics reports a very stable measure
 A: Especially on OS X, weird stuff can happen with the frame scheduling and syncing, if the window is not in full screen and focused. Try altering the "swap interval" in the main settings to 2.
 
 Q: The program crashed.
-A: Please, if you can, send a copy of the generated "Signalizer exceptions.log" (if any) and a description of the circumstances around the crash to me (see contact details above (7)). For OS X, the generated log is inside the bundle (Signalizer/Contents/Resources/). If you get the chance, please attach the operating-system generated fault description.
+A: Please, if you can, send a copy of the generated "Signalizer exceptions.log" (if any) and a description of the circumstances around the crash to me (see contact details above (7)). For OS X, the generated log is inside the bundle (Signalizer/Contents/Resources/). You can also reveal the log from within Signalizer in the global settings panel. If you get the chance, please attach the operating-system generated fault description.
 
 Q: I got some nice code changes.
 A: Make a pull request - or contact me.
@@ -70,3 +71,5 @@ A: The preset is probably from an older version. Perhaps send the error to me.
 Q: I can't get Signalizer to load as a VST3 plugin (Windows)
 A: Try renaming the Signalizer.dll file to Signalizer.vst3
 
+Q: When I create custom presets in my DAW for Signalizer and restore them, I get no signal / visuals and/or when I open the graph editor panel, it says my Signalizer was duplicated
+A: When you create presets like this, you unfortunately need to tell Signalizer what you are doing. Please open the global settings (leftmost cogs), and under presets (floppy symbol) configure "Sidechain saving" as "Ignore in session" while you create the presets. The tool-tip describes this process in more detail.

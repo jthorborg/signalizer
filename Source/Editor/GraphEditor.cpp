@@ -648,7 +648,11 @@ namespace Signalizer
 			Button(Content& parent)
 				: content(parent)
 			{
-				bSetDescription("This can temporarily happen when loading projects or pasting plugins / presets on Signalizers. When clicked, this plugin assumes a new identity.");
+				bSetDescription(
+					"This can temporarily happen when loading projects or pasting plugins / presets on Signalizers. "
+					"When clicked, this plugin assumes a new identity.\n\n"
+					"If you are seeing this when you create presets in your DAW, please use the \'Sidechain saving\' options in the global options for presets (also described in readme)"
+				);
 				setTexts("This Signalizer was duplicated, click to fix", "This Signalizer was duplicated, click to fix");
 			}
 

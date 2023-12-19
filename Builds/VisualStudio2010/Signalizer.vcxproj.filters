@@ -2269,6 +2269,9 @@
     <ClInclude Include="..\..\Source\Spectrum\TransformPair.h">
       <Filter>Signalizer\Source\Spectrum</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Processor\ProcessorPersistentState.h">
+      <Filter>Signalizer\Source\Processor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">
@@ -2354,6 +2357,9 @@
       <Filter>Signalizer</Filter>
     </Text>
     <Text Include="..\..\Make\windows_installation_advice.txt">
+      <Filter>Signalizer\Build</Filter>
+    </Text>
+    <Text Include="..\..\Make\Skeleton\READ ME.txt">
       <Filter>Signalizer\Build</Filter>
     </Text>
   </ItemGroup>
