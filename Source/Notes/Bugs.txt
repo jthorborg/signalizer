@@ -1,0 +1,3 @@
+1. Being an alias, connected to self?, then serializing graph-wise and reloading that
+2. When started in mono mode (or in general), the mix graph listener :: on stream audio can try indexing into buffer which is out of bounds. this is because it connected to an out of bounds channel index, because the mix graph listener always reports 2 channels available.
+3. When 2 happens *while the editor is closing* and thus is deleting the mixgraph, 2) will encounter a native exception, propagating to the protected handler that invokes CrashIfUserDoesntDebug, which can deadlock if the editor or main thread is awaiting this other thread anyway.

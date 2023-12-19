@@ -373,6 +373,10 @@ namespace Signalizer
 				if (channelQ.getSize() < neededSize)
 					channelQ.setStorageRequirements(neededSize, cpl::Math::nextPow2(neededSize), true);
 
+				// TODO: Having this so late causes this node to be processed anyway "as if" it had stuff, good idea?
+				if (!NONTERMINAL_ASSUMPTION(q.first.Source < numChannels))
+					continue;
+
 				channelQ
 					.createWriter()
 					.copyIntoHead(buffer[q.first.Source], numSamples);

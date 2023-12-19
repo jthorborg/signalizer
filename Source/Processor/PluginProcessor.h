@@ -124,9 +124,9 @@
 			std::shared_ptr<ConcurrentConfig> config;
 			AudioStream::Input realtimeInput;
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
-
+			std::vector<AFloat> surrogateArray;
 			bool hasAnyLayoutBeenApplied{};
-			int nChannels;
+			int lastRecordedInputCount{}, lastRecordedBufferSize{};
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;

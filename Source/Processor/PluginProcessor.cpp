@@ -33,12 +33,15 @@
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
 #include <cpl/infrastructure/values/Values.h>
+#include <array>
 
 namespace Signalizer
 {
 	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
+
+	constexpr int supportedChannels = 2;
 
 	AudioProcessor::AudioProcessor()
 		: AudioProcessor(AudioStream::create(true, 16))
@@ -56,7 +59,7 @@ namespace Signalizer
 		, realtimeInput(std::move(std::get<0>(io)))
 		, realtimeOutput(std::get<1>(io))
 		, graph(std::make_shared<HostGraph>(std::get<1>(io)))
-		, nChannels(2)
+		, lastRecordedInputCount(1)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
@@ -103,7 +106,7 @@ namespace Signalizer
 		realtimeInput.initializeInfo(
 			[&](AudioStream::ProducerInfo& info) 
 			{
-				info.channels = nChannels;
+				info.channels = supportedChannels;
 				info.anticipatedSize = 512;
 				info.sampleRate = 48000;
 			}
@@ -133,10 +136,14 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
+		lastRecordedInputCount = getNumInputChannels();
+		lastRecordedBufferSize = samplesPerBlock;
+		surrogateArray.resize(samplesPerBlock);
+
 		realtimeInput.initializeInfo(
 			[&](AudioStream::ProducerInfo& info)
 			{
-				info.channels = nChannels;
+				info.channels = supportedChannels;
 				info.anticipatedSize = samplesPerBlock;
 				info.sampleRate = sampleRate;
 			}
@@ -155,18 +162,40 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
-		if (nChannels != buffer.getNumChannels())
-		{
-			// woah, what?
-			CPL_BREAKIFDEBUGGED();
-		}
+		int bufferSize = buffer.getNumSamples();
+
+		if (!NONTERMINAL_ASSUMPTION(lastRecordedInputCount == getNumInputChannels()))
+			return;
+
+		if (!NONTERMINAL_ASSUMPTION(getNumInputChannels() <= buffer.getNumChannels()))
+			return;
+
+		if (!NONTERMINAL_ASSUMPTION(bufferSize <= lastRecordedBufferSize))
+			return;
 
 		if (realtimeInput.isAnyoneListening())
 		{
+			// TODO: Fix this when the mix graph listener supports dynamically changing channels
+			std::array<const float*, supportedChannels> inputs;
+			auto readPointers = buffer.getArrayOfReadPointers();
+
+			const auto available = std::min(getNumInputChannels(), supportedChannels);
+
+			int i = 0;
+			for (; i < available; ++i)
+			{
+				inputs[i] = readPointers[i];
+			}
+
+			for (; i < supportedChannels; ++i)
+			{
+				inputs[i] = surrogateArray.data();
+			}
+
 			if (auto ph = getPlayHead())
-				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), *ph);
+				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
 			else
-				realtimeInput.processIncomingRTAudio(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples(), AudioStream::Playhead::empty());
+				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), AudioStream::Playhead::empty());
 		}
 
 		// In case we have more outputs than inputs, we'll clear any output
