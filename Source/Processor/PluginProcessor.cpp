@@ -226,13 +226,9 @@ namespace Signalizer
 		cpl::CPresetWidget::SerializerType serializer("HostState");
 		auto& archive = serializer.getArchiver();
 		archive.setMasterVersion(cpl::programInfo.version);
+
 		archive << this;
-
-		// serialize host graph and persistent state independently
-		archive["processor-persistent-state"] << persistentState;
-
-		if(persistentState.shouldSerializeGraph())
-			archive["host-graph"] << *graph;
+		archive["host-graph"] << *graph;
 
 		if (!serializer.isEmpty())
 		{
@@ -263,19 +259,12 @@ namespace Signalizer
 			auto version = serializer.getBuilder().getLocalVersion();
 			deserialize(builder, version);
 
-			auto& serializedPersistentState = builder["processor-persistent-state"];
 			auto& serializedHostGraph = builder["host-graph"];
-
-			// the host graph and persistent state is serialized independently, so it doesn't appear as part of presets.
-			if (!serializedPersistentState.isEmpty())
-			{
-				serializedPersistentState >> persistentState;
-			}
 
 			if (!serializedHostGraph.isEmpty())
 			{
 				serializedHostGraph >> *graph;
-				hasAnyLayoutBeenApplied = true;
+				hasAnyLayoutBeenApplied |= graph->getDidEverDeserializeTopology();
 			}
 
 		}

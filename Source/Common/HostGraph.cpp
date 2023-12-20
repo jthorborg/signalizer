@@ -37,6 +37,8 @@ namespace Signalizer
 	std::set<HostGraph::HHandle> HostGraph::staticSet;
 	static std::atomic_int globalVersion;
 
+	constexpr const char* kSerializationControlKey = "serialization-control";
+	constexpr const char* kTopologyKey = "topology-data";
 
 	HostGraph::HostGraph(std::shared_ptr<AudioStream::Output> realtimeOutput)
 		: name("unnamed")
@@ -62,44 +64,88 @@ namespace Signalizer
 	{
 		GraphLock lock(staticMutex);
 
+		ar[kSerializationControlKey] << serializationControl;
+
 		ar << name;
-		ar << nodeID;
 
-		std::uint32_t counter = std::accumulate(
-			topology.begin(), 
-			topology.end(), 
-			0u,
-			[&](const std::uint32_t& c, const auto& pair) { return c + static_cast<std::uint32_t>(pair.second.inputs.size()); }
-		);
+		if (!serializationControl.shouldSerializeGraph())
+			return;
 
-		ar << counter;
-
-		for(const auto& pairRelation : topology)
+		auto serializeTopology = [this](cpl::CSerializer::Builder& serializer)
 		{
-			for (const auto& pair : pairRelation.second.inputs)
+			serializer << cpl::CSerializer::OptionalWrapper(nodeID);
+
+			std::uint32_t counter = std::accumulate(
+				topology.begin(),
+				topology.end(),
+				0u,
+				[&](const std::uint32_t& c, const auto& pair) { return c + static_cast<std::uint32_t>(pair.second.inputs.size()); }
+			);
+
+			serializer << counter;
+
+			for (const auto& pairRelation : topology)
 			{
-				ar << std::make_pair(pairRelation.first, pair);
+				for (const auto& pair : pairRelation.second.inputs)
+				{
+					serializer << std::make_pair(pairRelation.first, pair);
+				}
 			}
-		}
+		};
+
+		serializeTopology(ar[kTopologyKey]);
 	}
 
-	void HostGraph::deserialize(cpl::CSerializer::Builder& ar, cpl::Version version)
+	void HostGraph::deserialize(cpl::CSerializer::Builder& builder, cpl::Version version)
 	{		
 		TriggerModelUpdateOnExit exit{ this };
 		std::lock_guard<std::mutex> lock(staticMutex);
 
-		auto oldName = name;
-		ar >> name;
+		auto& serializedControl = builder[kSerializationControlKey];
+		if(!serializedControl.isEmpty())
+			serializedControl >> serializationControl;
 
+		auto oldName = name;
+		builder >> name;
+
+		// Prior to version 0.4.2, topology was stored inline at this offset.
+		if (version >= cpl::Version(0, 4, 2))
+		{
+			// And this is how we conditionally load it now.
+			auto& serializedTopology = builder[kTopologyKey];
+			if (!serializedTopology.isEmpty())
+				deserializeTopology(serializedTopology, version, lock);
+		}
+		else
+		{		
+			// Before, we would always store/restore the data, so mimic this behaviour.
+			deserializeTopology(builder, version, lock);
+		}
+
+		if (oldName != name)
+			broadcastDetailChange(DetailChange::Rename, lock);
+	}
+
+	void HostGraph::deserializeTopology(cpl::CSerializer::Builder& ar, cpl::Version version, const GraphLock& lock)
+	{
+		hadTopologyDeserialized = true;
 		decltype(nodeID) copyID;
-		ar >> copyID;
+		
+		if (version >= cpl::Version(0, 4, 2))
+		{
+			ar >> cpl::CSerializer::OptionalWrapper(copyID);
+		}
+		else
+		{
+			ar >> cpl::CSerializer::OptionalWrapper(copyID, cpl::CSerializer::DeprecatedBinaryDeserialization {});
+		}
 
 		clearTopology(lock);
 
 		uint32_t count;
 		ar >> count;
 
-		SerializedEdge copy { serializeReference(this, lock), DirectedPortPair{} };
+		SerializedEdge copy{ serializeReference(this, lock), DirectedPortPair{} };
 
 		for (uint32_t i = 0; i < count; ++i)
 		{
@@ -115,14 +161,12 @@ namespace Signalizer
 		{
 			for (auto h : staticSet)
 			{
-				if(h->hasSerializedRepresentation())
+				if (h->hasSerializedRepresentation())
 					tryRebuildTopology(resolve(h), lock, false);
 			}
 		}
-
-		if(oldName != name)
-			broadcastDetailChange(DetailChange::Rename, lock);
 	}
+
 
 	void HostGraph::changeIdentity(const std::optional<HostGraph::SerializedHandle>& newIdentity, const GraphLock& lock)
 	{
@@ -498,7 +542,8 @@ namespace Signalizer
 	{
 		GraphLock g(staticMutex);
 
-		CPL_RUNTIME_ASSERTION(topology.size() == 0);
+		if (!NONTERMINAL_ASSUMPTION(topology.size() == 0))
+			return;
 
 		PinInt numChannels = getNumChannels();
 

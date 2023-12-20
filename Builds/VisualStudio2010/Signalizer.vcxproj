@@ -817,7 +817,6 @@
     <ClInclude Include="..\..\JuceLibraryCode\AppConfig.h" />
     <ClInclude Include="..\..\JuceLibraryCode\JuceHeader.h" />
     <ClInclude Include="..\..\Source\Processor\PluginProcessor.h" />
-    <ClInclude Include="..\..\Source\Processor\ProcessorPersistentState.h" />
     <ClInclude Include="..\..\Source\Signalizer.h" />
     <ClInclude Include="..\..\Source\Spectrum\Spectrum.h" />
     <ClInclude Include="..\..\Source\Spectrum\SpectrumParameters.h" />

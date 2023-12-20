@@ -2269,9 +2269,6 @@
     <ClInclude Include="..\..\Source\Spectrum\TransformPair.h">
       <Filter>Signalizer\Source\Spectrum</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\Processor\ProcessorPersistentState.h">
-      <Filter>Signalizer\Source\Processor</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\SDKs\juce\modules\juce_audio_basics\juce_module_info">

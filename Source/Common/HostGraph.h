@@ -65,6 +65,14 @@
 				SerializedHandle& operator=(const SerializedHandle&) = default;
 				SerializedHandle& operator=(SerializedHandle&&) = default;
 
+				SerializedHandle(const void* data, std::size_t size)
+				{
+					CPL_RUNTIME_ASSERTION(size == sizeof(contents));
+					CPL_RUNTIME_ASSERTION(size == sizeof(*this));
+
+					std::memcpy(contents, data, sizeof(contents));
+				}
+
 				static SerializedHandle generateUnique()
 				{
 					return {};
@@ -79,7 +87,6 @@
 				{
 					return !(a == b);
 				}
-
 
 				friend inline bool operator < (const HostGraph::SerializedHandle& a, const HostGraph::SerializedHandle& b)
 				{
@@ -147,7 +154,9 @@
 			void assumeNonAliasedIdentity();
 			bool isAliasOfOther() const noexcept { return isAlias; }
 			bool isDefaultLayout() const noexcept { return isDefaultRuntimeLayout; }
-
+			bool getDidEverDeserializeTopology() const noexcept { return hadTopologyDeserialized; }
+			cpl::ValueEntityBase* getGraphSerializationValue() { return serializationControl.getValue(); }
+			const char* getGraphSerializationHelpText() const noexcept { return serializationControl.getHelpText(); }
 		private:
 
 			enum class DetailChange
@@ -182,6 +191,77 @@
 				}
 			};
 
+			struct SerializationControl : public cpl::CSerializer::Serializable
+			{
+				enum class Choice : std::int8_t
+				{
+					/// <summary>
+					/// We always serialize the full graph when the host asks us to
+					/// </summary>
+					Full,
+					/// <summary>
+					/// We do not serialize the host graph, but we
+					/// do not propagate that state to the next time we (or a clone) is loaded.
+					/// This is useful for creating host presets that should function normally afterwards
+					/// </summary>
+					IgnoreSession,
+					/// <summary>
+					/// Same as <see cref="IgnoreSession"/>, except we perpetually stay ignorant of the host graph.
+					/// This is useful as a workaround or if you want to create presets that work with the sidechaining feature.
+					/// </summary>
+					IgnoreAlways
+				};
+
+				cpl::ValueEntityBase* getValue() { return &value; }
+
+				SerializationControl()
+					: value(&transformer, &formatter)
+					, formatter(transformer)
+				{
+					formatter.setValues({ "Full", "Ignore in session", "Ignore always" });
+				}
+
+				bool shouldSerializeGraph() { return getGraphChoice() == Choice::Full; }
+				void setGraphChoice(Choice choice) { value.setAsTEnum(choice); }
+				Choice getGraphChoice() { return value.getAsTEnum<Choice>(); }
+
+				const char* getHelpText() const noexcept
+				{
+					return
+						"Advanced options for altering how sidechaining information is restored when saved as a preset from within a host.\n\n"
+						"Full is normal operation.\n\n"
+						"Ignore in session means any presets generated until this plugin is reloaded will be restored without sidechaining information "
+						"- this is useful for generating presets that should not restore connections to other plugins initially, but afterwards operate normally.\n\n"
+						"Ignore always means Signalizer should never attempt to save or restore sidechain information, and always assume a default layout of inputs to outputs. "
+						"You can use this as a workaround or if you never use the sidechaining feature anyway and experience issues.";
+				}
+
+				void serialize(cpl::CSerializer::Archiver& ar, cpl::Version version) override
+				{
+					auto current = getGraphChoice();
+
+					if (current == Choice::IgnoreSession)
+						current = Choice::Full;
+
+					ar << current;
+				}
+
+				void deserialize(cpl::CSerializer::Builder& builder, cpl::Version version) override
+				{
+					Choice choice;
+					builder >> choice;
+
+					CPL_RUNTIME_ASSERTION(choice != Choice::IgnoreSession);
+
+					setGraphChoice(choice);
+				}
+
+				cpl::ChoiceTransformer<cpl::ValueT> transformer;
+				cpl::ChoiceFormatter<cpl::ValueT> formatter;
+
+				cpl::SelfcontainedValue<cpl::ChoiceTransformer<cpl::ValueT>, cpl::ChoiceFormatter<cpl::ValueT>> value;
+			};
+
 			typedef std::pair<SerializedHandle, DirectedPortPair> SerializedEdge;
 			typedef std::map<SerializedHandle, Relation> Topology;
 
@@ -194,7 +274,7 @@
 			void submitConnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			void submitDisconnect(HHandle h, DirectedPortPair pair, const GraphLock&);
 			bool computeIsDefaultLayout(const TriggerModelUpdateOnExit&) const noexcept;
-
+			void deserializeTopology(cpl::CSerializer::Builder& ar, cpl::Version version, const GraphLock&);
 			HHandle resolve(const SerializedHandle& h, const GraphLock&);
 			HHandle lookupPotentiallyForeign(const SerializedHandle& h, const GraphLock&);
 			static HHandle lookupForeign(const SerializedHandle& h, const GraphLock&);
@@ -226,9 +306,12 @@
 			std::shared_ptr<MixGraphListener> mix;
 			std::vector<std::weak_ptr<HostGraph>> aliases;
 			std::size_t expectedNodesToResurrect = 0;
+			SerializationControl serializationControl;
+
 			int version = 0;
 			bool isAlias = false;
 			bool isDefaultRuntimeLayout = false;
+			bool hadTopologyDeserialized = false;
 		};
 	}
 
