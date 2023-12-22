@@ -44,6 +44,8 @@ namespace Signalizer
 
 		if (f.existsAsFile())
 			f.revealToUser();
+		else
+			f.getParentDirectory().revealToUser();
 	}
 
 	bool triggerNonTerminalAssumption(const char* assumption, const char* file, const int line, const char* function)
