@@ -1,35 +1,122 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="rfToVS" name="Signalizer" projectType="audioplug" version="0.1.0"
-              bundleIdentifier="com.yourcompany.Signalizer" includeBinaryInAppConfig="0"
-              buildVST="1" buildVST3="0" buildAU="1" buildRTAS="0" buildAAX="0"
-              pluginName="Signalizer" pluginDesc="Inspect audio." pluginManufacturer="Lightbridge"
-              pluginManufacturerEmail="support@yourcompany.com" pluginManufacturerCode="LbJt"
-              pluginCode="Sign" pluginChannelConfigs="{1, 1}, {2, 2}" pluginIsSynth="0"
-              pluginWantsMidiIn="0" pluginProducesMidiOut="0" pluginSilenceInIsSilenceOut="1"
-              pluginEditorRequiresKeys="0" pluginAUExportPrefix="SignalizerAU"
-              pluginRTASCategory="" aaxIdentifier="com.yourcompany.Signalizer"
-              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="3.1.0"
-              companyName="Lightbridge" companyWebsite="www.jthorborg.com"
-              companyEmail="janustl@outlook.com">
+<JUCERPROJECT id="rfToVS" name="Signalizer" projectType="audioplug" version="0.5.0"
+              bundleIdentifier="com.Lightbridge.Signalizer" includeBinaryInAppConfig="0"
+              buildVST="1" buildVST3="1" buildAU="1" buildRTAS="0" buildAAX="0"
+              pluginName="Signalizer" pluginDesc="Inspect and visualize audio"
+              pluginManufacturer="Lightbridge" pluginManufacturerEmail="support@yourcompany.com"
+              pluginManufacturerCode="LbJt" pluginCode="Sign" pluginChannelConfigs="{1, 1}, {2, 2}"
+              pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
+              pluginSilenceInIsSilenceOut="1" pluginEditorRequiresKeys="0"
+              pluginAUExportPrefix="SignalizerAU" pluginRTASCategory="" aaxIdentifier="com.Lightbridge.Signalizer"
+              pluginAAXCategory="8192" companyName="Lightbridge" companyWebsite="www.jthorborg.com"
+              companyEmail="contact@jthorborg.com" pluginFormats="buildAU,buildVST,buildVST3"
+              buildAUv3="0" buildStandalone="0" enableIAA="0" pluginVST3Category="Analyzer"
+              lv2Uri="https://jthorborg.com/index.html?ipage=signalizer" jucerFormatVersion="1"
+              headerPath="External/cpl">
   <MAINGROUP id="UevfpR" name="Signalizer">
-    <GROUP id="{962A2C62-1C34-AA7B-7D5E-E81341FACD19}" name="Source">
-      <FILE id="Nu6QzX" name="PluginProcessor.cpp" compile="1" resource="0"
-            file="Source/PluginProcessor.cpp"/>
-      <FILE id="HKDzdg" name="PluginProcessor.h" compile="0" resource="0"
-            file="Source/PluginProcessor.h"/>
-      <FILE id="p8ZSbE" name="PluginEditor.cpp" compile="1" resource="0"
-            file="Source/PluginEditor.cpp"/>
-      <FILE id="eYNEob" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+    <GROUP id="{A9545CFA-DE33-D8B7-6C48-79AE135732F4}" name="cpl">
+      <FILE id="VEVYI6" name="CPLSource.cpp" compile="1" resource="0" file="External/cpl/CPLSource.cpp"/>
     </GROUP>
+    <GROUP id="{6F2B356C-ADF0-310A-AD0E-F7DE1CCF4AC4}" name="Common">
+      <FILE id="TQx5Y1" name="CommonSignalizer.cpp" compile="1" resource="0"
+            file="Source/Common/CommonSignalizer.cpp"/>
+      <FILE id="l3DVFm" name="CommonSignalizer.h" compile="0" resource="0"
+            file="Source/Common/CommonSignalizer.h"/>
+      <FILE id="HmHzgw" name="ConcurrentConfig.h" compile="0" resource="0"
+            file="Source/Common/ConcurrentConfig.h"/>
+      <FILE id="E95GQS" name="HostGraph.cpp" compile="1" resource="0" file="Source/Common/HostGraph.cpp"/>
+      <FILE id="CdsyCS" name="HostGraph.h" compile="0" resource="0" file="Source/Common/HostGraph.h"/>
+      <FILE id="LEFeDg" name="MixGraphListener.cpp" compile="1" resource="0"
+            file="Source/Common/MixGraphListener.cpp"/>
+      <FILE id="JdpW5Y" name="MixGraphListener.h" compile="0" resource="0"
+            file="Source/Common/MixGraphListener.h"/>
+      <FILE id="ph7qY3" name="SentientViewState.h" compile="0" resource="0"
+            file="Source/Common/SentientViewState.h"/>
+      <FILE id="rEFUgJ" name="SharedBehaviour.h" compile="0" resource="0"
+            file="Source/Common/SharedBehaviour.h"/>
+      <FILE id="unKDjA" name="SignalizerDesign.cpp" compile="1" resource="0"
+            file="Source/Common/SignalizerDesign.cpp"/>
+      <FILE id="Tz26xB" name="SignalizerDesign.h" compile="0" resource="0"
+            file="Source/Common/SignalizerDesign.h"/>
+    </GROUP>
+    <GROUP id="{C0CB48B6-9284-4BE4-BFF4-AF775F470311}" name="Config">
+      <FILE id="P886Zp" name="SignalizerConfiguration.h" compile="0" resource="0"
+            file="Source/Config/SignalizerConfiguration.h"/>
+    </GROUP>
+    <GROUP id="{624774DF-1195-1158-4F7C-670989A6920C}" name="Editor">
+      <FILE id="LRCPoq" name="GraphEditor.cpp" compile="1" resource="0" file="Source/Editor/GraphEditor.cpp"/>
+      <FILE id="PColoF" name="GraphEditor.h" compile="0" resource="0" file="Source/Editor/GraphEditor.h"/>
+      <FILE id="G3Hzx1" name="MainEditor.cpp" compile="1" resource="0" file="Source/Editor/MainEditor.cpp"/>
+      <FILE id="QNbBSU" name="MainEditor.h" compile="0" resource="0" file="Source/Editor/MainEditor.h"/>
+    </GROUP>
+    <GROUP id="{FF2129D8-DD41-3995-B24F-FCE9B4E6B16C}" name="Notes">
+      <FILE id="ZiVf7p" name="Bugs.txt" compile="0" resource="0" file="Source/Notes/Bugs.txt"/>
+    </GROUP>
+    <GROUP id="{7049AEF5-9362-E35B-098A-FE94006CAD94}" name="Oscilloscope">
+      <FILE id="SnBRHE" name="ChannelData.h" compile="0" resource="0" file="Source/Oscilloscope/ChannelData.h"/>
+      <FILE id="XgAtdZ" name="Oscilloscope.cpp" compile="1" resource="0"
+            file="Source/Oscilloscope/Oscilloscope.cpp"/>
+      <FILE id="QP9PDy" name="Oscilloscope.h" compile="0" resource="0" file="Source/Oscilloscope/Oscilloscope.h"/>
+      <FILE id="nAE8aO" name="OscilloscopeController.cpp" compile="1" resource="0"
+            file="Source/Oscilloscope/OscilloscopeController.cpp"/>
+      <FILE id="PWIcPB" name="OscilloscopeDSP.inl" compile="0" resource="0"
+            file="Source/Oscilloscope/OscilloscopeDSP.inl"/>
+      <FILE id="VR4KLP" name="OscilloscopeParameters.h" compile="0" resource="0"
+            file="Source/Oscilloscope/OscilloscopeParameters.h"/>
+      <FILE id="yCRURu" name="OscilloscopeRendering.cpp" compile="1" resource="0"
+            file="Source/Oscilloscope/OscilloscopeRendering.cpp"/>
+      <FILE id="vzgCFd" name="SampleColourEvaluators.h" compile="0" resource="0"
+            file="Source/Oscilloscope/SampleColourEvaluators.h"/>
+      <FILE id="s0NCVr" name="StreamPreprocessing.h" compile="0" resource="0"
+            file="Source/Oscilloscope/StreamPreprocessing.h"/>
+    </GROUP>
+    <GROUP id="{95F8B9E9-E38B-A451-53BC-68EB0D086663}" name="Processor">
+      <FILE id="AAPZWL" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/Processor/PluginProcessor.cpp"/>
+      <FILE id="JxQ0QQ" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/Processor/PluginProcessor.h"/>
+    </GROUP>
+    <GROUP id="{BB993492-7736-4F3B-C8DF-3D1066ED0E13}" name="Spectrum">
+      <FILE id="tYCAnf" name="Spectrum.cpp" compile="1" resource="0" file="Source/Spectrum/Spectrum.cpp"/>
+      <FILE id="OIHG0y" name="Spectrum.h" compile="0" resource="0" file="Source/Spectrum/Spectrum.h"/>
+      <FILE id="uS2XAD" name="SpectrumController.cpp" compile="1" resource="0"
+            file="Source/Spectrum/SpectrumController.cpp"/>
+      <FILE id="YJt5kI" name="SpectrumDSP.cpp" compile="1" resource="0" file="Source/Spectrum/SpectrumDSP.cpp"/>
+      <FILE id="QRLizL" name="SpectrumParameters.h" compile="0" resource="0"
+            file="Source/Spectrum/SpectrumParameters.h"/>
+      <FILE id="dcFJ8R" name="SpectrumRendering.cpp" compile="1" resource="0"
+            file="Source/Spectrum/SpectrumRendering.cpp"/>
+      <FILE id="u8Iwed" name="TransformConstant.h" compile="0" resource="0"
+            file="Source/Spectrum/TransformConstant.h"/>
+      <FILE id="y6tnlC" name="TransformDSP.inl" compile="0" resource="0"
+            file="Source/Spectrum/TransformDSP.inl"/>
+      <FILE id="O5fPCA" name="TransformPair.h" compile="0" resource="0" file="Source/Spectrum/TransformPair.h"/>
+    </GROUP>
+    <GROUP id="{4B661BAC-9630-9F7C-C968-0F3F2B1E01A8}" name="Unity">
+      <FILE id="m3oLjT" name="SignalizerSource.cpp" compile="0" resource="0"
+            file="Source/Unity/SignalizerSource.cpp"/>
+    </GROUP>
+    <GROUP id="{0D4FE1F2-1492-3245-8F13-D12718267371}" name="Vectorscope">
+      <FILE id="mzCWzi" name="Vectorscope.cpp" compile="1" resource="0" file="Source/Vectorscope/Vectorscope.cpp"/>
+      <FILE id="hF4HM1" name="Vectorscope.h" compile="0" resource="0" file="Source/Vectorscope/Vectorscope.h"/>
+      <FILE id="TePXfi" name="VectorscopeController.cpp" compile="1" resource="0"
+            file="Source/Vectorscope/VectorscopeController.cpp"/>
+      <FILE id="RhjrlT" name="VectorscopeParameters.h" compile="0" resource="0"
+            file="Source/Vectorscope/VectorscopeParameters.h"/>
+      <FILE id="TYByVQ" name="VectorscopeRendering.cpp" compile="1" resource="0"
+            file="Source/Vectorscope/VectorscopeRendering.cpp"/>
+    </GROUP>
+    <FILE id="ESfnHo" name="Signalizer.h" compile="0" resource="0" file="Source/Signalizer.h"/>
+    <FILE id="SGRZHx" name="version.h" compile="0" resource="0" file="Source/version.h"/>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX">
+    <XCODE_MAC targetFolder="Builds/MacOSX" vstLegacyFolder="../SDKs/vstsdk2.4">
       <CONFIGURATIONS>
-        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
-                       isDebug="1" optimisation="1" targetName="Signalizer"/>
-        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" osxArchitecture="default"
-                       isDebug="0" optimisation="2" targetName="Signalizer"/>
+        <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" isDebug="1"
+                       optimisation="1" targetName="Signalizer" fastMath="1"/>
+        <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" isDebug="0"
+                       optimisation="2" targetName="Signalizer" fastMath="1" stripLocalSymbols="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="../SDKs/juce/modules"/>
@@ -39,7 +126,6 @@
         <MODULEPATH id="juce_gui_basics" path="../SDKs/juce/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../SDKs/juce/modules"/>
         <MODULEPATH id="juce_cryptography" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_video" path="../SDKs/juce/modules"/>
         <MODULEPATH id="juce_opengl" path="../SDKs/juce/modules"/>
         <MODULEPATH id="juce_audio_basics" path="../SDKs/juce/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../SDKs/juce/modules"/>
@@ -48,6 +134,50 @@
         <MODULEPATH id="juce_audio_plugin_client" path="../SDKs/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
+    <VS2022 targetFolder="Builds/VisualStudio2022" vstLegacyFolder="../SDKs/vstsdk2.4">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" fastMath="1" enablePluginBinaryCopyStep="1"
+                       vstBinaryLocation_x64="C:\Audio\VSTPlugins"/>
+        <CONFIGURATION isDebug="0" name="Release" fastMath="1" useRuntimeLibDLL="0"
+                       enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../juce"/>
+        <MODULEPATH id="juce_audio_devices" path="../../juce"/>
+        <MODULEPATH id="juce_audio_formats" path="../../juce"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../juce"/>
+        <MODULEPATH id="juce_audio_processors" path="../../juce"/>
+        <MODULEPATH id="juce_core" path="../../juce"/>
+        <MODULEPATH id="juce_cryptography" path="../../juce"/>
+        <MODULEPATH id="juce_data_structures" path="../../juce"/>
+        <MODULEPATH id="juce_events" path="../../juce"/>
+        <MODULEPATH id="juce_graphics" path="../../juce"/>
+        <MODULEPATH id="juce_gui_basics" path="../../juce"/>
+        <MODULEPATH id="juce_gui_extra" path="../../juce"/>
+        <MODULEPATH id="juce_opengl" path="../../juce"/>
+      </MODULEPATHS>
+    </VS2022>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../juce"/>
+        <MODULEPATH id="juce_audio_devices" path="../../juce"/>
+        <MODULEPATH id="juce_audio_formats" path="../../juce"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../juce"/>
+        <MODULEPATH id="juce_audio_processors" path="../../juce"/>
+        <MODULEPATH id="juce_core" path="../../juce"/>
+        <MODULEPATH id="juce_cryptography" path="../../juce"/>
+        <MODULEPATH id="juce_data_structures" path="../../juce"/>
+        <MODULEPATH id="juce_events" path="../../juce"/>
+        <MODULEPATH id="juce_graphics" path="../../juce"/>
+        <MODULEPATH id="juce_gui_basics" path="../../juce"/>
+        <MODULEPATH id="juce_gui_extra" path="../../juce"/>
+        <MODULEPATH id="juce_opengl" path="../../juce"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
   </EXPORTFORMATS>
   <MODULES>
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="1"/>
@@ -63,7 +193,6 @@
     <MODULES id="juce_gui_basics" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_gui_extra" showAllCode="1" useLocalCopy="1"/>
     <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_video" showAllCode="1" useLocalCopy="1"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_QUICKTIME="disabled"/>
+  <JUCEOPTIONS JUCE_QUICKTIME="0"/>
 </JUCERPROJECT>
