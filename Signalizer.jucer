@@ -13,10 +13,23 @@
               companyEmail="contact@jthorborg.com" pluginFormats="buildAU,buildVST,buildVST3"
               buildAUv3="0" buildStandalone="0" enableIAA="0" pluginVST3Category="Analyzer"
               lv2Uri="https://jthorborg.com/index.html?ipage=signalizer" jucerFormatVersion="1"
-              headerPath="External/cpl">
+              headerPath="../../External&#10;../../Source&#10;../../Source/Config">
   <MAINGROUP id="UevfpR" name="Signalizer">
-    <GROUP id="{A9545CFA-DE33-D8B7-6C48-79AE135732F4}" name="cpl">
-      <FILE id="VEVYI6" name="CPLSource.cpp" compile="1" resource="0" file="External/cpl/CPLSource.cpp"/>
+    <GROUP id="{476E0AFE-C373-E089-79D2-4CB200759D8D}" name="Build">
+      <FILE id="klmFDx" name="build_linux.py" compile="0" resource="0" file="Make/build_linux.py"/>
+      <FILE id="van5qI" name="build_osx.py" compile="0" resource="0" file="Make/build_osx.py"/>
+      <FILE id="Acp04N" name="build_win.py" compile="0" resource="0" file="Make/build_win.py"/>
+      <FILE id="xw8gZm" name="common.py" compile="0" resource="0" file="Make/common.py"/>
+      <FILE id="so0jmk" name="config.ini" compile="0" resource="0" file="Make/config.ini"/>
+      <FILE id="jtjZJ2" name="LinuxInstructions.txt" compile="0" resource="0"
+            file="Make/LinuxInstructions.txt"/>
+      <FILE id="wULr24" name="macos_installation_advice.txt" compile="0"
+            resource="0" file="Make/macos_installation_advice.txt"/>
+      <FILE id="Xr2isx" name="Modern Xcode instructions.txt" compile="0"
+            resource="0" file="Make/Modern Xcode instructions.txt"/>
+      <FILE id="NJPDqg" name="vscompile.bat" compile="0" resource="0" file="Make/vscompile.bat"/>
+      <FILE id="fUhex1" name="windows_installation_advice.txt" compile="0"
+            resource="0" file="Make/windows_installation_advice.txt"/>
     </GROUP>
     <GROUP id="{6F2B356C-ADF0-310A-AD0E-F7DE1CCF4AC4}" name="Common">
       <FILE id="TQx5Y1" name="CommonSignalizer.cpp" compile="1" resource="0"
@@ -49,9 +62,6 @@
       <FILE id="PColoF" name="GraphEditor.h" compile="0" resource="0" file="Source/Editor/GraphEditor.h"/>
       <FILE id="G3Hzx1" name="MainEditor.cpp" compile="1" resource="0" file="Source/Editor/MainEditor.cpp"/>
       <FILE id="QNbBSU" name="MainEditor.h" compile="0" resource="0" file="Source/Editor/MainEditor.h"/>
-    </GROUP>
-    <GROUP id="{FF2129D8-DD41-3995-B24F-FCE9B4E6B16C}" name="Notes">
-      <FILE id="ZiVf7p" name="Bugs.txt" compile="0" resource="0" file="Source/Notes/Bugs.txt"/>
     </GROUP>
     <GROUP id="{7049AEF5-9362-E35B-098A-FE94006CAD94}" name="Oscilloscope">
       <FILE id="SnBRHE" name="ChannelData.h" compile="0" resource="0" file="Source/Oscilloscope/ChannelData.h"/>
@@ -93,10 +103,6 @@
             file="Source/Spectrum/TransformDSP.inl"/>
       <FILE id="O5fPCA" name="TransformPair.h" compile="0" resource="0" file="Source/Spectrum/TransformPair.h"/>
     </GROUP>
-    <GROUP id="{4B661BAC-9630-9F7C-C968-0F3F2B1E01A8}" name="Unity">
-      <FILE id="m3oLjT" name="SignalizerSource.cpp" compile="0" resource="0"
-            file="Source/Unity/SignalizerSource.cpp"/>
-    </GROUP>
     <GROUP id="{0D4FE1F2-1492-3245-8F13-D12718267371}" name="Vectorscope">
       <FILE id="mzCWzi" name="Vectorscope.cpp" compile="1" resource="0" file="Source/Vectorscope/Vectorscope.cpp"/>
       <FILE id="hF4HM1" name="Vectorscope.h" compile="0" resource="0" file="Source/Vectorscope/Vectorscope.h"/>
@@ -106,6 +112,471 @@
             file="Source/Vectorscope/VectorscopeParameters.h"/>
       <FILE id="TYByVQ" name="VectorscopeRendering.cpp" compile="1" resource="0"
             file="Source/Vectorscope/VectorscopeRendering.cpp"/>
+    </GROUP>
+    <GROUP id="{A9545CFA-DE33-D8B7-6C48-79AE135732F4}" name="cpl">
+      <GROUP id="{4AACA934-8BF5-1F76-92D4-8860EF369A8D}" name="octave">
+        <GROUP id="{BAB811F8-7608-56B0-E83B-D76714B39B24}" name="signal">
+          <FILE id="X4l8Bd" name="__ultrwin__.cc" compile="0" resource="0" file="External/cpl/octave/signal/__ultrwin__.cc"/>
+          <FILE id="cv8Jsk" name="octave_signal.cpp" compile="0" resource="0"
+                file="External/cpl/octave/signal/octave_signal.cpp"/>
+          <FILE id="M0rurV" name="octave_signal.h" compile="0" resource="0" file="External/cpl/octave/signal/octave_signal.h"/>
+          <FILE id="h6wexF" name="octave_signal_ultrawin.cpp" compile="0" resource="0"
+                file="External/cpl/octave/signal/octave_signal_ultrawin.cpp"/>
+          <FILE id="zICrGi" name="octave_signal_ultrawin.h" compile="0" resource="0"
+                file="External/cpl/octave/signal/octave_signal_ultrawin.h"/>
+        </GROUP>
+        <FILE id="tsNWcY" name="octave_all.cpp" compile="0" resource="0" file="External/cpl/octave/octave_all.cpp"/>
+        <FILE id="pdcHeC" name="octave_all.h" compile="0" resource="0" file="External/cpl/octave/octave_all.h"/>
+      </GROUP>
+      <GROUP id="{9B2CDF2A-D74D-9EBF-5AFA-D815102F78B9}" name="process">
+        <FILE id="wjGbCM" name="Args.h" compile="0" resource="0" file="External/cpl/process/Args.h"/>
+        <FILE id="ek03Xk" name="Env.h" compile="0" resource="0" file="External/cpl/process/Env.h"/>
+        <FILE id="mMzu5m" name="Process.cpp" compile="0" resource="0" file="External/cpl/process/Process.cpp"/>
+        <FILE id="uZINOf" name="ProcessUnix.cpp" compile="0" resource="0" file="External/cpl/process/ProcessUnix.cpp"/>
+        <FILE id="oVt0zE" name="ProcessUtil.h" compile="0" resource="0" file="External/cpl/process/ProcessUtil.h"/>
+        <FILE id="CH1hR2" name="ProcessWindows.cpp" compile="0" resource="0"
+              file="External/cpl/process/ProcessWindows.cpp"/>
+      </GROUP>
+      <GROUP id="{A14816CC-7BCE-2843-0932-F9F33936BF31}" name="rendering">
+        <FILE id="mCQ6xt" name="CCircularOpenGLImage.h" compile="0" resource="0"
+              file="External/cpl/rendering/CCircularOpenGLImage.h"/>
+        <FILE id="JeMzLh" name="CDisplaySetup.cpp" compile="0" resource="0"
+              file="External/cpl/rendering/CDisplaySetup.cpp"/>
+        <FILE id="q5xHcl" name="CDisplaySetup.h" compile="0" resource="0" file="External/cpl/rendering/CDisplaySetup.h"/>
+        <FILE id="mk88Og" name="COpenGLImage.h" compile="0" resource="0" file="External/cpl/rendering/COpenGLImage.h"/>
+        <FILE id="P41aMK" name="CSubpixelScanlineRenderer.h" compile="0" resource="0"
+              file="External/cpl/rendering/CSubpixelScanlineRenderer.h"/>
+        <FILE id="FvD1Qz" name="CSubpixelSoftwareGraphics.cpp" compile="0"
+              resource="0" file="External/cpl/rendering/CSubpixelSoftwareGraphics.cpp"/>
+        <FILE id="txGPzO" name="CSubpixelSoftwareGraphics.h" compile="0" resource="0"
+              file="External/cpl/rendering/CSubpixelSoftwareGraphics.h"/>
+        <FILE id="jaGls4" name="DisplayOrientation.h" compile="0" resource="0"
+              file="External/cpl/rendering/DisplayOrientation.h"/>
+        <FILE id="JBfFMr" name="DisplayOrientationAndroid.cpp" compile="0"
+              resource="0" file="External/cpl/rendering/DisplayOrientationAndroid.cpp"/>
+        <FILE id="PTc8aJ" name="DisplayOrientationIOS.cpp" compile="0" resource="0"
+              file="External/cpl/rendering/DisplayOrientationIOS.cpp"/>
+        <FILE id="RavPZ6" name="DisplayOrientationLinux.cpp" compile="0" resource="0"
+              file="External/cpl/rendering/DisplayOrientationLinux.cpp"/>
+        <FILE id="T6uCq2" name="DisplayOrientationMac.cpp" compile="0" resource="0"
+              file="External/cpl/rendering/DisplayOrientationMac.cpp"/>
+        <FILE id="K5p0v4" name="DisplayOrientationWindows.cpp" compile="0"
+              resource="0" file="External/cpl/rendering/DisplayOrientationWindows.cpp"/>
+        <FILE id="VADByR" name="Graphics.h" compile="0" resource="0" file="External/cpl/rendering/Graphics.h"/>
+        <FILE id="oDwdTs" name="OpenGLRasterizers.h" compile="0" resource="0"
+              file="External/cpl/rendering/OpenGLRasterizers.h"/>
+        <FILE id="JXYzNw" name="OpenGLRendering.h" compile="0" resource="0"
+              file="External/cpl/rendering/OpenGLRendering.h"/>
+        <FILE id="EDXDIC" name="SubpixelRendering.h" compile="0" resource="0"
+              file="External/cpl/rendering/SubpixelRendering.h"/>
+      </GROUP>
+      <GROUP id="{9B4F426C-F92B-3A6C-C940-0C6DEDCA7F08}" name="simd">
+        <FILE id="nc1kIl" name="simd_cast.h" compile="0" resource="0" file="External/cpl/simd/simd_cast.h"/>
+        <FILE id="owN3z9" name="simd_consts.cpp" compile="0" resource="0" file="External/cpl/simd/simd_consts.cpp"/>
+        <FILE id="gNA9aT" name="simd_consts.h" compile="0" resource="0" file="External/cpl/simd/simd_consts.h"/>
+        <FILE id="i8h0wo" name="simd_interface.h" compile="0" resource="0"
+              file="External/cpl/simd/simd_interface.h"/>
+        <FILE id="keOEQ9" name="simd_isa.h" compile="0" resource="0" file="External/cpl/simd/simd_isa.h"/>
+        <FILE id="zFr7Kv" name="simd_math.h" compile="0" resource="0" file="External/cpl/simd/simd_math.h"/>
+        <FILE id="dkLKf4" name="simd_traits.h" compile="0" resource="0" file="External/cpl/simd/simd_traits.h"/>
+      </GROUP>
+      <GROUP id="{9C64E064-3E22-E915-A9BD-7E34F60D0161}" name="special">
+        <FILE id="B4u9NR" name="AxisTools.h" compile="0" resource="0" file="External/cpl/special/AxisTools.h"/>
+        <FILE id="rTA1OX" name="DBMeterAxis.h" compile="0" resource="0" file="External/cpl/special/DBMeterAxis.h"/>
+        <FILE id="DUFxox" name="FrequencyAxis.h" compile="0" resource="0" file="External/cpl/special/FrequencyAxis.h"/>
+      </GROUP>
+      <GROUP id="{F48710E3-6567-7717-9121-317D3F5F0EC4}" name="state">
+        <FILE id="AcqGH0" name="CSerializer.cpp" compile="0" resource="0" file="External/cpl/state/CSerializer.cpp"/>
+        <FILE id="qZGLui" name="CSerializer.h" compile="0" resource="0" file="External/cpl/state/CSerializer.h"/>
+        <FILE id="oZdOJw" name="DecoupledStateObject.h" compile="0" resource="0"
+              file="External/cpl/state/DecoupledStateObject.h"/>
+        <FILE id="ybQcyD" name="SafeSerializableObject.cpp" compile="0" resource="0"
+              file="External/cpl/state/SafeSerializableObject.cpp"/>
+        <FILE id="gfgdjG" name="SafeSerializableObject.h" compile="0" resource="0"
+              file="External/cpl/state/SafeSerializableObject.h"/>
+        <FILE id="J4YUAR" name="Serialization.h" compile="0" resource="0" file="External/cpl/state/Serialization.h"/>
+        <FILE id="BbZ8GM" name="SerializerModifiers.h" compile="0" resource="0"
+              file="External/cpl/state/SerializerModifiers.h"/>
+        <FILE id="x9QVJX" name="State.cpp" compile="0" resource="0" file="External/cpl/state/State.cpp"/>
+      </GROUP>
+      <GROUP id="{69049950-B7CA-51C0-92DD-23864F1688CD}" name="system">
+        <FILE id="rqczEI" name="CPlistEditor.h" compile="0" resource="0" file="External/cpl/system/CPlistEditor.h"/>
+        <FILE id="emEifH" name="CRsrcEditor.h" compile="0" resource="0" file="External/cpl/system/CRsrcEditor.h"/>
+        <FILE id="yNKd6g" name="InstructionSet.cpp" compile="0" resource="0"
+              file="External/cpl/system/InstructionSet.cpp"/>
+        <FILE id="gTvnSR" name="InstructionSet.h" compile="0" resource="0"
+              file="External/cpl/system/InstructionSet.h"/>
+        <FILE id="MvVTPj" name="SysStats.h" compile="0" resource="0" file="External/cpl/system/SysStats.h"/>
+        <FILE id="FuoHhl" name="System.cpp" compile="0" resource="0" file="External/cpl/system/System.cpp"/>
+      </GROUP>
+      <FILE id="hFmvtj" name="Aliases.h" compile="0" resource="0" file="External/cpl/Aliases.h"/>
+      <FILE id="erqx1W" name="AtomicCompability.h" compile="0" resource="0"
+            file="External/cpl/AtomicCompability.h"/>
+      <FILE id="nTqpaR" name="AudioStream.cpp" compile="0" resource="0" file="External/cpl/AudioStream.cpp"/>
+      <FILE id="XbfStd" name="AudioStream.h" compile="0" resource="0" file="External/cpl/AudioStream.h"/>
+      <FILE id="F1ZhI2" name="AudioStream.inl" compile="0" resource="0" file="External/cpl/AudioStream.inl"/>
+      <FILE id="wwAEj9" name="CExclusiveFile.cpp" compile="0" resource="0"
+            file="External/cpl/CExclusiveFile.cpp"/>
+      <FILE id="PcHiP3" name="CExclusiveFile.h" compile="0" resource="0"
+            file="External/cpl/CExclusiveFile.h"/>
+      <FILE id="foBxvv" name="CModule.cpp" compile="0" resource="0" file="External/cpl/CModule.cpp"/>
+      <FILE id="zEDVFj" name="CModule.h" compile="0" resource="0" file="External/cpl/CModule.h"/>
+      <FILE id="omhTHj" name="CMutex.cpp" compile="0" resource="0" file="External/cpl/CMutex.cpp"/>
+      <FILE id="gvvLyj" name="CMutex.h" compile="0" resource="0" file="External/cpl/CMutex.h"/>
+      <FILE id="arttTM" name="Common.h" compile="0" resource="0" file="External/cpl/Common.h"/>
+      <FILE id="aT5StO" name="ConcurrentServices.h" compile="0" resource="0"
+            file="External/cpl/ConcurrentServices.h"/>
+      <FILE id="D4DcNA" name="Core.h" compile="0" resource="0" file="External/cpl/Core.h"/>
+      <FILE id="VEVYI6" name="CPLSource.cpp" compile="1" resource="0" file="External/cpl/CPLSource.cpp"/>
+      <FILE id="CvvhX4" name="CPLTests.cpp" compile="0" resource="0" file="External/cpl/CPLTests.cpp"/>
+      <FILE id="f4n53p" name="CPLTests.h" compile="0" resource="0" file="External/cpl/CPLTests.h"/>
+      <FILE id="FSR3qG" name="CPresetManager.cpp" compile="0" resource="0"
+            file="External/cpl/CPresetManager.cpp"/>
+      <FILE id="TXauw5" name="CPresetManager.h" compile="0" resource="0"
+            file="External/cpl/CPresetManager.h"/>
+      <FILE id="avGBwl" name="CProcessorTimer.h" compile="0" resource="0"
+            file="External/cpl/CProcessorTimer.h"/>
+      <FILE id="SEoUeG" name="CThread.h" compile="0" resource="0" file="External/cpl/CThread.h"/>
+      <FILE id="W46YqF" name="CTimer.cpp" compile="0" resource="0" file="External/cpl/CTimer.cpp"/>
+      <FILE id="g0i5Mi" name="CTimer.h" compile="0" resource="0" file="External/cpl/CTimer.h"/>
+      <FILE id="cp2T7o" name="dsp.h" compile="0" resource="0" file="External/cpl/dsp.h"/>
+      <FILE id="S4XO25" name="Exceptions.cpp" compile="0" resource="0" file="External/cpl/Exceptions.cpp"/>
+      <FILE id="Ruc3R2" name="Exceptions.h" compile="0" resource="0" file="External/cpl/Exceptions.h"/>
+      <FILE id="n1BW3L" name="ffts.h" compile="0" resource="0" file="External/cpl/ffts.h"/>
+      <FILE id="BqFGxU" name="filesystem.h" compile="0" resource="0" file="External/cpl/filesystem.h"/>
+      <FILE id="D7Zis8" name="intrintypes.h" compile="0" resource="0" file="External/cpl/intrintypes.h"/>
+      <FILE id="BeDhmO" name="JobSystem.cpp" compile="0" resource="0" file="External/cpl/JobSystem.cpp"/>
+      <FILE id="CiE7jl" name="JobSystem.h" compile="0" resource="0" file="External/cpl/JobSystem.h"/>
+      <FILE id="utS4du" name="LexicalConversion.h" compile="0" resource="0"
+            file="External/cpl/LexicalConversion.h"/>
+      <FILE id="P5VyWM" name="LibraryOptions.h" compile="0" resource="0"
+            file="External/cpl/LibraryOptions.h"/>
+      <FILE id="ZgMywg" name="MacroConstants.h" compile="0" resource="0"
+            file="External/cpl/MacroConstants.h"/>
+      <FILE id="W55KhG" name="MacSupport.h" compile="0" resource="0" file="External/cpl/MacSupport.h"/>
+      <FILE id="KhPTGR" name="MacSupport.mm" compile="0" resource="0" file="External/cpl/MacSupport.mm"/>
+      <FILE id="d2E02p" name="Mathext.h" compile="0" resource="0" file="External/cpl/Mathext.h"/>
+      <FILE id="S3DIE2" name="Misc.cpp" compile="0" resource="0" file="External/cpl/Misc.cpp"/>
+      <FILE id="q4G3td" name="Misc.h" compile="0" resource="0" file="External/cpl/Misc.h"/>
+      <FILE id="GPogTF" name="PlatformSpecific.h" compile="0" resource="0"
+            file="External/cpl/PlatformSpecific.h"/>
+      <FILE id="lBRshf" name="Process.h" compile="0" resource="0" file="External/cpl/Process.h"/>
+      <FILE id="qFzwnM" name="ProgramInfo.h" compile="0" resource="0" file="External/cpl/ProgramInfo.h"/>
+      <FILE id="LRruh8" name="ProgramVersion.h" compile="0" resource="0"
+            file="External/cpl/ProgramVersion.h"/>
+      <FILE id="whJfwY" name="Protected.cpp" compile="0" resource="0" file="External/cpl/Protected.cpp"/>
+      <FILE id="cuUc3R" name="Protected.h" compile="0" resource="0" file="External/cpl/Protected.h"/>
+      <FILE id="Cnu3Ng" name="Resources.cpp" compile="0" resource="0" file="External/cpl/Resources.cpp"/>
+      <FILE id="zG6UXb" name="Resources.h" compile="0" resource="0" file="External/cpl/Resources.h"/>
+      <FILE id="aMCfzA" name="shared_mutex.h" compile="0" resource="0" file="External/cpl/shared_mutex.h"/>
+      <FILE id="cBfnqp" name="SigMathImp.cpp" compile="0" resource="0" file="External/cpl/SigMathImp.cpp"/>
+      <FILE id="uoYV4p" name="simd.h" compile="0" resource="0" file="External/cpl/simd.h"/>
+      <FILE id="I5bnTU" name="stdext.cpp" compile="0" resource="0" file="External/cpl/stdext.cpp"/>
+      <FILE id="HLJeIE" name="stdext.h" compile="0" resource="0" file="External/cpl/stdext.h"/>
+      <FILE id="kTJcrq" name="Types.h" compile="0" resource="0" file="External/cpl/Types.h"/>
+      <FILE id="nkdMOm" name="Utility.h" compile="0" resource="0" file="External/cpl/Utility.h"/>
+      <GROUP id="{7C12F426-DB6C-0C19-4215-69205B306746}" name="dsp">
+        <GROUP id="{5F353E9C-1421-F27E-7CE7-F73C20C8B2CA}" name="filters">
+          <FILE id="Qef0zm" name="AC_SVF.h" compile="0" resource="0" file="External/cpl/dsp/filters/AC_SVF.h"/>
+          <FILE id="jrPCmx" name="Allpass.h" compile="0" resource="0" file="External/cpl/dsp/filters/Allpass.h"/>
+          <FILE id="BoMCCT" name="FilterBasics.h" compile="0" resource="0" file="External/cpl/dsp/filters/FilterBasics.h"/>
+          <FILE id="GuGLS0" name="OnePole.h" compile="0" resource="0" file="External/cpl/dsp/filters/OnePole.h"/>
+        </GROUP>
+        <FILE id="xu6XpM" name="CComplexResonator.h" compile="0" resource="0"
+              file="External/cpl/dsp/CComplexResonator.h"/>
+        <FILE id="REcj2n" name="ChannelMatrix.h" compile="0" resource="0" file="External/cpl/dsp/ChannelMatrix.h"/>
+        <FILE id="g6RtoY" name="CPeakFilter.h" compile="0" resource="0" file="External/cpl/dsp/CPeakFilter.h"/>
+        <FILE id="ENDIjH" name="CSignalTransform.h" compile="0" resource="0"
+              file="External/cpl/dsp/CSignalTransform.h"/>
+        <FILE id="KK1Ecp" name="CSignalTransform.inl" compile="0" resource="0"
+              file="External/cpl/dsp/CSignalTransform.inl"/>
+        <FILE id="WzCpRI" name="DSPWindows.h" compile="0" resource="0" file="External/cpl/dsp/DSPWindows.h"/>
+        <FILE id="ROU1UQ" name="IIRResonator.h" compile="0" resource="0" file="External/cpl/dsp/IIRResonator.h"/>
+        <FILE id="sYqyWb" name="LinkwitzRileyNetwork.h" compile="0" resource="0"
+              file="External/cpl/dsp/LinkwitzRileyNetwork.h"/>
+        <FILE id="JdM0Mc" name="mqdft.inl" compile="0" resource="0" file="External/cpl/dsp/mqdft.inl"/>
+        <FILE id="wGLsV4" name="OnePoleNetwork.h" compile="0" resource="0"
+              file="External/cpl/dsp/OnePoleNetwork.h"/>
+        <FILE id="VqB0Jv" name="SDFTSystem.h" compile="0" resource="0" file="External/cpl/dsp/SDFTSystem.h"/>
+        <FILE id="gw9SUv" name="SignalSanitizer.h" compile="0" resource="0"
+              file="External/cpl/dsp/SignalSanitizer.h"/>
+        <FILE id="mvnwPF" name="SmoothedParameterState.h" compile="0" resource="0"
+              file="External/cpl/dsp/SmoothedParameterState.h"/>
+      </GROUP>
+      <GROUP id="{07310837-A751-8DA8-49E9-76ACDDE425C2}" name="external">
+        <GROUP id="{52DE032E-8A37-6587-AAF4-51D469109443}" name="filesystem">
+          <GROUP id="{DFE1D69C-1142-9B7C-93A0-4DDA3DEA2075}" name="cmake">
+            <FILE id="KafZhY" name="config.cmake.in" compile="0" resource="0" file="External/cpl/external/filesystem/cmake/config.cmake.in"/>
+            <FILE id="hfCFZF" name="GhcHelper.cmake" compile="0" resource="0" file="External/cpl/external/filesystem/cmake/GhcHelper.cmake"/>
+          </GROUP>
+          <GROUP id="{398A7296-154C-315A-7C4F-337B4476B297}" name="examples">
+            <FILE id="MC5ek0" name="CMakeLists.txt" compile="0" resource="0" file="External/cpl/external/filesystem/examples/CMakeLists.txt"/>
+            <FILE id="JV4VK6" name="dir.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/examples/dir.cpp"/>
+            <FILE id="LTPmVs" name="du.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/examples/du.cpp"/>
+          </GROUP>
+          <GROUP id="{CC62F212-9093-2B19-55B8-768E54C93B9A}" name="include">
+            <GROUP id="{5290C70A-5025-E0F4-28F0-0574382360E2}" name="ghc">
+              <FILE id="eBiZhK" name="filesystem.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/filesystem.hpp"/>
+              <FILE id="BH11VU" name="fs_fwd.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/fs_fwd.hpp"/>
+              <FILE id="HwbtKg" name="fs_impl.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/fs_impl.hpp"/>
+              <FILE id="jAZOWM" name="fs_std.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/fs_std.hpp"/>
+              <FILE id="JkBzZ8" name="fs_std_fwd.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/fs_std_fwd.hpp"/>
+              <FILE id="Xtt3Tj" name="fs_std_impl.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/include/ghc/fs_std_impl.hpp"/>
+            </GROUP>
+          </GROUP>
+          <GROUP id="{10EC879E-AC1D-2DCC-FEDA-98F6274A7CE4}" name="test">
+            <GROUP id="{1C5EA1A7-B00C-4AE5-3BDD-F7073AFBE7D9}" name="cmake">
+              <FILE id="JzAzlN" name="ParseAndAddCatchTests.cmake" compile="0" resource="0"
+                    file="External/cpl/external/filesystem/test/cmake/ParseAndAddCatchTests.cmake"/>
+            </GROUP>
+            <FILE id="A93DKb" name="catch.hpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/catch.hpp"/>
+            <FILE id="SOTJs6" name="CMakeLists.txt" compile="0" resource="0" file="External/cpl/external/filesystem/test/CMakeLists.txt"/>
+            <FILE id="GZM8Aa" name="exception.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/exception.cpp"/>
+            <FILE id="kyh5G3" name="filesystem_test.cpp" compile="0" resource="0"
+                  file="External/cpl/external/filesystem/test/filesystem_test.cpp"/>
+            <FILE id="YBO2dI" name="fwd_test.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/fwd_test.cpp"/>
+            <FILE id="pRND5k" name="impl_test.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/impl_test.cpp"/>
+            <FILE id="ErQiwp" name="multi1.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/multi1.cpp"/>
+            <FILE id="vtwhm9" name="multi2.cpp" compile="0" resource="0" file="External/cpl/external/filesystem/test/multi2.cpp"/>
+          </GROUP>
+          <FILE id="R3iHaU" name="CMakeLists.txt" compile="0" resource="0" file="External/cpl/external/filesystem/CMakeLists.txt"/>
+          <FILE id="ColDnC" name="LICENSE" compile="0" resource="0" file="External/cpl/external/filesystem/LICENSE"/>
+          <FILE id="CWcuiZ" name="README.md" compile="0" resource="0" file="External/cpl/external/filesystem/README.md"/>
+        </GROUP>
+      </GROUP>
+      <GROUP id="{1D1B0547-C023-B204-B9CD-0F664E5C46FC}" name="ffts">
+        <GROUP id="{F4BCB998-CA62-B065-DE3B-EC7BF5023806}" name="pffft">
+          <GROUP id="{643CDF98-2B8B-0A39-9551-949B2AF35885}" name="simd">
+            <FILE id="IHyck6" name="pf_altivec_float.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_altivec_float.h"/>
+            <FILE id="ax73ux" name="pf_avx_double.h" compile="0" resource="0" file="External/cpl/ffts/pffft/simd/pf_avx_double.h"/>
+            <FILE id="U38Ow3" name="pf_double.h" compile="0" resource="0" file="External/cpl/ffts/pffft/simd/pf_double.h"/>
+            <FILE id="xq6uO4" name="pf_float.h" compile="0" resource="0" file="External/cpl/ffts/pffft/simd/pf_float.h"/>
+            <FILE id="ircbD0" name="pf_neon_double.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_neon_double.h"/>
+            <FILE id="P0f1Cp" name="pf_neon_double_from_avx.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_neon_double_from_avx.h"/>
+            <FILE id="Gq8NoP" name="pf_neon_float.h" compile="0" resource="0" file="External/cpl/ffts/pffft/simd/pf_neon_float.h"/>
+            <FILE id="n7QXRi" name="pf_scalar_double.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_scalar_double.h"/>
+            <FILE id="BaDWN9" name="pf_scalar_float.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_scalar_float.h"/>
+            <FILE id="I2Z2TN" name="pf_sse1_float.h" compile="0" resource="0" file="External/cpl/ffts/pffft/simd/pf_sse1_float.h"/>
+            <FILE id="WwU1qu" name="pf_sse2_double.h" compile="0" resource="0"
+                  file="External/cpl/ffts/pffft/simd/pf_sse2_double.h"/>
+          </GROUP>
+          <FILE id="lF86wQ" name="bench_conv.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/bench_conv.cpp"/>
+          <FILE id="QUQjHM" name="bench_mixers.cpp" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/bench_mixers.cpp"/>
+          <FILE id="ENDY5i" name="bench_pffft.c" compile="0" resource="0" file="External/cpl/ffts/pffft/bench_pffft.c"/>
+          <FILE id="cCv8qa" name="CMakeLists.txt" compile="0" resource="0" file="External/cpl/ffts/pffft/CMakeLists.txt"/>
+          <FILE id="xnnwEl" name="cross_build_mingw32.sh" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/cross_build_mingw32.sh"/>
+          <FILE id="GxRwMy" name="cross_build_mingw64.sh" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/cross_build_mingw64.sh"/>
+          <FILE id="Xzr3aF" name="fftpack.c" compile="0" resource="0" file="External/cpl/ffts/pffft/fftpack.c"/>
+          <FILE id="NxSBZ5" name="fftpack.h" compile="0" resource="0" file="External/cpl/ffts/pffft/fftpack.h"/>
+          <FILE id="VL6zE7" name="fmv.h" compile="0" resource="0" file="External/cpl/ffts/pffft/fmv.h"/>
+          <FILE id="xJ53eS" name="LICENSE.txt" compile="0" resource="0" file="External/cpl/ffts/pffft/LICENSE.txt"/>
+          <FILE id="KqiJmG" name="mingw-w32-i686.cmake" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/mingw-w32-i686.cmake"/>
+          <FILE id="ItSJgl" name="mingw-w64-x64_64.cmake" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/mingw-w64-x64_64.cmake"/>
+          <FILE id="dXMXJa" name="papi_perf_counter.h" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/papi_perf_counter.h"/>
+          <FILE id="GrfRMz" name="pf_carrier.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_carrier.cpp"/>
+          <FILE id="v91934" name="pf_carrier.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_carrier.h"/>
+          <FILE id="WXLssn" name="pf_cic.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_cic.cpp"/>
+          <FILE id="MfUjkk" name="pf_cic.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_cic.h"/>
+          <FILE id="YlJB2y" name="pf_conv.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_conv.cpp"/>
+          <FILE id="q4M89M" name="pf_conv.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_conv.h"/>
+          <FILE id="omrGPi" name="pf_conv_dispatcher.cpp" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/pf_conv_dispatcher.cpp"/>
+          <FILE id="Vz76Dj" name="pf_conv_dispatcher.h" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/pf_conv_dispatcher.h"/>
+          <FILE id="EC4Ix3" name="pf_cplx.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_cplx.h"/>
+          <FILE id="yWs72o" name="pf_mixer.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_mixer.cpp"/>
+          <FILE id="SvEkvd" name="pf_mixer.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pf_mixer.h"/>
+          <FILE id="DcpF1J" name="pffastconv.c" compile="0" resource="0" file="External/cpl/ffts/pffft/pffastconv.c"/>
+          <FILE id="V0Ru76" name="pffastconv.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pffastconv.h"/>
+          <FILE id="PVzh6I" name="pffft.c" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft.c"/>
+          <FILE id="TR4yxT" name="pffft.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft.h"/>
+          <FILE id="I7rYfs" name="pffft.hpp" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft.hpp"/>
+          <FILE id="bnUEgO" name="pffft_common.c" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft_common.c"/>
+          <FILE id="TDPC6s" name="pffft_double.c" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft_double.c"/>
+          <FILE id="DtHlM7" name="pffft_double.h" compile="0" resource="0" file="External/cpl/ffts/pffft/pffft_double.h"/>
+          <FILE id="oJfK8H" name="pffft_priv_impl.h" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/pffft_priv_impl.h"/>
+          <FILE id="hK3WQz" name="plots.sh" compile="0" resource="0" file="External/cpl/ffts/pffft/plots.sh"/>
+          <FILE id="xotnYq" name="README.md" compile="0" resource="0" file="External/cpl/ffts/pffft/README.md"/>
+          <FILE id="pBbvhi" name="sse2neon.h" compile="0" resource="0" file="External/cpl/ffts/pffft/sse2neon.h"/>
+          <FILE id="VkWSmU" name="test_fft_factors.c" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/test_fft_factors.c"/>
+          <FILE id="Omm9hy" name="test_pffastconv.c" compile="0" resource="0"
+                file="External/cpl/ffts/pffft/test_pffastconv.c"/>
+          <FILE id="zDo4Pu" name="test_pffft.c" compile="0" resource="0" file="External/cpl/ffts/pffft/test_pffft.c"/>
+          <FILE id="C9MeXx" name="test_pffft.cpp" compile="0" resource="0" file="External/cpl/ffts/pffft/test_pffft.cpp"/>
+          <FILE id="Rnmk9s" name="uninstall.cmake" compile="0" resource="0" file="External/cpl/ffts/pffft/uninstall.cmake"/>
+          <FILE id="w44uwC" name="use_gcc8.inc" compile="0" resource="0" file="External/cpl/ffts/pffft/use_gcc8.inc"/>
+        </GROUP>
+        <FILE id="ZlhfRA" name="dustfft.cpp" compile="0" resource="0" file="External/cpl/ffts/dustfft.cpp"/>
+        <FILE id="krZShf" name="dustfft.h" compile="0" resource="0" file="External/cpl/ffts/dustfft.h"/>
+        <FILE id="nsZoNn" name="Transforms.h" compile="0" resource="0" file="External/cpl/ffts/Transforms.h"/>
+        <FILE id="R7ADId" name="unifft.h" compile="0" resource="0" file="External/cpl/ffts/unifft.h"/>
+      </GROUP>
+      <GROUP id="{65E7890C-2616-3372-D0EA-88E113D06D27}" name="gui">
+        <GROUP id="{8724C834-09AC-4D95-4049-3D59969E0F71}" name="controls">
+          <FILE id="UOcDuC" name="CButton.cpp" compile="0" resource="0" file="External/cpl/gui/controls/CButton.cpp"/>
+          <FILE id="S6HiAZ" name="CButton.h" compile="0" resource="0" file="External/cpl/gui/controls/CButton.h"/>
+          <FILE id="ag4euj" name="CColourControl.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CColourControl.cpp"/>
+          <FILE id="KbHVIG" name="CColourControl.h" compile="0" resource="0"
+                file="External/cpl/gui/controls/CColourControl.h"/>
+          <FILE id="E0PYCG" name="CComboBox.cpp" compile="0" resource="0" file="External/cpl/gui/controls/CComboBox.cpp"/>
+          <FILE id="Ds8CD0" name="CComboBox.h" compile="0" resource="0" file="External/cpl/gui/controls/CComboBox.h"/>
+          <FILE id="qAFLXD" name="CInputControl.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CInputControl.cpp"/>
+          <FILE id="wzelYc" name="CInputControl.h" compile="0" resource="0" file="External/cpl/gui/controls/CInputControl.h"/>
+          <FILE id="aWOZDC" name="CKnobSlider.cpp" compile="0" resource="0" file="External/cpl/gui/controls/CKnobSlider.cpp"/>
+          <FILE id="kMQV3L" name="CKnobSlider.h" compile="0" resource="0" file="External/cpl/gui/controls/CKnobSlider.h"/>
+          <FILE id="fvk0Y6" name="CKnobSliderEditor.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CKnobSliderEditor.cpp"/>
+          <FILE id="VHWd8n" name="CKnobSliderEditor.h" compile="0" resource="0"
+                file="External/cpl/gui/controls/CKnobSliderEditor.h"/>
+          <FILE id="VbDRVf" name="ControlBase.h" compile="0" resource="0" file="External/cpl/gui/controls/ControlBase.h"/>
+          <FILE id="n7LwOK" name="Controls.cpp" compile="0" resource="0" file="External/cpl/gui/controls/Controls.cpp"/>
+          <FILE id="R8qHG1" name="Controls.h" compile="0" resource="0" file="External/cpl/gui/controls/Controls.h"/>
+          <FILE id="AZaLVt" name="CValueComboBox.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueComboBox.cpp"/>
+          <FILE id="cfEJWP" name="CValueComboBox.h" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueComboBox.h"/>
+          <FILE id="W4I0rw" name="CValueControl.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueControl.cpp"/>
+          <FILE id="HwXBFi" name="CValueControl.h" compile="0" resource="0" file="External/cpl/gui/controls/CValueControl.h"/>
+          <FILE id="WHHog0" name="CValueInputControl.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueInputControl.cpp"/>
+          <FILE id="tZPLse" name="CValueInputControl.h" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueInputControl.h"/>
+          <FILE id="Ijes8q" name="CValueKnobSlider.cpp" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueKnobSlider.cpp"/>
+          <FILE id="qqEvVk" name="CValueKnobSlider.h" compile="0" resource="0"
+                file="External/cpl/gui/controls/CValueKnobSlider.h"/>
+          <FILE id="VNLdGr" name="ValueControl.h" compile="0" resource="0" file="External/cpl/gui/controls/ValueControl.h"/>
+        </GROUP>
+        <GROUP id="{78F40E54-3400-A66E-45D0-6FF3AA3646B8}" name="widgets">
+          <FILE id="CYKXxe" name="CDSPWindowWidget.cpp" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CDSPWindowWidget.cpp"/>
+          <FILE id="lwVhex" name="CDSPWindowWidget.h" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CDSPWindowWidget.h"/>
+          <FILE id="qO5k3F" name="CPowerSlopeWidget.cpp" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CPowerSlopeWidget.cpp"/>
+          <FILE id="DNRedY" name="CPowerSlopeWidget.h" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CPowerSlopeWidget.h"/>
+          <FILE id="NYunU9" name="CPresetWidget.cpp" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CPresetWidget.cpp"/>
+          <FILE id="ODmRqv" name="CPresetWidget.h" compile="0" resource="0" file="External/cpl/gui/widgets/CPresetWidget.h"/>
+          <FILE id="eFq2QT" name="CTransformWidget.cpp" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CTransformWidget.cpp"/>
+          <FILE id="a6ak4p" name="CTransformWidget.h" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CTransformWidget.h"/>
+          <FILE id="FzFeHD" name="WidgetBase.h" compile="0" resource="0" file="External/cpl/gui/widgets/WidgetBase.h"/>
+          <FILE id="hcX5wG" name="Widgets.cpp" compile="0" resource="0" file="External/cpl/gui/widgets/Widgets.cpp"/>
+          <FILE id="acRTnJ" name="Widgets.h" compile="0" resource="0" file="External/cpl/gui/widgets/Widgets.h"/>
+        </GROUP>
+        <FILE id="P2pt35" name="BuildingBlocks.h" compile="0" resource="0"
+              file="External/cpl/gui/BuildingBlocks.h"/>
+        <FILE id="JghxFS" name="CBaseControl.cpp" compile="0" resource="0"
+              file="External/cpl/gui/CBaseControl.cpp"/>
+        <FILE id="mCbKo7" name="CBaseControl.h" compile="0" resource="0" file="External/cpl/gui/CBaseControl.h"/>
+        <FILE id="jKKyme" name="CCtrlEditSpace.cpp" compile="0" resource="0"
+              file="External/cpl/gui/CCtrlEditSpace.cpp"/>
+        <FILE id="dwkXHY" name="CCtrlEditSpace.h" compile="0" resource="0"
+              file="External/cpl/gui/CCtrlEditSpace.h"/>
+        <FILE id="tiEROu" name="CEditSpaceSpawner.cpp" compile="0" resource="0"
+              file="External/cpl/gui/CEditSpaceSpawner.cpp"/>
+        <FILE id="XBqQ5N" name="CEditSpaceSpawner.h" compile="0" resource="0"
+              file="External/cpl/gui/CEditSpaceSpawner.h"/>
+        <FILE id="hePQgJ" name="CToolTip.cpp" compile="0" resource="0" file="External/cpl/gui/CToolTip.cpp"/>
+        <FILE id="GLOY9T" name="CToolTip.h" compile="0" resource="0" file="External/cpl/gui/CToolTip.h"/>
+        <FILE id="nSPJ29" name="CViews.h" compile="0" resource="0" file="External/cpl/gui/CViews.h"/>
+        <FILE id="kVj4KF" name="DesignBase.cpp" compile="0" resource="0" file="External/cpl/gui/DesignBase.cpp"/>
+        <FILE id="U6oTla" name="DesignBase.h" compile="0" resource="0" file="External/cpl/gui/DesignBase.h"/>
+        <FILE id="VEI2pH" name="FormatNormalizers.h" compile="0" resource="0"
+              file="External/cpl/gui/FormatNormalizers.h"/>
+        <FILE id="A6of7q" name="GraphicComponents.cpp" compile="0" resource="0"
+              file="External/cpl/gui/GraphicComponents.cpp"/>
+        <FILE id="XJ9MAc" name="GraphicComponents.h" compile="0" resource="0"
+              file="External/cpl/gui/GraphicComponents.h"/>
+        <FILE id="IYaoJw" name="GUI.cpp" compile="0" resource="0" file="External/cpl/gui/GUI.cpp"/>
+        <FILE id="e47SbL" name="GUI.h" compile="0" resource="0" file="External/cpl/gui/GUI.h"/>
+        <FILE id="XVrVfJ" name="NewStuffAndLook.h" compile="0" resource="0"
+              file="External/cpl/gui/NewStuffAndLook.h"/>
+        <FILE id="RPXIOI" name="Tools.h" compile="0" resource="0" file="External/cpl/gui/Tools.h"/>
+        <FILE id="XT1puc" name="WidgetContainers.h" compile="0" resource="0"
+              file="External/cpl/gui/WidgetContainers.h"/>
+      </GROUP>
+      <GROUP id="{B2B56CC3-4AEC-236E-7A0F-144EA86B58FD}" name="infrastructure">
+        <GROUP id="{8DF30C08-9458-AFAA-2110-7D29E0D873EB}" name="parameters">
+          <FILE id="Ok3yxY" name="CustomFormatters.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/parameters/CustomFormatters.h"/>
+          <FILE id="MWldj3" name="CustomTransforms.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/parameters/CustomTransforms.h"/>
+          <FILE id="BObdom" name="ParameterSystem.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/parameters/ParameterSystem.h"/>
+        </GROUP>
+        <GROUP id="{2820B159-7D66-DB78-4AE5-58B6108E12F6}" name="values">
+          <FILE id="RDFoCA" name="ColourValue.h" compile="0" resource="0" file="External/cpl/infrastructure/values/ColourValue.h"/>
+          <FILE id="nZ771t" name="PowerFunctionValue.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/values/PowerFunctionValue.h"/>
+          <FILE id="V7PE64" name="TransformValue.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/values/TransformValue.h"/>
+          <FILE id="y7krLY" name="ValueBase.h" compile="0" resource="0" file="External/cpl/infrastructure/values/ValueBase.h"/>
+          <FILE id="CvIiuC" name="Values.h" compile="0" resource="0" file="External/cpl/infrastructure/values/Values.h"/>
+          <FILE id="sneLSF" name="WindowDesignValue.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/values/WindowDesignValue.h"/>
+        </GROUP>
+      </GROUP>
+      <GROUP id="{440D1CF5-2E85-6A9F-B2EB-185A055C0CE1}" name="lib">
+        <GROUP id="{88C50ED7-DBAA-2B40-92B5-E96C6C59C8A5}" name="md5">
+          <FILE id="X4aNES" name="md5.cpp" compile="0" resource="0" file="External/cpl/lib/md5/md5.cpp"/>
+          <FILE id="HTaj4g" name="md5.h" compile="0" resource="0" file="External/cpl/lib/md5/md5.h"/>
+        </GROUP>
+        <GROUP id="{CD019A85-0BC0-2A83-1ECD-C17E6D44B9C8}" name="readerwriterqueue">
+          <FILE id="AxgVHn" name="atomicops.h" compile="0" resource="0" file="External/cpl/lib/readerwriterqueue/atomicops.h"/>
+          <FILE id="ooTjq7" name="license.txt" compile="0" resource="0" file="External/cpl/lib/readerwriterqueue/license.txt"/>
+          <FILE id="oVYRsN" name="readerwriterqueue.h" compile="0" resource="0"
+                file="External/cpl/lib/readerwriterqueue/readerwriterqueue.h"/>
+        </GROUP>
+        <FILE id="dVgasB" name="AlignedAllocator.h" compile="0" resource="0"
+              file="External/cpl/lib/AlignedAllocator.h"/>
+        <FILE id="gfrmLW" name="BlockingLockFreeQueue.h" compile="0" resource="0"
+              file="External/cpl/lib/BlockingLockFreeQueue.h"/>
+        <FILE id="Uxg90G" name="CDataBuffer.h" compile="0" resource="0" file="External/cpl/lib/CDataBuffer.h"/>
+        <FILE id="Ffrgfc" name="CFIFOEventSystem.h" compile="0" resource="0"
+              file="External/cpl/lib/CFIFOEventSystem.h"/>
+        <FILE id="EM9Qw7" name="CLIFOStream.h" compile="0" resource="0" file="External/cpl/lib/CLIFOStream.h"/>
+        <FILE id="uoDPE2" name="CMessageSystem.h" compile="0" resource="0"
+              file="External/cpl/lib/CMessageSystem.h"/>
+        <FILE id="xNUs8L" name="LockFreeDataQueue.h" compile="0" resource="0"
+              file="External/cpl/lib/LockFreeDataQueue.h"/>
+        <FILE id="iAtWzg" name="LockFreeQueue.h" compile="0" resource="0" file="External/cpl/lib/LockFreeQueue.h"/>
+        <FILE id="YZMZLv" name="polystack_ptr.h" compile="0" resource="0" file="External/cpl/lib/polystack_ptr.h"/>
+        <FILE id="XGQopH" name="StackBuffer.h" compile="0" resource="0" file="External/cpl/lib/StackBuffer.h"/>
+        <FILE id="jwQLjK" name="string_ref.h" compile="0" resource="0" file="External/cpl/lib/string_ref.h"/>
+        <FILE id="MMdN9Q" name="ThreadAllocator.h" compile="0" resource="0"
+              file="External/cpl/lib/ThreadAllocator.h"/>
+        <FILE id="UOLjGa" name="uarray.h" compile="0" resource="0" file="External/cpl/lib/uarray.h"/>
+        <FILE id="NFAyTh" name="variable_array.h" compile="0" resource="0"
+              file="External/cpl/lib/variable_array.h"/>
+        <FILE id="Rgm1Za" name="weak_atomic.h" compile="0" resource="0" file="External/cpl/lib/weak_atomic.h"/>
+      </GROUP>
+    </GROUP>
+    <GROUP id="{4B661BAC-9630-9F7C-C968-0F3F2B1E01A8}" name="Unity">
+      <FILE id="m3oLjT" name="SignalizerSource.cpp" compile="0" resource="0"
+            file="Source/Unity/SignalizerSource.cpp"/>
+    </GROUP>
+    <GROUP id="{FF2129D8-DD41-3995-B24F-FCE9B4E6B16C}" name="Notes">
+      <FILE id="ZiVf7p" name="Bugs.txt" compile="0" resource="0" file="Source/Notes/Bugs.txt"/>
     </GROUP>
     <FILE id="ESfnHo" name="Signalizer.h" compile="0" resource="0" file="Source/Signalizer.h"/>
     <FILE id="SGRZHx" name="version.h" compile="0" resource="0" file="Source/version.h"/>
@@ -119,19 +590,16 @@
                        optimisation="2" targetName="Signalizer" fastMath="1" stripLocalSymbols="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_core" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_events" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_graphics" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_cryptography" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_opengl" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_audio_basics" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../SDKs/juce/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../SDKs/juce/modules"/>
+        <MODULEPATH id="juce_core" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_events" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_graphics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_data_structures" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_extra" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2022 targetFolder="Builds/VisualStudio2022" vstLegacyFolder="../SDKs/vstsdk2.4">
@@ -142,19 +610,16 @@
                        enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../juce"/>
-        <MODULEPATH id="juce_audio_devices" path="../../juce"/>
-        <MODULEPATH id="juce_audio_formats" path="../../juce"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../juce"/>
-        <MODULEPATH id="juce_audio_processors" path="../../juce"/>
-        <MODULEPATH id="juce_core" path="../../juce"/>
-        <MODULEPATH id="juce_cryptography" path="../../juce"/>
-        <MODULEPATH id="juce_data_structures" path="../../juce"/>
-        <MODULEPATH id="juce_events" path="../../juce"/>
-        <MODULEPATH id="juce_graphics" path="../../juce"/>
-        <MODULEPATH id="juce_gui_basics" path="../../juce"/>
-        <MODULEPATH id="juce_gui_extra" path="../../juce"/>
-        <MODULEPATH id="juce_opengl" path="../../juce"/>
+        <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_core" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_data_structures" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_events" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_graphics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_extra" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </VS2022>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4">
@@ -163,36 +628,32 @@
         <CONFIGURATION isDebug="0" name="Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../../juce"/>
-        <MODULEPATH id="juce_audio_devices" path="../../juce"/>
-        <MODULEPATH id="juce_audio_formats" path="../../juce"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../../juce"/>
-        <MODULEPATH id="juce_audio_processors" path="../../juce"/>
-        <MODULEPATH id="juce_core" path="../../juce"/>
-        <MODULEPATH id="juce_cryptography" path="../../juce"/>
-        <MODULEPATH id="juce_data_structures" path="../../juce"/>
-        <MODULEPATH id="juce_events" path="../../juce"/>
-        <MODULEPATH id="juce_graphics" path="../../juce"/>
-        <MODULEPATH id="juce_gui_basics" path="../../juce"/>
-        <MODULEPATH id="juce_gui_extra" path="../../juce"/>
-        <MODULEPATH id="juce_opengl" path="../../juce"/>
+        <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_core" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_data_structures" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_events" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_graphics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_basics" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_gui_extra" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
   </EXPORTFORMATS>
   <MODULES>
-    <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_audio_devices" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_audio_formats" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_audio_processors" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_core" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_cryptography" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_events" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_graphics" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_gui_basics" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_gui_extra" showAllCode="1" useLocalCopy="1"/>
-    <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="1"/>
+    <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULES id="juce_core" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_events" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_graphics" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_gui_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_gui_extra" showAllCode="1" useLocalCopy="0"/>
+    <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_QUICKTIME="0"/>
+  <JUCEOPTIONS JUCE_QUICKTIME="0" JUCE_FORCE_LEGACY_PARAMETER_AUTOMATION_TYPE="1"
+               JUCE_FORCE_USE_LEGACY_PARAM_IDS="1" JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE="1"
+               JUCE_USE_CURL="0" JUCE_INCLUDE_ZLIB_CODE="0"/>
 </JUCERPROJECT>
