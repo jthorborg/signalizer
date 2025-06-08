@@ -30,3 +30,5 @@ Builds/x64/
 Releases/
 Make/Build.log
 *.aps
+Builds/VisualStudio2022/.vs
+Builds/VisualStudio2022/x64
