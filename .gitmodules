@@ -1,6 +1,6 @@
 [submodule "External/cpl"]
 	path = External/cpl
-	url = https://bitbucket.org/Mayae/cpl
+	url = https://github.com/jthorborg/cpl
 [submodule "External/juce"]
 	path = External/juce
 	url = https://github.com/juce-framework/JUCE
