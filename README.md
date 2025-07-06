@@ -1,10 +1,9 @@
 # Signalizer
 
 Public repository for the real-time audio visualization plugin Signalizer.
+Download prebuilt releases of Signalizer here: https://github.com/jthorborg/signalizer/releases
 
 More info can be found at this page: www.jthorborg.com/index.html?ipage=signalizer
-
-Pre-built binaries can be found at this page: https://bitbucket.org/Mayae/signalizer/downloads/
 
 ![signalizer_screensaver.png](https://bitbucket.org/repo/jnBRk8/images/675350869-signalizer_screensaver.png)
 
