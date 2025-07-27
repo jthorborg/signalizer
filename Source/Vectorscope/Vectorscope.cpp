@@ -32,7 +32,8 @@
 #include <cstdint>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
-#include <cpl/simd.h>
+// Temporarily disable SIMD to resolve build issues
+// #include <cpl/simd.h>
 #include <cpl/LexicalConversion.h>
 #include "VectorscopeParameters.h"
 

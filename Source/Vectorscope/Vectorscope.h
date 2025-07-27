@@ -33,7 +33,8 @@
 	#include "Signalizer.h"
 	#include <cpl/Utility.h>
 	#include <memory>
-	#include <cpl/simd.h>
+	// Temporarily disable SIMD to resolve build issues
+// #include <cpl/simd.h>
 	#include "../Common/ConcurrentConfig.h"
 
 	namespace cpl

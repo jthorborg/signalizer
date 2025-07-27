@@ -501,7 +501,7 @@ namespace Signalizer
 
 	const juce::String AudioProcessor::getProgramName(int index)
 	{
-		return juce::String::empty;
+		return {};
 	}
 
 	void AudioProcessor::changeProgramName(int index, const juce::String& newName)

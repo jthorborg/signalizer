@@ -27,13 +27,13 @@
 
 *************************************************************************************/
 
-
 #include "Vectorscope.h"
 #include "VectorscopeParameters.h"
 #include <cstdint>
 #include <cpl/Mathext.h>
 #include <cpl/rendering/OpenGLRasterizers.h>
-#include <cpl/simd.h>
+// Temporarily disable SIMD to resolve build issues
+// #include <cpl/simd.h>
 
 namespace Signalizer
 {
