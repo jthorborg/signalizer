@@ -154,7 +154,7 @@ build-internal:
 	@echo "---------> Compiler invocation for $(ARCH):"
 	xcodebuild \
 		-project $(XCODE_PROJECT) \
-		-scheme "Signalizer - AU" \
+		-scheme "Signalizer - All" \
 		-configuration Release \
 		CONFIGURATION_BUILD_DIR=$(shell pwd)/$(BUILD_DIR)/ \
 		STRIP_INSTALLED_PRODUCT=YES \
@@ -165,9 +165,10 @@ build-internal:
 		DYLIB_CURRENT_VERSION=$(VERSION_STRING) \
 		GCC_FAST_MATH=NO \
 		ENABLE_STRICT_OBJC_MSGSEND=NO \
-		OTHER_CFLAGS="-DJUCE_INCLUDE_PNGLIB_CODE=0 -I$(LIB_INCLUDE_PATH) -Wno-writable-strings -DJUCE_SILENCE_XCODE_15_LINKER_WARNING=1 -DDONT_SET_USING_JUCE_NAMESPACE=1 -Wno-error" \
-		OTHER_LDFLAGS="-L$(LIB_LIBRARY_PATH) -lpng" \
+		OTHER_CFLAGS="-DJUCE_INCLUDE_PNGLIB_CODE=0 -I$(LIB_INCLUDE_PATH) -Wno-writable-strings -DJUCE_SILENCE_XCODE_15_LINKER_WARNING=1 -DDONT_SET_USING_JUCE_NAMESPACE=1 -Wno-error -fno-lto" \
+		OTHER_LDFLAGS="-L$(LIB_LIBRARY_PATH) -lpng -lz -lSignalizer -fno-lto -Wl,-v" \
 		VERBOSE=1 \
+		CLANG_ENABLE_OBJC_WEAK=NO \
 		-destination "platform=macOS"
 	
 	# Create build log
@@ -178,20 +179,24 @@ build-internal:
 	@echo "" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
 	@git log -5 >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log 2>/dev/null || true
 	
-	# Copy changelog
+	# Copy changelog and skeleton resources
 	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.component/Contents/Resources/
+	@cp -R Make/Skeleton/resources $(BUILD_DIR)/Signalizer.component/Contents/Resources/
 	
 	@echo ""
 	@echo "------> All builds finished, generating plugin permutations ..."
 	
 	# Create plugin variants
 	@cp -R $(BUILD_DIR)/Signalizer.component $(BUILD_DIR)/Signalizer.vst
-	@cp -R $(BUILD_DIR)/Signalizer.component $(BUILD_DIR)/Signalizer.vst3
+	# VST3 is built separately by Xcode, so we need to add resources to it
+	@cp -R Make/Skeleton/resources $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
+	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
+	@cp $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
 	
 	@echo "------> Zipping output directories..."
 	
 	# Copy installation instructions and create zip
-	@cp Make/macos_installation_advice.txt $(BUILD_FOLDER)/HOW\ TO\ INSTALL.txt
+	@cp Make/macos_installation_advice.txt "$(BUILD_FOLDER)/HOW TO INSTALL.txt"
 	@cd $(BUILD_FOLDER) && zip -r "../$(ZIP_OUTPUT).zip" .
 	
 	@echo "------> Built Signalizer successfully into:"

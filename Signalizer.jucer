@@ -254,7 +254,7 @@
       <FILE id="ZgMywg" name="MacroConstants.h" compile="0" resource="0"
             file="External/cpl/MacroConstants.h"/>
       <FILE id="W55KhG" name="MacSupport.h" compile="0" resource="0" file="External/cpl/MacSupport.h"/>
-      <FILE id="KhPTGR" name="MacSupport.mm" compile="0" resource="0" file="External/cpl/MacSupport.mm"/>
+      <FILE id="KhPTGR" name="MacSupport.mm" compile="1" resource="0" file="External/cpl/MacSupport.mm"/>
       <FILE id="d2E02p" name="Mathext.h" compile="0" resource="0" file="External/cpl/Mathext.h"/>
       <FILE id="S3DIE2" name="Misc.cpp" compile="0" resource="0" file="External/cpl/Misc.cpp"/>
       <FILE id="q4G3td" name="Misc.h" compile="0" resource="0" file="External/cpl/Misc.h"/>
