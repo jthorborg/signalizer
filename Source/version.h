@@ -1,6 +1,6 @@
 #define SIGNALIZER_MAJOR 0
 #define SIGNALIZER_MINOR 4
 #define SIGNALIZER_BUILD 3
-#define SIGNALIZER_BUILD_INFO "2025-07-27 11:08:58: Signalizer 0.4.3 built on Darwin 24.3.0 by mauriciotrindade\nbuild/mt\n9a194ca"
+#define SIGNALIZER_BUILD_INFO "2025-07-28 11:30:42: Signalizer 0.4.3 built on Darwin 24.3.0 by mauriciotrindade\nbuild/mt\n42d6c44"
 #define SIGNALIZER_VERSION_STRING "0.4.3"
 #define SIGNALIZER_VST_VERSION_HEX 0x000403
