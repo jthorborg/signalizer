@@ -37,6 +37,49 @@
 
 namespace Signalizer
 {
+	class SignalizerFileLogger : public juce::FileLogger
+	{
+	public:
+		SignalizerFileLogger(const juce::File& file)
+			: FileLogger(file, "Signalizer Log", 0)
+		{
+		}
+		
+		void logMessage(const juce::String& message) override
+		{
+			auto timestamp = juce::Time::getCurrentTime().toString(true, true, true, true);
+			FileLogger::logMessage(timestamp + " - " + message);
+		}
+	};
+	
+	static std::unique_ptr<SignalizerFileLogger> fileLogger;
+	
+	static void initializeFileLogger()
+	{
+		if (!fileLogger)
+		{
+			#if JUCE_MAC
+				auto logDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory)
+					.getChildFile("Library/Logs/Signalizer");
+			#elif JUCE_WINDOWS
+				auto logDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+					.getChildFile("Signalizer");
+			#else
+				auto logDir = juce::File::getSpecialLocation(juce::File::userHomeDirectory)
+					.getChildFile(".config/Signalizer");
+			#endif
+			
+			if (!logDir.exists())
+				logDir.createDirectory();
+			
+			auto logFile = logDir.getChildFile("signalizer.log");
+			fileLogger = std::make_unique<SignalizerFileLogger>(logFile);
+			juce::Logger::setCurrentLogger(fileLogger.get());
+			
+			juce::Logger::writeToLog("=== Signalizer Logger Initialized ===");
+			juce::Logger::writeToLog("Log file: " + logFile.getFullPathName());
+		}
+	}
 	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
@@ -46,7 +89,8 @@ namespace Signalizer
 	AudioProcessor::AudioProcessor()
 		: AudioProcessor(AudioStream::create(true, 16))
 	{
-
+		initializeFileLogger();
+		juce::Logger::writeToLog("Signalizer: constructor start - " + juce::Time::getCurrentTime().toString(true, true));
 	}
 
 	std::shared_ptr<const ConcurrentConfig> AudioProcessor::getConcurrentConfig()
@@ -60,13 +104,16 @@ namespace Signalizer
 		, realtimeOutput(std::get<1>(io))
 		, graph(std::make_shared<HostGraph>(std::get<1>(io)))
 		, lastRecordedInputCount(1)
+		, firstProcessBlockCalled(false)
 		, dsoEditor(
 			[this] { return std::make_unique<MainEditor>(this, &this->parameterMap); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
 	{
-
+		initializeFileLogger();
+		auto startTime = juce::Time::getMillisecondCounterHiRes();
+		
 		SystemView view { getConcurrentConfig(), *this};
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
@@ -76,12 +123,16 @@ namespace Signalizer
 				ContentCreationList[i].second(parameterMap.numParams(), view)
 			});
 		}
+		
+		auto paramCreationTime = juce::Time::getMillisecondCounterHiRes() - startTime;
+		juce::Logger::writeToLog("Signalizer: parameter creation took " + juce::String(paramCreationTime) + " ms");
 
 		juce::File location;
 
 		// load the default preset
 		try
 		{
+			auto presetStartTime = juce::Time::getMillisecondCounterHiRes();
 			SerializerType serializer(MainPresetName);
 
 			cpl::CPresetManager::instance().loadPreset(
@@ -94,10 +145,13 @@ namespace Signalizer
 			{
 				deserialize(serializer.getBuilder(), serializer.getBuilder().getLocalVersion());
 			}
+			auto presetLoadTime = juce::Time::getMillisecondCounterHiRes() - presetStartTime;
+			juce::Logger::writeToLog("Signalizer: preset loading took " + juce::String(presetLoadTime) + " ms");
 		}
 		catch (std::exception & e)
 		{
 			cpl::Misc::MsgBox(std::string("Error reading state information from default preset:\n") + e.what(), cpl::programInfo.name);
+			juce::Logger::writeToLog("Signalizer: ERROR loading preset - " + juce::String(e.what()));
 		}
 
 		// initialize audio stream with some default values, fixes a bug with the time knobs that rely on a valid sample rate being set.
@@ -111,6 +165,9 @@ namespace Signalizer
 				info.sampleRate = 48000;
 			}
 		);
+		
+		auto totalConstructorTime = juce::Time::getMillisecondCounterHiRes() - startTime;
+		juce::Logger::writeToLog("Signalizer: constructor complete - total time " + juce::String(totalConstructorTime) + " ms");
 	}
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
@@ -136,6 +193,7 @@ namespace Signalizer
 	//==============================================================================
 	void AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 	{
+		juce::Logger::writeToLog("Signalizer: prepareToPlay (sampleRate: " + juce::String(sampleRate) + ", samplesPerBlock: " + juce::String(samplesPerBlock) + ") - " + juce::Time::getCurrentTime().toString(true, true));
 		lastRecordedInputCount = getNumInputChannels();
 		lastRecordedBufferSize = samplesPerBlock;
 		surrogateArray.resize(samplesPerBlock);
@@ -162,6 +220,11 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
+		if (!firstProcessBlockCalled)
+		{
+			firstProcessBlockCalled = true;
+			juce::Logger::writeToLog("Signalizer: first processBlock() - " + juce::Time::getCurrentTime().toString(true, true));
+		}
 		int bufferSize = buffer.getNumSamples();
 
 		if (!NONTERMINAL_ASSUMPTION(lastRecordedInputCount == getNumInputChannels()))
@@ -217,7 +280,11 @@ namespace Signalizer
 	juce::AudioProcessorEditor* AudioProcessor::createEditor()
 	{
 		std::lock_guard<std::mutex> lock(editorCreationMutex);
-		return dsoEditor.getUnique().acquire();
+		auto startTime = juce::Time::getMillisecondCounterHiRes();
+		auto* editor = dsoEditor.getUnique().acquire();
+		auto elapsedTime = juce::Time::getMillisecondCounterHiRes() - startTime;
+		juce::Logger::writeToLog("Signalizer: UI created - took " + juce::String(elapsedTime) + " ms - " + juce::Time::getCurrentTime().toString(true, true));
+		return editor;
 	}
 
 	//==============================================================================
@@ -515,5 +582,10 @@ namespace Signalizer
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new Signalizer::AudioProcessor();
+    auto startTime = juce::Time::getMillisecondCounterHiRes();
+    juce::Logger::writeToLog("=== Signalizer plugin instantiation started ===");
+    auto* processor = new Signalizer::AudioProcessor();
+    auto totalTime = juce::Time::getMillisecondCounterHiRes() - startTime;
+    juce::Logger::writeToLog("=== Signalizer plugin instantiation complete - total time: " + juce::String(totalTime) + " ms ===");
+    return processor;
 }

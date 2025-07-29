@@ -126,6 +126,7 @@
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
 			std::vector<AFloat> surrogateArray;
 			bool hasAnyLayoutBeenApplied{};
+			bool firstProcessBlockCalled{};
 			int lastRecordedInputCount{}, lastRecordedBufferSize{};
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;

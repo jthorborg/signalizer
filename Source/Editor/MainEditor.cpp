@@ -148,8 +148,10 @@ namespace Signalizer
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
 		views.reserve(ContentCreationList.size());
 
+		auto viewCreationStart = juce::Time::getMillisecondCounterHiRes();
 		for (int i = 0; i < ContentCreationList.size(); ++i)
 		{
+			auto viewStart = juce::Time::getMillisecondCounterHiRes();
 			auto localState = params->getState(i);
 
 			localState->onPresentationStreamCreated(presentationOutput);
@@ -165,17 +167,31 @@ namespace Signalizer
 					);
 				}
 			);
+			auto viewTime = juce::Time::getMillisecondCounterHiRes() - viewStart;
+			juce::Logger::writeToLog("Signalizer: View " + juce::String(i) + " setup took " + juce::String(viewTime) + " ms");
 		}
+		auto totalViewTime = juce::Time::getMillisecondCounterHiRes() - viewCreationStart;
+		juce::Logger::writeToLog("Signalizer: Total view creation took " + juce::String(totalViewTime) + " ms");
 
+		auto initStartTime = juce::Time::getMillisecondCounterHiRes();
+		
 		setOpaque(true);
 		setMinimumSize(50, 50);
 		setBounds(0, 0, kdefaultLength, kdefaultHeight);
+		
+		auto beforeInitUI = juce::Time::getMillisecondCounterHiRes();
 		initUI();
+		auto initUITime = juce::Time::getMillisecondCounterHiRes() - beforeInitUI;
+		juce::Logger::writeToLog("Signalizer: initUI took " + juce::String(initUITime) + " ms");
+		
 		oglc.setComponentPaintingEnabled(false);
 
 		nestedMouseHook.hook(this, this, true);
 
 		cpl::CheckPruneExceptionLogFile();
+		
+		auto totalInitTime = juce::Time::getMillisecondCounterHiRes() - initStartTime;
+		juce::Logger::writeToLog("Signalizer: MainEditor initialization complete - took " + juce::String(totalInitTime) + " ms");
 	}
 
 	MainEditor::~MainEditor()
@@ -1510,6 +1526,7 @@ namespace Signalizer
 
 	void MainEditor::initUI()
 	{
+		auto uiInitStart = juce::Time::getMillisecondCounterHiRes();
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
 
 		// add listeners
@@ -1536,11 +1553,19 @@ namespace Signalizer
 		krevealExceptionLog.bAddChangeListener(this);
 
 		// design
+		auto iconStart = juce::Time::getMillisecondCounterHiRes();
 		kfreeze.setImage("icons/svg/freeze.svg");
+		juce::Logger::writeToLog("Signalizer: Loaded freeze icon");
 		ksettings.setImage("icons/svg/gears.svg");
+		juce::Logger::writeToLog("Signalizer: Loaded settings icon");
 		khelp.setImage("icons/svg/help.svg");
+		juce::Logger::writeToLog("Signalizer: Loaded help icon");
 		kkiosk.setImage("icons/svg/fullscreen.svg");
+		juce::Logger::writeToLog("Signalizer: Loaded fullscreen icon");
 		kgraph.setImage("icons/svg/share.svg");
+		juce::Logger::writeToLog("Signalizer: Loaded graph icon");
+		auto iconTime = juce::Time::getMillisecondCounterHiRes() - iconStart;
+		juce::Logger::writeToLog("Signalizer: Icon loading took " + juce::String(iconTime) + " ms");
 
 		//kstableFps.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
 		//kvsync.setSize(cpl::ControlSize::Rectangle.width, cpl::ControlSize::Rectangle.height / 2);
@@ -1597,8 +1622,14 @@ namespace Signalizer
 		addAndMakeVisible(tabs);
 
 		tabs.setOrientation(tabs.Horizontal);
+		auto tabStart = juce::Time::getMillisecondCounterHiRes();
 		for(auto& content : ContentCreationList)
+		{
+			juce::Logger::writeToLog("Signalizer: Adding tab " + juce::String(content.first.c_str()));
 			tabs.addTab(content.first);
+		}
+		auto tabTime = juce::Time::getMillisecondCounterHiRes() - tabStart;
+		juce::Logger::writeToLog("Signalizer: Tab creation took " + juce::String(tabTime) + " ms");
 
 		// additions
 		addAndMakeVisible(rcc);
@@ -1629,5 +1660,8 @@ namespace Signalizer
 		kgraphSerialization.bSetDescription(engine->getHostGraph().getGraphSerializationHelpText());
 		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
 		resized();
+		
+		auto totalInitUITime = juce::Time::getMillisecondCounterHiRes() - uiInitStart;
+		juce::Logger::writeToLog("Signalizer: Total initUI complete - took " + juce::String(totalInitUITime) + " ms");
 	}
 };

@@ -16,9 +16,9 @@ SUB4 := Sign
 DESCRIPTION := Real-time audio visualization plugin
 
 # Build configuration
-ARCH := x86_64
+ARCH := arm64
 BUILD_FOLDER := Signalizer_OSX
-BUILD_DIR := $(BUILD_FOLDER)/x64
+BUILD_DIR := $(BUILD_FOLDER)/$(ARCH)
 RELEASE_DIR := Releases
 ZIP_OUTPUT := $(RELEASE_DIR)/Signalizer\ OS\ X\ $(VERSION_STRING)
 XCODE_PROJECT := Builds/MacOSX/Signalizer.xcodeproj
@@ -43,7 +43,7 @@ BUILD_RELEASE := $(shell uname -r)
 GIT_BRANCH := $(shell git branch --show-current 2>/dev/null || echo "unknown")
 GIT_COMMIT := $(shell git describe --always 2>/dev/null || echo "unknown")
 
-.PHONY: all setup build clean increment-major increment-minor increment-patch install-macos help build-projucer regenerate-project check-deps-x86 check-deps-arm64 build-arm64 build-internal
+.PHONY: all setup build build-debug clean increment-major increment-minor increment-patch install-macos-arm64 install-debug help build-projucer regenerate-project check-deps-x86 check-deps-arm64 build-x86 build-internal build-debug-x86 build-debug-arm64
 
 all: setup regenerate-project build
 
@@ -55,8 +55,10 @@ help:
 	@echo "  setup            - Initialize submodules"
 	@echo "  build-projucer   - Build Projucer tool"
 	@echo "  regenerate-project - Regenerate Xcode project from .jucer file"
-	@echo "  build            - Build Signalizer for x86_64 (default)"
-	@echo "  build-arm64      - Build Signalizer for ARM64"
+	@echo "  build            - Build Signalizer for ARM64 (default)"
+	@echo "  build-debug      - Build Signalizer with debug symbols for ARM64 (default)"
+	@echo "  build-x86        - Build Signalizer for x86_64"
+	@echo "  build-debug-x86  - Build Signalizer with debug symbols for x86_64"
 	@echo "  check-deps-x86   - Check x86_64 dependencies"
 	@echo "  check-deps-arm64 - Check ARM64 dependencies"
 	@echo "  clean            - Clean build artifacts"
@@ -64,6 +66,7 @@ help:
 	@echo "  increment-minor  - Increment minor version and build"
 	@echo "  increment-patch  - Increment patch version and build"
 	@echo "  install          - Install built plugins to user library"
+	@echo "  install-debug    - Install debug VST3 with symbols for Instruments profiling"
 	@echo ""
 	@echo "Current version: $(VERSION_STRING)"
 	@echo "Current architecture: $(ARCH)"
@@ -116,13 +119,13 @@ check-deps-arm64:
 		lipo -info /opt/homebrew/lib/libpng.dylib; \
 	fi
 
-build: setup check-deps-x86
-	@echo "------> Building Signalizer v. $(VERSION_STRING) release targets ($(VERSION_INT)) for $(ARCH)"
-	@$(MAKE) build-internal
-
-build-arm64: setup check-deps-arm64
+build: setup check-deps-arm64
 	@echo "------> Building Signalizer v. $(VERSION_STRING) release targets ($(VERSION_INT)) for arm64"
 	@$(MAKE) build-internal ARCH=arm64 BUILD_DIR=$(BUILD_FOLDER)/arm64
+
+build-x86: setup check-deps-x86
+	@echo "------> Building Signalizer v. $(VERSION_STRING) release targets ($(VERSION_INT)) for x86_64"
+	@$(MAKE) build-internal ARCH=x86_64 BUILD_DIR=$(BUILD_FOLDER)/x64
 
 build-internal:
 	@mkdir -p $(BUILD_DIR)
@@ -208,18 +211,122 @@ build-internal:
 	@echo "------> Built Signalizer successfully into:"
 	@echo "------> $(ZIP_OUTPUT).zip"
 
+# Debug build targets
+build-debug: setup check-deps-arm64
+	$(MAKE) build-debug-arm64
+
+build-debug-x86:
+	$(MAKE) ARCH=x86_64 BUILD_DIR=$(BUILD_FOLDER)/x64 build-debug-internal
+
+build-debug-arm64: setup check-deps-arm64
+	$(MAKE) ARCH=arm64 BUILD_DIR=$(BUILD_FOLDER)/arm64 build-debug-internal
+
+build-debug-internal:
+	@echo "========================================="
+	@echo "Building Signalizer DEBUG for $(ARCH)..."
+	@echo "========================================="
+	@echo ""
+	@echo "---------> Creating version.h with debugging info for $(ARCH):"
+	@mkdir -p Source
+	@echo "#define SIGNALIZER_MAJOR $(VERSION_MAJOR)" > Source/version.h
+	@echo "#define SIGNALIZER_MINOR $(VERSION_MINOR)" >> Source/version.h
+	@echo "#define SIGNALIZER_BUILD $(VERSION_BUILD)" >> Source/version.h
+	@echo "#define SIGNALIZER_BUILD_INFO \"$(BUILD_TIME) $(BUILD_USER)@$(BUILD_SYSTEM) $(BUILD_RELEASE) [$(GIT_BRANCH):$(GIT_COMMIT)]\"" >> Source/version.h
+	@cat Source/version.h
+	@echo ""
+	@echo "---------> Compiler invocation for $(ARCH) DEBUG:"
+	xcodebuild \
+		-project $(XCODE_PROJECT) \
+		-scheme "Signalizer - All" \
+		-configuration Debug \
+		CONFIGURATION_BUILD_DIR=$(shell pwd)/$(BUILD_DIR)/ \
+		STRIP_INSTALLED_PRODUCT=NO \
+		SEPARATE_STRIP=NO \
+		GCC_GENERATE_DEBUGGING_SYMBOLS=YES \
+		DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+		GCC_OPTIMIZATION_LEVEL=0 \
+		SWIFT_OPTIMIZATION_LEVEL=-Onone \
+		COPY_PHASE_STRIP=NO \
+		ARCHS=$(ARCH) \
+		VALID_ARCHS=$(ARCH) \
+		ENABLE_STRICT_OBJC_MSGSEND=NO \
+		OTHER_CFLAGS="-g -O0 -DDEBUG=1 -DJUCE_INCLUDE_PNGLIB_CODE=0 -I$(LIB_INCLUDE_PATH) -Wno-writable-strings -DJUCE_SILENCE_XCODE_15_LINKER_WARNING=1 -DDONT_SET_USING_JUCE_NAMESPACE=1 -Wno-error" \
+		OTHER_LDFLAGS="-L$(LIB_LIBRARY_PATH) -lpng -lz -lSignalizer $(LIB_PNG_PATH)" \
+		VERBOSE=1 \
+		CLANG_ENABLE_OBJC_WEAK=NO
+	
+	@echo ""
+	
+	# Copy resources and build metadata (same as release build but with debug symbols)
+	@echo "---------> Preparing debug build directories ..."
+	@mkdir -p $(BUILD_DIR)/Signalizer.component/Contents/Resources
+	@echo "Build: $(BUILD_TIME)" > $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "User: $(BUILD_USER)" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "System: $(BUILD_SYSTEM) $(BUILD_RELEASE)" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "Branch: $(GIT_BRANCH)" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "Commit: " >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "$(GIT_COMMIT)" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@echo "" >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log
+	@git log -5 >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log 2>/dev/null || true
+	
+	# Copy changelog and skeleton resources
+	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.component/Contents/Resources/ || exit 1
+	@cp -R Make/Skeleton/* $(BUILD_DIR)/Signalizer.component/Contents/Resources/ || exit 1
+	# Re-sign after adding resources
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.component
+	
+	@echo ""
+	@echo "------> All debug builds finished, generating plugin permutations ..."
+	
+	# Create plugin variants
+	@cp -R $(BUILD_DIR)/Signalizer.component $(BUILD_DIR)/Signalizer.vst
+	# Re-sign VST copy
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.vst
+	# VST3 is built separately by Xcode, so we need to add resources to it
+	@cp -R Make/Skeleton/* $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	@cp $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	# Re-sign after adding resources
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.vst3
+	
+	@echo "------> Built Signalizer DEBUG successfully into:"
+	@echo "------> $(BUILD_FOLDER)/"
+
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_FOLDER)
 	@rm -f Source/version.h
 
-install-macos:
+install-macos-arm64:
 	@echo "Installing plugins to user library..."
-# 	@cp -R $(BUILD_DIR)/Signalizer.component ~/Library/Audio/Plug-Ins/Components/
-# 	@cp -R $(BUILD_DIR)/Signalizer.vst ~/Library/Audio/Plug-Ins/VST/
-	@cp -R Signalizer_OSX/arm64/Signalizer.vst3 /Library/Audio/Plug-Ins/VST3/
+# 	@cp -R $(BUILD_DIR)/Signalizer.component /Library/Audio/Plug-Ins/Components/
+# 	@cp -R $(BUILD_DIR)/Signalizer.vst /Library/Audio/Plug-Ins/VST/
+	rm -rf /Library/Audio/Plug-Ins/VST3/Signalizer.vst3
+	cp -R Signalizer_OSX/arm64/Signalizer.vst3 /Library/Audio/Plug-Ins/VST3/
+	xattr -rc /Library/Audio/Plug-Ins/VST3/Signalizer.vst3
+	echo "Installation complete. You may need to restart your DAW."
+
+install-debug:
+	@echo "Installing debug VST3 plugin for Instruments profiling..."
+	@if [ ! -d "$(BUILD_DIR)/Signalizer.vst3" ]; then \
+		echo "Error: Debug build not found at $(BUILD_DIR)/Signalizer.vst3"; \
+		echo "Run 'make build-debug' first."; \
+		exit 1; \
+	fi
+	@rm -rf /Library/Audio/Plug-Ins/VST3/Signalizer.vst3
+	@rm -rf /Library/Audio/Plug-Ins/VST3/Signalizer.vst3.dSYM
+	@cp -R $(BUILD_DIR)/Signalizer.vst3 /Library/Audio/Plug-Ins/VST3/
+	@if [ -d "$(BUILD_DIR)/Signalizer.vst3.dSYM" ]; then \
+		cp -R $(BUILD_DIR)/Signalizer.vst3.dSYM /Library/Audio/Plug-Ins/VST3/; \
+		echo "✅ Installed debug symbols: /Library/Audio/Plug-Ins/VST3/Signalizer.vst3.dSYM"; \
+	fi
 	@xattr -rc /Library/Audio/Plug-Ins/VST3/Signalizer.vst3
-	@echo "Installation complete. You may need to restart your DAW."
+	@echo "✅ Installed debug plugin: /Library/Audio/Plug-Ins/VST3/Signalizer.vst3"
+	@echo "✅ Architecture: $(ARCH)"
+	@echo "✅ Build directory: $(BUILD_DIR)"
+	@echo ""
+	@echo "The debug plugin is now ready for Instruments profiling."
+	@echo "Restart your DAW to load the new version."
 
 increment-major:
 	@echo "Incrementing major version..."
