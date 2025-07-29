@@ -43,7 +43,7 @@ BUILD_RELEASE := $(shell uname -r)
 GIT_BRANCH := $(shell git branch --show-current 2>/dev/null || echo "unknown")
 GIT_COMMIT := $(shell git describe --always 2>/dev/null || echo "unknown")
 
-.PHONY: all setup build clean increment-major increment-minor increment-patch install help build-projucer regenerate-project check-deps-x86 check-deps-arm64 build-arm64 build-internal
+.PHONY: all setup build clean increment-major increment-minor increment-patch install-macos help build-projucer regenerate-project check-deps-x86 check-deps-arm64 build-arm64 build-internal
 
 all: setup regenerate-project build
 
@@ -180,18 +180,24 @@ build-internal:
 	@git log -5 >> $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log 2>/dev/null || true
 	
 	# Copy changelog and skeleton resources
-	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.component/Contents/Resources/
-	@cp -R Make/Skeleton/resources $(BUILD_DIR)/Signalizer.component/Contents/Resources/
+	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.component/Contents/Resources/ || exit 1
+	@cp -R Make/Skeleton/* $(BUILD_DIR)/Signalizer.component/Contents/Resources/ || exit 1
+	# Re-sign after adding resources
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.component
 	
 	@echo ""
 	@echo "------> All builds finished, generating plugin permutations ..."
 	
 	# Create plugin variants
 	@cp -R $(BUILD_DIR)/Signalizer.component $(BUILD_DIR)/Signalizer.vst
+	# Re-sign VST copy
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.vst
 	# VST3 is built separately by Xcode, so we need to add resources to it
-	@cp -R Make/Skeleton/resources $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
-	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
-	@cp $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/
+	@cp -R Make/Skeleton/* $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	@cp CHANGELOG.md $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	@cp $(BUILD_DIR)/Signalizer.component/Contents/Resources/Build.log $(BUILD_DIR)/Signalizer.vst3/Contents/Resources/ || exit 1
+	# Re-sign after adding resources
+	@codesign --force --sign - $(BUILD_DIR)/Signalizer.vst3
 	
 	@echo "------> Zipping output directories..."
 	
@@ -207,14 +213,12 @@ clean:
 	@rm -rf $(BUILD_FOLDER)
 	@rm -f Source/version.h
 
-install: build
+install-macos:
 	@echo "Installing plugins to user library..."
-	@mkdir -p ~/Library/Audio/Plug-Ins/Components
-	@mkdir -p ~/Library/Audio/Plug-Ins/VST
-	@mkdir -p ~/Library/Audio/Plug-Ins/VST3
-	@cp -R $(BUILD_DIR)/Signalizer.component ~/Library/Audio/Plug-Ins/Components/
-	@cp -R $(BUILD_DIR)/Signalizer.vst ~/Library/Audio/Plug-Ins/VST/
-	@cp -R $(BUILD_DIR)/Signalizer.vst3 ~/Library/Audio/Plug-Ins/VST3/
+# 	@cp -R $(BUILD_DIR)/Signalizer.component ~/Library/Audio/Plug-Ins/Components/
+# 	@cp -R $(BUILD_DIR)/Signalizer.vst ~/Library/Audio/Plug-Ins/VST/
+	@cp -R Signalizer_OSX/arm64/Signalizer.vst3 /Library/Audio/Plug-Ins/VST3/
+	@xattr -rc /Library/Audio/Plug-Ins/VST3/Signalizer.vst3
 	@echo "Installation complete. You may need to restart your DAW."
 
 increment-major:
