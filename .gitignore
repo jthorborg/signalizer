@@ -17,7 +17,6 @@ Builds/VisualStudio2010/x64/
 Builds/VisualStudio2010/Release/
 Builds/VisualStudio2010/Signalizer.sdf
 Builds/VisualStudio2010/Signalizer.opensdf
-Builds/*
 Signalizer_OSX/*
 *.psess
 *.vsp
