@@ -77,8 +77,6 @@ namespace Signalizer
 			});
 		}
 
-		juce::File location;
-
 		// load the default preset
 		try
 		{
@@ -86,8 +84,7 @@ namespace Signalizer
 
 			cpl::CPresetManager::instance().loadPreset(
 				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr,
-				serializer,
-				location
+				serializer
 			);
 
 			if (!serializer.isEmpty())
