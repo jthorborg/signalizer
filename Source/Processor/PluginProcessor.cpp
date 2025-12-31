@@ -77,8 +77,6 @@ namespace Signalizer
 			});
 		}
 
-		juce::File location;
-
 		// load the default preset
 		try
 		{
@@ -86,8 +84,7 @@ namespace Signalizer
 
 			cpl::CPresetManager::instance().loadPreset(
 				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr,
-				serializer,
-				location
+				serializer
 			);
 
 			if (!serializer.isEmpty())
@@ -501,7 +498,7 @@ namespace Signalizer
 
 	const juce::String AudioProcessor::getProgramName(int index)
 	{
-		return juce::String::empty;
+		return {};
 	}
 
 	void AudioProcessor::changeProgramName(int index, const juce::String& newName)

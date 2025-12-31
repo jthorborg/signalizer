@@ -254,7 +254,7 @@
       <FILE id="ZgMywg" name="MacroConstants.h" compile="0" resource="0"
             file="External/cpl/MacroConstants.h"/>
       <FILE id="W55KhG" name="MacSupport.h" compile="0" resource="0" file="External/cpl/MacSupport.h"/>
-      <FILE id="KhPTGR" name="MacSupport.mm" compile="0" resource="0" file="External/cpl/MacSupport.mm"/>
+      <FILE id="KhPTGR" name="MacSupport.mm" compile="1" resource="0" file="External/cpl/MacSupport.mm"/>
       <FILE id="d2E02p" name="Mathext.h" compile="0" resource="0" file="External/cpl/Mathext.h"/>
       <FILE id="S3DIE2" name="Misc.cpp" compile="0" resource="0" file="External/cpl/Misc.cpp"/>
       <FILE id="q4G3td" name="Misc.h" compile="0" resource="0" file="External/cpl/Misc.h"/>
@@ -582,7 +582,8 @@
     <FILE id="SGRZHx" name="version.h" compile="0" resource="0" file="Source/version.h"/>
   </MAINGROUP>
   <EXPORTFORMATS>
-    <XCODE_MAC targetFolder="Builds/MacOSX" vstLegacyFolder="../SDKs/vstsdk2.4">
+    <XCODE_MAC targetFolder="Builds/MacOSX" vstLegacyFolder="../SDKs/vstsdk2.4"
+               customXcodeResourceFolders="make/Skeleton/licenses&#10;make/Skeleton/presets&#10;make/Skeleton/resources">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" isDebug="1"
                        optimisation="1" targetName="Signalizer" fastMath="1"/>
@@ -655,5 +656,5 @@
   </MODULES>
   <JUCEOPTIONS JUCE_QUICKTIME="0" JUCE_FORCE_LEGACY_PARAMETER_AUTOMATION_TYPE="1"
                JUCE_FORCE_USE_LEGACY_PARAM_IDS="1" JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE="1"
-               JUCE_USE_CURL="0" JUCE_INCLUDE_ZLIB_CODE="0"/>
+               JUCE_USE_CURL="0" JUCE_INCLUDE_ZLIB_CODE="1"/>
 </JUCERPROJECT>

@@ -442,6 +442,7 @@ namespace Signalizer
 			calculateLegend = true;
 		}
 
+		// TODO: Handle axisPoints being 0! Causes assertion in TransformConstant::remapFrequencies.
 		std::size_t axisPoints = state.displayMode == SpectrumContent::DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
