@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Project DefaultTargets="Build"
+         ToolsVersion="17.0"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E8F37FC0-73CF-D0B7-DE1E-733A8C634D0A}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"
+                 Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'"
+                 Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+  <ImportGroup Label="ExtensionSettings"/>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+            Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+            Label="LocalAppDataPlatform"/>
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <TargetExt>.dll</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\VST3\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\VST3\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Signalizer</TargetName>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(LibraryPath);$(SolutionDir)$(Platform)\$(Configuration)\Shared Code</LibraryPath>
+    <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PostBuildEventUseInBuild>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\VST3\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\VST3\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Signalizer</TargetName>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(LibraryPath);$(SolutionDir)$(Platform)\$(Configuration)\Shared Code</LibraryPath>
+    <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PostBuildEventUseInBuild>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName/>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)\</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\Signalizer.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>$(OutDir)\Signalizer.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib; msvcrt.lib;;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)\Signalizer.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <LargeAddressAware>true</LargeAddressAware>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <PreBuildEvent>
+      <Command>if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
+    echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3&quot;
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3\Contents&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3\Contents&quot;
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win&quot;
+)
+</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+copy /Y &quot;$(OutDir)\Signalizer.dll&quot; &quot;$(OutDir)\Signalizer.vst3\Contents\x86_64-win\Signalizer.vst3&quot;
+set manifest_generated=0
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;ARM64&quot; if &quot;$(Platform)&quot; == &quot;x64&quot; (
+    call :_generate_manifest
+    set manifest_generated=1
+)
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;AMD64&quot; if &quot;$(Platform)&quot; == &quot;x64&quot; (
+    call :_generate_manifest
+    set manifest_generated=1
+)
+if %manifest_generated% equ 0 (
+    goto :_arch_mismatch
+)
+goto :_continue
+:_generate_manifest
+if exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
+    del /s /q &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+)
+if not exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot; (
+    mkdir &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot;
+)
+&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; -create -version &quot;0.5.0&quot; -path &quot;$(OutDir)/Signalizer.vst3&quot; -output &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+if %ERRORLEVEL% equ 0 (
+    echo : Info: Successfully generated a manifest for Signalizer
+    goto :_continue
+) else (
+    echo : Info: The manifest helper failed
+    goto :_continue
+)
+:_arch_mismatch
+echo : Info: VST3 manifest generation is disabled for Signalizer because a AMD64 manifest helper cannot run on a host system processor detected to be $(PROCESSOR_ARCHITECTURE).
+:_continue
+xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgramW6432%\VST3\Signalizer.vst3\&quot;
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName/>
+    </Midl>
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)\</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\Signalizer.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>$(OutDir)\Signalizer.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)\Signalizer.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <PreBuildEvent>
+      <Command>if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
+    echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3&quot;
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3\Contents&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3\Contents&quot;
+)
+if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win\&quot; (
+    del /s /q &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win&quot;
+    mkdir &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win&quot;
+)
+</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+copy /Y &quot;$(OutDir)\Signalizer.dll&quot; &quot;$(OutDir)\Signalizer.vst3\Contents\x86_64-win\Signalizer.vst3&quot;
+set manifest_generated=0
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;ARM64&quot; if &quot;$(Platform)&quot; == &quot;x64&quot; (
+    call :_generate_manifest
+    set manifest_generated=1
+)
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;AMD64&quot; if &quot;$(Platform)&quot; == &quot;x64&quot; (
+    call :_generate_manifest
+    set manifest_generated=1
+)
+if %manifest_generated% equ 0 (
+    goto :_arch_mismatch
+)
+goto :_continue
+:_generate_manifest
+if exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
+    del /s /q &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+)
+if not exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot; (
+    mkdir &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot;
+)
+&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; -create -version &quot;0.5.0&quot; -path &quot;$(OutDir)/Signalizer.vst3&quot; -output &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+if %ERRORLEVEL% equ 0 (
+    echo : Info: Successfully generated a manifest for Signalizer
+    goto :_continue
+) else (
+    echo : Info: The manifest helper failed
+    goto :_continue
+)
+:_arch_mismatch
+echo : Info: VST3 manifest generation is disabled for Signalizer because a AMD64 manifest helper cannot run on a host system processor detected to be $(PROCESSOR_ARCHITECTURE).
+:_continue
+xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgramW6432%\VST3\Signalizer.vst3\&quot;
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ManifestHelper.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\juce_audio_plugin_client_VST3.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_plugin_client_VST3.cpp"/>
+  </ItemGroup>
+  <ItemGroup/>
+  <ItemGroup>
+    <ResourceCompile Include=".\resources.rc"/>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
+</Project>

@@ -606,9 +606,11 @@
     <VS2022 targetFolder="Builds/VisualStudio2022" vstLegacyFolder="../SDKs/vstsdk2.4">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" fastMath="1" enablePluginBinaryCopyStep="1"
-                       vstBinaryLocation_x64="C:\Audio\VSTPlugins"/>
+                       vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer" winWarningLevel="3"
+                       postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"/>
         <CONFIGURATION isDebug="0" name="Release" fastMath="1" useRuntimeLibDLL="0"
-                       enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins"/>
+                       enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer"
+                       winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
