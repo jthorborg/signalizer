@@ -37,6 +37,7 @@
 	#include <cpl/gui/NewStuffAndLook.h>
 	#include <map>
 	#include <ctime>
+	#include <random>
 
 	namespace Signalizer
 	{
@@ -365,7 +366,7 @@
 			{
 				g.fillAll(cpl::GetColour(cpl::ColourEntry::Activated));
 				g.setColour(cpl::GetColour(cpl::ColourEntry::Separator));
-				g.drawHorizontalLine(getHeight() - 1, icons.getRight(), getWidth());
+				g.drawHorizontalLine(getHeight() - 1, static_cast<float>(icons.getRight()), static_cast<float>(getWidth()));
 				return;
 			}
 
@@ -443,8 +444,9 @@
 				: lastTime(cpl::Misc::TimeCounter())
 				, fractionateMoves(0)
 				, COpenGLView("Signalizer default view")
+				, bouncer(rng)
 			{
-				std::srand(std::time(nullptr));
+				rng.seed(static_cast<unsigned>(std::time(nullptr)));
 				setOpaque(true);
 				addAndMakeVisible(bouncer);
 				bouncer.setText("No view selected");
@@ -497,7 +499,7 @@
 			{
 				if (firstMove && getWidth() && getHeight())
 				{
-					bouncer.setTopLeftPosition(std::rand() % getWidth(), std::rand() % getHeight());
+					bouncer.setTopLeftPosition(rng() % getWidth(), rng() % getHeight());
 				}
 			}
 			void repaintMainContent2()
@@ -559,7 +561,8 @@
 			{
 			public:
 
-				Bouncer()
+				Bouncer(std::minstd_rand& rng)
+					: rng(rng)
 				{
 
 					this->setComponentEffect(&glow);
@@ -578,9 +581,9 @@
 				{
 					colour = juce::Colour
 					(
-						std::uint8_t(std::rand() % 0xFF), 
-						std::uint8_t(std::rand() % 0xFF), 
-						std::uint8_t(std::rand() % 0xFF), 
+						std::uint8_t(rng() % 0xFF),
+						std::uint8_t(rng() % 0xFF),
+						std::uint8_t(rng() % 0xFF),
 						std::uint8_t(0xFF)
 					);
 					glow.setGlowProperties(2, colour.darker());
@@ -604,6 +607,7 @@
 				std::string text;
 
 				juce::GlowEffect glow;
+				std::minstd_rand& rng;
 			};
 
 		private:
@@ -614,6 +618,7 @@
 			juce::Rectangle<int> bounds;
 			Bouncer bouncer;
 			bool firstMove = false;
+			std::minstd_rand rng;
 		};
 
 

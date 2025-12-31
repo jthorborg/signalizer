@@ -245,7 +245,7 @@ namespace Signalizer
 		state.manualGain = content->inputGain.getTransformedValue();
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
-		state.primitiveSize = content->primitiveSize.getTransformedValue();
+		state.primitiveSize = static_cast<float>(content->primitiveSize.getTransformedValue());
 		state.triggerMode = cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();

@@ -92,7 +92,7 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, int(complexScale * sdiv.coord + 5), 20, 100, 20, juce::Justification::centredLeft);
 
 				}
 				// text for complex frequency divisions
@@ -112,7 +112,7 @@ namespace Signalizer
 				for (auto & dbDiv : dbGraph.getDivisions())
 				{
 					cpl::sprintfs(buf, "%.2f", dbDiv.dbVal);
-					g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, 5, int(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 				}
 			}
 		}
@@ -130,7 +130,7 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, gradientWidth + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, gradientWidth + baseWidth + 5, int(height - sdiv.coord - 10) /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 				}
 			}
 
@@ -138,12 +138,12 @@ namespace Signalizer
 
 			juce::ColourGradient gradient = constant.generateSpectrogramGradient(0);
 
-			gradient.point1 = {gradientWidth * 0.5f, (float)getHeight() };
+			gradient.point1 = {gradientWidth * 0.5f, height };
 			gradient.point2 = {gradientWidth * 0.5f, 0.0f };
 
 			g.setGradientFill(gradient);
 
-			g.fillRect(0.0f, 0.0f, gradientWidth, (float)getHeight());
+			g.fillRect(0.0f, 0.0f, gradientWidth, height);
 		}
 
 		float averageFps, averageCpu;

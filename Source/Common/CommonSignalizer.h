@@ -923,7 +923,7 @@
 			ColourRotation() : base(), size(), stereo() {}
 
 			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
-				: base(base), size(size), stereo(stereo)
+				: base(base), size(static_cast<float>(size)), stereo(stereo)
 			{
 
 			}
