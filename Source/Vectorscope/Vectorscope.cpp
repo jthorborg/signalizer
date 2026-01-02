@@ -198,8 +198,8 @@ namespace Signalizer
 
 		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
-		processor->envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate));
-		processor->stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate));
+		processor->envelopeCoeff = static_cast<float>(std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate)));
+		processor->stereoCoeff = static_cast<float>(std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate)));
 
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
