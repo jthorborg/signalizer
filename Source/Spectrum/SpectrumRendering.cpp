@@ -806,10 +806,10 @@ namespace Signalizer
 #ifdef CPL_WINDOWS
 		enableMultiSampleFillOnNonIntegerScales = true;
 #endif
-		const auto quarterQuantizedScale = int(renderingScale * 4) / 4.0;
-		ogs.setLineSize(static_cast<float>(quarterQuantizedScale));
+		const auto percentileQuantizedScale = int(renderingScale * 100) / 100.0;
+		ogs.setLineSize(static_cast<float>(percentileQuantizedScale));
 
-		if (enableMultiSampleFillOnNonIntegerScales && (int)quarterQuantizedScale != 1)
+		if (enableMultiSampleFillOnNonIntegerScales && (int)percentileQuantizedScale != 1)
 			ogs.enable(GL_MULTISAMPLE);
 		else
 			ogs.disable(GL_MULTISAMPLE);
@@ -865,7 +865,7 @@ namespace Signalizer
 
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		ogs.setLineSize(std::max(0.001f, static_cast<float>(quarterQuantizedScale * state.primitiveSize)));
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(percentileQuantizedScale * state.primitiveSize)));
 		// draw back to front
 		for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 		{
