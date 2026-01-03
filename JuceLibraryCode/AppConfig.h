@@ -173,6 +173,10 @@
  //#define JUCE_DISABLE_COREGRAPHICS_FONT_SMOOTHING 0
 #endif
 
+#ifndef    JUCE_ENABLE_DIRECT2D_CLEARTYPE_FONT_SMOOTHING
+ #define   JUCE_ENABLE_DIRECT2D_CLEARTYPE_FONT_SMOOTHING 1
+#endif
+
 //==============================================================================
 // juce_gui_basics flags:
 
