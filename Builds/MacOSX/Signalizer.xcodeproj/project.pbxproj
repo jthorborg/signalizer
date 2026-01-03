@@ -44,20 +44,21 @@
 		401FCD1272DD51224677EF73 /* Security.framework */ = {isa = PBXBuildFile; fileRef = 3DAC41FAFB207758CED43478; };
 		44299907F840D6CF916CABF4 /* Accelerate.framework */ = {isa = PBXBuildFile; fileRef = FA30D5AE8246138FAF9D0A88; };
 		47D39DDE6CA9FB3B950CF164 /* include_juce_core.mm */ = {isa = PBXBuildFile; fileRef = B8EB1459277D4FB2AB5D8CB9; };
+		54CA7139F0AB53AD65A9314B /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXBuildFile; fileRef = DB33047BEE27309B36D34DDF; };
 		5918D55F86AFFA544CCDDF4F /* SignalizerDesign.cpp */ = {isa = PBXBuildFile; fileRef = 9E55A2B0AEE050B45B716BB7; };
 		5D0FA6346441FE78546DE0EB /* HostGraph.cpp */ = {isa = PBXBuildFile; fileRef = 532E6C813C3550D2494F772A; };
 		60F6C44E7090A973F232D3D3 /* include_juce_audio_plugin_client_ARA.cpp */ = {isa = PBXBuildFile; fileRef = 4FC05AD8A2F772137F692A46; };
 		655C917F5389DFE750702956 /* MixGraphListener.cpp */ = {isa = PBXBuildFile; fileRef = 34C541BB8907B82F7A22BC4B; };
 		71AFB88A89F5508765AE8A9F /* CoreMIDI.framework */ = {isa = PBXBuildFile; fileRef = AD13E79616F5519F01757023; };
 		7A3E5F7350ADC45C342687AE /* include_juce_audio_processors.mm */ = {isa = PBXBuildFile; fileRef = 12CF0E46948D3ABC433B415D; };
-		7B480E915B85A153FEDA1F32 /* include_juce_audio_processors_ara.cpp */ = {isa = PBXBuildFile; fileRef = 0A4B79A91D45DA4E9F4F6431; };
+		819C0B284253E87D2F47892F /* include_juce_audio_processors_headless.mm */ = {isa = PBXBuildFile; fileRef = D9C9DAAE3B7861E83C047A9A; };
 		82B194250C7BC5DC68A1BEA6 /* Shared Code */ = {isa = PBXBuildFile; fileRef = 5E40C6763C0485CA7E9F0B3F; };
 		8956A9C9E61EF818E4E0F2CC /* SpectrumDSP.cpp */ = {isa = PBXBuildFile; fileRef = 8054CD545274B237500BF1CD; };
 		8A397D858ED0145A9DCA0A4B /* Foundation.framework */ = {isa = PBXBuildFile; fileRef = 9BD236F0675066E883254F21; };
 		8E10BF1F129DBA606C01D784 /* presets */ = {isa = PBXBuildFile; fileRef = B7F5FB16455D45840DBCA159; };
 		8FA2E67003DEF89DBCC66F1A /* VectorscopeRendering.cpp */ = {isa = PBXBuildFile; fileRef = 9B8D7AD35CA6B32AF74F423C; };
 		91CB3D042CDDAA4967FBD55D /* MetalKit.framework */ = {isa = PBXBuildFile; fileRef = 81546767140A69FF4165B727; settings = { ATTRIBUTES = (Weak, ); }; };
-		984992965076D384EA0AFAA5 /* juce_VST3ManifestHelper.mm */ = {isa = PBXBuildFile; fileRef = 72CC60153CCC0A5279625438; settings = { COMPILER_FLAGS = "-fobjc-arc -w -DJUCE_SKIP_PRECOMPILED_HEADER"; }; };
+		984992965076D384EA0AFAA5 /* juce_VST3ManifestHelper.mm */ = {isa = PBXBuildFile; fileRef = 72CC60153CCC0A5279625438; settings = { COMPILER_FLAGS = "-w -DJUCE_SKIP_PRECOMPILED_HEADER"; }; };
 		9A5DFB674C00467B013D1E18 /* Spectrum.cpp */ = {isa = PBXBuildFile; fileRef = 3FF85AA3304701A3A379E2F1; };
 		9A7A0328B99302F7C7344E84 /* CoreAudioKit.framework */ = {isa = PBXBuildFile; fileRef = 9AD617CE60F603AB73BD1CAC; };
 		9ADCF957CAC10F2F084FE271 /* OpenGL.framework */ = {isa = PBXBuildFile; fileRef = DF3EED0643E301A799F6F76D; };
@@ -66,6 +67,7 @@
 		9D806704548FAF8A4AF0E2E8 /* MainEditor.cpp */ = {isa = PBXBuildFile; fileRef = 78A42654080140A61366CC43; };
 		A286758C4DBC3F8C295CBEE1 /* MacSupport.mm */ = {isa = PBXBuildFile; fileRef = B241861159362D0D047042C6; };
 		A68E73A7A3370D4EA81B9DED /* SpectrumRendering.cpp */ = {isa = PBXBuildFile; fileRef = 6381774FE90F32C7C6598684; };
+		AA93EEB4270ACC18241B6DDC /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXBuildFile; fileRef = 562F0D8856C73D37766DFE60; };
 		AE6BEA798B0198727302C90B /* include_juce_graphics_Sheenbidi.c */ = {isa = PBXBuildFile; fileRef = 7525E648745EFD156E9181D4; };
 		B1BCBF3984CC3A18F018DF43 /* resources */ = {isa = PBXBuildFile; fileRef = B1AC63EA11169E0263EA6DF1; };
 		B31F8617916784D220558675 /* include_juce_audio_plugin_client_AU_1.mm */ = {isa = PBXBuildFile; fileRef = EBBAE61197638AE481167BD6; };
@@ -85,7 +87,6 @@
 		E9C5E25BEDFEE19FA797D0F9 /* WebKit.framework */ = {isa = PBXBuildFile; fileRef = 77C57DC9EA99E12A3AC3E335; };
 		EB6F70843DB19CD25A1CFE42 /* AudioUnit.framework */ = {isa = PBXBuildFile; fileRef = E179D771FF5983B0362BC58E; };
 		EC59DE1A532C83244EAEA640 /* include_juce_graphics.mm */ = {isa = PBXBuildFile; fileRef = 7835BDECF63AB61D92E89CA8; };
-		ED731354272393546F2FAAE5 /* include_juce_audio_processors_lv2_libs.cpp */ = {isa = PBXBuildFile; fileRef = 95985B287968F1002BB33B26; };
 		EF6CB0C164B1BCF764F39135 /* Vectorscope.cpp */ = {isa = PBXBuildFile; fileRef = 58AD876E0679EC3A6DFAE2BF; };
 		F0D4F4C4E8DD69DE154F36BC /* CoreAudio.framework */ = {isa = PBXBuildFile; fileRef = A9560E766C1C7FB37A1B291D; };
 /* End PBXBuildFile section */
@@ -109,7 +110,6 @@
 		0918B49A18B0D43CAEAAEE4D /* WindowDesignValue.h */ /* WindowDesignValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WindowDesignValue.h; path = ../../External/cpl/infrastructure/values/WindowDesignValue.h; sourceTree = SOURCE_ROOT; };
 		09D4465AED47D21D3BAC0F3F /* pf_scalar_double.h */ /* pf_scalar_double.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_scalar_double.h; path = ../../External/cpl/ffts/pffft/simd/pf_scalar_double.h; sourceTree = SOURCE_ROOT; };
 		0A1735DB869D0AB5C6793E39 /* pf_conv_dispatcher.h */ /* pf_conv_dispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_conv_dispatcher.h; path = ../../External/cpl/ffts/pffft/pf_conv_dispatcher.h; sourceTree = SOURCE_ROOT; };
-		0A4B79A91D45DA4E9F4F6431 /* include_juce_audio_processors_ara.cpp */ /* include_juce_audio_processors_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_ara.cpp; sourceTree = SOURCE_ROOT; };
 		0A59D9761FC8D619DD5B174A /* ConcurrentConfig.h */ /* ConcurrentConfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ConcurrentConfig.h; path = ../../Source/Common/ConcurrentConfig.h; sourceTree = SOURCE_ROOT; };
 		0B31EA8481C14D8A32AF826A /* VST3 */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Signalizer.vst3; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B48342DF902EA202C42BC62 /* include_juce_opengl.mm */ /* include_juce_opengl.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_opengl.mm; path = ../../JuceLibraryCode/include_juce_opengl.mm; sourceTree = SOURCE_ROOT; };
@@ -215,6 +215,8 @@
 		53BB2C37425D035CF2DCF522 /* ProcessUnix.cpp */ /* ProcessUnix.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProcessUnix.cpp; path = ../../External/cpl/process/ProcessUnix.cpp; sourceTree = SOURCE_ROOT; };
 		542BBA7E0E74677F6A3BBD6B /* build_win.py */ /* build_win.py */ = {isa = PBXFileReference; lastKnownFileType = file.py; name = build_win.py; path = ../../Make/build_win.py; sourceTree = SOURCE_ROOT; };
 		54DA54A71FD275E1427A3518 /* CMakeLists.txt */ /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text.txt; name = CMakeLists.txt; path = ../../External/cpl/external/filesystem/test/CMakeLists.txt; sourceTree = SOURCE_ROOT; };
+		56168B65022B46C0A07DD3D0 /* juce_audio_processors_headless */ /* juce_audio_processors_headless */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_processors_headless; path = ../../External/juce/modules/juce_audio_processors_headless; sourceTree = SOURCE_ROOT; };
+		562F0D8856C73D37766DFE60 /* include_juce_audio_processors_headless_ara.cpp */ /* include_juce_audio_processors_headless_ara.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_ara.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_ara.cpp; sourceTree = SOURCE_ROOT; };
 		56CA1B0307B8A0CE08EDAE69 /* fftpack.h */ /* fftpack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fftpack.h; path = ../../External/cpl/ffts/pffft/fftpack.h; sourceTree = SOURCE_ROOT; };
 		58AD876E0679EC3A6DFAE2BF /* Vectorscope.cpp */ /* Vectorscope.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Vectorscope.cpp; path = ../../Source/Vectorscope/Vectorscope.cpp; sourceTree = SOURCE_ROOT; };
 		58CCE8633ED8CBDD12B7302E /* DesignBase.cpp */ /* DesignBase.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DesignBase.cpp; path = ../../External/cpl/gui/DesignBase.cpp; sourceTree = SOURCE_ROOT; };
@@ -331,7 +333,6 @@
 		925718D992E1892A4649943A /* use_gcc8.inc */ /* use_gcc8.inc */ = {isa = PBXFileReference; lastKnownFileType = file.inc; name = use_gcc8.inc; path = ../../External/cpl/ffts/pffft/use_gcc8.inc; sourceTree = SOURCE_ROOT; };
 		9378A22D4F1C5672F1992B26 /* bench_mixers.cpp */ /* bench_mixers.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = bench_mixers.cpp; path = ../../External/cpl/ffts/pffft/bench_mixers.cpp; sourceTree = SOURCE_ROOT; };
 		94092480F8E87A51E078ABFB /* Metal.framework */ /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		95985B287968F1002BB33B26 /* include_juce_audio_processors_lv2_libs.cpp */ /* include_juce_audio_processors_lv2_libs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_lv2_libs.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_lv2_libs.cpp; sourceTree = SOURCE_ROOT; };
 		959B1206401A0A01FC99BB63 /* CEditSpaceSpawner.cpp */ /* CEditSpaceSpawner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CEditSpaceSpawner.cpp; path = ../../External/cpl/gui/CEditSpaceSpawner.cpp; sourceTree = SOURCE_ROOT; };
 		95C58675A80A0BDF51E5838A /* SignalSanitizer.h */ /* SignalSanitizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalSanitizer.h; path = ../../External/cpl/dsp/SignalSanitizer.h; sourceTree = SOURCE_ROOT; };
 		96591B8611CB9387230B18DD /* WidgetBase.h */ /* WidgetBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WidgetBase.h; path = ../../External/cpl/gui/widgets/WidgetBase.h; sourceTree = SOURCE_ROOT; };
@@ -441,8 +442,10 @@
 		D80E83AA480E728B46068941 /* atomicops.h */ /* atomicops.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = atomicops.h; path = ../../External/cpl/lib/readerwriterqueue/atomicops.h; sourceTree = SOURCE_ROOT; };
 		D8583786A49203AB645EAA31 /* polystack_ptr.h */ /* polystack_ptr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = polystack_ptr.h; path = ../../External/cpl/lib/polystack_ptr.h; sourceTree = SOURCE_ROOT; };
 		D913D5FD0BC2EA0AED149B15 /* Info-VST3.plist */ /* Info-VST3.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Info-VST3.plist"; path = "Info-VST3.plist"; sourceTree = SOURCE_ROOT; };
+		D9C9DAAE3B7861E83C047A9A /* include_juce_audio_processors_headless.mm */ /* include_juce_audio_processors_headless.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors_headless.mm; path = ../../JuceLibraryCode/include_juce_audio_processors_headless.mm; sourceTree = SOURCE_ROOT; };
 		DA8CF3B10A4A294504C01C55 /* pf_neon_double_from_avx.h */ /* pf_neon_double_from_avx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_neon_double_from_avx.h; path = ../../External/cpl/ffts/pffft/simd/pf_neon_double_from_avx.h; sourceTree = SOURCE_ROOT; };
 		DB09DF2B3C7E9619286F8047 /* CDisplaySetup.h */ /* CDisplaySetup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CDisplaySetup.h; path = ../../External/cpl/rendering/CDisplaySetup.h; sourceTree = SOURCE_ROOT; };
+		DB33047BEE27309B36D34DDF /* include_juce_audio_processors_headless_lv2_libs.cpp */ /* include_juce_audio_processors_headless_lv2_libs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_audio_processors_headless_lv2_libs.cpp; path = ../../JuceLibraryCode/include_juce_audio_processors_headless_lv2_libs.cpp; sourceTree = SOURCE_ROOT; };
 		DB9522BA67842D649C59B108 /* CPowerSlopeWidget.h */ /* CPowerSlopeWidget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CPowerSlopeWidget.h; path = ../../External/cpl/gui/widgets/CPowerSlopeWidget.h; sourceTree = SOURCE_ROOT; };
 		DC09CE5F95D65A93EE43B6C7 /* OscilloscopeController.cpp */ /* OscilloscopeController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = OscilloscopeController.cpp; path = ../../Source/Oscilloscope/OscilloscopeController.cpp; sourceTree = SOURCE_ROOT; };
 		DD365143C031FE8B71B68C04 /* PlatformSpecific.h */ /* PlatformSpecific.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlatformSpecific.h; path = ../../External/cpl/PlatformSpecific.h; sourceTree = SOURCE_ROOT; };
@@ -798,8 +801,9 @@
 				58F6611349A15E652F66A198,
 				E3D888EE32BB4DC526D34E52,
 				12CF0E46948D3ABC433B415D,
-				0A4B79A91D45DA4E9F4F6431,
-				95985B287968F1002BB33B26,
+				D9C9DAAE3B7861E83C047A9A,
+				562F0D8856C73D37766DFE60,
+				DB33047BEE27309B36D34DDF,
 				B8EB1459277D4FB2AB5D8CB9,
 				E9FD9B91C11F826DF3636E81,
 				88F37FFB0C08F13F3C211EB7,
@@ -1360,6 +1364,7 @@
 				7D4925595BA17402A9F04A45,
 				BC1B6315AA83A2F873827760,
 				769B31766F610C864045E526,
+				56168B65022B46C0A07DD3D0,
 				1B91BF6FE68DA1198AADF41B,
 				9C16D059DBFEDFB0647B073B,
 				79DCAEE818B7923CCAA7299B,
@@ -1697,7 +1702,7 @@
 			name = "Update manifest";
 			alwaysOutOfDate = 1;
 			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n\necho Running codesign --verbose=4 --force --sign - \\\"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}\\\"\ncodesign --verbose=4 --force --sign - \"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}\"\n\necho Running \\\"${CONFIGURATION_BUILD_DIR}/juce_vst3_helper\\\" -create -version \\\"0.5.0\\\" -path \\\"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}\\\" -output \\\"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/moduleinfo.json\\\"\n\"${CONFIGURATION_BUILD_DIR}/juce_vst3_helper\" -create -version \"0.5.0\" -path \"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}\" -output \"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/moduleinfo.json\"\n";
+			shellScript = "set -euo pipefail\n\necho Running \\\"${CONFIGURATION_BUILD_DIR}/juce_vst3_helper\\\" \\> \\\"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/moduleinfo.json\\\"\n\"${CONFIGURATION_BUILD_DIR}/juce_vst3_helper\" > \"${CONFIGURATION_BUILD_DIR}/${WRAPPER_NAME}/Contents/Resources/moduleinfo.json\"\n";
 		};
 		EABF2EC8053597D884FA1030 /* Plugin Copy Step */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1764,8 +1769,9 @@
 				E320BB33B6CDA287A1DA510F,
 				60F6C44E7090A973F232D3D3,
 				7A3E5F7350ADC45C342687AE,
-				7B480E915B85A153FEDA1F32,
-				ED731354272393546F2FAAE5,
+				819C0B284253E87D2F47892F,
+				AA93EEB4270ACC18241B6DDC,
+				54CA7139F0AB53AD65A9314B,
 				47D39DDE6CA9FB3B950CF164,
 				E610F9BF19E7E9717D5BCD44,
 				24925B07C1AA7B6482207E35,
@@ -1860,7 +1866,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -1875,7 +1881,7 @@
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/VST/";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
@@ -1916,7 +1922,7 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -1929,7 +1935,7 @@
 				INFOPLIST_FILE = Info-VST3_Manifest_Helper.plist;
 				INFOPLIST_PREPROCESS = NO;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "juce_vst3_helper";
 				USE_HEADERMAP = NO;
@@ -1969,7 +1975,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -1984,7 +1990,7 @@
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/Components/";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
@@ -2027,7 +2033,7 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2039,7 +2045,7 @@
 				);
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
 				SKIP_INSTALL = YES;
@@ -2137,7 +2143,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2153,7 +2159,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
@@ -2205,7 +2211,7 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2219,7 +2225,7 @@
 				INFOPLIST_PREPROCESS = NO;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "juce_vst3_helper";
 				SEPARATE_STRIP = YES;
@@ -2262,7 +2268,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2278,7 +2284,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
@@ -2371,7 +2377,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2386,7 +2392,7 @@
 				INSTALL_PATH = "$(HOME)/Library/Audio/Plug-Ins/VST3/";
 				LIBRARY_STYLE = Bundle;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
@@ -2428,7 +2434,7 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2441,7 +2447,7 @@
 				INSTALL_PATH = "@executable_path/../Frameworks";
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;
 				PRODUCT_NAME = "Signalizer";
 				SKIP_INSTALL = YES;
@@ -2483,7 +2489,7 @@
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GENERATE_PKGINFO_FILE = YES;
 				HEADER_SEARCH_PATHS = (
-					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK",
+					"$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK",
 					"$(SRCROOT)/../../../SDKs/vstsdk2.4",
 					"$(SRCROOT)/../../JuceLibraryCode",
 					"$(SRCROOT)/../../External/juce/modules",
@@ -2499,7 +2505,7 @@
 				LIBRARY_STYLE = Bundle;
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
+				MTL_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../External/juce/modules/juce_audio_processors_headless/format_types/VST3_SDK $(SRCROOT)/../../../SDKs/vstsdk2.4 $(SRCROOT)/../../JuceLibraryCode $(SRCROOT)/../../External/juce/modules $(SRCROOT)/../../External $(SRCROOT)/../../Source $(SRCROOT)/../../Source/Config $(SRCROOT)/../../External/juce/modules/juce_audio_plugin_client/AU";
 				OTHER_LDFLAGS = "-bundle -lSignalizer";
 				OTHER_REZFLAGS = "-d ppc_$ppc -d i386_$i386 -d ppc64_$ppc64 -d x86_64_$x86_64 -d arm64_$arm64 -I /System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Versions/A/Headers -I \"$(DEVELOPER_DIR)/Extras/CoreAudio/AudioUnits/AUPublic/AUBase\" -I \"$(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AudioUnit.framework/Headers\"";
 				PRODUCT_BUNDLE_IDENTIFIER = com.Lightbridge.Signalizer;

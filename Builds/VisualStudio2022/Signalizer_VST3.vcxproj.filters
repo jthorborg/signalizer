@@ -32,7 +32,11 @@
       <Filter>JUCE Library Code</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup/>
+  <ItemGroup>
+    <ClInclude Include="..\..\External\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ModuleInfo.h">
+      <Filter>JUCE Modules\juce_audio_plugin_client\VST3</Filter>
+    </ClInclude>
+  </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc">
       <Filter>JUCE Library Code</Filter>

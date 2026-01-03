@@ -600,6 +600,7 @@
         <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
         <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
         <MODULEPATH id="juce_audio_plugin_client" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
@@ -610,7 +611,8 @@
                        postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"/>
         <CONFIGURATION isDebug="0" name="Release" fastMath="1" useRuntimeLibDLL="0"
                        enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer"
-                       winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"/>
+                       winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"
+                       alwaysGenerateDebugSymbols="1"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>
@@ -622,6 +624,7 @@
         <MODULEPATH id="juce_gui_basics" path="External/juce/modules/"/>
         <MODULEPATH id="juce_gui_extra" path="External/juce/modules/"/>
         <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </VS2022>
@@ -640,6 +643,7 @@
         <MODULEPATH id="juce_gui_basics" path="External/juce/modules/"/>
         <MODULEPATH id="juce_gui_extra" path="External/juce/modules/"/>
         <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
@@ -648,6 +652,8 @@
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
+            useGlobalPath="0"/>
     <MODULES id="juce_core" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_events" showAllCode="1" useLocalCopy="0"/>

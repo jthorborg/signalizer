@@ -69,7 +69,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -84,7 +84,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
@@ -105,7 +105,17 @@
       <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <PreBuildEvent>
-      <Command>if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
+      <Command>set TOUCH_NAME=&quot;.touch_&quot;Signalizer_VST3_&quot;%RANDOM%&quot;
+(
+    echo &quot;.&quot; &gt; &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot;
+) &gt; nul 2&gt;&amp;1
+if exist &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot; (
+    del /s /q &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot;
+) else (
+    echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
+    exit /b 1
+)
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
     echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
 )
 if not exist &quot;$(OutDir)\\Signalizer.vst3\&quot; (
@@ -139,13 +149,13 @@ if %manifest_generated% equ 0 (
 )
 goto :_continue
 :_generate_manifest
-if exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
-    del /s /q &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+if exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
+    del /s /q &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
 )
-if not exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot; (
-    mkdir &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot;
+if not exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\&quot; (
+    mkdir &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\&quot;
 )
-&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; -create -version &quot;0.5.0&quot; -path &quot;$(OutDir)/Signalizer.vst3&quot; -output &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; &gt; &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
 if %ERRORLEVEL% equ 0 (
     echo : Info: Successfully generated a manifest for Signalizer
     goto :_continue
@@ -170,7 +180,8 @@ xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgr
     </Midl>
     <ClCompile>
       <Optimization>Full</Optimization>
-      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -185,14 +196,14 @@ xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgr
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=0;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\Signalizer.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(IntDir)\Signalizer.pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -209,7 +220,17 @@ xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgr
       <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <PreBuildEvent>
-      <Command>if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
+      <Command>set TOUCH_NAME=&quot;.touch_&quot;Signalizer_VST3_&quot;%RANDOM%&quot;
+(
+    echo &quot;.&quot; &gt; &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot;
+) &gt; nul 2&gt;&amp;1
+if exist &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot; (
+    del /s /q &quot;%CommonProgramW6432%\VST3\%TOUCH_NAME%&quot;
+) else (
+    echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
+    exit /b 1
+)
+if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
     echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
 )
 if not exist &quot;$(OutDir)\\Signalizer.vst3\&quot; (
@@ -243,13 +264,13 @@ if %manifest_generated% equ 0 (
 )
 goto :_continue
 :_generate_manifest
-if exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
-    del /s /q &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+if exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
+    del /s /q &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
 )
-if not exist &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot; (
-    mkdir &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\&quot;
+if not exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\&quot; (
+    mkdir &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\&quot;
 )
-&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; -create -version &quot;0.5.0&quot; -path &quot;$(OutDir)/Signalizer.vst3&quot; -output &quot;$(OutDir)/Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
+&quot;$(SolutionDir)$(Platform)\$(Configuration)\VST3 Manifest Helper\juce_vst3_helper.exe&quot; &gt; &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
 if %ERRORLEVEL% equ 0 (
     echo : Info: Successfully generated a manifest for Signalizer
     goto :_continue
@@ -273,7 +294,9 @@ xcopy /E /H /K /R /Y /I &quot;$(OutDir)\Signalizer.vst3&quot; &quot;%CommonProgr
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_plugin_client_VST3.cpp"/>
   </ItemGroup>
-  <ItemGroup/>
+  <ItemGroup>
+    <ClInclude Include="..\..\External\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ModuleInfo.h"/>
+  </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include=".\resources.rc"/>
   </ItemGroup>

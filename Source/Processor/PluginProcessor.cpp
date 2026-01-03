@@ -112,17 +112,26 @@ namespace Signalizer
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
 	{
-		sendParamChangeMessageToListeners(parameter, value);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->sendValueChangedMessageToListeners(value);
 	}
 
 	void AudioProcessor::automatedBeginChangeGesture(int parameter)
 	{
-		beginParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->beginChangeGesture();
 	}
 
 	void AudioProcessor::automatedEndChangeGesture(int parameter)
 	{
-		endParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->endChangeGesture();
 	}
 
 	AudioProcessor::~AudioProcessor() noexcept
