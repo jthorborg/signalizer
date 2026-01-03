@@ -88,6 +88,7 @@ namespace Signalizer
 		}
 		audioStream->addListener(processor);
 
+		// TODO: No control for this?
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
 		resetStaticViewAssumptions();
