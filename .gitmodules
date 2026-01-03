@@ -3,7 +3,7 @@
 	url = https://github.com/jthorborg/cpl
 [submodule "External/juce"]
 	path = External/juce
-	url = https://github.com/juce-framework/JUCE
+	url = https://github.com/jthorborg/JUCE
 [submodule "External/simde"]
 	path = External/simde
 	url = https://github.com/simd-everywhere/simde.git
