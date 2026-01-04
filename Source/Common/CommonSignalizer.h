@@ -978,6 +978,11 @@
 				int version {};
 			};
 
+			bool wasEverBumped() const noexcept
+			{
+				return version != 0;
+			}
+
 			void bump() 
 			{
 				version++;

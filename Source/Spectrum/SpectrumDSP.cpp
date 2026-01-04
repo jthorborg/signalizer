@@ -66,7 +66,7 @@ namespace Signalizer
 
 			auto access = shell.streamState.lock();
 
-			if (numChannels < 2 || access->pairs.empty())
+			if (!access->everConfigured || numChannels < 2 || access->pairs.empty())
 				return;
 
 			CPL_RUNTIME_ASSERTION((numChannels / 2) == access->pairs.size());

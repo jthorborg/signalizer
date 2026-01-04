@@ -212,6 +212,7 @@
 
 				OscilloscopeContent::TriggeringMode triggerMode;
 				ChangeVersion audioStreamChangeVersion;
+				bool everConfigured{};
 
 				template<typename ISA>
 				void preAnalyseAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples);
@@ -281,7 +282,7 @@
 			/// </summary>
 			double getGain();
 
-			void handleFlagUpdates(StreamState&);
+			bool handleFlagUpdates(StreamState&);
 			void recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation);
 
 			struct ProcessorShell : public AudioStream::Listener

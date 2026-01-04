@@ -349,12 +349,17 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates(StreamState& stream)
+	bool Spectrum::handleFlagUpdates(StreamState& stream)
 	{
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
 		bool calculateLegend = false;
+
+		// did we yet even initialize the audio stream?
+		if (!stream.audioStreamChangeVersion.wasEverBumped())
+			return false;
+
 		// did audio stream change since last sync?
 		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
@@ -615,6 +620,8 @@ namespace Signalizer
 
 		if (calculateLegend)
 			recalculateLegend(stream);
+
+		return stream.everConfigured = true;
 	}
 
 

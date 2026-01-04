@@ -192,9 +192,14 @@ namespace Signalizer
 		}
 	}
 
-	void VectorScope::handleFlagUpdates()
+	bool VectorScope::handleFlagUpdates()
 	{
-		bool calculateLegend = processor->streamPropertiesChanged.cas();
+		auto&& streamState = processor->streamState.lock();
+
+		if (!streamState->audioStreamChangeVersion.wasEverBumped())
+			return false;
+
+		bool calculateLegend = state.audioStreamChanged.consumeChanges(streamState->audioStreamChangeVersion);
 
 		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
@@ -246,17 +251,18 @@ namespace Signalizer
 		}
 
 		if (calculateLegend)
-			recalculateLegend();
+			recalculateLegend(*streamState);
+
+		return streamState->wasEverConfigured = true;
 	}
 
-	void VectorScope::recalculateLegend()
+	void VectorScope::recalculateLegend(const StreamState& streamState)
 	{
 		state.legend.reset({ 10, 10 });
 
-		auto streamState = processor->streamState.lock();
-		auto& names = streamState->channelNames;
+		const auto& names = streamState.channelNames;
 
-		const auto numPairs = streamState->numChannels / 2;
+		const auto numPairs = streamState.numChannels / 2;
 
 		ColourRotation primaryRotation(state.colourWaveform, numPairs, false);
 
@@ -386,10 +392,10 @@ namespace Signalizer
 
 	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
-		streamPropertiesChanged = true;
 		auto stream = streamState.lock();
 		stream->channelNames = ctx.getChannelNames();
 		stream->numChannels = ctx.getInfo().channels;
+		stream->audioStreamChangeVersion.bump();
 	}
 
 };

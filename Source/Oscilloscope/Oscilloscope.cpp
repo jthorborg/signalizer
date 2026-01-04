@@ -235,8 +235,11 @@ namespace Signalizer
 		GraphicsWindow::mouseDrag(event);
 	}
 
-	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
+	bool Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
 	{
+		if (!cs.audioStreamChangeVersion.wasEverBumped())
+			return false;
+
 		const auto windowValue = content->windowSize.getTransformedValue();
 
 		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
@@ -308,6 +311,8 @@ namespace Signalizer
 		}
 
 		cs.triggeringProcessor->setSettings(cs.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
+
+		return cs.everConfigured = true;
 	}
 
 	void Oscilloscope::recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation)

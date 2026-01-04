@@ -593,7 +593,8 @@ namespace Signalizer
 
 			auto&& access = processor->streamState.lock();
 
-            handleFlagUpdates(*access);
+			if (!handleFlagUpdates(*access))
+				return;
 
 			if (access->pairs.size() == 0 || state.sampleRate == 0)
 				return;
