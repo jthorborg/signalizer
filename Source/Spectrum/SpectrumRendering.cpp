@@ -810,7 +810,7 @@ namespace Signalizer
 		const auto percentileQuantizedScale = int(renderingScale * 100) / 100.0;
 		ogs.setLineSize(static_cast<float>(percentileQuantizedScale));
 
-		if (enableMultiSampleFillOnNonIntegerScales && (int)percentileQuantizedScale != 1)
+		if (enableMultiSampleFillOnNonIntegerScales && percentileQuantizedScale != 1.0)
 			ogs.enable(GL_MULTISAMPLE);
 		else
 			ogs.disable(GL_MULTISAMPLE);

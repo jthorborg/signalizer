@@ -1395,7 +1395,7 @@ namespace Signalizer
 			T phaseFilters[SpectrumContent::LineGraphs::LineEnd];
 
 			for (std::size_t k = 0; k < lineGraphs.size(); ++k)
-				phaseFilters[k] = std::pow<T>(constant.filter[k].pole, T(0.3));
+				phaseFilters[k] = std::pow(constant.filter[k].pole, T(0.3));
 
 			for (cpl::Types::fint_t i = 0; i < size; ++i)
 			{
