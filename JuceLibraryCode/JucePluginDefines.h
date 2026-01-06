@@ -6,7 +6,7 @@
 */
 
 #pragma once
-
+#include "../Source/version.h"
 //==============================================================================
 // Audio plugin settings..
 
@@ -77,13 +77,13 @@
  #define JucePlugin_EditorRequiresKeyboardFocus  0
 #endif
 #ifndef  JucePlugin_Version
- #define JucePlugin_Version                0.5.0
+ #define JucePlugin_Version                SIGNALIZER_VERSION
 #endif
 #ifndef  JucePlugin_VersionCode
- #define JucePlugin_VersionCode            0x500
+ #define JucePlugin_VersionCode            SIGNALIZER_VST_VERSION_HEX
 #endif
 #ifndef  JucePlugin_VersionString
- #define JucePlugin_VersionString          "0.5.0"
+ #define JucePlugin_VersionString          SIGNALIZER_VERSION_STRING
 #endif
 #ifndef  JucePlugin_VSTUniqueID
  #define JucePlugin_VSTUniqueID            JucePlugin_PluginCode
