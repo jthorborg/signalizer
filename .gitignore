@@ -36,3 +36,4 @@ Builds/VisualStudio2022/x64
 Builds/MacOSX/Signalizer.xcodeproj/project.xcworkspace
 Builds/MacOSX/build
 *vcxproj.user
+Builds/MacOSX/Signalizer.xcodeproj/xcuserdata

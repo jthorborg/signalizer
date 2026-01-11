@@ -242,9 +242,11 @@ namespace Signalizer
 	}
 
 	double Spectrum::getOptimalFramesPerUpdate() const noexcept
-	{
-#pragma message cwarn("collect this somewhere.")
-		const double monitorRefreshRate = 60.0;
+	{        
+        double monitorRefreshRate = 60.0;
+        if (auto display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(getBounds()))
+            monitorRefreshRate = display->verticalFrequencyHz.value_or(monitorRefreshRate);
+        
 		auto res = double(isOpenGL() ? (monitorRefreshRate / getSwapInterval()) : refreshRate) / getBlobSamples();
 		assert(std::isnormal(res));
 		return res;

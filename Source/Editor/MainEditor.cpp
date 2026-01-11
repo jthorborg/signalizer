@@ -1141,9 +1141,10 @@ namespace Signalizer
 		}
 
 		// sanitize bounds...
-		setBounds(bounds.constrainedWithin(
-			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
-		).withZeroOrigin());
+        if (auto display = juce::Desktop::getInstance().getDisplays().getDisplayForPoint(bounds.getPosition()))
+        {
+            setBounds(bounds.constrainedWithin(display->userArea).withZeroOrigin());
+        }
 
 		// reinitiate any current views (will not be done through tab selection further down)
 		for (auto & viewState : views)
