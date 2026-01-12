@@ -31,6 +31,7 @@
 #ifndef SIGNALIZER_MIXGRAPHLISTENER_H
 	#define SIGNALIZER_MIXGRAPHLISTENER_H
 
+    #include "Signalizer.h"
 	#include <cpl/Common.h>
 	#include <cpl/Core.h>
 	#include <cpl/state/Serialization.h>

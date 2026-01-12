@@ -30,6 +30,7 @@
 #ifndef SIGNALIZER_SIGNALIZERDESIGN_H
 	#define SIGNALIZER_SIGNALIZERDESIGN_H
 
+    #include "Signalizer.h"
 	#include <cpl/Common.h>
 	#include <string>
 	#include <vector>

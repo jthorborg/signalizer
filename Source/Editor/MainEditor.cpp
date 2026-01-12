@@ -35,6 +35,7 @@
 #include "../Common/MixGraphListener.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
+#include <cpl/PlatformMisc.h>
 #include "version.h"
 #include <cpl/Mathext.h>
 #include "GraphEditor.h"
@@ -1470,8 +1471,13 @@ namespace Signalizer
 	{
 		if (mtFlags.swapIntervalChanged.cas())
 		{
-			oglc.setSwapInterval(newc.swapInterval);
-			view->setSwapInterval(newc.swapInterval);
+            int swap = newc.swapInterval;
+            
+#ifdef CPL_MAC
+            swap = std::clamp(swap, 0, 1);
+#endif
+			oglc.setSwapInterval(swap);
+			view->setSwapInterval(swap);
 		}
 	}
 
