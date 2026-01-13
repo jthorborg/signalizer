@@ -1,6 +1,4 @@
-Choose a build variant, like x86 if you are running a 32-bit DAW or x64 if you're running 64-bit.
-
-For instance, for 64-bit, open the "x64" folder. Note that Apple has deprecated x86 builds even a while back, so I'm generally unable to provide them.
+All plugin variants are "universal binaries" and should work on Intel or ARM macOS computers.
 
 Select the "Signalizer" folder plugin:
 - Signalizer.component for AudioUnit
@@ -20,7 +18,13 @@ If you're unsure about where your Plug-Ins folder is, it can be very custom and 
 First, make sure you downloaded this from the only official source:
 https://bitbucket.org/Mayae/signalizer/downloads/
 
-This happens because Apple's Gatekeeper quarantines software not downloaded from Apple's own store and/or unsigned software. It costs me $99 a year to notarize this program, and I don't currently have plans on paying Apple for this. Some thoughts are offered on this from Ardour developers here:
+Then you may need to execute the following command in Terminal:
+
+xattr -rd com.apple.quarantine Signalizer.component
+
+Where "Signalizer.component" could also be the .vst or .vst3 version. You need to have opened Terminal in the folder where the plugin resides.
+
+This happens because Apple's Gatekeeper quarantines software not downloaded from Apple's own store and/or unsigned software. It would cost me $99 a year to notarize this program, and I don't currently have plans on paying Apple for this. Some thoughts are offered on this from Ardour developers here:
 
 https://discourse.ardour.org/t/solved-macos-ventura-ardour7-is-damaged-and-cant-be-opened-you-should-move-it-to-the-trash/107916/3
 

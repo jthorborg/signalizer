@@ -583,7 +583,8 @@
   </MAINGROUP>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" vstLegacyFolder="../SDKs/vstsdk2.4"
-               customXcodeResourceFolders="make/Skeleton/licenses&#10;make/Skeleton/presets&#10;make/Skeleton/resources">
+               customXcodeResourceFolders="make/Skeleton/licenses&#10;make/Skeleton/presets&#10;make/Skeleton/resources&#10;make/Skeleton/READ ME.txt"
+               xcodeValidArchs="arm64,arm64e,x86_64">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" isDebug="1"
                        optimisation="1" targetName="Signalizer" fastMath="1"/>

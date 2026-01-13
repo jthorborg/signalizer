@@ -29,6 +29,7 @@
 		0DAD76EC048AA5FA3B633999 /* IOKit.framework */ = {isa = PBXBuildFile; fileRef = ABA13DCD1D115389BB8181C0; };
 		1041DD73B19C7DE3CD63FB2F /* Oscilloscope.cpp */ = {isa = PBXBuildFile; fileRef = 9E515EB5EEB6BB943BC9F153; };
 		15EDEC3D65DA21B890E16C38 /* OscilloscopeRendering.cpp */ = {isa = PBXBuildFile; fileRef = F62F6732465E1CE73F15D407; };
+		18B9A29A34FC3E52ACD234BE /* READ ME.txt */ = {isa = PBXBuildFile; fileRef = 4D72676862AF217B4F9EDA8F; };
 		19338070C568ED7658E4C151 /* VectorscopeController.cpp */ = {isa = PBXBuildFile; fileRef = B862795106B01B9775747252; };
 		1A52478FA54133B751049310 /* VST3 */ = {isa = PBXBuildFile; fileRef = 0B31EA8481C14D8A32AF826A; };
 		24925B07C1AA7B6482207E35 /* include_juce_data_structures.mm */ = {isa = PBXBuildFile; fileRef = 88F37FFB0C08F13F3C211EB7; };
@@ -198,6 +199,7 @@
 		474A2CC4B9563F92F9868A2B /* Exceptions.h */ /* Exceptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Exceptions.h; path = ../../External/cpl/Exceptions.h; sourceTree = SOURCE_ROOT; };
 		49C8074A0054E4A1BCE3304C /* CPlistEditor.h */ /* CPlistEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CPlistEditor.h; path = ../../External/cpl/system/CPlistEditor.h; sourceTree = SOURCE_ROOT; };
 		4A0EE3DCD3F5B11FDBDB1F6C /* SampleColourEvaluators.h */ /* SampleColourEvaluators.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SampleColourEvaluators.h; path = ../../Source/Oscilloscope/SampleColourEvaluators.h; sourceTree = SOURCE_ROOT; };
+		4D72676862AF217B4F9EDA8F /* READ ME.txt */ /* READ ME.txt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "READ ME.txt"; path = "../../make/Skeleton/READ ME.txt"; sourceTree = "<group>"; };
 		4DA59F299F40C7813F3E4ABC /* CRsrcEditor.h */ /* CRsrcEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CRsrcEditor.h; path = ../../External/cpl/system/CRsrcEditor.h; sourceTree = SOURCE_ROOT; };
 		4DACC98A26D702DD0CFA5ACC /* dir.cpp */ /* dir.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = dir.cpp; path = ../../External/cpl/external/filesystem/examples/dir.cpp; sourceTree = SOURCE_ROOT; };
 		4DB67F369A3E2D6002032E52 /* Widgets.cpp */ /* Widgets.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Widgets.cpp; path = ../../External/cpl/gui/widgets/Widgets.cpp; sourceTree = SOURCE_ROOT; };
@@ -1303,6 +1305,7 @@
 				2A8439F8FD9FC49B8BCAE255,
 				B7F5FB16455D45840DBCA159,
 				B1AC63EA11169E0263EA6DF1,
+				4D72676862AF217B4F9EDA8F,
 				6418136BB566F3B56B5D95F4,
 				D913D5FD0BC2EA0AED149B15,
 				E954486758F839C99BAA937A,
@@ -1642,6 +1645,7 @@
 				C0C9BD224B00BFEA2F2787C4,
 				8E10BF1F129DBA606C01D784,
 				B1BCBF3984CC3A18F018DF43,
+				18B9A29A34FC3E52ACD234BE,
 				2FBCDA600AE1B147FD84DC60,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1653,6 +1657,7 @@
 				C0C9BD224B00BFEA2F2787C4,
 				8E10BF1F129DBA606C01D784,
 				B1BCBF3984CC3A18F018DF43,
+				18B9A29A34FC3E52ACD234BE,
 				2FBCDA600AE1B147FD84DC60,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1664,6 +1669,7 @@
 				C0C9BD224B00BFEA2F2787C4,
 				8E10BF1F129DBA606C01D784,
 				B1BCBF3984CC3A18F018DF43,
+				18B9A29A34FC3E52ACD234BE,
 				2FBCDA600AE1B147FD84DC60,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1844,7 +1850,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_FAST_MATH = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -1887,7 +1893,7 @@
 				PRODUCT_NAME = "Signalizer";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = vst;
 			};
 			name = Debug;
@@ -1901,7 +1907,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_FAST_MATH = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -1940,7 +1946,7 @@
 				PRODUCT_NAME = "juce_vst3_helper";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 			};
 			name = Debug;
 		};
@@ -1953,7 +1959,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_FAST_MATH = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -1997,7 +2003,7 @@
 				PRODUCT_NAME = "Signalizer";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = component;
 			};
 			name = Debug;
@@ -2011,7 +2017,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_FAST_MATH = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2051,7 +2057,7 @@
 				SKIP_INSTALL = YES;
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 			};
 			name = Debug;
 		};
@@ -2121,7 +2127,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_FAST_MATH = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
@@ -2167,7 +2173,7 @@
 				STRIPFLAGS = "-x";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = vst;
 			};
 			name = Release;
@@ -2190,7 +2196,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_FAST_MATH = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
@@ -2232,7 +2238,7 @@
 				STRIPFLAGS = "-x";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 			};
 			name = Release;
 		};
@@ -2246,7 +2252,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_FAST_MATH = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
@@ -2292,7 +2298,7 @@
 				STRIPFLAGS = "-x";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = vst3;
 			};
 			name = Release;
@@ -2355,7 +2361,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				COPY_PHASE_STRIP = NO;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_FAST_MATH = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2398,7 +2404,7 @@
 				PRODUCT_NAME = "Signalizer";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = vst3;
 			};
 			name = Debug;
@@ -2412,7 +2418,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_FAST_MATH = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
@@ -2453,7 +2459,7 @@
 				SKIP_INSTALL = YES;
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 			};
 			name = Release;
 		};
@@ -2467,7 +2473,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)";
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				EXCLUDED_ARCHS = "";
+				EXCLUDED_ARCHS = "i386";
 				GCC_FAST_MATH = YES;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = s;
@@ -2514,7 +2520,7 @@
 				STRIPFLAGS = "-x";
 				USE_HEADERMAP = NO;
 				VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS = OpenGL;
-				VALID_ARCHS = "i386 x86_64 arm64 arm64e";
+				VALID_ARCHS = "arm64 arm64e x86_64";
 				WRAPPER_EXTENSION = component;
 			};
 			name = Release;

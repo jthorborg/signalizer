@@ -1,5 +1,5 @@
 import io
-import ConfigParser as cp
+import configparser as cp
 import os
 import sys
 import shutil as sh
@@ -9,7 +9,7 @@ import common as cm
 
 from datetime import date
 
-def compiler_invoke(arch, vstring, reloutdir):
+def compiler_invoke(scheme, vstring, reloutdir):
 	command = (
 			   "xcodebuild "
 			   "-project ../builds/macosx/signalizer.xcodeproj "
@@ -22,15 +22,14 @@ def compiler_invoke(arch, vstring, reloutdir):
 	command = (
 			   "xcodebuild "
 			   "-project ../builds/macosx/signalizer.xcodeproj "
-			   "-scheme Signalizer "
+			   "-scheme \"Signalizer - " + scheme + "\" "
 			   "-configuration Release "
-			   "CONFIGURATION_BUILD_DIR=" + cm.join(os.getcwd(), reloutdir) + "/ "
+			   "CONFIGURATION_BUILD_DIR=\"" + cm.join(os.getcwd(), reloutdir) + "/\" "
 			   # Following optional line removes nearly all symbol info, so it creates smaller packages but not really that great for debugging.
 			   #"DEPLOYMENT_POSTPROCESSING=YES "
-			   "STRIP_INSTALLED_PRODUCT=YES "
-			   "SEPARATE_STRIP=YES "
-			   "COPY_PHASE_STRIP=YES "
-			   "ARCHS=" + arch + " "
+			   #"STRIP_INSTALLED_PRODUCT=YES "
+			   #"SEPARATE_STRIP=YES "
+			   #"COPY_PHASE_STRIP=YES "
 			   "ONLY_ACTIVE_ARCH=NO "
 			   "DYLIB_CURRENT_VERSION=" + vstring + " "
 			   )
@@ -46,13 +45,15 @@ config = cp.ConfigParser()
 config.read("config.ini")
 
 parameters = []
-
+skip_vst2 = False
 # handle cmd arguments
 if len(sys.argv) > 1:
 	for arg in sys.argv[1:]:
 		inc = arg.find("-inc:")
 		if inc != -1:
 			parameters.append(arg[inc + 5:])
+		else:
+			skip_vst2 = skip_vst2 or arg.find("-skipvst2")
 
 flush_parameters = False
 
@@ -77,63 +78,82 @@ manu4 = config.get("info", "manu4")
 sub4 = config.get("info", "sub4")
 version_string = major + "." + minor + "." + build
 version_int = (int(major) << 48) | (int(minor) << 32) | int(build)
-build_folder = "Signalizer_OSX"
-zipoutput = "../Releases/Signalizer OS X " + version_string
-#diagnostic
-print("------> Building Signalizer v. " + version_string + " release targets (" + str(version_int))
+zipoutput = "../Releases/Signalizer macOS " + version_string
 
-# [0] = arg to clang, [1] = output folder
-# x86 now deprecated on macos
-# targets = [["i386", cm.join(build_folder, "x32")], ["x86_64", cm.join(build_folder, "x64")]]
-targets = [["x86_64", cm.join(build_folder, "x64")]]
+#diagnostic
+print("------> Cleaning prior builds... ")
+
+if os.system("xattr -w com.apple.xcode.CreatedByBuildSystem true ../Builds/MacOSX/build") != 0:
+    print("------> Failed changing xattr for cleaning ...")
+    exit(-2)
+    
+if os.system("xcodebuild -project ../builds/macosx/signalizer.xcodeproj -scheme \"Signalizer - All\" clean ONLY_ACTIVE_ARCH=NO") != 0:
+    print("------> Failed cleaning...")
+    exit(-3)
+
+# xcodebuild -project ../builds/macosx/signalizer.xcodeproj -scheme "Signalizer - AU" -configuration Release clean archive ONLY_ACTIVE_ARCH=NO
+
+print("------> Building Signalizer v. " + version_string + " release targets (" + str(version_int))
 
 # rewrite program internal version
 
 cm.rewrite_version_header("../Source/version.h", major, minor, build)
 
 # rewrite build plist
-plist = cm.join("../Builds/MacOSX/Info.plist")
-set_plist_option(plist, "Set :CFBundleIdentifier com." + company + "." + name)
-set_plist_option(plist, "Set :CFBundleShortVersionString " + version_string)
-set_plist_option(plist, "Set :CFBundleVersion " + version_string)
-set_plist_option(plist, "Set :NSHumanReadableCopyright Copyright (c) " + str(date.today().year) + " " + author)
+root_plist = cm.join("../Builds/MacOSX/Info")
+plist_variants = [root_plist + list + ".plist" for list in ["-AU", "-VST", "-VST3", "-VST3_Manifest_Helper", ""]]
+
+for plist in plist_variants:
+    print("------> rewriting plist " + plist)
+    set_plist_option(plist, "Set :CFBundleIdentifier com." + company + "." + name)
+    set_plist_option(plist, "Set :CFBundleShortVersionString " + version_string)
+    set_plist_option(plist, "Set :CFBundleVersion " + version_string)
+    set_plist_option(plist, "Set :NSHumanReadableCopyright Copyright (c) " + str(date.today().year) + " " + author)
 
 # set the audio unit plugin description
-set_plist_option(plist, "Set :AudioComponents:0:description " + desc)
-set_plist_option(plist, "Set :AudioComponents:0:manufacturer " + manu4)
-set_plist_option(plist, "Set :AudioComponents:0:name " + company + ": " + name)
-set_plist_option(plist, "Set :AudioComponents:0:subtype " + sub4)
-set_plist_option(plist, "Set :AudioComponents:0:type aufx")
-set_plist_option(plist, "Set :AudioComponents:0:version " + str(version_int))
+aulist = plist_variants[0]
+set_plist_option(aulist, "Set :AudioComponents:0:description " + desc)
+set_plist_option(aulist, "Set :AudioComponents:0:manufacturer " + manu4)
+set_plist_option(aulist, "Set :AudioComponents:0:name " + company + ": " + name)
+set_plist_option(aulist, "Set :AudioComponents:0:subtype " + sub4)
+set_plist_option(aulist, "Set :AudioComponents:0:type aufx")
+set_plist_option(aulist, "Set :AudioComponents:0:version " + str(version_int))
 
+build_variants = ["AU", "VST3"]
+
+if not skip_vst2:
+    build_variants = build_variants + ["VST"]
+    
+print(build_variants)
+
+build_folder = "Signalizer macOS Universal"
+if os.path.exists(build_folder):
+	sh.rmtree(build_folder)
 
 #run all targets
-for option in targets:
-	if compiler_invoke(option[0], version_string, option[1]) != 0:
-		print("\n------> Error compiling for target " + option[0])
+for build in build_variants:
+	if compiler_invoke(build, version_string, build_folder) != 0:
+		print("\n------> Error compiling for target " + build)
 		sh.rmtree(build_folder)
-		exit(1)
-	else:
-		cm.create_build_file(cm.join(cm.join(cm.join(cm.join(option[1], "Signalizer.component"), "Contents"), "Resources"), "Build.log"), version_string)
-		sh.copyfile("../CHANGELOG.md", cm.join(cm.join(cm.join(cm.join(option[1], "Signalizer.component"), "Contents"), "Resources"), "CHANGELOG.md"))
+		exit(-4)
 
-print("\n------> All builds finished, generating plugin permutations ...")
+#remove temporary junk
+if os.path.exists(cm.join(build_folder, "libSignalizer.a")) != 0:
+	os.remove(cm.join(build_folder, "libSignalizer.a"))
 
-# make build permutations and set up the plist file
+if os.path.exists(cm.join(build_folder, "juce_vst3_helper")) != 0:
+	os.remove(cm.join(build_folder, "juce_vst3_helper"))
 
-for option in targets:
-	original = cm.join(option[1], "Signalizer.component")
-	# permute
-	sh.copytree(original, cm.join(option[1], "Signalizer.vst"))
-	sh.copytree(original, cm.join(option[1], "Signalizer.vst3"))
-
+#append extra goodies
+cm.create_build_file(cm.join(build_folder, "Build.log"), version_string)
+sh.copyfile("../CHANGELOG.md", cm.join(build_folder, "CHANGELOG.md"))
+sh.copyfile("macos_installation_advice.txt", cm.join(build_folder, "HOW TO INSTALL.txt"))
 
 print("------> Zipping output directories...")
 
-sh.copyfile("macos_installation_advice.txt", cm.join(build_folder, "HOW TO INSTALL.txt"))
 zx = sh.make_archive(zipoutput, "zip", build_folder)
 
-print("------> Builded Signalizer successfully into:")
+print("------> Build Signalizer successfully to:")
 print("------> " + zx)
 
 # clean up dirs
