@@ -5,15 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.5.0 - 2026-01-04
+## 0.5.0 - 2026-01-13
 
 ### Added
+- Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
 
 ### Fixed
 
 - Resonating modes (typically spectrogram / constant Q transforms) being completely black on initial project open/restore in the spectrum
+- Preset file openers on macOS are not native anymore but prevents opening wrong file types now
 
 ### Changed
+- Minimum macOS version increased to 10.13 (up from 10.8)
 
 ## 0.4.3 - 2023-12-22
 

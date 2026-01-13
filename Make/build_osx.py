@@ -77,7 +77,7 @@ author = config.get("info", "author")
 manu4 = config.get("info", "manu4")
 sub4 = config.get("info", "sub4")
 version_string = major + "." + minor + "." + build
-version_int = (int(major) << 48) | (int(minor) << 32) | int(build)
+version_int = (int(major) << 16) | (int(minor) << 8) | int(build)
 zipoutput = "../Releases/Signalizer macOS " + version_string
 
 #diagnostic
