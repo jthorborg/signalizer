@@ -13,7 +13,8 @@
               companyEmail="contact@jthorborg.com" pluginFormats="buildAU,buildVST,buildVST3"
               buildAUv3="0" buildStandalone="0" enableIAA="0" pluginVST3Category="Analyzer"
               lv2Uri="https://jthorborg.com/index.html?ipage=signalizer" jucerFormatVersion="1"
-              headerPath="../../External&#10;../../Source&#10;../../Source/Config">
+              headerPath="../../External&#10;../../Source&#10;../../Source/Config"
+              pluginVSTCategory="kPlugCategAnalysis">
   <MAINGROUP id="UevfpR" name="Signalizer">
     <GROUP id="{476E0AFE-C373-E089-79D2-4CB200759D8D}" name="Build">
       <FILE id="klmFDx" name="build_linux.py" compile="0" resource="0" file="Make/build_linux.py"/>
@@ -629,7 +630,8 @@
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
       </MODULEPATHS>
     </VS2022>
-    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4">
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4"
+                extraCompilerFlags="-Wno-ignored-attributes -flax-vector-conversions -DJUCE_MODAL_LOOPS_PERMITTED=1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
         <CONFIGURATION isDebug="0" name="Release"/>
