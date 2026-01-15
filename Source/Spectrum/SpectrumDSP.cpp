@@ -35,7 +35,7 @@
 #include <cpl/JobSystem.h>
 #include "TransformDSP.inl"
 
-#ifdef CPL_CLANG
+#if defined(CPL_CLANG) || defined(CPL_GCC)
 #define CONTENTIOUS_TEMPLATE template
 #else
 #define CONTENTIOUS_TEMPLATE
