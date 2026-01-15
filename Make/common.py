@@ -3,6 +3,10 @@ import os
 from time import gmtime, strftime
 import getpass
 import platform
+import configparser
+import sys
+import argparse
+import shutil as sh
 
 def rewrite_version_header(where, major, minor, build):
 	build_info = get_custom_build_info().replace('\n', "\\n").replace('\r', "\\n")
@@ -36,3 +40,64 @@ def get_custom_build_info():
     return git_branch.decode('ascii') + "\n" + git_description.decode('ascii')
 
 join = os.path.join
+
+class ProgramConfig:
+	def __init__(self, inifile):
+
+		if os.path.split(os.getcwd())[1] != "Make":
+			print("Error, this program must be called from within Make folder")
+			exit(-5) 
+
+		self.flush_parameters = False
+		self.inifile = inifile
+		parameters = []
+
+		parser = argparse.ArgumentParser()
+		parser.add_argument("-d", "--debug", action="store_true")
+
+		parser.add_argument("-j", "--increase-major", action="store_true", help="Increase the major version by 1")
+		parser.add_argument("-n", "--increase-minor", action="store_true", help="Increase the minor version by 1")
+		parser.add_argument("-b", "--increase-build", action="store_true", help="Increase the build version by 1")
+
+		args = parser.parse_args()
+
+		self.release = not args.debug
+
+		self.config = configparser.ConfigParser()
+		self.config.read(inifile)
+
+		# handle operations
+		for param in [["major", args.increase_major], ["minor", args.increase_minor], ["build", args.increase_build]]:
+			if param[1]:
+				self.flush_parameters = True
+				self.config.set("version", param[0], str(int(self.config.get("version", param[0])) + 1))
+				print("------> Increasing " + param[0] + " to " + self.config.get("version", param[0]))
+
+		#configurations
+		self.major = self.config.get("version", "major")
+		self.minor = self.config.get("version", "minor")
+		self.build = self.config.get("version", "build")
+		self.company = self.config.get("info", "company")
+		self.desc = self.config.get("info", "description")
+		self.name = self.config.get("info", "productname")
+
+		self.version_string = self.major + "." + self.minor + "." + self.build
+
+	def flush(self):
+		if self.flush_parameters:
+			with open(inifile, "w") as f:
+				self.config.write(f, True)
+
+	def rewrite_version_header(self):
+		rewrite_version_header("../Source/version.h", self.major, self.minor, self.build)
+
+	def make_release_folder_with_goodies(self, build_dir, advice_file):
+
+		if os.path.exists(build_dir):
+			sh.rmtree(build_dir)
+
+		os.makedirs(build_dir)
+		create_build_file(join(build_dir, "Build.log"), self.version_string)
+		sh.copyfile(join("Skeleton", "READ ME.txt"), join(build_dir, "READ ME.txt"))
+		sh.copyfile("../CHANGELOG.md", join(build_dir, "CHANGELOG.md"))
+		sh.copyfile("windows_installation_advice.txt", join(build_dir, "HOW TO INSTALL.txt"))
