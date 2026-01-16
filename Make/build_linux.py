@@ -11,11 +11,8 @@ make_dir = cm.join("..", "Builds", "LinuxMakefile")
 def compiler_invoke(args):
 	return os.system("make --directory=" + make_dir + " " + args)
 
-def build_linux(program):
+def build(program):
 	zipoutput = "../Releases/Signalizer Linux VST " + program.version_string
-
-	#diagnostic
-	config = "Release" if program.release else "Debug"
 
 	#run targets
 	if program.release:
@@ -23,7 +20,7 @@ def build_linux(program):
 			print("------> Error cleaning...")
 			exit(-1)
 
-	if compiler_invoke("CONFIG=" + config) != 0:
+	if compiler_invoke("CONFIG=" + program.configString) != 0:
 		print("------> Error building...")
 
 	print("\n------> All builds finished, generating skeletons...")

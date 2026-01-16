@@ -68,6 +68,7 @@ class ProgramConfig:
 		args = parser.parse_args()
 
 		self.release = not args.debug
+		self.configString = "Release" if self.release else "Debug"
 
 		self.config = configparser.ConfigParser()
 		self.config.read(inifile)

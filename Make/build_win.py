@@ -48,107 +48,55 @@ def setup_resource(outputfile, major, minor, build, name, description, company):
 def compiler_invoke(compiler_arch, target):
 	return os.system("vscompile.bat " + compiler_arch + " " + target)
 
-# parse config
-config = configparser.ConfigParser()
-config.read("config.ini")
+def build(program):
 
-parameters = []
+	vcxpath = "../Builds/VisualStudio2022"
 
-# handle cmd arguments
-if len(sys.argv) > 1:
-	for arg in sys.argv[1:]:
-		inc = arg.find("-inc:")
-		if inc != -1:
-			parameters.append(arg[inc + 5:])
+	zipoutput = "../Releases/Signalizer_Windows_VST_" + program.version_string
+	zippdboutput = "../Releases/Signalizer_Windows_Debug_PDBs_" + program.version_string
 
-flush_parameters = False
+	#overwrite resource to embed version numbers
+	setup_resource(cm.join(vcxpath, "resources.rc"), program.major, program.minor, program.build, program.name, program.desc, program.company)
 
-# handle operations
-for param in parameters:
-	config.set("version", param, str(int(config.get("version", param)) + 1))
-	print("------> Increasing " + param + " to " + config.get("version", param))
+	#run all archs
+	archs = [["x64", f'"{program.configString}|x64"']]
+	for option in archs:
+		if compiler_invoke(option[0], option[1]) != 0:
+			print("\n------> Error compiling for target " + option[0])
+			exit(1)
 
-# write new configuration?
-if len(parameters) > 0:
-	flush_parameters = True
+	print("\n------> All builds finished, generating skeletons...")
 
-#configurations
-major = config.get("version", "major")
-minor = config.get("version", "minor")
-build = config.get("version", "build")
-company = config.get("info", "company")
-desc = config.get("info", "description")
-name = config.get("info", "productname")
+	rootdir = "Signalizer Windows"
+	program.make_release_folder_with_goodies(rootdir, "windows_installation_advice.txt")
 
+	# VST2 section
+	build_dir = cm.join(vcxpath, "x64", program.configString, "VST")
+	output_dir = cm.join(rootdir, "Signalizer.vst")
 
-version_string = major + "." + minor + "." + build
-vcxpath = "../Builds/VisualStudio2022"
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.dll"), cm.join(output_dir, "Signalizer.dll"))
+	os.makedirs(cm.join("Symbols", "VST"))
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST", "Signalizer.pdb")) 
 
-zipoutput = "../Releases/Signalizer_Windows_VST_" + version_string
-zippdboutput = "../Releases/Signalizer_Windows_Debug_PDBs_" + version_string
+	# VST3 section
+	build_dir = cm.join(vcxpath, "x64", program.configString, "VST3")
+	output_dir = cm.join(rootdir, "Signalizer.vst3")
 
-#diagnostic
-print("------> Building Signalizer v. " + version_string + " release targets")
+	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
+	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-win"), dirs_exist_ok=True)
+	os.makedirs(cm.join("Symbols", "VST3"))
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST3", "Signalizer.pdb")) 
 
-#overwrite resource to embed version numbers
-setup_resource(cm.join(vcxpath, "resources.rc"), major, minor, build, name, desc, company)
-cm.rewrite_version_header("../Source/version.h", major, minor, build)
+	print("------> Zipping output directories...")
 
-#run all archs
-archs = [["x64", '"Release|x64"']]
-for option in archs:
-	if compiler_invoke(option[0], option[1]) != 0:
-		print("\n------> Error compiling for target " + option[0])
-		exit(1)
+	zx = sh.make_archive(zipoutput, "zip", rootdir)
+	zxpdb = sh.make_archive(zippdboutput, "zip", "Symbols")
 
-print("\n------> All builds finished, generating skeletons...")
+	# clean up dirs
+	if os.path.exists(rootdir):
+		sh.rmtree(rootdir)
+	if os.path.exists("Symbols"):
+		sh.rmtree("Symbols")
 
-rootdir = "Signalizer Windows"
-
-# VST2 section
-build_dir = cm.join(vcxpath, "x64", "Release", "VST")
-output_dir = cm.join(rootdir, "Signalizer.vst")
-
-sh.copytree("Skeleton", output_dir)
-sh.copyfile(cm.join(build_dir, "Signalizer.dll"), cm.join(output_dir, "Signalizer.dll"))
-os.makedirs(cm.join("Symbols", "VST"))
-sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST", "Signalizer.pdb")) 
-
-# VST3 section
-build_dir = cm.join(vcxpath, "x64", "Release", "VST3")
-output_dir = cm.join(rootdir, "Signalizer.vst3")
-
-sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
-sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-win"), dirs_exist_ok=True)
-os.makedirs(cm.join("Symbols", "VST3"))
-sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST3", "Signalizer.pdb")) 
-
-# Shared
-cm.create_build_file("Build.log", version_string)
-sh.copyfile(cm.join("Skeleton", "READ ME.txt"), cm.join(rootdir, "READ ME.txt"))
-sh.copyfile("Build.log", cm.join(rootdir, "Build.log"))
-sh.copyfile("../CHANGELOG.md", cm.join(rootdir, "CHANGELOG.md"))
-
-sh.copyfile("windows_installation_advice.txt", cm.join(rootdir, "HOW TO INSTALL.txt"))
-
-print("------> Zipping output directories...")
-
-zx = sh.make_archive(zipoutput, "zip", rootdir)
-zxpdb = sh.make_archive(zippdboutput, "zip", "Symbols")
-
-print("------> Built Signalizer successfully into:")
-print("------> " + zx)
-print("------> " + zxpdb)
-
-# clean up dirs
-if os.path.exists(rootdir):
-	sh.rmtree(rootdir)
-if os.path.exists("Symbols"):
-	sh.rmtree("Symbols")
-
-os.remove("Build.log")
-# done, if we made it here, increase the conf build
-
-if flush_parameters:
-	with open("config.ini", "w") as f:
-		config.write(f, True)
+	return zx + "\n" + zxpdb
