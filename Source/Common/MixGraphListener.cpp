@@ -421,7 +421,7 @@ namespace Signalizer
 					const auto available = g.second.endpoint - hostOrigin;
 
 					if(available < containedInState)
-						containedInState = std::min(containedInState, std::max(0ll, available));
+						containedInState = std::min(containedInState, std::max<std::int64_t>(0ll, available));
 				}
 
 				if (containedInState > 0)

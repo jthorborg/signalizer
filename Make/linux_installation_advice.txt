@@ -1,0 +1,34 @@
+Select the "Signalizer" folder plugin:
+- Signalizer.vst for VST2.4
+- Signalizer.vst3 for VST3
+
+and copy into your ~/.vst or ~/.vst3 folder respectively - that should be it!
+
+This was only tested to work on Ubuntu24 lts. This release links against the following libs:
+
+- libasound2-dev
+- libjack-jackd2-dev
+- ladspa-sdk
+- libcurl4-openssl-dev
+- libfreetype-dev
+- libfontconfig1-dev
+- libx11-dev
+- libxcomposite-dev
+- libxcursor-dev
+- libxext-dev
+- libxinerama-dev
+- libxrandr-dev
+- libxrender-dev
+- libwebkit2gtk-4.1-dev
+- libglu1-mesa-dev
+- mesa-common-dev
+
+Assuming you have a C++17 setup and placed the VST sdks in ../SDKs/*, you can build from scratch if you prefer by running:
+
+$ git clone https://github.com/jthorborg/signalizer
+$ python3 prepare.py
+$ python3 build.py
+
+-------------------
+
+If you're unsure about where your plugin folder is, it can be very custom and I'd advise to research the internet for your particular DAW if you didn't choose it yourself.

@@ -1,5 +1,4 @@
 import io
-import ConfigParser
 import os
 import sys
 import shutil as sh
@@ -7,79 +6,53 @@ import zipfile as zip
 import common as cm
 import subprocess
 
+make_dir = cm.join("..", "Builds", "LinuxMakefile")
+
 def compiler_invoke(args):
-	return os.system("codeblocks ../Builds/CodeBlocks/Signalizer.cbp " + args + " --rebuild")
+	return os.system("make --directory=" + make_dir + " " + args)
 
-# parse config
-config = ConfigParser.ConfigParser()
-config.read("config.ini")
+def build_linux(program):
+	zipoutput = "../Releases/Signalizer Linux VST " + program.version_string
 
-parameters = []
+	#diagnostic
+	config = "Release" if program.release else "Debug"
 
-# handle cmd arguments
-if len(sys.argv) > 1:
-	for arg in sys.argv[1:]:
-		inc = arg.find("-inc:")
-		if inc != -1:
-			parameters.append(arg[inc + 5:])
+	#run targets
+	if program.release:
+		if compiler_invoke("clean") != 0:
+			print("------> Error cleaning...")
+			exit(-1)
 
-flush_parameters = False
+	if compiler_invoke("CONFIG=" + config) != 0:
+		print("------> Error building...")
 
-# handle operations
-for param in parameters:
-	config.set("version", param, str(int(config.get("version", param)) + 1))
-	print("------> Increasing " + param + " to " + config.get("version", param))
+	print("\n------> All builds finished, generating skeletons...")
 
-# write new configuration?
-if len(parameters) > 0:
-	flush_parameters = True
+	# output dirs
+	rootdir = "Signalizer Linux"
 
-#configurations
-major = config.get("version", "major")
-minor = config.get("version", "minor")
-build = config.get("version", "build")
-desc = config.get("info", "description")
-name = config.get("info", "productname")
+	# build skeleton
+	program.make_release_folder_with_goodies(rootdir, "linux_installation_advice.txt")
 
+	build_dir = cm.join(make_dir, "build")
 
-version_string = major + "." + minor + "." + build
-zipoutput = "../Releases/Signalizer Linux VST " + version_string
-#diagnostic
-print("------> Building Signalizer v. " + version_string + " release targets")
+	# VST2
+	output_dir = cm.join(rootdir, "Signalizer.vst")
 
-cm.rewrite_version_header("../Source/version.h", major, minor, build)
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.so"), cm.join(output_dir, "Signalizer.so"))
 
-#run targets
+	# VST3 section
+	output_dir = cm.join(rootdir, "Signalizer.vst3")
 
-compiler_invoke("--target=Release")
+	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
+	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-linux"), dirs_exist_ok=True)
 
-# output dirs
-release_dir = "Signalizer Linux Release " + version_string
+	print("------> Zipping output directories...")
 
-cm.create_build_file("Build.log", version_string)
+	zx = sh.make_archive(zipoutput, "zip", rootdir)
 
-# build skeleton
-sh.copytree("Skeleton", release_dir)
-sh.copyfile("Build.log", cm.join(release_dir, "Build.log"))
+	# clean up dirs
+	sh.rmtree(rootdir)
 
-
-print("\n------> All builds finished, generating skeletons...")
-
-# copy in builds
-sh.copy("../Builds/CodeBlocks/bin/Release/libSignalizer.so", cm.join(release_dir, "Signalizer.so"))
-
-print("------> Zipping output directories...")
-
-zx = sh.make_archive(zipoutput, "zip", release_dir)
-
-print("------> Builded Signalizer successfully into:")
-print("------> " + zx)
-
-# clean up dirs
-sh.rmtree(release_dir)
-os.remove("Build.log")
-# done, if we made it here, increase the conf build
-
-if flush_parameters:
-	with open("config.ini", "w") as f:
-		config.write(f, True)
+	return zx
