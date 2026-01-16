@@ -11,56 +11,48 @@ make_dir = cm.join("..", "Builds", "LinuxMakefile")
 def compiler_invoke(args):
 	return os.system("make --directory=" + make_dir + " " + args)
 
-program = cm.ProgramConfig("config.ini")
-zipoutput = "../Releases/Signalizer Linux VST " + program.version_string
+def build_linux(program):
+	zipoutput = "../Releases/Signalizer Linux VST " + program.version_string
 
-#diagnostic
-config = "Release" if program.release else "Debug"
+	#diagnostic
+	config = "Release" if program.release else "Debug"
 
-print("------> Building Signalizer v. " + program.version_string + " " + config + " targets")
+	#run targets
+	if program.release:
+		if compiler_invoke("clean") != 0:
+			print("------> Error cleaning...")
+			exit(-1)
 
-program.rewrite_version_header()
+	if compiler_invoke("CONFIG=" + config) != 0:
+		print("------> Error building...")
 
-#run targets
-if program.release:
-	if compiler_invoke("clean") != 0:
-		print("------> Error cleaning...")
-		exit(-1)
+	print("\n------> All builds finished, generating skeletons...")
 
-if compiler_invoke("CONFIG=" + config) != 0:
-	print("------> Error building...")
+	# output dirs
+	rootdir = "Signalizer Linux"
 
-print("\n------> All builds finished, generating skeletons...")
+	# build skeleton
+	program.make_release_folder_with_goodies(rootdir, "linux_installation_advice.txt")
 
-# output dirs
-rootdir = "Signalizer Linux"
+	build_dir = cm.join(make_dir, "build")
 
-# build skeleton
-program.make_release_folder_with_goodies(rootdir, "linux_installation_advice.txt")
+	# VST2
+	output_dir = cm.join(rootdir, "Signalizer.vst")
 
-build_dir = cm.join(make_dir, "build")
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.so"), cm.join(output_dir, "Signalizer.so"))
 
-# VST2
-output_dir = cm.join(rootdir, "Signalizer.vst")
+	# VST3 section
+	output_dir = cm.join(rootdir, "Signalizer.vst3")
 
-sh.copytree("Skeleton", output_dir)
-sh.copyfile(cm.join(build_dir, "Signalizer.so"), cm.join(output_dir, "Signalizer.so"))
+	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
+	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-linux"), dirs_exist_ok=True)
 
-# VST3 section
-output_dir = cm.join(rootdir, "Signalizer.vst3")
+	print("------> Zipping output directories...")
 
-sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
-sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-linux"), dirs_exist_ok=True)
+	zx = sh.make_archive(zipoutput, "zip", rootdir)
 
-print("------> Zipping output directories...")
+	# clean up dirs
+	sh.rmtree(rootdir)
 
-zx = sh.make_archive(zipoutput, "zip", rootdir)
-
-print("------> Built Signalizer successfully into:")
-print("------> " + zx)
-
-# clean up dirs
-sh.rmtree(rootdir)
-
-# done, if we made it here, increase the conf build
-program.flush()
+	return zx

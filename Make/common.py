@@ -7,6 +7,15 @@ import configparser
 import sys
 import argparse
 import shutil as sh
+import platform
+
+join = os.path.join
+
+sys_name = platform.system().lower()
+is_windows = "windows" in sys_name
+is_mac = "darwin" in sys_name
+is_linux = "linux" in sys_name
+is_ubuntu = is_linux and "ubuntu" in platform.version().lower()
 
 def rewrite_version_header(where, major, minor, build):
 	build_info = get_custom_build_info().replace('\n', "\\n").replace('\r', "\\n")
@@ -31,15 +40,12 @@ def create_build_file(where, vstring):
            # error sometimes?
 		out.writelines(git_log.decode('ascii'))
 
-		
 def get_custom_build_info():
     git = subprocess.Popen("git --git-dir ../.git branch -q", shell = True, stdout=subprocess.PIPE)
     git_branch = git.stdout.read()
     git = subprocess.Popen("git --git-dir ../.git describe --always", shell = True, stdout=subprocess.PIPE)
     git_description = git.stdout.read()
     return git_branch.decode('ascii') + "\n" + git_description.decode('ascii')
-
-join = os.path.join
 
 class ProgramConfig:
 	def __init__(self, inifile):
