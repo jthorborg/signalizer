@@ -15,6 +15,9 @@ try:
 	elif cm.is_windows:
 		import Make.build_win as build_win
 		zx = build_win.build(program)
+	elif cm.is_mac:
+		import Make.build_osx as build_osx
+		zx = build_osx.build(program)
 		
 	print("------> Built Signalizer successfully into:")
 	print(zx)

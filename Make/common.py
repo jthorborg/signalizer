@@ -59,7 +59,8 @@ class ProgramConfig:
 		parameters = []
 
 		parser = argparse.ArgumentParser()
-		parser.add_argument("-d", "--debug", action="store_true")
+		parser.add_argument("-d", "--debug", action="store_true", help="Make a release with debug code generation")
+		parser.add_argument("-s", "--skipvst2", action="store_true", help="Try to make a release without depending on vst2 SDK (otherwise, place this at ../SDKs/vstsdk2.4)")
 
 		parser.add_argument("-j", "--increase-major", action="store_true", help="Increase the major version by 1")
 		parser.add_argument("-n", "--increase-minor", action="store_true", help="Increase the minor version by 1")
@@ -69,6 +70,7 @@ class ProgramConfig:
 
 		self.release = not args.debug
 		self.configString = "Release" if self.release else "Debug"
+		self.skipvst2 = args.skipvst2
 
 		self.config = configparser.ConfigParser()
 		self.config.read(inifile)
@@ -85,8 +87,11 @@ class ProgramConfig:
 		self.minor = self.config.get("version", "minor")
 		self.build = self.config.get("version", "build")
 		self.company = self.config.get("info", "company")
+		self.author = self.config.get("info", "author")
 		self.desc = self.config.get("info", "description")
 		self.name = self.config.get("info", "productname")
+		self.manu4 = self.config.get("info", "manu4")
+		self.sub4 = self.config.get("info", "sub4")
 
 		self.version_string = self.major + "." + self.minor + "." + self.build
 
@@ -107,4 +112,4 @@ class ProgramConfig:
 		create_build_file(join(build_dir, "Build.log"), self.version_string)
 		sh.copyfile(join("Skeleton", "READ ME.txt"), join(build_dir, "READ ME.txt"))
 		sh.copyfile("../CHANGELOG.md", join(build_dir, "CHANGELOG.md"))
-		sh.copyfile("windows_installation_advice.txt", join(build_dir, "HOW TO INSTALL.txt"))
+		sh.copyfile(advice_file, join(build_dir, "HOW TO INSTALL.txt"))
