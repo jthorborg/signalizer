@@ -198,6 +198,8 @@ namespace Signalizer
 
 		if (structuralChange)
 		{
+			AudioStream::InputFrameBatch batch(presentationInput);
+
 			PinInt maxDestinationPort = -1;
 			std::int64_t setPorts = 0;
 			for (auto& g : graph)
@@ -207,7 +209,7 @@ namespace Signalizer
 					maxDestinationPort = std::max(maxDestinationPort, entry.first.Destination);
 					setPorts |= 1ll << static_cast<std::int64_t>(entry.first.Destination);
 					auto nameCopy = entry.second.originName;
-					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy));
+					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy), batch);
 				}
 			}
 
@@ -225,7 +227,8 @@ namespace Signalizer
 					info.channels = maxDestinationPort;
 					info.sampleRate = realInfo.sampleRate;
 					info.anticipatedSize = static_cast<std::uint32_t>(numSamples);
-				}
+				},
+				batch
 			);
 
 

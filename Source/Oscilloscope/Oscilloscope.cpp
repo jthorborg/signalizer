@@ -368,9 +368,13 @@ namespace Signalizer
 	inline void Oscilloscope::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
 		auto access = streamState.lock();
+		const auto& info = source.getInfo();
+
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
+
 		access->channelNames = source.getChannelNames();
-		access->historyCapacity = source.getInfo().audioHistoryCapacity;
-		access->sampleRate = source.getInfo().sampleRate;
+		access->historyCapacity = info.audioHistoryCapacity;
+		access->sampleRate = info.sampleRate;
 		access->audioStreamChangeVersion.bump();
 	}
 

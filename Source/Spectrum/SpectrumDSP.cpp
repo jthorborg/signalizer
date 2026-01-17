@@ -218,11 +218,14 @@ namespace Signalizer
 	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
 		auto access = streamState.lock();
+		const auto& info = source.getInfo();
+
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
 
 		access->audioStreamChangeVersion.bump();
-		access->streamLocalSampleRate = source.getInfo().sampleRate;
+		access->streamLocalSampleRate = info.sampleRate;
 
-		access->pairs.resize(source.getInfo().channels / 2);
+		access->pairs.resize(info.channels / 2);
 		access->channelNames = source.getChannelNames();
 	}
 

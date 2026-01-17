@@ -393,8 +393,11 @@ namespace Signalizer
 	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
 		auto stream = streamState.lock();
+		const auto& info = ctx.getInfo();
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
+
 		stream->channelNames = ctx.getChannelNames();
-		stream->numChannels = ctx.getInfo().channels;
+		stream->numChannels = info.channels;
 		stream->audioStreamChangeVersion.bump();
 	}
 
