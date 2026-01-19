@@ -1356,7 +1356,6 @@ namespace Signalizer
 			elementSize - elementBorder * 2
 		);
 
-
 		auto editor = getTopEditor();
 		if (editor)
 		{
@@ -1369,12 +1368,12 @@ namespace Signalizer
 				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize(possibleBounds).second));
 			}
 			editor->setBounds(elementBorder, tabs.getBottom(), possibleBounds.first, maxHeight);
-			viewTopCoord = tabs.getHeight() + maxHeight + elementBorder;
+			viewTopCoord = tabs.getHeight() + maxHeight + bottomBorder;
 		}
 		else
 		{
 			if (tabBarIsVisible)
-				viewTopCoord = tabs.getBottom() + elementBorder;
+				viewTopCoord = tabs.getBottom() + bottomBorder;
 			else
 				viewTopCoord = 0;
 		}
@@ -1494,9 +1493,12 @@ namespace Signalizer
 	void MainEditor::showAboutBox()
 	{
 		khelp.bSetInternal(1);
+
+		auto pluginFormat = engine->getWrapperTypeDescription(engine->wrapperType);
+
 		using namespace cpl;
 		std::string contents =
-			programInfo.name + " " + programInfo.version.toString() + newl +
+			programInfo.name + " " + pluginFormat + " " + programInfo.version.toString() + newl +
 			"Build info: \n" + programInfo.customBuildInfo + newl +
 			"Written by Janus Lynggaard Thorborg, (C) 2026" + newl +
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
