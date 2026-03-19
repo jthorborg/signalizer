@@ -41,6 +41,8 @@
 #include "GraphEditor.h"
 #include <set>
 
+// ADD OPTION TO NOT KILL FULLSCREEN WHEN LOOSING FOCUS
+
 namespace cpl
 {
 	const ProgramInfo programInfo
@@ -513,24 +515,42 @@ namespace Signalizer
 					preFullScreenSize = getBounds().withZeroOrigin();
 
 					removeChildComponent(activeView().getWindow());
-					activeView().getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
-					activeView().getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
-					bool useMenusAndBars = false;
-					#ifdef CPL_MAC
-						useMenusAndBars = true;
-					#endif
-					juce::Desktop::getInstance().setKioskModeComponent(activeView().getWindow(), useMenusAndBars);
-					activeView().setFullScreenMode(true);
-					activeView().getWindow()->setWantsKeyboardFocus(true);
-					activeView().getWindow()->grabKeyboardFocus();
-					// add listeners.
+					// TODO: When respawning from a just-opened editor, wait a bit with entering full screen! The window handle for the scoped DPI thing doesn't quite exist yet.
+					auto enterKiosk = [this] () {
+						// Required to avoid hitting DPI awareness mismatch assertion when creating new peer
+#if JUCE_WINDOWS
+						const juce::ScopedThreadDPIAwarenessSetter scope{ getWindowHandle() };
+#endif
+						activeView().getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
-					activeView().getWindow()->addKeyListener(this);
-					activeView().getWindow()->addComponentListener(this);
+						activeView().getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
+						bool useMenusAndBars = false;
+						#ifdef CPL_MAC
+							useMenusAndBars = true;
+						#endif
+						juce::Desktop::getInstance().setKioskModeComponent(activeView().getWindow(), useMenusAndBars);
+						activeView().setFullScreenMode(true);
+						activeView().getWindow()->setWantsKeyboardFocus(true);
+						activeView().getWindow()->grabKeyboardFocus();
+						// add listeners.
+
+						activeView().getWindow()->addKeyListener(this);
+						activeView().getWindow()->addComponentListener(this);
+					};
 
 					// sets a minimal view when entering full screen
-					setBounds(getBounds().withBottom(getViewTopCoordinate()));
+					cpl::GUIUtils::FutureMainEvent(
+						10,
+						[this, enterKiosk]()
+						{
+							// This being slightly delayed fixes initial wrong DPI scale on windows in live when the original window doesn't exist yet
+							enterKiosk();
+							// TODO: This triggers the resize issue in live (UNLESS this is inside a future event)
+							setBounds(getBounds().withBottom(getViewTopCoordinate()));
+						},
+						this
+					);
 				}
 				else
 				{
@@ -835,10 +855,11 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::initiateView(SentientViewState & view, bool spawnNewEditor)
+	void MainEditor::initiateView(SentientViewState& view, bool spawnNewEditor)
 	{
 		currentView = &view;
-		addAndMakeVisible(activeView().getWindow());
+		auto activeWindow = activeView().getWindow();
+		addAndMakeVisible(activeWindow);
 
 		if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
 		{
@@ -1027,14 +1048,22 @@ namespace Signalizer
 				juce::Desktop::getInstance().setKioskModeComponent(nullptr);
 			}
 
-			activeView().getWindow()->setTopLeftPosition(0, 0);
+			activeView().getWindow()->setTopLeftPosition(0, getViewTopCoordinate());
 			addChildComponent(activeView().getWindow());
 			activeView().setFullScreenMode(false);
 
 			if (preFullScreenSize.getWidth() > 0 && preFullScreenSize.getHeight() > 0)
 			{
 				// restores from minimal window
-				setBounds(preFullScreenSize);
+				cpl::GUIUtils::FutureMainEvent(
+					10,
+					[this]() 
+					{
+						// Triggers live incorrect size bug! UNLESS this is inside a "future main event"
+						setSize(preFullScreenSize.getWidth(), preFullScreenSize.getHeight());
+					},
+					this
+				); 
 			}
 			else
 			{
@@ -1317,6 +1346,10 @@ namespace Signalizer
 				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize(possibleBounds).second));
 			}
 			return tabs.getHeight() + maxHeight + elementBorder;
+		}
+		else if (!tabBarIsVisible)
+		{
+			return 0;
 		}
 		else
 		{
