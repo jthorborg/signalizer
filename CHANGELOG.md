@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Resonating modes (typically spectrogram / constant Q transforms) being completely black on initial project open/restore in the spectrum
 - Preset file openers on macOS are not native anymore but prevents opening wrong file types now
+- DSP window widget generating undefined windows on invalid parameter combinations (fixes visualization / spectrum disappearing)
 
 ### Changed
 - Minimum macOS version increased to 10.13 (up from 10.8)
+
 
 ## 0.4.3 - 2023-12-22
 
