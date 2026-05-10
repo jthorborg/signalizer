@@ -115,9 +115,6 @@ if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
     echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
     exit /b 1
 )
-if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
-    echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
-)
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -186,9 +183,6 @@ if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
 ) else (
     echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
     exit /b 1
-)
-if &quot;$(PROCESSOR_ARCHITECTURE)&quot; == &quot;x86&quot; if defined PROCESSOR_ARCHITEW6432 (
-    echo : Warning: Toolchain configuration issue! You are using a 32-bit toolchain to compile a 64-bit target on a 64-bit system. This may cause problems with the build system. To resolve this, use the x64 version of MSBuild. You can invoke it directly at: &quot;&lt;VisualStudioPathHere&gt;/MSBuild/Current/Bin/amd64/MSBuild.exe&quot; Or, use the &quot;x64 Native Tools Command Prompt&quot; script.
 )
 </Command>
     </PreBuildEvent>

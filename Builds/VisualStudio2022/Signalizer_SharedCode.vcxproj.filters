@@ -4929,13 +4929,13 @@
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioParameterInt.h">
       <Filter>JUCE Modules\juce_audio_processors_headless\utilities</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioPluginExtensions.h">
+      <Filter>JUCE Modules\juce_audio_processors_headless\utilities</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioProcessorParameterWithID.h">
       <Filter>JUCE Modules\juce_audio_processors_headless\utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_CommonProcessorUtilities.h">
-      <Filter>JUCE Modules\juce_audio_processors_headless\utilities</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_ExtensionsVisitor.h">
       <Filter>JUCE Modules\juce_audio_processors_headless\utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_FlagCache.h">
@@ -5388,6 +5388,12 @@
     <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_Time.h">
       <Filter>JUCE Modules\juce_core\time</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_TimedDiagnostic.h">
+      <Filter>JUCE Modules\juce_core\time</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_TimeUnits.h">
+      <Filter>JUCE Modules\juce_core\time</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_core\unit_tests\juce_UnitTest.h">
       <Filter>JUCE Modules\juce_core\unit_tests</Filter>
     </ClInclude>
@@ -5594,9 +5600,6 @@
     </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\contexts\juce_LowLevelGraphicsSoftwareRenderer.h">
       <Filter>JUCE Modules\juce_graphics\contexts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_FontRendering.h">
-      <Filter>JUCE Modules\juce_graphics\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_JustifiedText.h">
       <Filter>JUCE Modules\juce_graphics\detail</Filter>
@@ -7651,6 +7654,9 @@
     </None>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\public.sdk\README.md">
       <Filter>JUCE Modules\juce_audio_processors_headless\format_types\VST3_SDK\public.sdk</Filter>
+    </None>
+    <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\JUCE_README.md">
+      <Filter>JUCE Modules\juce_audio_processors_headless\format_types\VST3_SDK</Filter>
     </None>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\LICENSE.txt">
       <Filter>JUCE Modules\juce_audio_processors_headless\format_types\VST3_SDK</Filter>

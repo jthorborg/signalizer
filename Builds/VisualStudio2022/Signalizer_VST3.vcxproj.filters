@@ -19,9 +19,6 @@
     <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ManifestHelper.cpp">
       <Filter>JUCE Modules\juce_audio_plugin_client\VST3</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\VST3\juce_VST3ManifestHelper.mm">
-      <Filter>JUCE Modules\juce_audio_plugin_client\VST3</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\juce_audio_plugin_client_VST3.cpp">
       <Filter>JUCE Modules\juce_audio_plugin_client</Filter>
     </ClCompile>

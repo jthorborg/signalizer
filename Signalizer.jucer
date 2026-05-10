@@ -611,11 +611,12 @@
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" fastMath="1" enablePluginBinaryCopyStep="1"
                        vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer" winWarningLevel="3"
-                       postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"/>
+                       postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"
+                       winArchitecture="x64"/>
         <CONFIGURATION isDebug="0" name="Release" fastMath="1" useRuntimeLibDLL="0"
                        enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer"
                        winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"
-                       alwaysGenerateDebugSymbols="1"/>
+                       alwaysGenerateDebugSymbols="1" winArchitecture="x64"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="External/juce/modules/"/>

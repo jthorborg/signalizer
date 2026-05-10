@@ -593,7 +593,7 @@
 				void setText(const std::string & newText)
 				{
 					text = newText;
-					setSize((int)cpl::CLookAndFeel_CPL::defaultLook().getStdFont().withHeight(fontHeight).getStringWidth(text), (int)std::ceil(fontHeight));
+					setSize(juce::GlyphArrangement::getStringWidthInt(cpl::CLookAndFeel_CPL::defaultLook().getStdFont().withHeight(fontHeight), text), (int)std::ceil(fontHeight));
 
 				}
 				void setTextSize(float height)

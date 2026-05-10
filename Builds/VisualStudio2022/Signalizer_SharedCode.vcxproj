@@ -3201,9 +3201,9 @@
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioParameterChoice.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioParameterFloat.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioParameterInt.h"/>
+    <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioPluginExtensions.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_AudioProcessorParameterWithID.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_CommonProcessorUtilities.h"/>
-    <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_ExtensionsVisitor.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_FlagCache.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_RangedAudioParameter.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_audio_processors_headless\utilities\juce_VST2ClientExtensions.h"/>
@@ -3354,6 +3354,8 @@
     <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_PerformanceCounter.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_RelativeTime.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_Time.h"/>
+    <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_TimedDiagnostic.h"/>
+    <ClInclude Include="..\..\External\juce\modules\juce_core\time\juce_TimeUnits.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_core\unit_tests\juce_UnitTest.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_core\unit_tests\juce_UnitTestCategories.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_core\xml\juce_XmlDocument.h"/>
@@ -3423,7 +3425,6 @@
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\contexts\juce_GraphicsContext.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\contexts\juce_LowLevelGraphicsContext.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\contexts\juce_LowLevelGraphicsSoftwareRenderer.h"/>
-    <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_FontRendering.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_JustifiedText.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_Ranges.h"/>
     <ClInclude Include="..\..\External\juce\modules\juce_graphics\detail\juce_ShapedText.h"/>
@@ -4110,6 +4111,7 @@
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\public.sdk\source\vst\moduleinfo\ReadMe.md"/>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\public.sdk\LICENSE.txt"/>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\public.sdk\README.md"/>
+    <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\JUCE_README.md"/>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\LICENSE.txt"/>
     <None Include="..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK\README.md"/>
     <None Include="..\..\External\juce\modules\juce_core\native\java\README.txt"/>
