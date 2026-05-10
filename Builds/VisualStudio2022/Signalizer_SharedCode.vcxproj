@@ -445,6 +445,12 @@
     <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMP_test.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPDeviceInfo.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPFactory.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPIterator.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -2524,6 +2530,18 @@
     <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_2.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_3.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_4.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_5.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\External\juce\modules\juce_gui_extra\code_editor\juce_CodeDocument.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -2680,6 +2698,10 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics.cpp">
       <AdditionalOptions> /bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_2.cpp"/>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_3.cpp"/>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_4.cpp"/>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_5.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_opengl.cpp"/>
   </ItemGroup>

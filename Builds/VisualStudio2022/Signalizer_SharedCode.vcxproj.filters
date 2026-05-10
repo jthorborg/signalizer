@@ -1024,6 +1024,12 @@
     <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMP_test.cpp">
       <Filter>JUCE Modules\juce_audio_basics\midi\ump</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPDeviceInfo.cpp">
+      <Filter>JUCE Modules\juce_audio_basics\midi\ump</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPFactory.cpp">
+      <Filter>JUCE Modules\juce_audio_basics\midi\ump</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\External\juce\modules\juce_audio_basics\midi\ump\juce_UMPIterator.cpp">
       <Filter>JUCE Modules\juce_audio_basics\midi\ump</Filter>
     </ClCompile>
@@ -3214,6 +3220,18 @@
     <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics.mm">
       <Filter>JUCE Modules\juce_gui_basics</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_2.cpp">
+      <Filter>JUCE Modules\juce_gui_basics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_3.cpp">
+      <Filter>JUCE Modules\juce_gui_basics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_4.cpp">
+      <Filter>JUCE Modules\juce_gui_basics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\juce\modules\juce_gui_basics\juce_gui_basics_5.cpp">
+      <Filter>JUCE Modules\juce_gui_basics</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\External\juce\modules\juce_gui_extra\code_editor\juce_CodeDocument.cpp">
       <Filter>JUCE Modules\juce_gui_extra\code_editor</Filter>
     </ClCompile>
@@ -3404,6 +3422,18 @@
       <Filter>JUCE Library Code</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics.cpp">
+      <Filter>JUCE Library Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_2.cpp">
+      <Filter>JUCE Library Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_3.cpp">
+      <Filter>JUCE Library Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_4.cpp">
+      <Filter>JUCE Library Code</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_basics_5.cpp">
       <Filter>JUCE Library Code</Filter>
     </ClCompile>
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp">
