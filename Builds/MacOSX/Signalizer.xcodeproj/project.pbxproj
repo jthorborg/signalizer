@@ -148,6 +148,7 @@
 		1F766D8C94B869484BD8BE5D /* Serialization.h */ /* Serialization.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Serialization.h; path = ../../External/cpl/state/Serialization.h; sourceTree = SOURCE_ROOT; };
 		20A4D82C6CDD422D4FB66299 /* multi2.cpp */ /* multi2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = multi2.cpp; path = ../../External/cpl/external/filesystem/test/multi2.cpp; sourceTree = SOURCE_ROOT; };
 		218CEED72D21AF4470929FFF /* StackBuffer.h */ /* StackBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StackBuffer.h; path = ../../External/cpl/lib/StackBuffer.h; sourceTree = SOURCE_ROOT; };
+		221582E1C477F3E8A23A8639 /* JuceAudioParameterBridge.h */ /* JuceAudioParameterBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceAudioParameterBridge.h; path = ../../External/cpl/infrastructure/parameters/JuceAudioParameterBridge.h; sourceTree = SOURCE_ROOT; };
 		222762BB04E1352CB09EA187 /* DisplayOrientation.h */ /* DisplayOrientation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = DisplayOrientation.h; path = ../../External/cpl/rendering/DisplayOrientation.h; sourceTree = SOURCE_ROOT; };
 		227937B53C762A13E5D35502 /* StreamPreprocessing.h */ /* StreamPreprocessing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamPreprocessing.h; path = ../../Source/Oscilloscope/StreamPreprocessing.h; sourceTree = SOURCE_ROOT; };
 		22F411D1CBD09DB738D92570 /* pf_altivec_float.h */ /* pf_altivec_float.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_altivec_float.h; path = ../../External/cpl/ffts/pffft/simd/pf_altivec_float.h; sourceTree = SOURCE_ROOT; };
@@ -1342,6 +1343,7 @@
 			children = (
 				A5DF7824A0A6E5C89349F662,
 				7348E7A176DBDA7DFDD088E1,
+				221582E1C477F3E8A23A8639,
 				9E02A8A2B0022CC577243812,
 			);
 			name = parameters;

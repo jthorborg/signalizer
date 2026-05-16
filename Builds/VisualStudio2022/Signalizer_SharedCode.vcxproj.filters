@@ -3993,6 +3993,9 @@
     <ClInclude Include="..\..\External\cpl\infrastructure\parameters\CustomTransforms.h">
       <Filter>Signalizer\cpl\infrastructure\parameters</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\cpl\infrastructure\parameters\JuceAudioParameterBridge.h">
+      <Filter>Signalizer\cpl\infrastructure\parameters</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\cpl\infrastructure\parameters\ParameterSystem.h">
       <Filter>Signalizer\cpl\infrastructure\parameters</Filter>
     </ClInclude>

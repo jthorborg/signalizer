@@ -34,6 +34,7 @@
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
 #include <cpl/infrastructure/values/Values.h>
+#include <cpl/infrastructure/parameters/JuceAudioParameterBridge.h>
 #include <array>
 
 namespace Signalizer
@@ -72,9 +73,13 @@ namespace Signalizer
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
+			auto state = ContentCreationList[i].second(parameterMap.numParams(), view);
+
+			cpl::bridgeJuceAudioProcessorParameters(*this, state->getParameterSet());
+
 			parameterMap.insert({
 				ContentCreationList[i].first,
-				ContentCreationList[i].second(parameterMap.numParams(), view)
+				std::move(state)
 			});
 		}
 
@@ -416,32 +421,6 @@ namespace Signalizer
 	const juce::String AudioProcessor::getName() const
 	{
 		return cpl::programInfo.name;
-	}
-
-	int AudioProcessor::getNumParameters()
-	{
-		return static_cast<int>(parameterMap.numParams());
-	}
-
-	float AudioProcessor::getParameter(int index)
-	{
-		return parameterMap.findParameter(index)->getValueNormalized<float>();
-
-	}
-
-	void AudioProcessor::setParameter(int index, float newValue)
-	{
-		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
-	}
-
-	const juce::String AudioProcessor::getParameterName(int index)
-	{
-		return parameterMap.findParameter(index)->getExportedName();
-	}
-
-	const juce::String AudioProcessor::getParameterText(int index)
-	{
-		return parameterMap.findParameter(index)->getDisplayText();
 	}
 
 	const juce::String AudioProcessor::getInputChannelName(int channelIndex) const

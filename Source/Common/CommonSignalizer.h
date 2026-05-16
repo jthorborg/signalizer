@@ -354,7 +354,7 @@
 			
 		protected:
 
-			virtual bool format(const ValueType & val, std::string & buf) override
+			virtual bool format(const ValueType & val, std::string & buf, cpl::FormattingFlags flags) override
 			{
 				char buffer[100];
 
