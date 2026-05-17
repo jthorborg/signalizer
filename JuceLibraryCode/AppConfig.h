@@ -15,16 +15,22 @@
 
 //==============================================================================
 // [BEGIN_USER_CODE_SECTION]
-
-#if defined(CPL_WINDOWS) || defined(CPL_UNIX)
-
 #include "../Source/version.h"
+
+#if defined(CPL_TRACEGUARD_ENTRYPOINTS) && defined(__cplusplus)
+
+#include <cpl/Protected.h>
+
+#define JUCE_TRACE_BEGIN CPL_TRACEGUARD_START
+#define JUCE_TRACE_END(name) CPL_TRACEGUARD_STOP(name)
 
 #else
 
-#include "../../Source/version.h"
+#define JUCE_TRACE_BEGIN
+#define JUCE_TRACE_END(name)
 
 #endif
+
 // [END_USER_CODE_SECTION]
 
 #include "JucePluginDefines.h"
@@ -205,14 +211,14 @@
 #endif
 
 #ifndef    JUCE_WIN_PER_MONITOR_DPI_AWARE
- //#define JUCE_WIN_PER_MONITOR_DPI_AWARE 1
+ #define   JUCE_WIN_PER_MONITOR_DPI_AWARE 1
 #endif
 
 //==============================================================================
 // juce_gui_extra flags:
 
 #ifndef    JUCE_WEB_BROWSER
- //#define JUCE_WEB_BROWSER 1
+ #define   JUCE_WEB_BROWSER 0
 #endif
 
 #ifndef    JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING

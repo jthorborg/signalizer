@@ -6,7 +6,7 @@
 */
 
 #pragma once
-#include "../Source/version.h"
+
 //==============================================================================
 // Audio plugin settings..
 
