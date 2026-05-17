@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.5.0 - 2026-01-13
+## 0.5.0 - 2026-05-10
 
 ### Added
 - Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
+- HiDPI support on Windows
 
 ### Fixed
 
@@ -18,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Minimum macOS version increased to 10.13 (up from 10.8)
+- Minimum Windows version increased to 10
+- Minimum Ubuntu version increased to 24 (LTS)
 
 
 ## 0.4.3 - 2023-12-22
