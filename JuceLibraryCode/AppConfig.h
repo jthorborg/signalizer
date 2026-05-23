@@ -35,7 +35,7 @@
 
 #include "JucePluginDefines.h"
 
-#define JUCE_PROJUCER_VERSION 0x8000c
+#define JUCE_PROJUCER_VERSION 0x8000d
 
 //==============================================================================
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics                   1
