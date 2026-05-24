@@ -4079,9 +4079,7 @@
     <None Include="..\..\Make\build_win.py"/>
     <None Include="..\..\Make\common.py"/>
     <None Include="..\..\Make\config.ini"/>
-    <None Include="..\..\Make\LinuxInstructions.txt"/>
     <None Include="..\..\Make\macos_installation_advice.txt"/>
-    <None Include="..\..\Make\Modern Xcode instructions.txt"/>
     <None Include="..\..\Make\vscompile.bat"/>
     <None Include="..\..\Make\windows_installation_advice.txt"/>
     <None Include="..\..\External\cpl\external\filesystem\cmake\config.cmake.in"/>

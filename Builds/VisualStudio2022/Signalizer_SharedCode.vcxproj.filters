@@ -7559,13 +7559,7 @@
     <None Include="..\..\Make\config.ini">
       <Filter>Signalizer\Build</Filter>
     </None>
-    <None Include="..\..\Make\LinuxInstructions.txt">
-      <Filter>Signalizer\Build</Filter>
-    </None>
     <None Include="..\..\Make\macos_installation_advice.txt">
-      <Filter>Signalizer\Build</Filter>
-    </None>
-    <None Include="..\..\Make\Modern Xcode instructions.txt">
       <Filter>Signalizer\Build</Filter>
     </None>
     <None Include="..\..\Make\vscompile.bat">

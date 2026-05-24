@@ -22,12 +22,8 @@
       <FILE id="Acp04N" name="build_win.py" compile="0" resource="0" file="Make/build_win.py"/>
       <FILE id="xw8gZm" name="common.py" compile="0" resource="0" file="Make/common.py"/>
       <FILE id="so0jmk" name="config.ini" compile="0" resource="0" file="Make/config.ini"/>
-      <FILE id="jtjZJ2" name="LinuxInstructions.txt" compile="0" resource="0"
-            file="Make/LinuxInstructions.txt"/>
       <FILE id="wULr24" name="macos_installation_advice.txt" compile="0"
             resource="0" file="Make/macos_installation_advice.txt"/>
-      <FILE id="Xr2isx" name="Modern Xcode instructions.txt" compile="0"
-            resource="0" file="Make/Modern Xcode instructions.txt"/>
       <FILE id="NJPDqg" name="vscompile.bat" compile="0" resource="0" file="Make/vscompile.bat"/>
       <FILE id="fUhex1" name="windows_installation_advice.txt" compile="0"
             resource="0" file="Make/windows_installation_advice.txt"/>

@@ -24,11 +24,6 @@
 #define JUCE_TRACE_BEGIN CPL_TRACEGUARD_START
 #define JUCE_TRACE_END(name) CPL_TRACEGUARD_STOP(name)
 
-#else
-
-#define JUCE_TRACE_BEGIN
-#define JUCE_TRACE_END(name)
-
 #endif
 
 // [END_USER_CODE_SECTION]
