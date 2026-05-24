@@ -236,7 +236,7 @@ namespace Signalizer
 			{
 				if ((setPorts & (1ll << i)) == 0)
 				{
-					presentationInput.enqueueChannelName(i, "nothing");
+					presentationInput.enqueueChannelName(i, "nothing", batch);
 				}
 			}
 

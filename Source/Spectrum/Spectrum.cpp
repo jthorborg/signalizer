@@ -399,19 +399,6 @@ namespace Signalizer
 			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
-		{
-			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
-
-			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
-			{
-				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
-			}
-
-			calculateSpectrumColourRatios(stream.constant);
-		}
-
-
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.alphaFloodFill = content->floodFillAlpha.getTransformedValue();
 
@@ -446,6 +433,18 @@ namespace Signalizer
 			flags.resized = true;
 			flags.resetStateBuffers = true;
 			calculateLegend = true;
+		}
+		
+		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+		{
+			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
+
+			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
+			{
+				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
+			}
+
+			calculateSpectrumColourRatios(stream.constant);
 		}
 
 		// TODO: Handle axisPoints being 0! Causes assertion in TransformConstant::remapFrequencies.
