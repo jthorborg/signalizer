@@ -34,9 +34,12 @@
 
 //==============================================================================
 #define JUCE_MODULE_AVAILABLE_juce_audio_basics                   1
+#define JUCE_MODULE_AVAILABLE_juce_audio_devices                  1
+#define JUCE_MODULE_AVAILABLE_juce_audio_formats                  1
 #define JUCE_MODULE_AVAILABLE_juce_audio_plugin_client            1
 #define JUCE_MODULE_AVAILABLE_juce_audio_processors               1
 #define JUCE_MODULE_AVAILABLE_juce_audio_processors_headless      1
+#define JUCE_MODULE_AVAILABLE_juce_audio_utils                    1
 #define JUCE_MODULE_AVAILABLE_juce_core                           1
 #define JUCE_MODULE_AVAILABLE_juce_data_structures                1
 #define JUCE_MODULE_AVAILABLE_juce_events                         1
@@ -46,6 +49,80 @@
 #define JUCE_MODULE_AVAILABLE_juce_opengl                         1
 
 #define JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED 1
+
+//==============================================================================
+// juce_audio_devices flags:
+
+#ifndef    JUCE_USE_WINRT_MIDI
+ //#define JUCE_USE_WINRT_MIDI 0
+#endif
+
+#ifndef    JUCE_USE_WINDOWS_MIDI_SERVICES
+ //#define JUCE_USE_WINDOWS_MIDI_SERVICES 0
+#endif
+
+#ifndef    JUCE_ASIO
+ //#define JUCE_ASIO 0
+#endif
+
+#ifndef    JUCE_ASIO_USE_EXTERNAL_SDK
+ //#define JUCE_ASIO_USE_EXTERNAL_SDK 0
+#endif
+
+#ifndef    JUCE_WASAPI
+ //#define JUCE_WASAPI 1
+#endif
+
+#ifndef    JUCE_DIRECTSOUND
+ #define   JUCE_DIRECTSOUND 0
+#endif
+
+#ifndef    JUCE_ALSA
+ //#define JUCE_ALSA 1
+#endif
+
+#ifndef    JUCE_JACK
+ //#define JUCE_JACK 0
+#endif
+
+#ifndef    JUCE_USE_ANDROID_OBOE
+ //#define JUCE_USE_ANDROID_OBOE 1
+#endif
+
+#ifndef    JUCE_USE_OBOE_STABILIZED_CALLBACK
+ //#define JUCE_USE_OBOE_STABILIZED_CALLBACK 0
+#endif
+
+#ifndef    JUCE_USE_ANDROID_OPENSLES
+ //#define JUCE_USE_ANDROID_OPENSLES 0
+#endif
+
+#ifndef    JUCE_DISABLE_AUDIO_MIXING_WITH_OTHER_APPS
+ //#define JUCE_DISABLE_AUDIO_MIXING_WITH_OTHER_APPS 0
+#endif
+
+//==============================================================================
+// juce_audio_formats flags:
+
+#ifndef    JUCE_USE_FLAC
+ #define   JUCE_USE_FLAC 0
+#endif
+
+#ifndef    JUCE_USE_OGGVORBIS
+ #define   JUCE_USE_OGGVORBIS 0
+#endif
+
+#ifndef    JUCE_USE_MP3AUDIOFORMAT
+ //#define JUCE_USE_MP3AUDIOFORMAT 0
+#endif
+
+#ifndef    JUCE_USE_LAME_AUDIO_FORMAT
+ //#define JUCE_USE_LAME_AUDIO_FORMAT 0
+#endif
+
+#ifndef    JUCE_USE_WINDOWS_MEDIA_FORMAT
+ #define   JUCE_USE_WINDOWS_MEDIA_FORMAT 0
+#endif
 
 //==============================================================================
 // juce_audio_plugin_client flags:
@@ -71,7 +148,7 @@
 #endif
 
 #ifndef    JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE
- #define   JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE 1
+ #define   JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE 0
 #endif
 
 #ifndef    JUCE_IGNORE_VST3_MISMATCHED_PARAMETER_ID_WARNING
@@ -107,6 +184,17 @@
 
 #ifndef    JUCE_CUSTOM_VST3_SDK
  //#define JUCE_CUSTOM_VST3_SDK 0
+#endif
+
+//==============================================================================
+// juce_audio_utils flags:
+
+#ifndef    JUCE_USE_CDREADER
+ //#define JUCE_USE_CDREADER 0
+#endif
+
+#ifndef    JUCE_USE_CDBURNER
+ //#define JUCE_USE_CDBURNER 0
 #endif
 
 //==============================================================================
