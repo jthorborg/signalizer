@@ -10,22 +10,34 @@ Pre-built binaries can be found at this page: https://github.com/jthorborg/signa
 
 ## Building Signalizer
 
-The currently supported build platforms are Windows and OS X. If you haven't yet, run:
-`$ python3 prepare.py`
+First-time setup:
 
-Then you can run:
-`$ python3 build.py -[hdsjnb]`
+```
+python prepare.py
+```
 
-And a zipped Signalizer release for your platform will be built into `/Releases`.
-You can also use either of the platform specific solutions in `/Builds/` to do development.
-The `*.jucer` file is used to rebuild the solutions, and the python build system invokes the solutions and packages releases.
+**Development build** (Debug Standalone, fastest - good for iteration and testing):
 
-If you wish to compile VST 2s, you will need to acquire the SDK and place it in `../SDKs/vstsdk2.4`. 
-Similarly for other proprietary platforms.
+```
+python build.py dev
+```
 
-Linux support is experimental and only confirmed to work on Ubuntu 24.
-On macOS, if you want to use the build scripts you need to have the Xcode command line tools installed.
-For Windows, you will need Visual Studio 2022+.
+**Release build** (all plugin formats, packaged into `/Releases`):
+
+```
+python build.py release
+```
+
+Both commands accept `--verbose` to stream the full compiler output. Run `python3 build.py dev --help` or `release --help` for all options.
+
+Platform notes:
+- Windows: requires Visual Studio 2022
+- macOS: requires Xcode command line tools
+- Linux: experimental, confirmed on Ubuntu 24
+
+VST2 requires the SDK at `../SDKs/vstsdk2.4`.
+
+See more repository / workflow information in [AGENTS.md](AGENTS.md).
 
 ## Performance
 
