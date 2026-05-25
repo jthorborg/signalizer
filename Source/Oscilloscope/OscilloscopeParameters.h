@@ -92,7 +92,7 @@
 
 			private:
 
-				virtual bool format(const ValueType & val, std::string & buf) override
+				bool format(const ValueType & val, std::string & buf, cpl::FormattingFlags flags) override
 				{
 					char buffer[100];
 					switch (timeMode)
@@ -109,11 +109,11 @@
 							buf = buffer;
 							return true;
 						}
-						default: case TimeMode::Time: return AudioHistoryTransformatter<ParameterView>::format(val, buf);
+						default: case TimeMode::Time: return AudioHistoryTransformatter<ParameterView>::format(val, buf, flags);
 					}
 				}
 
-				virtual bool interpret(const cpl::string_ref buf, ValueType & val) override
+				bool interpret(const cpl::string_ref buf, ValueType & val) override
 				{
 					ValueType collectedValue;
 
@@ -186,7 +186,7 @@
 
 				}
 
-				virtual ValueType transform(ValueType val) const noexcept override
+				ValueType transform(ValueType val) const noexcept override
 				{
 					switch (timeMode)
 					{
@@ -213,7 +213,7 @@
 				}
 
 
-				virtual ValueType normalize(ValueType val) const noexcept override
+				ValueType normalize(ValueType val) const noexcept override
 				{
 					switch (timeMode)
 					{
@@ -262,15 +262,22 @@
 					a4InHz = hz;
 				}
 
-				virtual bool format(const ValueType & val, std::string & buf) override
+				bool format(const ValueType & val, std::string & buf, cpl::FormattingFlags flags) override
 				{
 					char buffer[100];
-					cpl::sprintfs(buffer, "%.5f Hz", val);
+
+					cpl::sprintfs(buffer, (flags & cpl::FormattingFlags::includeUnit) != cpl::FormattingFlags::none ? "%.5f Hz" : "%.5f", val);
+
 					buf = buffer;
 					return true;
 				}
 
-				virtual bool interpret(const cpl::string_ref buf, ValueType & val) override
+				std::string_view getUnit() const override
+				{
+					return "Hz";
+				}
+
+				bool interpret(const cpl::string_ref buf, ValueType & val) override
 				{
 					ValueType contained;
 

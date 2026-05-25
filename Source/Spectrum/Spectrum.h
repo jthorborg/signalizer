@@ -182,7 +182,7 @@
 			/// Every rendering-state change is handled in here to minimize duplicate heavy changes/resizes
 			/// (certain operations imply others)
 			/// </summary>
-			void handleFlagUpdates(StreamState& sac);
+			bool handleFlagUpdates(StreamState& sac);
 
 			template<typename ISA>
 				void renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack &);
@@ -356,8 +356,9 @@
 				std::vector<TransformPair> pairs;
 				Constant constant;
 				ChangeVersion audioStreamChangeVersion;
-				double streamLocalSampleRate;				
+				double streamLocalSampleRate{};
 				std::vector<std::string> channelNames;
+				bool everConfigured{};
 			};
 
 			struct ProcessorShell : public AudioStream::Listener

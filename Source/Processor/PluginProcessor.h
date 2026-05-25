@@ -74,14 +74,6 @@
 			//==============================================================================
 			const juce::String getName() const override;
 
-			int getNumParameters() override;
-
-			float getParameter(int index) override;
-			void setParameter(int index, float newValue) override;
-
-			const juce::String getParameterName(int index) override;
-			const juce::String getParameterText(int index) override;
-
 			const juce::String getInputChannelName(int channelIndex) const override;
 			const juce::String getOutputChannelName(int channelIndex) const override;
 			bool isInputChannelStereoPair(int index) const override;

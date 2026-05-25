@@ -196,7 +196,7 @@ namespace Signalizer
 			kdiagnostics.setSingleText("Diagnostics");
 			kdiagnostics.setToggleable(true);
 			kfreeQ.setToggleable(true);
-			kspectrumStretching.bSetTitle("Spectrum stretch");
+			kspectrumStretching.bSetTitle("Spectr. stretch");
 			kprimitiveSize.bSetTitle("Primitive size");
 			kfloodFillAlpha.bSetTitle("Flood fill %");
 			kgridColour.bSetTitle("Grid colour");

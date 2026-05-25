@@ -35,7 +35,7 @@
 #include <cpl/JobSystem.h>
 #include "TransformDSP.inl"
 
-#ifdef CPL_CLANG
+#if defined(CPL_CLANG) || defined(CPL_GCC)
 #define CONTENTIOUS_TEMPLATE template
 #else
 #define CONTENTIOUS_TEMPLATE
@@ -66,7 +66,7 @@ namespace Signalizer
 
 			auto access = shell.streamState.lock();
 
-			if (numChannels < 2 || access->pairs.empty())
+			if (!access->everConfigured || numChannels < 2 || access->pairs.empty())
 				return;
 
 			CPL_RUNTIME_ASSERTION((numChannels / 2) == access->pairs.size());
@@ -218,11 +218,14 @@ namespace Signalizer
 	void Spectrum::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
 		auto access = streamState.lock();
+		const auto& info = source.getInfo();
+
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
 
 		access->audioStreamChangeVersion.bump();
-		access->streamLocalSampleRate = source.getInfo().sampleRate;
+		access->streamLocalSampleRate = info.sampleRate;
 
-		access->pairs.resize(source.getInfo().channels / 2);
+		access->pairs.resize(info.channels / 2);
 		access->channelNames = source.getChannelNames();
 	}
 
@@ -242,9 +245,11 @@ namespace Signalizer
 	}
 
 	double Spectrum::getOptimalFramesPerUpdate() const noexcept
-	{
-#pragma message cwarn("collect this somewhere.")
-		const double monitorRefreshRate = 60.0;
+	{        
+        double monitorRefreshRate = 60.0;
+        if (auto display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(getBounds()))
+            monitorRefreshRate = display->verticalFrequencyHz.value_or(monitorRefreshRate);
+        
 		auto res = double(isOpenGL() ? (monitorRefreshRate / getSwapInterval()) : refreshRate) / getBlobSamples();
 		assert(std::isnormal(res));
 		return res;

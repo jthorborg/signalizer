@@ -92,7 +92,7 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, float(complexScale * sdiv.coord) + 5, 20, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, int(complexScale * sdiv.coord + 5), 20, 100, 20, juce::Justification::centredLeft);
 
 				}
 				// text for complex frequency divisions
@@ -112,7 +112,7 @@ namespace Signalizer
 				for (auto & dbDiv : dbGraph.getDivisions())
 				{
 					cpl::sprintfs(buf, "%.2f", dbDiv.dbVal);
-					g.drawText(buf, 5, float(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, 5, int(dbDiv.coord), 100, 20, juce::Justification::centredLeft);
 				}
 			}
 		}
@@ -130,7 +130,7 @@ namespace Signalizer
 				for (auto & sdiv : divs)
 				{
 					cpl::sprintfs(buf, "%.2f", sdiv.frequency);
-					g.drawText(buf, gradientWidth + baseWidth + 5, float(height - sdiv.coord) - 10 /* height / 2 */, 100, 20, juce::Justification::centredLeft);
+					g.drawText(buf, gradientWidth + baseWidth + 5, int(height - sdiv.coord - 10) /* height / 2 */, 100, 20, juce::Justification::centredLeft);
 				}
 			}
 
@@ -138,12 +138,12 @@ namespace Signalizer
 
 			juce::ColourGradient gradient = constant.generateSpectrogramGradient(0);
 
-			gradient.point1 = {gradientWidth * 0.5f, (float)getHeight() };
+			gradient.point1 = {gradientWidth * 0.5f, height };
 			gradient.point2 = {gradientWidth * 0.5f, 0.0f };
 
 			g.setGradientFill(gradient);
 
-			g.fillRect(0.0f, 0.0f, gradientWidth, (float)getHeight());
+			g.fillRect(0.0f, 0.0f, gradientWidth, height);
 		}
 
 		float averageFps, averageCpu;
@@ -593,7 +593,8 @@ namespace Signalizer
 
 			auto&& access = processor->streamState.lock();
 
-            handleFlagUpdates(*access);
+			if (!handleFlagUpdates(*access))
+				return;
 
 			if (access->pairs.size() == 0 || state.sampleRate == 0)
 				return;
@@ -794,15 +795,25 @@ namespace Signalizer
 	void Spectrum::renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform, const LineColours& one, const LineColours& two)
 	{
 		// render the flood fill with alpha
+		const auto renderingScale = oglc->getRenderingScale();
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		ogs.setLineSize(static_cast<float>(oglc->getRenderingScale()));
 
 		OpenGLRendering::MatrixModification m;
 		m.translate(-1, -1, 0);
 		m.scale(static_cast<GLfloat>(1.0 / ((state.axisPoints - 1) * 0.5)), 2, 1);
 
 		// removes most of the weird black lines on flood fills.
-		ogs.disable(GL_MULTISAMPLE);
+		bool enableMultiSampleFillOnNonIntegerScales = false;
+#ifdef CPL_WINDOWS
+		enableMultiSampleFillOnNonIntegerScales = true;
+#endif
+		const auto percentileQuantizedScale = int(renderingScale * 100) / 100.0;
+		ogs.setLineSize(static_cast<float>(percentileQuantizedScale));
+
+		if (enableMultiSampleFillOnNonIntegerScales && percentileQuantizedScale != 1.0)
+			ogs.enable(GL_MULTISAMPLE);
+		else
+			ogs.disable(GL_MULTISAMPLE);
 
 		if (state.alphaFloodFill != 0.0f)
 		{
@@ -827,8 +838,8 @@ namespace Signalizer
 						lineDrawer.addVertex(i, results[i].rightMagnitude, -0.5);
 						lineDrawer.addVertex(i, endPoint, -0.5);
 					}
+					[[fallthrough]];
 				}
-				// (fall-through intentional)
 				case SpectrumChannels::Left:
 				case SpectrumChannels::Right:
 				case SpectrumChannels::Merge:
@@ -855,7 +866,7 @@ namespace Signalizer
 
 		// render the line graphs
 		ogs.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
-		ogs.setLineSize(std::max(0.001f, static_cast<float>(oglc->getRenderingScale() * state.primitiveSize)));
+		ogs.setLineSize(std::max(0.001f, static_cast<float>(percentileQuantizedScale * state.primitiveSize)));
 		// draw back to front
 		for (int k = SpectrumContent::LineGraphs::LineEnd - 1; k >= 0; --k)
 		{

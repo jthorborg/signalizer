@@ -111,9 +111,8 @@
 
 		protected:
 
-			static const int elementSize = 25;
-			// border around all elements, from which the background shines through'
-			static const int elementBorder = 1;
+			static constexpr int bottomBorder = elementBorder;
+
 
 			int getViewTopCoordinate() const noexcept;
 			void onOGLRendering(cpl::COpenGLView * view) noexcept override;

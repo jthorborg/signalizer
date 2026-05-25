@@ -354,7 +354,7 @@
 			
 		protected:
 
-			virtual bool format(const ValueType & val, std::string & buf) override
+			virtual bool format(const ValueType & val, std::string & buf, cpl::FormattingFlags flags) override
 			{
 				char buffer[100];
 
@@ -923,7 +923,7 @@
 			ColourRotation() : base(), size(), stereo() {}
 
 			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
-				: base(base), size(size), stereo(stereo)
+				: base(base), size(static_cast<float>(size)), stereo(stereo)
 			{
 
 			}
@@ -977,6 +977,11 @@
 			private:
 				int version {};
 			};
+
+			bool wasEverBumped() const noexcept
+			{
+				return version != 0;
+			}
 
 			void bump() 
 			{

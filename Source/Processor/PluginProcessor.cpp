@@ -29,10 +29,12 @@
 
 #include "PluginProcessor.h"
 #include "../Editor/MainEditor.h"
+#include <cpl/PlatformMisc.h>
 #include <cpl/CPresetManager.h>
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
 #include <cpl/infrastructure/values/Values.h>
+#include <cpl/infrastructure/parameters/JuceAudioParameterBridge.h>
 #include <array>
 
 namespace Signalizer
@@ -71,13 +73,15 @@ namespace Signalizer
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
+			auto state = ContentCreationList[i].second(parameterMap.numParams(), view);
+
+			cpl::bridgeJuceAudioProcessorParameters(*this, state->getParameterSet());
+
 			parameterMap.insert({
 				ContentCreationList[i].first,
-				ContentCreationList[i].second(parameterMap.numParams(), view)
+				std::move(state)
 			});
 		}
-
-		juce::File location;
 
 		// load the default preset
 		try
@@ -86,8 +90,7 @@ namespace Signalizer
 
 			cpl::CPresetManager::instance().loadPreset(
 				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr,
-				serializer,
-				location
+				serializer
 			);
 
 			if (!serializer.isEmpty())
@@ -115,17 +118,26 @@ namespace Signalizer
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
 	{
-		sendParamChangeMessageToListeners(parameter, value);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->sendValueChangedMessageToListeners(value);
 	}
 
 	void AudioProcessor::automatedBeginChangeGesture(int parameter)
 	{
-		beginParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->beginChangeGesture();
 	}
 
 	void AudioProcessor::automatedEndChangeGesture(int parameter)
 	{
-		endParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->endChangeGesture();
 	}
 
 	AudioProcessor::~AudioProcessor() noexcept
@@ -411,32 +423,6 @@ namespace Signalizer
 		return cpl::programInfo.name;
 	}
 
-	int AudioProcessor::getNumParameters()
-	{
-		return static_cast<int>(parameterMap.numParams());
-	}
-
-	float AudioProcessor::getParameter(int index)
-	{
-		return parameterMap.findParameter(index)->getValueNormalized<float>();
-
-	}
-
-	void AudioProcessor::setParameter(int index, float newValue)
-	{
-		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
-	}
-
-	const juce::String AudioProcessor::getParameterName(int index)
-	{
-		return parameterMap.findParameter(index)->getExportedName();
-	}
-
-	const juce::String AudioProcessor::getParameterText(int index)
-	{
-		return parameterMap.findParameter(index)->getDisplayText();
-	}
-
 	const juce::String AudioProcessor::getInputChannelName(int channelIndex) const
 	{
 		return juce::String(channelIndex + 1);
@@ -501,7 +487,7 @@ namespace Signalizer
 
 	const juce::String AudioProcessor::getProgramName(int index)
 	{
-		return juce::String::empty;
+		return {};
 	}
 
 	void AudioProcessor::changeProgramName(int index, const juce::String& newName)

@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Project DefaultTargets="Build"
+         ToolsVersion="17.0"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B5881670-8D8C-E95C-659F-451A4D47E6A7}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"
+                 Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'"
+                 Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+  <ImportGroup Label="ExtensionSettings"/>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props"
+            Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')"
+            Label="LocalAppDataPlatform"/>
+  </ImportGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <TargetExt>.dll</TargetExt>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\VST\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\VST\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Signalizer</TargetName>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(LibraryPath);$(SolutionDir)$(Platform)\$(Configuration)\Shared Code</LibraryPath>
+    <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PostBuildEventUseInBuild>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\VST\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\VST\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Signalizer</TargetName>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(LibraryPath);$(SolutionDir)$(Platform)\$(Configuration)\Shared Code</LibraryPath>
+    <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
+    <PostBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PostBuildEventUseInBuild>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName/>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)\</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\Signalizer.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>$(OutDir)\Signalizer.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib; msvcrt.lib;;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)\Signalizer.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <LargeAddressAware>true</LargeAddressAware>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <PreBuildEvent>
+      <Command>set TOUCH_NAME=&quot;.touch_&quot;Signalizer_VSTLegacy_&quot;%RANDOM%&quot;
+(
+    echo &quot;.&quot; &gt; &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot;
+) &gt; nul 2&gt;&amp;1
+if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
+    del /s /q &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot;
+) else (
+    echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
+    exit /b 1
+)
+</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+mkdir &quot;C:\Audio\VSTPlugins\Signalizer&quot;
+copy /Y &quot;$(OutDir)$(TargetFileName)&quot; &quot;C:\Audio\VSTPlugins\Signalizer\$(TargetFileName)&quot;
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>true</MkTypLibCompatible>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TargetEnvironment>Win32</TargetEnvironment>
+      <HeaderFileName/>
+    </Midl>
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AssemblerListingLocation>$(IntDir)\</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)\</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)\Signalizer.pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=0;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=0;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Link>
+      <OutputFile>$(OutDir)\Signalizer.dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(IntDir)\Signalizer.pdb</ProgramDatabaseFile>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>$(IntDir)\Signalizer.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <AdditionalDependencies>Signalizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <PreBuildEvent>
+      <Command>set TOUCH_NAME=&quot;.touch_&quot;Signalizer_VSTLegacy_&quot;%RANDOM%&quot;
+(
+    echo &quot;.&quot; &gt; &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot;
+) &gt; nul 2&gt;&amp;1
+if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
+    del /s /q &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot;
+) else (
+    echo : Error: &quot;Plugin Copy Step Failure: Either the install path does not exist or you do not have permission to write to the target directory. Ensure you have the necessary permissions to write to the directory, or choose a different install location (e.g., a folder in your user directory).&quot;
+    exit /b 1
+)
+</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+mkdir &quot;C:\Audio\VSTPlugins\Signalizer&quot;
+copy /Y &quot;$(OutDir)$(TargetFileName)&quot; &quot;C:\Audio\VSTPlugins\Signalizer\$(TargetFileName)&quot;
+</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\External\juce\modules\juce_audio_plugin_client\juce_audio_plugin_client_VST2.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\JuceLibraryCode\include_juce_audio_plugin_client_VST2.cpp"/>
+  </ItemGroup>
+  <ItemGroup/>
+  <ItemGroup>
+    <ResourceCompile Include=".\resources.rc"/>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
+</Project>

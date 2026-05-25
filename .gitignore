@@ -17,6 +17,7 @@ Builds/VisualStudio2010/x64/
 Builds/VisualStudio2010/Release/
 Builds/VisualStudio2010/Signalizer.sdf
 Builds/VisualStudio2010/Signalizer.opensdf
+Signalizer_OSX/*
 *.psess
 *.vsp
 Builds/VisualStudio2010/Signalizer.sln.ide/
@@ -30,3 +31,11 @@ Builds/x64/
 Releases/
 Make/Build.log
 *.aps
+Builds/VisualStudio2022/.vs
+Builds/VisualStudio2022/x64
+Builds/MacOSX/Signalizer.xcodeproj/project.xcworkspace
+Builds/MacOSX/build
+*vcxproj.user
+Builds/MacOSX/Signalizer.xcodeproj/xcuserdata
+Builds/LinuxMakefile/build
+Builds/VisualStudio2022/Win32

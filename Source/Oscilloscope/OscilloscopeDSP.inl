@@ -403,7 +403,7 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::StreamState::audioEntryPoint(AudioStream::ListenerContext& ctx, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
-		if (numSamples == 0 || numChannels == 0)
+		if (!everConfigured || numSamples == 0 || numChannels == 0)
 			return;
 
 		channelData.resizeChannels(numChannels);

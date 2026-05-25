@@ -7,11 +7,15 @@ import zipfile as zip
 import common as cm
 import subprocess
 
-def setup_resource(outputfile, major, minor, build, name, description):
+def kvsz(key, value):
+	return "      VALUE " + "\"" + key + "\", \"" + value + "\\0\"\n"
+
+def setup_resource(outputfile, major, minor, build, name, description, company):
 	version_comma = str(major) + "," + str(minor) + "," + str(build) + ",0"
 	version_dot = "\"" + str(major) + "." + str(minor) + "." + str(build) + "\""
 
-	contents = ("#ifdef JUCE_USER_DEFINED_RC_FILE\n"
+	contents = ("#pragma code_page(65001)\n\n"
+				"#ifdef JUCE_USER_DEFINED_RC_FILE\n"
 				" #include JUCE_USER_DEFINED_RC_FILE\n"
 				"#else\n"
 				"#undef  WIN32_LEAN_AND_MEAN\n"
@@ -19,21 +23,21 @@ def setup_resource(outputfile, major, minor, build, name, description):
 				"#include <windows.h>\n"
 				"VS_VERSION_INFO VERSIONINFO\n"
 				"FILEVERSION " + version_comma + "\n"
-				"PRODUCTVERSION " + version_comma + "\n"
 				"BEGIN\n"
 				"  BLOCK \"StringFileInfo\"\n" 
 				"  BEGIN\n"
 				"    BLOCK \"040904E4\"\n" 
-				"    BEGIN\n"
-				"      VALUE \"FileDescription\", \"" + description + "\"\n" 
-				"      VALUE \"FileVersion\", " + version_dot + "\n"
-				"      VALUE \"ProductName\", \"" + name + "\"\n"
-				"      VALUE \"ProductVersion\", " + version_dot + "\n"
+				"    BEGIN\n" +
+				kvsz("CompanyName", company) +
+				kvsz("FileDescription", description) +
+				kvsz("FileVersion", version_dot) +
+				kvsz("ProductName", name) +
+				kvsz("ProductVersion", version_dot) +
 				"    END\n" 
 				"  END\n"
 				"  BLOCK \"VarFileInfo\"\n"
 				"  BEGIN\n"
-				"    VALUE \"Translation\", 0x409, 65001\n"
+				"    VALUE \"Translation\", 0x409, 1252\n"
 				"  END\n"
 				"END\n"
 				"#endif\n")
@@ -44,97 +48,55 @@ def setup_resource(outputfile, major, minor, build, name, description):
 def compiler_invoke(compiler_arch, target):
 	return os.system("vscompile.bat " + compiler_arch + " " + target)
 
-# parse config
-config = configparser.ConfigParser()
-config.read("config.ini")
+def build(program):
 
-parameters = []
+	vcxpath = "../Builds/VisualStudio2022"
 
-# handle cmd arguments
-if len(sys.argv) > 1:
-	for arg in sys.argv[1:]:
-		inc = arg.find("-inc:")
-		if inc != -1:
-			parameters.append(arg[inc + 5:])
+	zipoutput = "../Releases/Signalizer_Windows_VST_" + program.version_string
+	zippdboutput = "../Releases/Signalizer_Windows_Debug_PDBs_" + program.version_string
 
-flush_parameters = False
+	#overwrite resource to embed version numbers
+	setup_resource(cm.join(vcxpath, "resources.rc"), program.major, program.minor, program.build, program.name, program.desc, program.company)
 
-# handle operations
-for param in parameters:
-	config.set("version", param, str(int(config.get("version", param)) + 1))
-	print("------> Increasing " + param + " to " + config.get("version", param))
+	#run all archs
+	archs = [["x64", f'"{program.configString}|x64"']]
+	for option in archs:
+		if compiler_invoke(option[0], option[1]) != 0:
+			print("\n------> Error compiling for target " + option[0])
+			exit(1)
 
-# write new configuration?
-if len(parameters) > 0:
-	flush_parameters = True
+	print("\n------> All builds finished, generating skeletons...")
 
-#configurations
-major = config.get("version", "major")
-minor = config.get("version", "minor")
-build = config.get("version", "build")
-desc = config.get("info", "description")
-name = config.get("info", "productname")
+	rootdir = "Signalizer Windows"
+	program.make_release_folder_with_goodies(rootdir, "windows_installation_advice.txt")
 
+	# VST2 section
+	build_dir = cm.join(vcxpath, "x64", program.configString, "VST")
+	output_dir = cm.join(rootdir, "Signalizer.vst")
 
-version_string = major + "." + minor + "." + build
-vcxpath = "../builds/visualstudio2010"
-zipoutput = "../Releases/Signalizer Windows VST " + version_string
-#diagnostic
-print("------> Building Signalizer v. " + version_string + " release targets")
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.dll"), cm.join(output_dir, "Signalizer.dll"))
+	os.makedirs(cm.join("Symbols", "VST"))
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST", "Signalizer.pdb")) 
 
-#overwrite resource to embed version numbers
-setup_resource(cm.join(vcxpath, "resources.rc"), major, minor, build, name, desc)
+	# VST3 section
+	build_dir = cm.join(vcxpath, "x64", program.configString, "VST3")
+	output_dir = cm.join(rootdir, "Signalizer.vst3")
 
-targets = [["x86", '"Release|win32"'], ["x64", '"Release|x64"']]
+	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
+	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-win"), dirs_exist_ok=True)
+	os.makedirs(cm.join("Symbols", "VST3"))
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST3", "Signalizer.pdb")) 
 
+	print("------> Zipping output directories...")
 
+	zx = sh.make_archive(zipoutput, "zip", rootdir)
+	zxpdb = sh.make_archive(zippdboutput, "zip", "Symbols")
 
-cm.rewrite_version_header("../Source/version.h", major, minor, build)
+	# clean up dirs
+	if os.path.exists(rootdir):
+		sh.rmtree(rootdir)
+	if os.path.exists("Symbols"):
+		sh.rmtree("Symbols")
 
-#run all targets
-
-for option in targets:
-	if compiler_invoke(option[0], option[1]) != 0:
-		print("\n------> Error compiling for target " + option[0])
-		exit(1)
-
-		
-print("\n------> All builds finished, generating skeletons...")
-
-cm.create_build_file("Build.log", version_string)
-
-option_to_build = { "x86": cm.join(cm.join(vcxpath, "Release")), "x64": cm.join(cm.join(cm.join(vcxpath, "x64")), "Release") }
-
-for option in targets:
-	release_dir = cm.join("Signalizer Windows", "Release " + version_string + " " + option[0], "Signalizer")
-	debug_dir = cm.join("Signalizer Windows", "Debug " + version_string + " " + option[0], "Signalizer")
-	build = option_to_build[option[0]]
-
-	for p in [release_dir, debug_dir]:
-		sh.copytree("Skeleton", p)
-		sh.copyfile("Build.log", cm.join(p, "Build.log"))
-		sh.copyfile("../CHANGELOG.md", cm.join(p, "CHANGELOG.md"))
-		
-	# copy in builds
-	sh.copy(cm.join(build, "Signalizer.dll"), cm.join(release_dir, "Signalizer.dll"))
-	sh.copy(cm.join(build, "Signalizer.dll"), cm.join(debug_dir, "Signalizer.dll"))
-	# important that its name is signalizer.pdb
-	sh.copy(cm.join(build, "Signalizer.pdb"), cm.join(debug_dir, "Signalizer.pdb")) 
-
-sh.copyfile("windows_installation_advice.txt", cm.join("Signalizer Windows", "HOW TO INSTALL.txt"))
-
-print("------> Zipping output directories...")
-
-zx = sh.make_archive(zipoutput, "zip", "Signalizer Windows")
-
-print("------> Built Signalizer successfully into:")
-print("------> " + zx)
-
-# clean up dirs
-sh.rmtree("Signalizer Windows")
-os.remove("Build.log")
-# done, if we made it here, increase the conf build
-
-if flush_parameters:
-	with open("config.ini", "w") as f:
-		config.write(f, True)
+	return zx + "\n" + zxpdb

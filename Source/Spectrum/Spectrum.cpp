@@ -88,6 +88,7 @@ namespace Signalizer
 		}
 		audioStream->addListener(processor);
 
+		// TODO: No control for this?
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
 		resetStaticViewAssumptions();
@@ -348,12 +349,17 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates(StreamState& stream)
+	bool Spectrum::handleFlagUpdates(StreamState& stream)
 	{
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
 		bool calculateLegend = false;
+
+		// did we yet even initialize the audio stream?
+		if (!stream.audioStreamChangeVersion.wasEverBumped())
+			return false;
+
 		// did audio stream change since last sync?
 		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
@@ -393,19 +399,6 @@ namespace Signalizer
 			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
-		{
-			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
-
-			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
-			{
-				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
-			}
-
-			calculateSpectrumColourRatios(stream.constant);
-		}
-
-
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.alphaFloodFill = content->floodFillAlpha.getTransformedValue();
 
@@ -441,7 +434,20 @@ namespace Signalizer
 			flags.resetStateBuffers = true;
 			calculateLegend = true;
 		}
+		
+		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+		{
+			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
 
+			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
+			{
+				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
+			}
+
+			calculateSpectrumColourRatios(stream.constant);
+		}
+
+		// TODO: Handle axisPoints being 0! Causes assertion in TransformConstant::remapFrequencies.
 		std::size_t axisPoints = state.displayMode == SpectrumContent::DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
@@ -613,6 +619,8 @@ namespace Signalizer
 
 		if (calculateLegend)
 			recalculateLegend(stream);
+
+		return stream.everConfigured = true;
 	}
 
 

@@ -106,7 +106,7 @@ namespace Signalizer
 				juce::Graphics g(letter);
 				g.fillAll(juce::Colours::transparentBlack);
 				g.setColour(juce::Colours::white);
-				g.setFont(letter.getHeight() * fontToPixelScale * 0.5);
+				g.setFont(letter.getHeight() * fontToPixelScale * 0.5f);
 				g.drawText(ChannelDescriptions[i], letter.getBounds().toFloat(), juce::Justification::centred, false);
 			}
 			textures.push_back(std::unique_ptr<juce::OpenGLTexture>((new juce::OpenGLTexture())));

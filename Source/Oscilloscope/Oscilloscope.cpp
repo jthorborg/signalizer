@@ -235,8 +235,11 @@ namespace Signalizer
 		GraphicsWindow::mouseDrag(event);
 	}
 
-	void Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
+	bool Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
 	{
+		if (!cs.audioStreamChangeVersion.wasEverBumped())
+			return false;
+
 		const auto windowValue = content->windowSize.getTransformedValue();
 
 		cs.envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
@@ -245,7 +248,7 @@ namespace Signalizer
 		state.manualGain = content->inputGain.getTransformedValue();
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
 		state.diagnostics = content->diagnostics.getTransformedValue() > 0.5;
-		state.primitiveSize = content->primitiveSize.getTransformedValue();
+		state.primitiveSize = static_cast<float>(content->primitiveSize.getTransformedValue());
 		state.triggerMode = cs.triggerMode = cpl::enum_cast<OscilloscopeContent::TriggeringMode>(content->triggerMode.param.getTransformedValue());
 		state.customTrigger = content->triggerOnCustomFrequency.getNormalizedValue() > 0.5;
 		state.customTriggerFrequency = content->customTriggerFrequency.getTransformedValue();
@@ -308,6 +311,8 @@ namespace Signalizer
 		}
 
 		cs.triggeringProcessor->setSettings(cs.triggerMode, state.effectiveWindowSize, state.triggerThreshold, state.triggerHysteresis);
+
+		return cs.everConfigured = true;
 	}
 
 	void Oscilloscope::recalculateLegend(Oscilloscope::StreamState& cs, ColourRotation primaryRotation, ColourRotation secondaryRotation)
@@ -363,9 +368,13 @@ namespace Signalizer
 	inline void Oscilloscope::ProcessorShell::onStreamPropertiesChanged(AudioStream::ListenerContext& source, const AudioStream::AudioStreamInfo& before)
 	{
 		auto access = streamState.lock();
+		const auto& info = source.getInfo();
+
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
+
 		access->channelNames = source.getChannelNames();
-		access->historyCapacity = source.getInfo().audioHistoryCapacity;
-		access->sampleRate = source.getInfo().sampleRate;
+		access->historyCapacity = info.audioHistoryCapacity;
+		access->sampleRate = info.sampleRate;
 		access->audioStreamChangeVersion.bump();
 	}
 

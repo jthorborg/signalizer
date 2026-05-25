@@ -546,7 +546,7 @@ namespace Signalizer
 			case SpectrumChannels::Merge:
 			case SpectrumChannels::Side:
 			{
-				oldBin = constant.mappedFrequencies[0] * freqToBin;
+				oldBin = static_cast<cpl::ssize_t>(constant.mappedFrequencies[0] * freqToBin);
 
 				// the DC (0) and nyquist bin are NOT 'halved' due to the symmetric nature of the fft,
 				// so halve these:
@@ -603,7 +603,7 @@ namespace Signalizer
 					break;
 				}
 
-				oldBin = constant.mappedFrequencies[x] * freqToBin;
+				oldBin = static_cast<cpl::ssize_t>(constant.mappedFrequencies[x] * freqToBin);
 
 				for (; x < constant.axisPoints; ++x)
 				{
@@ -646,10 +646,10 @@ namespace Signalizer
 				dsp::separateTransformsIPL(csf);
 
 				// fix up DC and nyquist bins (see previous function documentation)
-				csf[N] = csf[0].imag() * 0.5;
-				csf[0] = csf[0].real() * 0.5;
-				csf[N >> 1] *= 0.5;
-				csf[(N >> 1) - 1] *= 0.5;
+				csf[N] = csf[0].imag() * consts::half;
+				csf[0] = csf[0].real() * consts::half;
+				csf[N >> 1] *= consts::half;
+				csf[(N >> 1) - 1] *= consts::half;
 
 				// TODO: rewrite this.
 				// firstly, we have to do a phase cancellation pass.
@@ -806,7 +806,7 @@ namespace Signalizer
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
 				if (x < constant.axisPoints)
-					oldBin = constant.mappedFrequencies[x] * freqToBin;
+					oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
 
 
@@ -858,10 +858,10 @@ namespace Signalizer
 				dsp::separateTransformsIPL(csf.slice(0, N));
 
 				// fix up DC and nyquist bins (see previous function documentation)
-				csf[N] = csf[0].imag() * 0.5;
-				csf[0] = csf[0].real() * 0.5;
-				csf[N >> 1] *= 0.5;
-				csf[(N >> 1) - 1] *= 0.5;
+				csf[N] = csf[0].imag() * T(0.5);
+				csf[0] = csf[0].real() * T(0.5);
+				csf[N >> 1] *= T(0.5);
+				csf[(N >> 1) - 1] *= T(0.5);
 
 				for (decltype(N) i = 1; i < N; ++i)
 				{
@@ -939,7 +939,7 @@ namespace Signalizer
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
 
-				oldBin = constant.mappedFrequencies[x] * freqToBin;
+				oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
 				for (; x < constant.axisPoints; ++x)
 				{
@@ -1052,7 +1052,7 @@ namespace Signalizer
 						break;
 					}
 					if (x != constant.axisPoints)
-						oldBin = constant.mappedFrequencies[x] * freqToBin;
+						oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
 					for (; x < constant.axisPoints; ++x)
 					{
@@ -1395,7 +1395,7 @@ namespace Signalizer
 			T phaseFilters[SpectrumContent::LineGraphs::LineEnd];
 
 			for (std::size_t k = 0; k < lineGraphs.size(); ++k)
-				phaseFilters[k] = std::pow<T>(constant.filter[k].pole, 0.3);
+				phaseFilters[k] = std::pow(constant.filter[k].pole, T(0.3));
 
 			for (cpl::Types::fint_t i = 0; i < size; ++i)
 			{

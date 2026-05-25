@@ -621,12 +621,12 @@ namespace Signalizer
 			matrixMod.scale(2, 1, 1);
 
 			// apply horizontal transformation
-			matrixMod.scale(1 / (horizontalDelta), 1, 1);
-			matrixMod.translate(-left, 0, 0);
+			matrixMod.scale(static_cast<GLfloat>(1 / (horizontalDelta)), 1, 1);
+			matrixMod.translate(static_cast<GLfloat>(-left), 0, 0);
 
 			// apply vertical transformation
-			matrixMod.scale(1, 1.0 / verticalDelta, 0);
-			matrixMod.translate(0, top + (bottom - 1), 0);
+			matrixMod.scale(1, static_cast<GLfloat>(1.0 / verticalDelta), 0);
+			matrixMod.translate(0, static_cast<GLfloat>(top + (bottom - 1)), 0);
 			matrixMod.scale(1, gain, 0);
 
 			const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples /* + 2 */);

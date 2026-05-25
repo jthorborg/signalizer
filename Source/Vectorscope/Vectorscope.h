@@ -35,7 +35,7 @@
 	#include <memory>
 	#include <cpl/simd.h>
 	#include "../Common/ConcurrentConfig.h"
-
+	
 	namespace cpl
 	{
 		namespace OpenGLRendering
@@ -90,7 +90,7 @@
 			/// <summary>
 			/// Handles all set flags in mtFlags.
 			/// </summary>
-			void handleFlagUpdates();
+			bool handleFlagUpdates();
 
 		private:
 
@@ -114,6 +114,8 @@
 			{
 				std::vector<std::string> channelNames;
 				std::size_t numChannels;
+				ChangeVersion audioStreamChangeVersion;
+				bool wasEverConfigured{};
 			};
 
 			struct Processor : public AudioStream::Listener
@@ -132,10 +134,6 @@
 				cpl::relaxed_atomic<bool> isSuspended, normalizeGain;
 				cpl::relaxed_atomic<EnvelopeModes> envelopeMode;
 
-				/// <summary>
-				/// Set this if the audio buffer window size was changed from somewhere else.
-				/// </summary>
-				cpl::ABoolFlag streamPropertiesChanged;
 				std::shared_ptr<const SharedBehaviour> globalBehaviour;
 
 				void onStreamAudio(AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples) override;
@@ -170,7 +168,7 @@
 			void parameterChangedRT(cpl::Parameters::Handle localHandle, cpl::Parameters::Handle globalHandle, ParameterSet::BaseParameter * param) override;
 			void deserialize(cpl::CSerializer::Builder & builder, cpl::Version version) override {};
 			void serialize(cpl::CSerializer::Archiver & archive, cpl::Version version) override {};
-			void recalculateLegend();
+			void recalculateLegend(const StreamState& state);
 
 			template<typename ISA>
 				void vectorGLRendering();
@@ -215,6 +213,7 @@
 				juce::Colour colourBackground, colourWire, colourAxis, colourWaveform, colourMeter, colourWidget;
 				cpl::ValueT userGain;
 				LegendCache legend;
+				ChangeVersion::Listener audioStreamChanged;
 			} state;
 
 			std::shared_ptr<VectorScopeContent> content;
