@@ -40,3 +40,4 @@ Builds/MacOSX/build
 Builds/MacOSX/Signalizer.xcodeproj/xcuserdata
 Builds/LinuxMakefile/build
 Builds/VisualStudio2022/Win32
+.claude/
