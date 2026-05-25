@@ -42,7 +42,9 @@
 
 	namespace Signalizer
 	{
-
+		// border around all elements, from which the background shines through'
+		static constexpr int elementBorder = 1;
+		static constexpr int elementSize = 26; // with border = 28 becoming wholly divisible by common DPI scalings.
 
 		#if _DEBUG
 			typedef cpl::CGreenLineTester DummyComponent;
@@ -345,9 +347,6 @@
 					ret.second = std::max(bounds.second, ret.second);
 				}
 
-				auto const elementSize = 25;
-				auto const elementBorder = 1;
-
 				if (ret.first > possibleBounds.first - elementSize + elementBorder)
 					ret.second += 20;
 				return ret;
@@ -374,9 +373,6 @@
 		protected:
 			void resized() override
 			{
-				auto const elementSize = 25;
-				auto const elementBorder = 1;
-
 				icons.setBounds(0, 0, elementSize - elementBorder, getHeight());
 				contents.setBounds(elementSize, 0, getWidth() - elementSize + elementBorder, getHeight() - elementBorder);
 				if (selectedComponent)
