@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
 - HiDPI support on Windows
+- Standalone development support
 
 ### Fixed
 

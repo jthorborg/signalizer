@@ -10,13 +10,15 @@
               pluginSilenceInIsSilenceOut="1" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="SignalizerAU" pluginRTASCategory="" aaxIdentifier="com.Lightbridge.Signalizer"
               pluginAAXCategory="8192" companyName="Lightbridge" companyWebsite="www.jthorborg.com"
-              companyEmail="contact@jthorborg.com" pluginFormats="buildAU,buildVST,buildVST3"
-              buildAUv3="0" buildStandalone="0" enableIAA="0" pluginVST3Category="Analyzer"
+              companyEmail="contact@jthorborg.com" pluginFormats="buildAU,buildStandalone,buildVST,buildVST3"
+              buildAUv3="0" buildStandalone="1" enableIAA="0" pluginVST3Category="Analyzer"
               lv2Uri="https://jthorborg.com/index.html?ipage=signalizer" jucerFormatVersion="1"
               headerPath="../../External&#10;../../Source&#10;../../Source/Config"
               pluginVSTCategory="kPlugCategAnalysis">
   <MAINGROUP id="UevfpR" name="Signalizer">
     <GROUP id="{476E0AFE-C373-E089-79D2-4CB200759D8D}" name="Build">
+      <FILE id="mFxth0" name="build.py" compile="0" resource="0" file="build.py"
+            xcodeResource="0"/>
       <FILE id="klmFDx" name="build_linux.py" compile="0" resource="0" file="Make/build_linux.py"/>
       <FILE id="van5qI" name="build_osx.py" compile="0" resource="0" file="Make/build_osx.py"/>
       <FILE id="Acp04N" name="build_win.py" compile="0" resource="0" file="Make/build_win.py"/>
@@ -24,6 +26,7 @@
       <FILE id="so0jmk" name="config.ini" compile="0" resource="0" file="Make/config.ini"/>
       <FILE id="wULr24" name="macos_installation_advice.txt" compile="0"
             resource="0" file="Make/macos_installation_advice.txt"/>
+      <FILE id="yo8N5b" name="prepare.py" compile="0" resource="0" file="prepare.py"/>
       <FILE id="NJPDqg" name="vscompile.bat" compile="0" resource="0" file="Make/vscompile.bat"/>
       <FILE id="fUhex1" name="windows_installation_advice.txt" compile="0"
             resource="0" file="Make/windows_installation_advice.txt"/>
@@ -602,6 +605,9 @@
         <MODULEPATH id="juce_audio_plugin_client" path="External/juce/modules/"/>
         <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="External/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2022 targetFolder="Builds/VisualStudio2022" vstLegacyFolder="../SDKs/vstsdk2.4"
@@ -609,11 +615,11 @@
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" fastMath="1" enablePluginBinaryCopyStep="1"
                        vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer" winWarningLevel="3"
-                       postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"
+                       postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer&#10;cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;"
                        winArchitecture="x64"/>
         <CONFIGURATION isDebug="0" name="Release" fastMath="1" useRuntimeLibDLL="0"
                        enablePluginBinaryCopyStep="1" vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer"
-                       winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer"
+                       winWarningLevel="3" postbuildCommand="cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer&#10;cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;"
                        alwaysGenerateDebugSymbols="1" winArchitecture="x64"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
@@ -628,6 +634,9 @@
         <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
         <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="External/juce/modules"/>
       </MODULEPATHS>
     </VS2022>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4"
@@ -649,15 +658,21 @@
         <MODULEPATH id="juce_opengl" path="External/juce/modules/"/>
         <MODULEPATH id="juce_audio_processors_headless" path="External/juce/modules"/>
         <MODULEPATH id="juce_audio_processors" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="External/juce/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="External/juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
   </EXPORTFORMATS>
   <MODULES>
     <MODULES id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULES id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"/>
     <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_audio_processors_headless" showAllCode="1" useLocalCopy="0"
             useGlobalPath="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULES id="juce_core" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
     <MODULES id="juce_events" showAllCode="1" useLocalCopy="0"/>
@@ -667,7 +682,8 @@
     <MODULES id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
   </MODULES>
   <JUCEOPTIONS JUCE_QUICKTIME="0" JUCE_FORCE_LEGACY_PARAMETER_AUTOMATION_TYPE="1"
-               JUCE_FORCE_USE_LEGACY_PARAM_IDS="1" JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE="1"
+               JUCE_FORCE_USE_LEGACY_PARAM_IDS="1" JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE="0"
                JUCE_USE_CURL="0" JUCE_INCLUDE_ZLIB_CODE="1" JUCE_ENABLE_DIRECT2D_CLEARTYPE_FONT_SMOOTHING="1"
-               JUCE_WIN_PER_MONITOR_DPI_AWARE="1" JUCE_WEB_BROWSER="0"/>
+               JUCE_WIN_PER_MONITOR_DPI_AWARE="1" JUCE_WEB_BROWSER="0" JUCE_DIRECTSOUND="0"
+               JUCE_USE_FLAC="0" JUCE_USE_OGGVORBIS="0" JUCE_USE_WINDOWS_MEDIA_FORMAT="0"/>
 </JUCERPROJECT>

@@ -131,6 +131,7 @@ if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win\&quot; (
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;
 copy /Y &quot;$(OutDir)\Signalizer.dll&quot; &quot;$(OutDir)\Signalizer.vst3\Contents\x86_64-win\Signalizer.vst3&quot;
 if exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
     del /s /q &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;
@@ -220,6 +221,7 @@ if not exist &quot;$(OutDir)\\Signalizer.vst3\Contents\x86_64-win\&quot; (
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
 copy /Y &quot;$(OutDir)\Signalizer.dll&quot; &quot;$(OutDir)\Signalizer.vst3\Contents\x86_64-win\Signalizer.vst3&quot;
 if exist &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot; (
     del /s /q &quot;$(OutDir)\Signalizer.vst3\Contents\Resources\moduleinfo.json&quot;

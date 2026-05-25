@@ -2,6 +2,11 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio Version 17
 
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Signalizer - Standalone Plugin", "Signalizer_StandalonePlugin.vcxproj", "{1A84B065-5CAA-DD31-87FB-7FE760844AE8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D} = {AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Signalizer - VST", "Signalizer_VST.vcxproj", "{B5881670-8D8C-E95C-659F-451A4D47E6A7}"
 	ProjectSection(ProjectDependencies) = postProject
 		{AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D} = {AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D}
@@ -31,6 +36,10 @@ Global
 		{E8F37FC0-73CF-D0B7-DE1E-733A8C634D0A}.Debug|x64.Build.0 = Debug|x64
 		{E8F37FC0-73CF-D0B7-DE1E-733A8C634D0A}.Release|x64.ActiveCfg = Release|x64
 		{E8F37FC0-73CF-D0B7-DE1E-733A8C634D0A}.Release|x64.Build.0 = Release|x64
+		{1A84B065-5CAA-DD31-87FB-7FE760844AE8}.Debug|x64.ActiveCfg = Debug|x64
+		{1A84B065-5CAA-DD31-87FB-7FE760844AE8}.Debug|x64.Build.0 = Debug|x64
+		{1A84B065-5CAA-DD31-87FB-7FE760844AE8}.Release|x64.ActiveCfg = Release|x64
+		{1A84B065-5CAA-DD31-87FB-7FE760844AE8}.Release|x64.Build.0 = Release|x64
 		{AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D}.Debug|x64.ActiveCfg = Debug|x64
 		{AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D}.Debug|x64.Build.0 = Debug|x64
 		{AA98C3B5-F59A-6D85-E0C4-94F1B8809D3D}.Release|x64.ActiveCfg = Release|x64

@@ -26,6 +26,7 @@ Builds/VisualStudio2010/Signalizer.sln.ide/
 Source/backup/
 Builds/VisualStudio2010/.vs/
 Make/__pycache__/
+Make/Logs/
 Builds/Release/
 Builds/x64/
 Releases/
