@@ -119,6 +119,7 @@ if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;
 mkdir &quot;C:\Audio\VSTPlugins\Signalizer&quot;
 copy /Y &quot;$(OutDir)$(TargetFileName)&quot; &quot;C:\Audio\VSTPlugins\Signalizer\$(TargetFileName)&quot;
 </Command>
@@ -188,6 +189,7 @@ if exist &quot;C:\Audio\VSTPlugins\Signalizer\%TOUCH_NAME%&quot; (
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
 mkdir &quot;C:\Audio\VSTPlugins\Signalizer&quot;
 copy /Y &quot;$(OutDir)$(TargetFileName)&quot; &quot;C:\Audio\VSTPlugins\Signalizer\$(TargetFileName)&quot;
 </Command>

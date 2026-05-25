@@ -104,6 +104,7 @@
     </Manifest>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -158,6 +159,7 @@
     </Manifest>
     <PostBuildEvent>
       <Command>cp -r ../../Make/Skeleton/* C:\Audio\VSTPlugins\Signalizer
+cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
