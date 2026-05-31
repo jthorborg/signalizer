@@ -35,7 +35,6 @@
 	#include <cpl/AudioStream.h>
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
-	#include <cpl/gui/widgets/CPresetWidget.h>
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
 	#include <memory>
@@ -54,8 +53,6 @@
 			friend class MixGraphListener;
 
 		public:
-
-			typedef cpl::CPresetWidget::SerializerType SerializerType;
 
 			//==============================================================================
 			AudioProcessor();

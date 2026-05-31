@@ -36,9 +36,12 @@
 #include <cpl/infrastructure/values/Values.h>
 #include <cpl/infrastructure/parameters/JuceAudioParameterBridge.h>
 #include <array>
+#include <cpl/gui/widgets/CPresetWidget.h>
 
 namespace Signalizer
 {
+	typedef cpl::CPresetWidget::SerializerType SerializerType;
+
 	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
@@ -347,7 +350,7 @@ namespace Signalizer
 		}
 
 		auto& engineState = serializer.getContent("Engine");
-		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::programInfo.version)
+		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::Version::fromParts(0, 3, 5))
 		{
 			engineState >> config->historyCapacity;
 		}
