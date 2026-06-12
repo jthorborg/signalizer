@@ -191,6 +191,7 @@
 			cpl::CValueComboBox kgraphSerialization;
 			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours> colourControls;
+			cpl::CSignalGeneratorWidget ksignalGenerator;
 
 			// state variables.
 			int refreshRate;

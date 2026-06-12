@@ -276,6 +276,9 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClCompile Include="..\..\External\cpl\stdext.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\External\cpl\dsp\SignalGenerator.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\External\cpl\external\filesystem\examples\dir.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -394,6 +397,9 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\External\cpl\gui\widgets\CPresetWidget.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\gui\widgets\CSignalGeneratorWidget.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\External\cpl\gui\widgets\CTransformWidget.cpp">
@@ -3350,6 +3356,8 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\External\cpl\dsp\mqdft.inl"/>
     <ClInclude Include="..\..\External\cpl\dsp\OnePoleNetwork.h"/>
     <ClInclude Include="..\..\External\cpl\dsp\SDFTSystem.h"/>
+    <ClInclude Include="..\..\External\cpl\dsp\SignalGenerator.h"/>
+    <ClInclude Include="..\..\External\cpl\dsp\SignalGenerator.inl"/>
     <ClInclude Include="..\..\External\cpl\dsp\SignalSanitizer.h"/>
     <ClInclude Include="..\..\External\cpl\dsp\SmoothedParameterState.h"/>
     <ClInclude Include="..\..\External\cpl\external\filesystem\include\ghc\filesystem.hpp"/>
@@ -3404,6 +3412,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\External\cpl\gui\widgets\CDSPWindowWidget.h"/>
     <ClInclude Include="..\..\External\cpl\gui\widgets\CPowerSlopeWidget.h"/>
     <ClInclude Include="..\..\External\cpl\gui\widgets\CPresetWidget.h"/>
+    <ClInclude Include="..\..\External\cpl\gui\widgets\CSignalGeneratorWidget.h"/>
     <ClInclude Include="..\..\External\cpl\gui\widgets\CTransformWidget.h"/>
     <ClInclude Include="..\..\External\cpl\gui\widgets\WidgetBase.h"/>
     <ClInclude Include="..\..\External\cpl\gui\widgets\Widgets.h"/>
@@ -3426,6 +3435,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\External\cpl\infrastructure\parameters\ParameterSystem.h"/>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\ColourValue.h"/>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\PowerFunctionValue.h"/>
+    <ClInclude Include="..\..\External\cpl\infrastructure\values\SignalGeneratorValue.h"/>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\TransformValue.h"/>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\ValueBase.h"/>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\Values.h"/>
@@ -4833,7 +4843,6 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <None Include="..\..\Make\config.ini"/>
     <None Include="..\..\Make\macos_installation_advice.txt"/>
     <None Include="..\..\prepare.py"/>
-    <None Include="..\..\Make\vscompile.bat"/>
     <None Include="..\..\Make\windows_installation_advice.txt"/>
     <None Include="..\..\External\cpl\external\filesystem\cmake\config.cmake.in"/>
     <None Include="..\..\External\cpl\external\filesystem\cmake\GhcHelper.cmake"/>

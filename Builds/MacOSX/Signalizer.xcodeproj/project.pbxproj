@@ -120,6 +120,7 @@
 		08747FF622B31A61B3DCD31D /* DisplayOrientationWindows.cpp */ /* DisplayOrientationWindows.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayOrientationWindows.cpp; path = ../../External/cpl/rendering/DisplayOrientationWindows.cpp; sourceTree = SOURCE_ROOT; };
 		08B349016E749B651533EA23 /* LexicalConversion.h */ /* LexicalConversion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LexicalConversion.h; path = ../../External/cpl/LexicalConversion.h; sourceTree = SOURCE_ROOT; };
 		08B7F5BB0DD70DDA5562CC03 /* pffft.h */ /* pffft.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pffft.h; path = ../../External/cpl/ffts/pffft/pffft.h; sourceTree = SOURCE_ROOT; };
+		08FFEE9E36C1FB2346489799 /* SignalGenerator.inl */ /* SignalGenerator.inl */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalGenerator.inl; path = ../../External/cpl/dsp/SignalGenerator.inl; sourceTree = SOURCE_ROOT; };
 		0918B49A18B0D43CAEAAEE4D /* WindowDesignValue.h */ /* WindowDesignValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = WindowDesignValue.h; path = ../../External/cpl/infrastructure/values/WindowDesignValue.h; sourceTree = SOURCE_ROOT; };
 		09D4465AED47D21D3BAC0F3F /* pf_scalar_double.h */ /* pf_scalar_double.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_scalar_double.h; path = ../../External/cpl/ffts/pffft/simd/pf_scalar_double.h; sourceTree = SOURCE_ROOT; };
 		0A1735DB869D0AB5C6793E39 /* pf_conv_dispatcher.h */ /* pf_conv_dispatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_conv_dispatcher.h; path = ../../External/cpl/ffts/pffft/pf_conv_dispatcher.h; sourceTree = SOURCE_ROOT; };
@@ -135,6 +136,7 @@
 		105AD7E9E8E8B596871F8CDD /* bench_conv.cpp */ /* bench_conv.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = bench_conv.cpp; path = ../../External/cpl/ffts/pffft/bench_conv.cpp; sourceTree = SOURCE_ROOT; };
 		10832DB825B070D3FB6DFAD7 /* test_pffft.cpp */ /* test_pffft.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = test_pffft.cpp; path = ../../External/cpl/ffts/pffft/test_pffft.cpp; sourceTree = SOURCE_ROOT; };
 		11815EC6B76569A46189A0BB /* simd_isa.h */ /* simd_isa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = simd_isa.h; path = ../../External/cpl/simd/simd_isa.h; sourceTree = SOURCE_ROOT; };
+		11FC718047AADAFF97EA919D /* CSignalGeneratorWidget.h */ /* CSignalGeneratorWidget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CSignalGeneratorWidget.h; path = ../../External/cpl/gui/widgets/CSignalGeneratorWidget.h; sourceTree = SOURCE_ROOT; };
 		125D653914A01FD198F37384 /* Vectorscope.h */ /* Vectorscope.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Vectorscope.h; path = ../../Source/Vectorscope/Vectorscope.h; sourceTree = SOURCE_ROOT; };
 		12CF0E46948D3ABC433B415D /* include_juce_audio_processors.mm */ /* include_juce_audio_processors.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_processors.mm; path = ../../JuceLibraryCode/include_juce_audio_processors.mm; sourceTree = SOURCE_ROOT; };
 		1324D8EFB814C7E8DDB46097 /* CSerializer.cpp */ /* CSerializer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CSerializer.cpp; path = ../../External/cpl/state/CSerializer.cpp; sourceTree = SOURCE_ROOT; };
@@ -274,6 +276,7 @@
 		6A127923A3B95A46B4965764 /* ChannelData.h */ /* ChannelData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ChannelData.h; path = ../../Source/Oscilloscope/ChannelData.h; sourceTree = SOURCE_ROOT; };
 		6A8A14CC08E3DFE71082E0A4 /* SigMathImp.cpp */ /* SigMathImp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SigMathImp.cpp; path = ../../External/cpl/SigMathImp.cpp; sourceTree = SOURCE_ROOT; };
 		6B7C257E221996DAA4D52828 /* CPresetWidget.h */ /* CPresetWidget.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CPresetWidget.h; path = ../../External/cpl/gui/widgets/CPresetWidget.h; sourceTree = SOURCE_ROOT; };
+		6BEF163EFBBC37D06CB391DF /* SignalGeneratorValue.h */ /* SignalGeneratorValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalGeneratorValue.h; path = ../../External/cpl/infrastructure/values/SignalGeneratorValue.h; sourceTree = SOURCE_ROOT; };
 		6C25C81354A308CFE81A8C9B /* PowerFunctionValue.h */ /* PowerFunctionValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PowerFunctionValue.h; path = ../../External/cpl/infrastructure/values/PowerFunctionValue.h; sourceTree = SOURCE_ROOT; };
 		6C620BE8CCD6FA03F88C733F /* version.h */ /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = version.h; path = ../../Source/version.h; sourceTree = SOURCE_ROOT; };
 		6E12DD2736496C9797C751A3 /* readerwriterqueue.h */ /* readerwriterqueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = readerwriterqueue.h; path = ../../External/cpl/lib/readerwriterqueue/readerwriterqueue.h; sourceTree = SOURCE_ROOT; };
@@ -384,8 +387,10 @@
 		A00131CE648CDE1314D3D214 /* AxisTools.h */ /* AxisTools.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AxisTools.h; path = ../../External/cpl/special/AxisTools.h; sourceTree = SOURCE_ROOT; };
 		A04F9240152F857CCD256792 /* CDisplaySetup.cpp */ /* CDisplaySetup.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CDisplaySetup.cpp; path = ../../External/cpl/rendering/CDisplaySetup.cpp; sourceTree = SOURCE_ROOT; };
 		A236362641FEE6A1277EC1E3 /* CModule.h */ /* CModule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CModule.h; path = ../../External/cpl/CModule.h; sourceTree = SOURCE_ROOT; };
+		A2A6A26C43FFD2BB516257A3 /* SignalGenerator.cpp */ /* SignalGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SignalGenerator.cpp; path = ../../External/cpl/dsp/SignalGenerator.cpp; sourceTree = SOURCE_ROOT; };
 		A2C3746E7871C891261E728C /* pf_conv_dispatcher.cpp */ /* pf_conv_dispatcher.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = pf_conv_dispatcher.cpp; path = ../../External/cpl/ffts/pffft/pf_conv_dispatcher.cpp; sourceTree = SOURCE_ROOT; };
 		A42B6FF74C07B1003F05CBFE /* dsp.h */ /* dsp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dsp.h; path = ../../External/cpl/dsp.h; sourceTree = SOURCE_ROOT; };
+		A4FE3AFD64CDD38F743659B8 /* SignalGenerator.h */ /* SignalGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalGenerator.h; path = ../../External/cpl/dsp/SignalGenerator.h; sourceTree = SOURCE_ROOT; };
 		A58D11CB5887B8E6D234544E /* SpectrumParameters.h */ /* SpectrumParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SpectrumParameters.h; path = ../../Source/Spectrum/SpectrumParameters.h; sourceTree = SOURCE_ROOT; };
 		A5CA563A19378201FBC1670F /* Transforms.h */ /* Transforms.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Transforms.h; path = ../../External/cpl/ffts/Transforms.h; sourceTree = SOURCE_ROOT; };
 		A5DF7824A0A6E5C89349F662 /* CustomFormatters.h */ /* CustomFormatters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CustomFormatters.h; path = ../../External/cpl/infrastructure/parameters/CustomFormatters.h; sourceTree = SOURCE_ROOT; };
@@ -481,13 +486,13 @@
 		DF1289A0FA9362C2C8AA54FD /* JucePluginDefines.h */ /* JucePluginDefines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JucePluginDefines.h; path = ../../JuceLibraryCode/JucePluginDefines.h; sourceTree = SOURCE_ROOT; };
 		DF3EED0643E301A799F6F76D /* OpenGL.framework */ /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		E00D7C43733CC4D7FF97ABE3 /* fs_fwd.hpp */ /* fs_fwd.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fs_fwd.hpp; path = ../../External/cpl/external/filesystem/include/ghc/fs_fwd.hpp; sourceTree = SOURCE_ROOT; };
+		E111ED37C4C1F5E75EFA8253 /* CSignalGeneratorWidget.cpp */ /* CSignalGeneratorWidget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CSignalGeneratorWidget.cpp; path = ../../External/cpl/gui/widgets/CSignalGeneratorWidget.cpp; sourceTree = SOURCE_ROOT; };
 		E179D771FF5983B0362BC58E /* AudioUnit.framework */ /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
 		E1ACD3248A2482E7ECAF522B /* CColourControl.h */ /* CColourControl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CColourControl.h; path = ../../External/cpl/gui/controls/CColourControl.h; sourceTree = SOURCE_ROOT; };
 		E3D888EE32BB4DC526D34E52 /* include_juce_audio_plugin_client_VST3.mm */ /* include_juce_audio_plugin_client_VST3.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_plugin_client_VST3.mm; path = ../../JuceLibraryCode/include_juce_audio_plugin_client_VST3.mm; sourceTree = SOURCE_ROOT; };
 		E4A0E240136658F4634D8279 /* pffft.hpp */ /* pffft.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pffft.hpp; path = ../../External/cpl/ffts/pffft/pffft.hpp; sourceTree = SOURCE_ROOT; };
 		E4B7E829E7554EADAC8A8174 /* CValueComboBox.cpp */ /* CValueComboBox.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CValueComboBox.cpp; path = ../../External/cpl/gui/controls/CValueComboBox.cpp; sourceTree = SOURCE_ROOT; };
 		E524CDE33F431AACB4B61314 /* GhcHelper.cmake */ /* GhcHelper.cmake */ = {isa = PBXFileReference; lastKnownFileType = file.cmake; name = GhcHelper.cmake; path = ../../External/cpl/external/filesystem/cmake/GhcHelper.cmake; sourceTree = SOURCE_ROOT; };
-		E616FE6348B28B43EE7CA516 /* vscompile.bat */ /* vscompile.bat */ = {isa = PBXFileReference; lastKnownFileType = file.bat; name = vscompile.bat; path = ../../Make/vscompile.bat; sourceTree = SOURCE_ROOT; };
 		E7726F09487E9007FCD9C14B /* MacroConstants.h */ /* MacroConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MacroConstants.h; path = ../../External/cpl/MacroConstants.h; sourceTree = SOURCE_ROOT; };
 		E7873038F799692E25A25B3F /* CPresetManager.cpp */ /* CPresetManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CPresetManager.cpp; path = ../../External/cpl/CPresetManager.cpp; sourceTree = SOURCE_ROOT; };
 		E7B2C07C0E8F7FBF71B64DDD /* Allpass.h */ /* Allpass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Allpass.h; path = ../../External/cpl/dsp/filters/Allpass.h; sourceTree = SOURCE_ROOT; };
@@ -671,6 +676,7 @@
 			children = (
 				4EAB664472F4F23A1827DC23,
 				6C25C81354A308CFE81A8C9B,
+				6BEF163EFBBC37D06CB391DF,
 				8CF4422F8DED9A9FC304886F,
 				9E3872FFE9368A2E75B1731C,
 				622295B44C36296B99818762,
@@ -990,7 +996,6 @@
 				F4667D42FF52C19A5E057D98,
 				FB7FF2D20C6C7A6F651976EB,
 				8DD2FC177352FA0D67EA73BE,
-				E616FE6348B28B43EE7CA516,
 				4ED74E8498D809E9B4B6BC6F,
 			);
 			name = Build;
@@ -1011,6 +1016,9 @@
 				AA0CD72B529CBCE6D3AC2976,
 				CA8C8D1488ABE7AA077E92FE,
 				3296117908357C2702C93D5D,
+				A2A6A26C43FFD2BB516257A3,
+				A4FE3AFD64CDD38F743659B8,
+				08FFEE9E36C1FB2346489799,
 				95C58675A80A0BDF51E5838A,
 				8BBA5C0DFF2457C40555CA4A,
 			);
@@ -1300,6 +1308,8 @@
 				DB9522BA67842D649C59B108,
 				F0869C38403F08E6D1ACC656,
 				6B7C257E221996DAA4D52828,
+				E111ED37C4C1F5E75EFA8253,
+				11FC718047AADAFF97EA919D,
 				C98EC7C63EB4AD54E3D47EED,
 				3EB1DB4B1B11ADAA499D9FEA,
 				96591B8611CB9387230B18DD,
