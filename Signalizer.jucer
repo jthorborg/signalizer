@@ -27,7 +27,6 @@
       <FILE id="wULr24" name="macos_installation_advice.txt" compile="0"
             resource="0" file="Make/macos_installation_advice.txt"/>
       <FILE id="yo8N5b" name="prepare.py" compile="0" resource="0" file="prepare.py"/>
-      <FILE id="NJPDqg" name="vscompile.bat" compile="0" resource="0" file="Make/vscompile.bat"/>
       <FILE id="fUhex1" name="windows_installation_advice.txt" compile="0"
             resource="0" file="Make/windows_installation_advice.txt"/>
     </GROUP>
@@ -298,6 +297,12 @@
         <FILE id="wGLsV4" name="OnePoleNetwork.h" compile="0" resource="0"
               file="External/cpl/dsp/OnePoleNetwork.h"/>
         <FILE id="VqB0Jv" name="SDFTSystem.h" compile="0" resource="0" file="External/cpl/dsp/SDFTSystem.h"/>
+        <FILE id="PNdOsl" name="SignalGenerator.cpp" compile="0" resource="0"
+              file="External/cpl/dsp/SignalGenerator.cpp"/>
+        <FILE id="hRhC4b" name="SignalGenerator.h" compile="0" resource="0"
+              file="External/cpl/dsp/SignalGenerator.h"/>
+        <FILE id="Y5gPM6" name="SignalGenerator.inl" compile="0" resource="0"
+              file="External/cpl/dsp/SignalGenerator.inl"/>
         <FILE id="gw9SUv" name="SignalSanitizer.h" compile="0" resource="0"
               file="External/cpl/dsp/SignalSanitizer.h"/>
         <FILE id="mvnwPF" name="SmoothedParameterState.h" compile="0" resource="0"
@@ -475,6 +480,10 @@
           <FILE id="NYunU9" name="CPresetWidget.cpp" compile="0" resource="0"
                 file="External/cpl/gui/widgets/CPresetWidget.cpp"/>
           <FILE id="ODmRqv" name="CPresetWidget.h" compile="0" resource="0" file="External/cpl/gui/widgets/CPresetWidget.h"/>
+          <FILE id="itgqom" name="CSignalGeneratorWidget.cpp" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CSignalGeneratorWidget.cpp"/>
+          <FILE id="PCZOQs" name="CSignalGeneratorWidget.h" compile="0" resource="0"
+                file="External/cpl/gui/widgets/CSignalGeneratorWidget.h"/>
           <FILE id="eFq2QT" name="CTransformWidget.cpp" compile="0" resource="0"
                 file="External/cpl/gui/widgets/CTransformWidget.cpp"/>
           <FILE id="a6ak4p" name="CTransformWidget.h" compile="0" resource="0"
@@ -530,6 +539,8 @@
           <FILE id="RDFoCA" name="ColourValue.h" compile="0" resource="0" file="External/cpl/infrastructure/values/ColourValue.h"/>
           <FILE id="nZ771t" name="PowerFunctionValue.h" compile="0" resource="0"
                 file="External/cpl/infrastructure/values/PowerFunctionValue.h"/>
+          <FILE id="PSJd3I" name="SignalGeneratorValue.h" compile="0" resource="0"
+                file="External/cpl/infrastructure/values/SignalGeneratorValue.h"/>
           <FILE id="V7PE64" name="TransformValue.h" compile="0" resource="0"
                 file="External/cpl/infrastructure/values/TransformValue.h"/>
           <FILE id="y7krLY" name="ValueBase.h" compile="0" resource="0" file="External/cpl/infrastructure/values/ValueBase.h"/>

@@ -144,6 +144,7 @@ namespace Signalizer
 		, graphEditor(nullptr)
 		, globalState(std::make_shared<SharedBehaviour>())
 		, kgraphSerialization(e->getHostGraph().getGraphSerializationValue())
+		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
 		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
 		e->getHostGraph().setMixGraph(mixGraph);
@@ -220,9 +221,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&krenderEngine, 0);
-
 				section->addControl(&kantialias, 1);
-
 				page->addSection(section, "Quality");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -238,7 +237,12 @@ namespace Signalizer
 				section->addControl(&khideTabs, 2);
 				section->addControl(&kstopProcessingOnSuspend, 0);
 				section->addControl(&khideWidgets, 1);
-				page->addSection(section, "Globals");
+				page->addSection(section, "Options");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&ksignalGenerator, 0);
+				page->addSection(section, "SignalGenerator");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/brush.svg"))

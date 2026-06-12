@@ -36,9 +36,12 @@
 #include <cpl/infrastructure/values/Values.h>
 #include <cpl/infrastructure/parameters/JuceAudioParameterBridge.h>
 #include <array>
+#include <cpl/gui/widgets/CPresetWidget.h>
 
 namespace Signalizer
 {
+	typedef cpl::CPresetWidget::SerializerType SerializerType;
+
 	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
@@ -161,6 +164,8 @@ namespace Signalizer
 			}
 		);
 
+		signalGenerator.reset(supportedChannels, sampleRate);
+
 		if (!hasAnyLayoutBeenApplied)
 		{
 			hasAnyLayoutBeenApplied = true;
@@ -185,25 +190,27 @@ namespace Signalizer
 		if (!NONTERMINAL_ASSUMPTION(bufferSize <= lastRecordedBufferSize))
 			return;
 
+		// TODO: Fix this when the mix graph listener supports dynamically changing channels
+		std::array<float*, supportedChannels> inputs;
+		auto readPointers = buffer.getArrayOfWritePointers();
+
+		const auto available = std::min(getNumInputChannels(), supportedChannels);
+
+		int i = 0;
+		for (; i < available; ++i)
+		{
+			inputs[i] = readPointers[i];
+		}
+
+		for (; i < supportedChannels; ++i)
+		{
+			inputs[i] = surrogateArray.data();
+		}
+
+		signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+
 		if (realtimeInput.isAnyoneListening())
 		{
-			// TODO: Fix this when the mix graph listener supports dynamically changing channels
-			std::array<const float*, supportedChannels> inputs;
-			auto readPointers = buffer.getArrayOfReadPointers();
-
-			const auto available = std::min(getNumInputChannels(), supportedChannels);
-
-			int i = 0;
-			for (; i < available; ++i)
-			{
-				inputs[i] = readPointers[i];
-			}
-
-			for (; i < supportedChannels; ++i)
-			{
-				inputs[i] = surrogateArray.data();
-			}
-
 			if (auto ph = getPlayHead())
 				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
 			else
@@ -347,9 +354,15 @@ namespace Signalizer
 		}
 
 		auto& engineState = serializer.getContent("Engine");
-		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::programInfo.version)
+		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::Version::fromParts(0, 3, 5))
 		{
 			engineState >> config->historyCapacity;
+		}
+
+		auto& signalGeneratorState = serializer.getContent("SignalGenerator");
+		if (!signalGeneratorState.isEmpty())
+		{
+			signalGeneratorState >> signalGeneratorValue;
 		}
 
 	}
@@ -415,6 +428,12 @@ namespace Signalizer
 		engineState.setMasterVersion(cpl::programInfo.version);
 
 		engineState << config->historyCapacity;
+
+		auto& signalGeneratorState = serializer.getContent("SignalGenerator");
+		signalGeneratorState.clear();
+		signalGeneratorState.setMasterVersion(cpl::programInfo.version);
+
+		signalGeneratorState << signalGeneratorValue;
 	}
 
 	//==============================================================================

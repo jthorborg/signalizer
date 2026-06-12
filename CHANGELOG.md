@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
 - HiDPI support on Windows
 - Standalone development support
+- A signal generator in the general settings
 
 ### Fixed
 
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preset file openers on macOS are not native anymore but prevents opening wrong file types now
 - DSP window widget generating undefined windows on invalid parameter combinations (fixes visualization / spectrum disappearing)
 - Initial wrong blip on gradient fill / spectrogram when selecting it initially
+- Presets / saved state with non-default "history size" loading incorrectly if saved with an earlier version of Signalizer
 
 ### Changed
 - Minimum macOS version increased to 10.13 (up from 10.8)

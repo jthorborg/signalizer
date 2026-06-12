@@ -35,7 +35,7 @@
 	#include <cpl/AudioStream.h>
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
-	#include <cpl/gui/widgets/CPresetWidget.h>
+	#include <cpl/infrastructure/values/SignalGeneratorValue.h>
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
 	#include <memory>
@@ -54,8 +54,6 @@
 			friend class MixGraphListener;
 
 		public:
-
-			typedef cpl::CPresetWidget::SerializerType SerializerType;
 
 			//==============================================================================
 			AudioProcessor();
@@ -99,6 +97,7 @@
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
 			HostGraph& getHostGraph() { return *graph; }
+			cpl::SignalGeneratorValue* getSignalGeneratorValue() { return &signalGeneratorValue; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
 
@@ -117,6 +116,8 @@
 			AudioStream::Input realtimeInput;
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
 			std::vector<AFloat> surrogateArray;
+			cpl::dsp::SignalGenerator signalGenerator;
+			cpl::CompleteSignalGeneratorValue signalGeneratorValue;
 			bool hasAnyLayoutBeenApplied{};
 			int lastRecordedInputCount{}, lastRecordedBufferSize{};
 			ParameterMap parameterMap;

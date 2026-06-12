@@ -973,6 +973,9 @@
     <ClCompile Include="..\..\External\cpl\stdext.cpp">
       <Filter>Signalizer\cpl</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\External\cpl\dsp\SignalGenerator.cpp">
+      <Filter>Signalizer\cpl\dsp</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\External\cpl\external\filesystem\examples\dir.cpp">
       <Filter>Signalizer\cpl\external\filesystem\examples</Filter>
     </ClCompile>
@@ -1091,6 +1094,9 @@
       <Filter>Signalizer\cpl\gui\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\External\cpl\gui\widgets\CPresetWidget.cpp">
+      <Filter>Signalizer\cpl\gui\widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\gui\widgets\CSignalGeneratorWidget.cpp">
       <Filter>Signalizer\cpl\gui\widgets</Filter>
     </ClCompile>
     <ClCompile Include="..\..\External\cpl\gui\widgets\CTransformWidget.cpp">
@@ -4458,6 +4464,12 @@
     <ClInclude Include="..\..\External\cpl\dsp\SDFTSystem.h">
       <Filter>Signalizer\cpl\dsp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\cpl\dsp\SignalGenerator.h">
+      <Filter>Signalizer\cpl\dsp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\dsp\SignalGenerator.inl">
+      <Filter>Signalizer\cpl\dsp</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\cpl\dsp\SignalSanitizer.h">
       <Filter>Signalizer\cpl\dsp</Filter>
     </ClInclude>
@@ -4620,6 +4632,9 @@
     <ClInclude Include="..\..\External\cpl\gui\widgets\CPresetWidget.h">
       <Filter>Signalizer\cpl\gui\widgets</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\cpl\gui\widgets\CSignalGeneratorWidget.h">
+      <Filter>Signalizer\cpl\gui\widgets</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\cpl\gui\widgets\CTransformWidget.h">
       <Filter>Signalizer\cpl\gui\widgets</Filter>
     </ClInclude>
@@ -4684,6 +4699,9 @@
       <Filter>Signalizer\cpl\infrastructure\values</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\PowerFunctionValue.h">
+      <Filter>Signalizer\cpl\infrastructure\values</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\infrastructure\values\SignalGeneratorValue.h">
       <Filter>Signalizer\cpl\infrastructure\values</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\cpl\infrastructure\values\TransformValue.h">
@@ -8901,9 +8919,6 @@
       <Filter>Signalizer\Build</Filter>
     </None>
     <None Include="..\..\prepare.py">
-      <Filter>Signalizer\Build</Filter>
-    </None>
-    <None Include="..\..\Make\vscompile.bat">
       <Filter>Signalizer\Build</Filter>
     </None>
     <None Include="..\..\Make\windows_installation_advice.txt">
