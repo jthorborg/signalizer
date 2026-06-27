@@ -216,6 +216,7 @@
 		42E4F74DF16371A2FF08C364 /* JuceHeader.h */ /* JuceHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceHeader.h; path = ../../JuceLibraryCode/JuceHeader.h; sourceTree = SOURCE_ROOT; };
 		4349891641BB58DA80A4D0FD /* SignalizerConfiguration.h */ /* SignalizerConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalizerConfiguration.h; path = ../../Source/Config/SignalizerConfiguration.h; sourceTree = SOURCE_ROOT; };
 		440A2F87DE183C124B959640 /* CExclusiveFile.cpp */ /* CExclusiveFile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CExclusiveFile.cpp; path = ../../External/cpl/CExclusiveFile.cpp; sourceTree = SOURCE_ROOT; };
+		4532C9AA10B6EE969B9CF851 /* Profiling.h */ /* Profiling.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Profiling.h; path = ../../External/cpl/profiling/Profiling.h; sourceTree = SOURCE_ROOT; };
 		453D354C263D8508BF83486A /* FrequencyAxis.h */ /* FrequencyAxis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FrequencyAxis.h; path = ../../External/cpl/special/FrequencyAxis.h; sourceTree = SOURCE_ROOT; };
 		468ACD2E257632E35A813D67 /* CommonSignalizer.h */ /* CommonSignalizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CommonSignalizer.h; path = ../../Source/Common/CommonSignalizer.h; sourceTree = SOURCE_ROOT; };
 		474A2CC4B9563F92F9868A2B /* Exceptions.h */ /* Exceptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Exceptions.h; path = ../../External/cpl/Exceptions.h; sourceTree = SOURCE_ROOT; };
@@ -337,6 +338,7 @@
 		89BE4E6444CC3A30E5B3D1A0 /* Controls.cpp */ /* Controls.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Controls.cpp; path = ../../External/cpl/gui/controls/Controls.cpp; sourceTree = SOURCE_ROOT; };
 		89E7ABD1010BB73129234047 /* CBaseControl.cpp */ /* CBaseControl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CBaseControl.cpp; path = ../../External/cpl/gui/CBaseControl.cpp; sourceTree = SOURCE_ROOT; };
 		8A0A26DDA34528F9FC82DF6C /* SentientViewState.h */ /* SentientViewState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SentientViewState.h; path = ../../Source/Common/SentientViewState.h; sourceTree = SOURCE_ROOT; };
+		8A16C3B3452136B9B02304F1 /* ProfilingClock.h */ /* ProfilingClock.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProfilingClock.h; path = ../../External/cpl/profiling/ProfilingClock.h; sourceTree = SOURCE_ROOT; };
 		8A339BAA6422DE753180B571 /* MainEditor.h */ /* MainEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainEditor.h; path = ../../Source/Editor/MainEditor.h; sourceTree = SOURCE_ROOT; };
 		8B4B54C61DF0F19D9B7E1856 /* CEditSpaceSpawner.h */ /* CEditSpaceSpawner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CEditSpaceSpawner.h; path = ../../External/cpl/gui/CEditSpaceSpawner.h; sourceTree = SOURCE_ROOT; };
 		8BBA5C0DFF2457C40555CA4A /* SmoothedParameterState.h */ /* SmoothedParameterState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SmoothedParameterState.h; path = ../../External/cpl/dsp/SmoothedParameterState.h; sourceTree = SOURCE_ROOT; };
@@ -392,7 +394,6 @@
 		A42B6FF74C07B1003F05CBFE /* dsp.h */ /* dsp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = dsp.h; path = ../../External/cpl/dsp.h; sourceTree = SOURCE_ROOT; };
 		A4FE3AFD64CDD38F743659B8 /* SignalGenerator.h */ /* SignalGenerator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SignalGenerator.h; path = ../../External/cpl/dsp/SignalGenerator.h; sourceTree = SOURCE_ROOT; };
 		A58D11CB5887B8E6D234544E /* SpectrumParameters.h */ /* SpectrumParameters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SpectrumParameters.h; path = ../../Source/Spectrum/SpectrumParameters.h; sourceTree = SOURCE_ROOT; };
-		A5CA563A19378201FBC1670F /* Transforms.h */ /* Transforms.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Transforms.h; path = ../../External/cpl/ffts/Transforms.h; sourceTree = SOURCE_ROOT; };
 		A5DF7824A0A6E5C89349F662 /* CustomFormatters.h */ /* CustomFormatters.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CustomFormatters.h; path = ../../External/cpl/infrastructure/parameters/CustomFormatters.h; sourceTree = SOURCE_ROOT; };
 		A7B5688782D4A92705E3C5E8 /* Process.cpp */ /* Process.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Process.cpp; path = ../../External/cpl/process/Process.cpp; sourceTree = SOURCE_ROOT; };
 		A7BFD62B78B96D603DBEDF77 /* CPeakFilter.h */ /* CPeakFilter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CPeakFilter.h; path = ../../External/cpl/dsp/CPeakFilter.h; sourceTree = SOURCE_ROOT; };
@@ -1001,6 +1002,15 @@
 			name = Build;
 			sourceTree = "<group>";
 		};
+		6ED3CADD36EB4380210BBBDE /* profiling */ = {
+			isa = PBXGroup;
+			children = (
+				4532C9AA10B6EE969B9CF851,
+				8A16C3B3452136B9B02304F1,
+			);
+			name = profiling;
+			sourceTree = "<group>";
+		};
 		7660884818CFBEB1F97F6007 /* dsp */ = {
 			isa = PBXGroup;
 			children = (
@@ -1065,7 +1075,6 @@
 				ADBDB0C9BAF28966C947C653,
 				3CB87338DF675CC9106BB6DD,
 				4EC2DC87CB7D2A43F9D3A93C,
-				A5CA563A19378201FBC1670F,
 				2C16FE91C086B6BDDF2CB517,
 			);
 			name = ffts;
@@ -1116,6 +1125,7 @@
 		A2540E800C5720CDE3ABC89A /* cpl */ = {
 			isa = PBXGroup;
 			children = (
+				6ED3CADD36EB4380210BBBDE,
 				8F8FB80CA64E33C5CD605B79,
 				5B9F0F34CAB06AE50C9DDA17,
 				C8F6606508A4149433E6A9DC,
@@ -2125,6 +2135,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2190,6 +2201,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2251,6 +2263,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2316,6 +2329,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2434,6 +2448,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2507,6 +2522,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2568,6 +2584,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2630,6 +2647,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2745,6 +2763,7 @@
 					"_DEBUG=1",
 					"DEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2809,6 +2828,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2871,6 +2891,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",
@@ -2937,6 +2958,7 @@
 					"_NDEBUG=1",
 					"NDEBUG=1",
 					"CPL_TRACEGUARD_ENTRYPOINTS",
+					"CPL_PROFILING=1",
 					"JUCER_XCODE_MAC_F6D2F4CF=1",
 					"JUCE_APP_VERSION=0.5.0",
 					"JUCE_APP_VERSION_HEX=0x500",

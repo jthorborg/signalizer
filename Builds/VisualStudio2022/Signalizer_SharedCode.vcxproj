@@ -68,7 +68,7 @@
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;CPL_PROFILING=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -83,7 +83,7 @@
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;DEBUG;_DEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;CPL_PROFILING=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\Signalizer.lib</OutputFile>
@@ -116,7 +116,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;
       <Optimization>Full</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;CPL_PROFILING=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -131,7 +131,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Debug\Standalone Plugin&quot;
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\External\juce\modules\juce_audio_processors_headless\format_types\VST3_SDK;..\..\..\SDKs\vstsdk2.4;..\..\JuceLibraryCode;..\..\External\juce\modules;../../External;../../Source;../../Source/Config;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1;CPL_TRACEGUARD_ENTRYPOINTS;CPL_PROFILING=1;JUCER_VS2022_78A503E=1;JUCE_APP_VERSION=0.5.0;JUCE_APP_VERSION_HEX=0x500;JucePlugin_Build_VST=1;JucePlugin_Build_VST3=1;JucePlugin_Build_AU=0;JucePlugin_Build_AUv3=0;JucePlugin_Build_AAX=0;JucePlugin_Build_Standalone=1;JucePlugin_Build_Unity=0;JucePlugin_Build_LV2=0;JUCE_SHARED_CODE=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
       <OutputFile>$(OutDir)\Signalizer.lib</OutputFile>
@@ -3269,6 +3269,8 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\Source\Spectrum\TransformPair.h"/>
     <ClInclude Include="..\..\Source\Vectorscope\Vectorscope.h"/>
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h"/>
+    <ClInclude Include="..\..\External\cpl\profiling\Profiling.h"/>
+    <ClInclude Include="..\..\External\cpl\profiling\ProfilingClock.h"/>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal.h"/>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal_ultrawin.h"/>
     <ClInclude Include="..\..\External\cpl\octave\octave_all.h"/>
@@ -3394,7 +3396,6 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\External\cpl\ffts\pffft\pffft_priv_impl.h"/>
     <ClInclude Include="..\..\External\cpl\ffts\pffft\sse2neon.h"/>
     <ClInclude Include="..\..\External\cpl\ffts\dustfft.h"/>
-    <ClInclude Include="..\..\External\cpl\ffts\Transforms.h"/>
     <ClInclude Include="..\..\External\cpl\ffts\unifft.h"/>
     <ClInclude Include="..\..\External\cpl\gui\controls\CButton.h"/>
     <ClInclude Include="..\..\External\cpl\gui\controls\CColourControl.h"/>
