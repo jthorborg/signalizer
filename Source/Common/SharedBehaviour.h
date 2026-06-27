@@ -31,6 +31,7 @@
 #define SIGNALIZER_SHAREDBEHAVIOUR_H
 
 #include <cpl/lib/weak_atomic.h>
+#include "cpl/profiling/Profiling.h"
 
 namespace Signalizer
 {
@@ -38,10 +39,31 @@ namespace Signalizer
 	{
 	public:
 
+		SharedBehaviour(
+			std::shared_ptr<cpl::Profiling::Lane> realtimeLane, 
+			std::shared_ptr<cpl::Profiling::Lane> asyncDspLane,
+			std::shared_ptr<cpl::Profiling::Lane> renderingLane
+		)
+			: realtime(realtimeLane)
+			, async(asyncDspLane)
+			, rendering(renderingLane)
+		{
+
+		}
+
+		// TODO: Don't expose these in a global. Move overlay rendering to MainEditor instead.
+		cpl::Profiling::Lane& getRealtimeLane() const { return *realtime; }
+		cpl::Profiling::Lane& getAsyncDSPLane() const { return *async; };
+		std::shared_ptr<cpl::Profiling::Lane> getRenderingLane() const { return rendering; };
+
 		cpl::relaxed_atomic<bool>
 			hideWidgetsOnMouseExit = false,
 			stopProcessingOnSuspend = false,
 			showLegend = false;
+
+	private:
+		mutable std::shared_ptr<cpl::Profiling::Lane>
+			realtime, async, rendering;
 	};
 };
 

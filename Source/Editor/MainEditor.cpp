@@ -142,11 +142,23 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, globalState(std::make_shared<SharedBehaviour>())
 		, kgraphSerialization(e->getHostGraph().getGraphSerializationValue())
 		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
-		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
+		globalState = std::make_shared<SharedBehaviour>(
+			e->getRealtimeProfilingLane(),
+			e->getAsyncProfilingLane(),
+			// rendering lane - never used directly by us (yet, will change when we draw centralized overlays)
+			std::make_shared<cpl::Profiling::Lane>(false) 
+		);
+
+		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(
+			e->getRealtimeOutput(), 
+			// previously accessed as a friend member 
+			// - this is the only place we give mutating access - ConcurrentConfig is a hack anyway, use onStreamPropertiesChanged.
+			*std::const_pointer_cast<ConcurrentConfig>(e->getConcurrentConfig())
+		);
+
 		e->getHostGraph().setMixGraph(mixGraph);
 
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)

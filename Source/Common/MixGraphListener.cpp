@@ -30,7 +30,6 @@
 #include "MixGraphListener.h"
 #include <atomic>
 #include <memory>
-#include "../Processor/PluginProcessor.h"
 #include "CommonSignalizer.h"
 
 namespace Signalizer
@@ -121,15 +120,15 @@ namespace Signalizer
 	{
 	}
 
-	MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation)
-		: realtime(p.getRealtimeOutput())
+	MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output>&& realtimeOutput, AudioStream::IO&& presentation, ConcurrentConfig& config)
+		: realtime(realtimeOutput)
 		, presentationInput(std::move(std::get<0>(presentation)))
 		, weakPresentationOutput(std::get<1>(presentation))
 		, presentationOutput(std::get<1>(presentation)->getHandle())
 		, structuralChange(false)
 		, enabled(true)
 		, self(nullptr)
-		, concurrentConfig(*p.config)
+		, concurrentConfig(config)
 		, id(mgCounter.fetch_add(1))
 	{
 		auto& output = std::get<1>(presentation);
@@ -156,11 +155,16 @@ namespace Signalizer
 		}
 	}
 
-	std::pair<MixGraphListener::Handle, std::shared_ptr<AudioStream::Output>> MixGraphListener::create(AudioProcessor& p)
+	std::pair<MixGraphListener::Handle, std::shared_ptr<AudioStream::Output>> MixGraphListener::create(
+		std::shared_ptr<AudioStream::Output> realtimeOutput,
+		ConcurrentConfig& config
+	)
 	{
-		auto io = AudioStream::create(false);
+		// No profiling lane for the presentation output - the realtime output instead is profiled.
+		// This is to incorporate all the work in the mix graph listener.
+		auto io = AudioStream::create(false); 
 		auto presentationOutput = std::get<1>(io);
-		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(p, std::move(io)));
+		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(std::move(realtimeOutput), std::move(io), config));
 		mixGraph->assignSelf();
 		return { Handle(mixGraph), presentationOutput };
 	}

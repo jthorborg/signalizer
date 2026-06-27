@@ -52,7 +52,7 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream,
 		std::shared_ptr<OscilloscopeContent> params
 	)
-		: GraphicsWindow(params->getName())
+		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingLane())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, state()

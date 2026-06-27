@@ -36,6 +36,7 @@
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
 	#include <cpl/infrastructure/values/SignalGeneratorValue.h>
+	#include <cpl/profiling/Profiling.h>
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
 	#include <memory>
@@ -51,12 +52,10 @@
 			, cpl::DestructionNotifier
 			, ParameterSet::AutomatedProcessor
 		{
-			friend class MixGraphListener;
-
 		public:
 
 			//==============================================================================
-			AudioProcessor();
+			AudioProcessor(AudioStream::IO&& io, std::shared_ptr<cpl::Profiling::Lane> asyncProfilerLane);
 			~AudioProcessor() noexcept;
 
 			//==============================================================================
@@ -96,14 +95,15 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
+			std::shared_ptr<cpl::Profiling::Lane> getRealtimeProfilingLane() { return realtimeLane; }
+			std::shared_ptr<cpl::Profiling::Lane> getAsyncProfilingLane() { return asyncLane; }
+
 			HostGraph& getHostGraph() { return *graph; }
 			cpl::SignalGeneratorValue* getSignalGeneratorValue() { return &signalGeneratorValue; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
 
 		private:
-
-			AudioProcessor(AudioStream::IO&& io);
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
 			virtual void automatedBeginChangeGesture(int parameter) override;
@@ -124,6 +124,7 @@
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
 			std::shared_ptr<HostGraph> graph;
+			std::shared_ptr<cpl::Profiling::Lane> realtimeLane, asyncLane;
 		};
 	};
 #endif

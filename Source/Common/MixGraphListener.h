@@ -50,8 +50,6 @@
 
 	namespace Signalizer
 	{
-		class AudioProcessor;
-		
 		class MixGraphListener : public AudioStream::Listener, public std::enable_shared_from_this<MixGraphListener>
 		{
 		public:
@@ -86,8 +84,7 @@
 				}
 			};
 
-
-			static std::pair<Handle, std::shared_ptr<AudioStream::Output>> create(AudioProcessor& processor);
+			static std::pair<Handle, std::shared_ptr<AudioStream::Output>> create(std::shared_ptr<AudioStream::Output> realtimeOutput, ConcurrentConfig& config);
 
 			void connect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair, const std::string& name);
 			void disconnect(std::shared_ptr<AudioStream::Output>& stream, DirectedPortPair pair);
@@ -100,7 +97,7 @@
 
 			void close();
 
-			MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation);
+			MixGraphListener(std::shared_ptr<AudioStream::Output>&& realtimeOutput, AudioStream::IO&& presentation, ConcurrentConfig& config);
 
 			typedef cpl::CLIFOStream<AFloat> Buffer;
 

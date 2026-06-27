@@ -133,8 +133,8 @@
 		{
 		protected:
 
-			GraphicsWindow(std::string name) 
-				: COpenGLView(std::move(name)) 
+			GraphicsWindow(std::string name, std::shared_ptr<cpl::Profiling::Lane>&& profilerLane) 
+				: COpenGLView(std::move(name), profilerLane)
 			{
 			
 			}
