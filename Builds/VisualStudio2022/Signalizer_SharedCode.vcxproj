@@ -3271,6 +3271,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h"/>
     <ClInclude Include="..\..\External\cpl\profiling\Profiling.h"/>
     <ClInclude Include="..\..\External\cpl\profiling\ProfilingClock.h"/>
+    <ClInclude Include="..\..\External\cpl\profiling\ProfilingModel.h"/>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal.h"/>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal_ultrawin.h"/>
     <ClInclude Include="..\..\External\cpl\octave\octave_all.h"/>

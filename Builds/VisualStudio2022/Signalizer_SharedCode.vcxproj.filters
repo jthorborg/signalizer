@@ -4212,6 +4212,9 @@
     <ClInclude Include="..\..\External\cpl\profiling\ProfilingClock.h">
       <Filter>Signalizer\cpl\profiling</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\External\cpl\profiling\ProfilingModel.h">
+      <Filter>Signalizer\cpl\profiling</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal.h">
       <Filter>Signalizer\cpl\octave\signal</Filter>
     </ClInclude>

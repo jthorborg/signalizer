@@ -117,6 +117,8 @@
         <FILE id="Bq8e47" name="Profiling.h" compile="0" resource="0" file="External/cpl/profiling/Profiling.h"/>
         <FILE id="YGmLER" name="ProfilingClock.h" compile="0" resource="0"
               file="External/cpl/profiling/ProfilingClock.h"/>
+        <FILE id="Vx6MKV" name="ProfilingModel.h" compile="0" resource="0"
+              file="External/cpl/profiling/ProfilingModel.h"/>
       </GROUP>
       <GROUP id="{4AACA934-8BF5-1F76-92D4-8860EF369A8D}" name="octave">
         <GROUP id="{BAB811F8-7608-56B0-E83B-D76714B39B24}" name="signal">

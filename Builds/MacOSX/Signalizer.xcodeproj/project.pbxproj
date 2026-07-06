@@ -108,6 +108,7 @@
 		00EEE51182BE788056E09265 /* MixGraphListener.h */ /* MixGraphListener.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MixGraphListener.h; path = ../../Source/Common/MixGraphListener.h; sourceTree = SOURCE_ROOT; };
 		01D93A0FD2738A04FF27C7F3 /* include_juce_gui_basics_3.cpp */ /* include_juce_gui_basics_3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = include_juce_gui_basics_3.cpp; path = ../../JuceLibraryCode/include_juce_gui_basics_3.cpp; sourceTree = SOURCE_ROOT; };
 		029BE2EA8CABE883689FEB39 /* juce_gui_basics */ /* juce_gui_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_gui_basics; path = ../../External/juce/modules/juce_gui_basics; sourceTree = SOURCE_ROOT; };
+		029CCD4362BCA1EBC613C0CB /* ProfilingModel.h */ /* ProfilingModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProfilingModel.h; path = ../../External/cpl/profiling/ProfilingModel.h; sourceTree = SOURCE_ROOT; };
 		040E7E27AE47BC492C9CF47F /* CPowerSlopeWidget.cpp */ /* CPowerSlopeWidget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CPowerSlopeWidget.cpp; path = ../../External/cpl/gui/widgets/CPowerSlopeWidget.cpp; sourceTree = SOURCE_ROOT; };
 		059210F02C92FBAEE555385C /* SubpixelRendering.h */ /* SubpixelRendering.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SubpixelRendering.h; path = ../../External/cpl/rendering/SubpixelRendering.h; sourceTree = SOURCE_ROOT; };
 		05DBB27CC215EB87A29CFBB2 /* weak_atomic.h */ /* weak_atomic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = weak_atomic.h; path = ../../External/cpl/lib/weak_atomic.h; sourceTree = SOURCE_ROOT; };
@@ -1007,6 +1008,7 @@
 			children = (
 				4532C9AA10B6EE969B9CF851,
 				8A16C3B3452136B9B02304F1,
+				029CCD4362BCA1EBC613C0CB,
 			);
 			name = profiling;
 			sourceTree = "<group>";
