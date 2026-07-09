@@ -64,7 +64,7 @@ namespace Signalizer
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
-		, realtimeLane(std::make_shared<cpl::Profiling::Lane>(true /* is realtime */))
+		, realtimeLane(std::make_shared<cpl::Profiling::Lane>("Real-time host", true /* is realtime */))
 		, asyncLane(std::move(asyncProfilingLane))
 	{
 
@@ -176,7 +176,7 @@ namespace Signalizer
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
 		cpl::Profiling::ProfilerFrame profilerFrame(realtimeLane.get());
-		profilerFrame.setWork(buffer.getNumSamples());
+		profilerFrame.setWork(static_cast<float>(buffer.getNumSamples()), static_cast<float>(getSampleRate()));
 
 		int bufferSize = buffer.getNumSamples();
 
@@ -206,10 +206,15 @@ namespace Signalizer
 			inputs[i] = surrogateArray.data();
 		}
 
-		signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+		{
+			CPL_PROFILE("Realtime::SignalGenerator::Process");
+			signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+		}
 
 		if (realtimeInput.isAnyoneListening())
 		{
+			CPL_PROFILE("Realtime::Input::ProcessIncomingAudio");
+
 			if (auto ph = getPlayHead())
 				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
 			else
@@ -519,7 +524,7 @@ namespace Signalizer
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-	auto asyncLane = std::make_shared<cpl::Profiling::Lane>(false /* is not realtime */);
+	auto asyncLane = std::make_shared<cpl::Profiling::Lane>("Async Signal Processing", false /* is not realtime */);
 	return new Signalizer::AudioProcessor(
 		Signalizer::AudioStream::create(
 			true, // async
