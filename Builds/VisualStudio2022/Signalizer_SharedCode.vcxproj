@@ -162,6 +162,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClCompile Include="..\..\Source\Common\SignalizerDesign.cpp"/>
     <ClCompile Include="..\..\Source\Editor\GraphEditor.cpp"/>
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp"/>
+    <ClCompile Include="..\..\Source\Editor\ProfilerWindow.cpp"/>
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp"/>
     <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeController.cpp"/>
     <ClCompile Include="..\..\Source\Oscilloscope\OscilloscopeRendering.cpp"/>
@@ -3255,6 +3256,7 @@ cp -r ../../Make/Skeleton/* &quot;x64\Release\Standalone Plugin&quot;
     <ClInclude Include="..\..\Source\Config\SignalizerConfiguration.h"/>
     <ClInclude Include="..\..\Source\Editor\GraphEditor.h"/>
     <ClInclude Include="..\..\Source\Editor\MainEditor.h"/>
+    <ClInclude Include="..\..\Source\Editor\ProfilerWindow.h"/>
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h"/>
     <ClInclude Include="..\..\Source\Oscilloscope\Oscilloscope.h"/>
     <ClInclude Include="..\..\Source\Oscilloscope\OscilloscopeDSP.inl"/>

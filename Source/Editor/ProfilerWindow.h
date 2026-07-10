@@ -2,7 +2,7 @@
 
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
 
-	Copyright (C) 2021 Janus Lynggaard Thorborg (www.jthorborg.com)
+	Copyright (C) 2026 Janus Lynggaard Thorborg (www.jthorborg.com)
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -21,40 +21,36 @@
 
 **************************************************************************************
 
-	file:GraphEditor.h
+	file:ProfilerWindow.h
 
-		An UI for editing the host graph connections feeding into this Signalizer.
+		A diagnostics window visualizing the profiling lanes of this Signalizer.
 
 *************************************************************************************/
 
-#ifndef SIGNALIZER_GRAPHEDITOR_H
-	#define SIGNALIZER_GRAPHEDITOR_H
+#ifndef SIGNALIZER_PROFILERWINDOW_H
+	#define SIGNALIZER_PROFILERWINDOW_H
 
 	#include <memory>
 	#include <cpl/Common.h>
 
 	namespace Signalizer
 	{
-		class AudioProcessor;
 		class MainEditor;
-		class GraphEditorContent;
-		class HostGraph;
+		class SharedBehaviour;
 
-		class GraphEditor : public juce::DocumentWindow
+		class ProfilerWindow : public juce::DocumentWindow
 		{
 		public:
 
-			GraphEditor(MainEditor* editor, HostGraph& h);
-			~GraphEditor();
+			ProfilerWindow(MainEditor* editor, std::shared_ptr<const SharedBehaviour> behaviour);
+			~ProfilerWindow();
 
 			void mainEditorDied();
 			void closeButtonPressed() override;
 
 		private:
-			std::shared_ptr<GraphEditorContent> content;
 
 			MainEditor* editor;
-			HostGraph& host;
 		};
 	}
 

@@ -61,6 +61,10 @@
       <FILE id="PColoF" name="GraphEditor.h" compile="0" resource="0" file="Source/Editor/GraphEditor.h"/>
       <FILE id="G3Hzx1" name="MainEditor.cpp" compile="1" resource="0" file="Source/Editor/MainEditor.cpp"/>
       <FILE id="QNbBSU" name="MainEditor.h" compile="0" resource="0" file="Source/Editor/MainEditor.h"/>
+      <FILE id="hIYePO" name="ProfilerWindow.cpp" compile="1" resource="0"
+            file="Source/Editor/ProfilerWindow.cpp"/>
+      <FILE id="v59hpf" name="ProfilerWindow.h" compile="0" resource="0"
+            file="Source/Editor/ProfilerWindow.h"/>
     </GROUP>
     <GROUP id="{7049AEF5-9362-E35B-098A-FE94006CAD94}" name="Oscilloscope">
       <FILE id="SnBRHE" name="ChannelData.h" compile="0" resource="0" file="Source/Oscilloscope/ChannelData.h"/>

@@ -48,6 +48,7 @@
 	{
 		class AudioProcessor;
 		class GraphEditor;
+		class ProfilerWindow;
 
 		class MainEditor
 		:
@@ -108,6 +109,8 @@
 			void showAboutBox();
 
 			void graphEditorDied();
+
+			void profilerWindowDied();
 
 		protected:
 
@@ -220,6 +223,7 @@
 			MixGraphListener::Handle mixGraph;
 			std::shared_ptr<AudioStream::Output> presentationOutput;
 			GraphEditor* graphEditor;
+			ProfilerWindow* profilerWindow;
 		};
 	};
 

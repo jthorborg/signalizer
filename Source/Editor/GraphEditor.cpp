@@ -31,10 +31,13 @@
 #include "MainEditor.h"
 #include <algorithm>
 #include <cctype>
+#include <cpl/Common.h>
+#include <cpl/gui/GUI.h>
+#include "../Common/HostGraph.h"
 
 namespace Signalizer
 {
-	class Content 
+	class GraphEditorContent 
 		: public juce::Component
 		, public juce::AsyncUpdater
 		, private cpl::CBaseControl::Listener
@@ -43,7 +46,7 @@ namespace Signalizer
 	{
 	public:
 
-		Content(GraphEditor& parent, HostGraph& graph)
+		GraphEditorContent(GraphEditor& parent, HostGraph& graph)
 			: graph(graph), parent(parent), nameField("Name"), filterField("Filter"), isMouseDown(false), identityButton(*this)
 		{
 			addAndMakeVisible(nameField);
@@ -645,7 +648,7 @@ namespace Signalizer
 		{
 		public: 
 
-			Button(Content& parent)
+			Button(GraphEditorContent& parent)
 				: content(parent)
 			{
 				bSetDescription(
@@ -662,7 +665,7 @@ namespace Signalizer
 				cpl::CButton::clicked();
 			}
 
-			Content& content;
+			GraphEditorContent& content;
 		};
 
 		HostGraph& graph;
@@ -724,7 +727,7 @@ namespace Signalizer
 		: juce::DocumentWindow("Graph editor", juce::Colours::aliceblue, juce::DocumentWindow::TitleBarButtons::allButtons)
 		, editor(editor)
 		, host(h)
-		, content(std::make_shared<Content>(*this, h))
+		, content(std::make_shared<GraphEditorContent>(*this, h))
 	{
 		setUsingNativeTitleBar(true);
 		setBounds(editor->getScreenBounds().withSizeKeepingCentre(400, 600));

@@ -835,6 +835,9 @@
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp">
       <Filter>Signalizer\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Editor\ProfilerWindow.cpp">
+      <Filter>Signalizer\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp">
       <Filter>Signalizer\Oscilloscope</Filter>
     </ClCompile>
@@ -4162,6 +4165,9 @@
       <Filter>Signalizer\Editor</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Editor\MainEditor.h">
+      <Filter>Signalizer\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\Editor\ProfilerWindow.h">
       <Filter>Signalizer\Editor</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h">

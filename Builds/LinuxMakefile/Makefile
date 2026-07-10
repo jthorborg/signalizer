@@ -139,6 +139,7 @@ OBJECTS_SHARED_CODE := \
   $(JUCE_OBJDIR)/SignalizerDesign_13061c9.o \
   $(JUCE_OBJDIR)/GraphEditor_b02813a2.o \
   $(JUCE_OBJDIR)/MainEditor_e5201fe9.o \
+  $(JUCE_OBJDIR)/ProfilerWindow_37bd041c.o \
   $(JUCE_OBJDIR)/Oscilloscope_e5986410.o \
   $(JUCE_OBJDIR)/OscilloscopeController_4e72b00c.o \
   $(JUCE_OBJDIR)/OscilloscopeRendering_befb826.o \
@@ -282,6 +283,11 @@ $(JUCE_OBJDIR)/GraphEditor_b02813a2.o: ../../Source/Editor/GraphEditor.cpp
 $(JUCE_OBJDIR)/MainEditor_e5201fe9.o: ../../Source/Editor/MainEditor.cpp
 	-$(V_AT)mkdir -p $(@D)
 	@echo "Compiling MainEditor.cpp"
+	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_SHARED_CODE) $(JUCE_CFLAGS_SHARED_CODE) -o "$@" -c "$<"
+
+$(JUCE_OBJDIR)/ProfilerWindow_37bd041c.o: ../../Source/Editor/ProfilerWindow.cpp
+	-$(V_AT)mkdir -p $(@D)
+	@echo "Compiling ProfilerWindow.cpp"
 	$(V_AT)$(CXX) $(JUCE_CXXFLAGS) $(JUCE_CPPFLAGS_SHARED_CODE) $(JUCE_CFLAGS_SHARED_CODE) -o "$@" -c "$<"
 
 $(JUCE_OBJDIR)/Oscilloscope_e5986410.o: ../../Source/Oscilloscope/Oscilloscope.cpp

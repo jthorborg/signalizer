@@ -86,6 +86,7 @@
 		C54CDAFF8780E1F07CAA1A39 /* include_juce_opengl.mm */ = {isa = PBXBuildFile; fileRef = 0B48342DF902EA202C42BC62; };
 		C5F06548EFC77A6D70E51702 /* include_juce_gui_basics_2.cpp */ = {isa = PBXBuildFile; fileRef = 66AFBD51447140E8AB9B382C; };
 		C9778020A538F3E4296D7B0C /* include_juce_gui_basics_4.cpp */ = {isa = PBXBuildFile; fileRef = EA7AA37446428300F98B77E0; };
+		D381ACBBD0C883588DC7B15B /* ProfilerWindow.cpp */ = {isa = PBXBuildFile; fileRef = 7C480AB293E5FF7E2F79B3B4; };
 		D67D63216F661725CEB58581 /* QuartzCore.framework */ = {isa = PBXBuildFile; fileRef = 9A4274947FD8C786213D82A4; };
 		D712F7E750B6C8C5FDF9B391 /* include_juce_gui_basics.mm */ = {isa = PBXBuildFile; fileRef = FFC3D770E37D3BEB10336A34; };
 		D73CEABD1DE08E9BB9844B4C /* CommonSignalizer.cpp */ = {isa = PBXBuildFile; fileRef = 7C3E8C2FF528BDF14395F7A0; };
@@ -219,6 +220,7 @@
 		440A2F87DE183C124B959640 /* CExclusiveFile.cpp */ /* CExclusiveFile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CExclusiveFile.cpp; path = ../../External/cpl/CExclusiveFile.cpp; sourceTree = SOURCE_ROOT; };
 		4532C9AA10B6EE969B9CF851 /* Profiling.h */ /* Profiling.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Profiling.h; path = ../../External/cpl/profiling/Profiling.h; sourceTree = SOURCE_ROOT; };
 		453D354C263D8508BF83486A /* FrequencyAxis.h */ /* FrequencyAxis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FrequencyAxis.h; path = ../../External/cpl/special/FrequencyAxis.h; sourceTree = SOURCE_ROOT; };
+		4684EB026CDC7950D4E7CEC9 /* ProfilerWindow.h */ /* ProfilerWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ProfilerWindow.h; path = ../../Source/Editor/ProfilerWindow.h; sourceTree = SOURCE_ROOT; };
 		468ACD2E257632E35A813D67 /* CommonSignalizer.h */ /* CommonSignalizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CommonSignalizer.h; path = ../../Source/Common/CommonSignalizer.h; sourceTree = SOURCE_ROOT; };
 		474A2CC4B9563F92F9868A2B /* Exceptions.h */ /* Exceptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Exceptions.h; path = ../../External/cpl/Exceptions.h; sourceTree = SOURCE_ROOT; };
 		49C8074A0054E4A1BCE3304C /* CPlistEditor.h */ /* CPlistEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CPlistEditor.h; path = ../../External/cpl/system/CPlistEditor.h; sourceTree = SOURCE_ROOT; };
@@ -315,6 +317,7 @@
 		7B917AF43C5953F3BE3CC253 /* simd_cast.h */ /* simd_cast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = simd_cast.h; path = ../../External/cpl/simd/simd_cast.h; sourceTree = SOURCE_ROOT; };
 		7C3E8C2FF528BDF14395F7A0 /* CommonSignalizer.cpp */ /* CommonSignalizer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CommonSignalizer.cpp; path = ../../Source/Common/CommonSignalizer.cpp; sourceTree = SOURCE_ROOT; };
 		7C47CF41892910BD0682A586 /* IIRResonator.h */ /* IIRResonator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = IIRResonator.h; path = ../../External/cpl/dsp/IIRResonator.h; sourceTree = SOURCE_ROOT; };
+		7C480AB293E5FF7E2F79B3B4 /* ProfilerWindow.cpp */ /* ProfilerWindow.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ProfilerWindow.cpp; path = ../../Source/Editor/ProfilerWindow.cpp; sourceTree = SOURCE_ROOT; };
 		7CCD653786AD3ED5FB5C118C /* AudioStream.h */ /* AudioStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AudioStream.h; path = ../../External/cpl/AudioStream.h; sourceTree = SOURCE_ROOT; };
 		7D4925595BA17402A9F04A45 /* juce_audio_basics */ /* juce_audio_basics */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_audio_basics; path = ../../External/juce/modules/juce_audio_basics; sourceTree = SOURCE_ROOT; };
 		7FC0D3C4FABE440FA5416FDD /* include_juce_audio_basics.mm */ /* include_juce_audio_basics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = include_juce_audio_basics.mm; path = ../../JuceLibraryCode/include_juce_audio_basics.mm; sourceTree = SOURCE_ROOT; };
@@ -974,6 +977,8 @@
 				1363EBCAB50BEAADF4D2C74D,
 				78A42654080140A61366CC43,
 				8A339BAA6422DE753180B571,
+				7C480AB293E5FF7E2F79B3B4,
+				4684EB026CDC7950D4E7CEC9,
 			);
 			name = Editor;
 			sourceTree = "<group>";
@@ -2012,6 +2017,7 @@
 				5918D55F86AFFA544CCDDF4F,
 				E48F891042BD70B2D4E772DB,
 				9D806704548FAF8A4AF0E2E8,
+				D381ACBBD0C883588DC7B15B,
 				1041DD73B19C7DE3CD63FB2F,
 				067393BFEDA793C6D78D2BF2,
 				15EDEC3D65DA21B890E16C38,

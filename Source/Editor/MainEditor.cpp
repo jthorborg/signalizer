@@ -39,6 +39,7 @@
 #include "version.h"
 #include <cpl/Mathext.h>
 #include "GraphEditor.h"
+#include "ProfilerWindow.h"
 #include <set>
 
 // ADD OPTION TO NOT KILL FULLSCREEN WHEN LOOSING FOCUS
@@ -142,6 +143,7 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
+		, profilerWindow(nullptr)
 		, kgraphSerialization(e->getHostGraph().getGraphSerializationValue())
 		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
@@ -149,8 +151,12 @@ namespace Signalizer
 			e->getRealtimeProfilingLane(),
 			e->getAsyncProfilingLane(),
 			// rendering lane - never used directly by us (yet, will change when we draw centralized overlays)
-			std::make_shared<cpl::Profiling::Lane>(false) 
+			std::make_shared<cpl::Profiling::Lane>("Rendering", false)
 		);
+
+#if CPL_PROFILING
+		profilerWindow = new ProfilerWindow(this, globalState);
+#endif
 
 		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(
 			e->getRealtimeOutput(), 
@@ -198,6 +204,9 @@ namespace Signalizer
 	{
 		if (graphEditor)
 			graphEditor->mainEditorDied();
+
+		if (profilerWindow)
+			profilerWindow->mainEditorDied();
 
 		suspendView(views[selTab]);
 		notifyDestruction();
@@ -1564,6 +1573,11 @@ namespace Signalizer
 	void MainEditor::graphEditorDied()
 	{
 		graphEditor = nullptr;
+	}
+
+	void MainEditor::profilerWindowDied()
+	{
+		profilerWindow = nullptr;
 	}
 
 	void MainEditor::initUI()
