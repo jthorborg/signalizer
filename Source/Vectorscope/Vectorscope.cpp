@@ -116,23 +116,26 @@ namespace Signalizer
 		if (event.mods.isCtrlDown())
 		{
 			// increase gain
-			// TODO: fix to pow()
+			// normalized space is linear in dB (ExponentialRange), so additive here is multiplicative in gain
 			content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
 		}
 		else /* zoom graph */
 		{
 			auto & tsX = content->transform;
-			auto Z = tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue();
-			auto actualAmount = (1 + amount / 5) * Z;
-			auto deltaIncrease = (actualAmount - Z) / Z;
-			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(actualAmount);
+			// exp() maps additive wheel travel to a multiplicative scale factor,
+			// so equal travel in and out composes to exactly identity (reciprocal for free)
+			auto factor = std::exp(amount / 5);
+
+			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue() * factor
+			);
 
 			tsX.getValueIndex(tsX.Scale, tsX.X).setTransformedValue(
-				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * (1 + deltaIncrease)
+				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * factor
 			);
 
 			tsX.getValueIndex(tsX.Scale, tsX.Y).setTransformedValue(
-				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * (1 + deltaIncrease)
+				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * factor
 			);
 		}
 

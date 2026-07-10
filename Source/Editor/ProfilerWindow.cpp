@@ -195,15 +195,16 @@ namespace Signalizer
 		void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
 		{
 			constexpr double increment = 1.2;
-			auto fraction = event.position.getX() / (getWidth() - 1.0);
+			auto position = event.position.getX() / (getWidth() - 1.0);
 
-			double sign = wheel.isReversed ? -1 : 1;
+			double sign = wheel.isReversed ? 1 : -1;
 
 			auto span = (viewOffsets.getY() - viewOffsets.getX());
-			span *= sign * wheel.deltaY * 0.2;
+			auto scale = std::pow(increment, sign * wheel.deltaY);
+			auto delta = span - span * scale;
 
-			viewOffsets.setX(viewOffsets.getX() + span * fraction);
-			viewOffsets.setY(viewOffsets.getY() - span * (1 - fraction));
+			viewOffsets.setX(viewOffsets.getX() + delta * position);
+			viewOffsets.setY(viewOffsets.getY() - delta * (1 - position));
 
 			repaint();
 		}

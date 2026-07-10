@@ -132,6 +132,9 @@ namespace Signalizer
 		auto get = [&](auto i) { return content->viewOffsets[i].getTransformedValue(); };
 
 		auto amount = wheel.deltaY;
+		// exp() maps additive wheel travel to a multiplicative scale on the window span,
+		// so equal travel in and out composes to exactly identity (reciprocal for free)
+		const auto zoom = 1 - std::exp(-wheel.deltaY / 5);
 		if (event.mods.isCtrlDown())
 		{
 			if (event.mods.isShiftDown())
@@ -140,14 +143,13 @@ namespace Signalizer
 				auto top = get(V::Top);
 				auto bottom = get(V::Bottom);
 
-				auto incY = -(top - bottom) * wheel.deltaY / 5;
-				// TODO: change to pow()
+				auto incY = -(top - bottom) * zoom;
 				content->viewOffsets[V::Top].setTransformedValue(top + yp * incY);
 				content->viewOffsets[V::Bottom].setTransformedValue(bottom - (1 - yp) * incY);
 			}
 			else
 			{
-				// TODO: fix to pow()
+				// normalized space is linear in dB (ExponentialRange), so additive here is multiplicative in gain
 				content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 80);
 			}
 
@@ -159,8 +161,7 @@ namespace Signalizer
 			auto left = get(V::Left);
 			auto right = get(V::Right);
 
-			auto incX = -(left - right) * wheel.deltaY / 5;
-			// TODO: change to pow()
+			auto incX = -(left - right) * zoom;
 			content->viewOffsets[V::Left].setTransformedValue(left + xp * incX);
 			content->viewOffsets[V::Right].setTransformedValue(right - (1 - xp) * incX);
 		}
@@ -173,9 +174,8 @@ namespace Signalizer
 			auto top = get(V::Top);
 			auto bottom = get(V::Bottom);
 
-			auto incX = -(left - right) * wheel.deltaY / 5;
-			auto incY = -(top - bottom) * wheel.deltaY / 5;
-			// TODO: change to pow()
+			auto incX = -(left - right) * zoom;
+			auto incY = -(top - bottom) * zoom;
 			content->viewOffsets[V::Left].setTransformedValue(left + xp * incX);
 			content->viewOffsets[V::Right].setTransformedValue(right - (1 - xp) * incX);
 			content->viewOffsets[V::Top].setTransformedValue(top + yp * incY);

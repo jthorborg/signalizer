@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DSP window widget generating undefined windows on invalid parameter combinations (fixes visualization / spectrum disappearing)
 - Initial wrong blip on gradient fill / spectrogram when selecting it initially
 - Presets / saved state with non-default "history size" loading incorrectly if saved with an earlier version of Signalizer
+- Zooming in/out in views accurately returning to their old position instead of just almost
 
 ### Changed
 - Minimum macOS version increased to 10.13 (up from 10.8)
