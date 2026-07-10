@@ -102,7 +102,7 @@ namespace Signalizer
 		Scalar secondsToX(Model::Seconds seconds) const
 		{
 			const auto normalized = seconds / data.budget();
-			const auto zoomed = window.getX() + normalized / (window.getY() - window.getX());
+			const auto zoomed = (normalized - window.getX()) / (window.getY() - window.getX());
 			return bounds.getX() + zoomed * bounds.getWidth();
 		}
 
@@ -138,6 +138,8 @@ namespace Signalizer
 		: public juce::Component
 		, private juce::Timer
 	{
+		static constexpr int kTimerFrequency = 30;
+
 	public:
 
 		ProfilerContent(std::shared_ptr<const SharedBehaviour> behaviour)
@@ -145,7 +147,7 @@ namespace Signalizer
 		{
 			// Each lane pools 8 snapshots and producers drop (never allocate) when full,
 			// so a drain rate below the fastest producer only decimates - it doesn't break anything.
-			startTimerHz(30);
+			startTimerHz(kTimerFrequency);
 		}
 
 	private:
@@ -182,16 +184,83 @@ namespace Signalizer
 				if (!data)
 					continue;
 
-				EWMALaneJuceRenderer renderer(*data, localBounds);
+				EWMALaneJuceRenderer renderer(*data, localBounds, viewOffsets.toFloat());
 				renderer.paint(g, foregrundColour, outlineColour);
 
 				localBounds.translate(0, localBounds.getHeight());
 			}
+		}
 
+		// zooms view offsets
+		void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+		{
+			constexpr double increment = 1.2;
+			auto fraction = event.position.getX() / (getWidth() - 1.0);
+
+			double sign = wheel.isReversed ? -1 : 1;
+
+			auto span = (viewOffsets.getY() - viewOffsets.getX());
+			span *= sign * wheel.deltaY * 0.2;
+
+			viewOffsets.setX(viewOffsets.getX() + span * fraction);
+			viewOffsets.setY(viewOffsets.getY() - span * (1 - fraction));
+
+			repaint();
+		}
+
+		// resets view offsets on left click, freezes on right click
+		void mouseDoubleClick(const juce::MouseEvent& event) override
+		{
+			if (event.mods.isLeftButtonDown())
+			{
+				viewOffsets = { 0, 1 };
+			}
+			else
+			{
+				// stop timer update
+				if (isTimerRunning())
+					stopTimer();
+				else
+					startTimerHz(kTimerFrequency);
+			}
+
+			repaint();
+		}
+
+		void mouseUp(const juce::MouseEvent& e) override
+		{
+			if (e.mods.isLeftButtonDown())
+				priorDragPosition.reset();
+		}
+
+		void mouseDown(const juce::MouseEvent& e) override
+		{
+			if (e.mods.isLeftButtonDown())
+				priorDragPosition = e.position.getX();
+		}
+
+		// translates view offsets
+		void mouseDrag(const juce::MouseEvent& event) override
+		{
+			if (!priorDragPosition)
+				return;
+
+			auto current = event.position.getX();
+
+			auto delta = current - *priorDragPosition;
+			auto fraction = -delta / (getWidth() - 1.0);
+			auto span = viewOffsets.getY() - viewOffsets.getX();
+			viewOffsets.addXY(fraction * span, fraction * span);
+
+			priorDragPosition = current;
+
+			repaint();
 		}
 
 		std::shared_ptr<const SharedBehaviour> behaviour;
 		cpl::Profiling::EWMAModel model;
+		juce::Point<double> viewOffsets {0, 1};
+		std::optional<double> priorDragPosition;
 	};
 
 	ProfilerWindow::ProfilerWindow(MainEditor* editor, std::shared_ptr<const SharedBehaviour> behaviour)
