@@ -29,8 +29,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <memory>
 
 #include <cpl/profiling/ProfilingModel.h>
+#include <cpl/gui/controls/CValueKnobSlider.h>
 
 #include "ProfilerWindow.h"
 #include "MainEditor.h"
@@ -40,41 +42,63 @@ namespace Signalizer
 {
 	struct EWMALaneJuceRenderer
 	{
-		friend class cpl::Profiling::EWMAModel;
+		friend struct cpl::Profiling::EWMAModel::LaneData; // Give access to operator()
 		using Model = cpl::Profiling::EWMAModel;
 		using Scalar = float;
 
-		constexpr static std::size_t space = 1;
+		constexpr static int space = 1;
 
 	public:
 
-		EWMALaneJuceRenderer(Model::LaneData data, juce::Rectangle<int> bounds, juce::Point<Scalar> zoom = juce::Point<Scalar>(0, 1))
+		EWMALaneJuceRenderer(
+			Model::LaneData data, 
+			juce::Rectangle<int> bounds, 
+			juce::Point<Scalar> zoom = juce::Point<Scalar>(0, 1), 
+			Scalar parentPruning = -std::numeric_limits<Scalar>::infinity(),
+			std::optional<Model::Seconds> laneLength = std::nullopt // by default, the lane is "budget" long
+		)
 			: data(data)
+			, layout(data.buildLayout(parentPruning))
 			, bounds(bounds.toFloat())
 			, window(zoom)
-			, numDepths(std::max(1, data.maxDepthSeen() + 1))
-			, yPixelsForHeight((bounds.getHeight() - space * numDepths) / numDepths)
+			, depthLevelsRequired(layout.maxDepthLevelsInLayout() + 1)
+			, yPixelsForHeight(std::min(20, (bounds.getHeight() - space * depthLevelsRequired) / depthLevelsRequired))
+			, length(laneLength.value_or(data.budget()))
 		{
 
 		}
 
-		void paint(juce::Graphics& g, juce::Colour spanFill, juce::Colour outline, std::optional<juce::Colour> text = std::nullopt)
+		void paint(
+			juce::Graphics& g, 
+			juce::Colour spanFill, 
+			juce::Colour outline, 
+			std::optional<juce::Colour> text = std::nullopt,
+			std::optional<juce::Colour> hot = std::nullopt)
 		{
-			// TODO: set up clip regions
+			juce::Font old = g.getCurrentFont();
+			juce::Font newFont;
+
+			newFont.setTypefaceName(juce::Font::getDefaultMonospacedFontName());
+			g.setFont(newFont);
+
+			// TODO: set up clip regions <-- still a problem
 			this->g = &g;
 			spanColour = spanFill;
 			textColour = text.value_or(spanColour.contrasting());
+			hotColour = hot.value_or(spanColour);
 			outlineColour = outline;
-			data.visit(*this);
 
-			char buffer[2048];
+			// Render the name of the lane as a root node
+			renderNode(-1, data.getName().c_str(), Model::Seconds(0), data.duration(), std::nullopt);
+			// Then all the children.
+			data.visit(*this, layout);
+
+			char buffer[1024];
 
 			cpl::sprintfs(
 				buffer,
-				"%s usage: %2.2f%%\nDuration: %2.2f ms\nBudget: %2.2f ms\nDelta Time: %2.2f ms",
-				data.getName().c_str(),
-				data.usage() * 100,
-				data.duration().count() * 1000,
+				"FPS: %6.2f (budget: %6.2f ms)\nDelta Time: %5.2f ms",
+				1.0 / data.budget().count(),
 				data.budget().count() * 1000,
 				data.deltaTime().count() * 1000
 			);
@@ -82,7 +106,28 @@ namespace Signalizer
 			auto topLeft = bounds.getTopLeft();
 
 			g.setColour(textColour);
-			g.drawMultiLineText(buffer, topLeft.x, topLeft.y + 20, 200);
+			g.drawMultiLineText(buffer, cpl::Math::round<int>(topLeft.x), cpl::Math::round<int>(topLeft.y + 20), 400);
+
+			// lane outlines
+			float paths[2] = { 5, 5 };
+
+			auto x = secondsToX(Model::Seconds(0));
+			g.drawDashedLine(
+				{ x, bounds.getY() + bounds.getHeight() * 0.5f, x, bounds.getBottom() },
+				paths,
+				2, // elements in paths
+				2 // line thickness
+			);
+
+			x = secondsToX(data.budget());
+			g.drawDashedLine(
+				{ x, bounds.getY() + bounds.getHeight() * 0.5f, x, bounds.getBottom()},
+				paths,
+				2, // elements in paths
+				2 // line thickness
+			);
+
+			g.setFont(old);
 		}
 
 	private:
@@ -90,67 +135,146 @@ namespace Signalizer
 		juce::Colour spanColour;
 		juce::Colour outlineColour;
 		juce::Colour textColour;
+		juce::Colour hotColour;
 
 		juce::Graphics* g = nullptr;
 
 		const Model::LaneData data;
+		const Model::LaneData::Layout layout;
 		const juce::Rectangle<Scalar> bounds;
 		const juce::Point<Scalar> window;
-		const int numDepths;
+		const int depthLevelsRequired;
 		const int yPixelsForHeight;
+		const Model::Seconds length;
 
 		Scalar secondsToX(Model::Seconds seconds) const
 		{
-			const auto normalized = seconds / data.budget();
+			const auto normalized = seconds / length;
 			const auto zoomed = (normalized - window.getX()) / (window.getY() - window.getX());
 			return bounds.getX() + zoomed * bounds.getWidth();
 		}
 
 		void operator() (int depth, cpl::Profiling::Region::Identifier identifier, Model::Seconds start, Model::Seconds self, Model::Seconds total) const
 		{
-			const auto name = cpl::Profiling::resolveRegion(identifier).name;
+			renderNode(
+				depth,
+				cpl::Profiling::resolveRegion(identifier).name,
+				start,
+				total,
+				self
+			);
+		}
 
+		void renderNode(int depth, const char* name, Model::Seconds start, Model::Seconds total, std::optional<Model::Seconds> self) const
+		{
 			auto left = secondsToX(start);
 			auto right = secondsToX(start + total);
 			
-			auto bottom = bounds.getBottom() - depth * yPixelsForHeight;
+			// depth + 1 since root is painted as well below
+			auto bottom = bounds.getBottom() - (depth + 1) * (yPixelsForHeight + space);
 			auto top = bottom - yPixelsForHeight;
 
-			// TODO: early out if zoom culls
-			// TODO: bound rect
 			auto rect = juce::Rectangle<float>(
 				left, // x
 				top, // y
 				right - left, // width
-				yPixelsForHeight // height
+				static_cast<float>(yPixelsForHeight - space) // height
 			);
 
-			g->setColour(spanColour);
-			g->fillRect(rect);
+			// Have the text clip to borders to it doesn't disappear
+			auto visibleRect = rect;
+
+			// early out if window completely culls
+			if (!bounds.intersectRectangle(visibleRect))
+				return;
+
+			// no 'self' means we measure against the whole frame.
+			// really only here to reuse this function drawing for the root node.
+			const auto target = self ? data.duration() : data.budget();
+			auto selfProportion = self ? *self / total : total / target;
+
+			const auto finalSpanColour = spanColour.interpolatedWith(hotColour, selfProportion);
+
+			g->setColour(finalSpanColour);
+			g->fillRect(visibleRect);
+
 			g->setColour(outlineColour);
 			g->drawRect(rect);
+
+			char buffer[2048];
+
+			cpl::sprintfs(
+				buffer,
+				"%s %5.2f%%\t (%5.2f ms)",
+				name,
+				(total / target) * 100,
+				total.count() * 1000
+			);
+
 			g->setColour(textColour);
-			g->drawFittedText(name, rect.toNearestInt(), juce::Justification::centred, 1, 1.0f);
+			g->drawFittedText(buffer, visibleRect.toNearestInt(), juce::Justification::centred, 1, 1.0f);
 		}
 	};
 
 	class ProfilerContent
 		: public juce::Component
 		, private juce::Timer
+		, private cpl::ValueEntityBase::ValueEntityListener
 	{
 		static constexpr int kTimerFrequency = 30;
+		static constexpr int kBorder = 5;
+		static constexpr int kControlPaneHeight = 40;
 
 	public:
 
+		enum class TimeAxisModes
+		{
+			IndependentBudget,
+			IndependentDuration,
+			AlignedBudget,
+			AlignedDuration
+		};
+
 		ProfilerContent(std::shared_ptr<const SharedBehaviour> behaviour)
 			: behaviour(std::move(behaviour))
+			, pruneRange(0.0001, 0.99)
+			, pruneValue(&pruneRange, &pruneFormatter)
+			, pruneControl(&pruneValue)
+			, timeChoices(timeRange)
+			, timeAxisValue(&timeRange, &timeChoices)
 		{
 			// Each lane pools 8 snapshots and producers drop (never allocate) when full,
 			// so a drain rate below the fastest producer only decimates - it doesn't break anything.
 			startTimerHz(kTimerFrequency);
+			timeChoices.setValues({ "Budget; independent", "Duration; independent", "Budget; aligned", "Duration; aligned" });
+
+			timeAxisControl = std::make_unique<cpl::CValueComboBox>(&timeAxisValue);
+
+			pruneControl.bSetTitle("Prune parents");
+			pruneControl.bSetDescription("Avoid showing parent profiler sections whos self-time is less than this");
+
+			timeAxisControl->bSetTitle("Axis scaling");
+			timeAxisControl->bSetDescription("Select how the lanes' time axes are scaled");
+
+			pruneValue.setTransformedValue(0.01);
+			timeAxisValue.setAsTEnum(TimeAxisModes::IndependentDuration);
+
+			pruneControl.bSetPos(kBorder, kBorder);
+			timeAxisControl->bSetPos(pruneControl.getRight() + kBorder, kBorder);
+
+			pruneValue.addListener(this);
+			timeAxisValue.addListener(this);
+
+			addAndMakeVisible(*timeAxisControl);
+			addAndMakeVisible(&pruneControl);
 		}
 
 	private:
+
+		void valueEntityChanged(ValueEntityListener* sender, cpl::ValueEntityBase* value) override
+		{
+			repaint();
+		}
 
 		void timerCallback() override
 		{
@@ -166,28 +290,76 @@ namespace Signalizer
 		}
 
 		void paint(juce::Graphics& g) override
-		{
+		{	
 			const auto backgroundColour = cpl::GetColour(cpl::ColourEntry::Normal);
 			const auto outlineColour = cpl::GetColour(cpl::ColourEntry::Separator);
-			const auto foregrundColour = cpl::GetColour(cpl::ColourEntry::Auxillary);
+			const auto foregroundColour = cpl::GetColour(cpl::ColourEntry::Auxillary);
 			const auto textColour = cpl::GetColour(cpl::ColourEntry::ControlText);
+			const auto hotColour = foregroundColour.interpolatedWith(cpl::GetColour(cpl::ColourEntry::Error), 0.25);
 
 			g.fillAll(backgroundColour);
 
-			auto localBounds = getLocalBounds();
-			localBounds.setHeight(localBounds.getHeight() / 3);
+			auto localBounds = getLocalBounds()
+				.withTrimmedTop(kControlPaneHeight + kBorder)
+				.expanded(-kBorder, -kBorder);
 
-			for (const auto lane : { behaviour->getRenderingLane().get(), &behaviour->getRealtimeLane(), &behaviour->getAsyncDSPLane()})
+			auto lanes = { 
+				model.getLaneData(*behaviour->getRenderingLane().get()), 
+				model.getLaneData(behaviour->getRealtimeLane()),
+				model.getLaneData(behaviour->getAsyncDSPLane())
+			};
+
+			// do better than all must be alive in future.
+			if (std::any_of(lanes.begin(), lanes.end(), [](auto& model) { return !model; }))
+				return;
+
+			auto totalDepthsNeeded = std::accumulate(
+				lanes.begin(), 
+				lanes.end(), 
+				0, 
+				[](int acc, const auto& l) 
+				{
+					return acc + l->maxDepthSeen() + 5; // +1 for levels, +1 to ensure one slot inbetween all lanes
+				}
+			);
+
+			auto maxBudget = std::max_element(lanes.begin(), lanes.end(), [](const auto& a, const auto& b) { return a->budget() < b->budget(); });
+			auto maxDuration = std::max_element(lanes.begin(), lanes.end(), [](const auto& a, const auto& b) { return a->duration() < b->duration(); });
+
+			auto scalingMode = timeAxisValue.getAsTEnum<TimeAxisModes>();
+
+			auto currentBottom = localBounds.getY();
+
+			for (const auto& data : lanes)
 			{
-				auto data = model.getLaneData(*lane);
+				std::optional<cpl::Profiling::EWMAModel::Seconds> laneLength;
 
-				if (!data)
-					continue;
+				switch (scalingMode)
+				{
+					//case IndependentBudget: // default
+					case TimeAxisModes::IndependentDuration: laneLength = data->duration(); break;
+					case TimeAxisModes::AlignedBudget: laneLength = (*maxBudget)->budget(); break;
+					case TimeAxisModes::AlignedDuration: laneLength = (*maxDuration)->duration(); break;
+				}
 
-				EWMALaneJuceRenderer renderer(*data, localBounds, viewOffsets.toFloat());
-				renderer.paint(g, foregrundColour, outlineColour);
+				auto proportionalSpaceNeeded = (data->maxDepthSeen() + 5.f) / totalDepthsNeeded;
 
-				localBounds.translate(0, localBounds.getHeight());
+				auto rect = localBounds
+					.toFloat()
+					.withHeight(proportionalSpaceNeeded * localBounds.getHeight())
+					.withY(static_cast<float>(currentBottom));
+
+				EWMALaneJuceRenderer renderer(
+					*data,  
+					rect.toNearestInt(),
+					viewOffsets.toFloat(), 
+					static_cast<float>(pruneValue.getTransformedValue()),
+					laneLength
+				);
+
+				renderer.paint(g, foregroundColour, outlineColour, std::nullopt, hotColour);
+
+				currentBottom = rect.getBottom();
 			}
 		}
 
@@ -205,6 +377,9 @@ namespace Signalizer
 
 			viewOffsets.setX(viewOffsets.getX() + delta * position);
 			viewOffsets.setY(viewOffsets.getY() - delta * (1 - position));
+
+			// Increase time constant as the window gets smaller, but moderated.
+			model.setTimeConstant(cpl::Profiling::EWMAModel::Seconds(std::sqrt(1 / span)));
 
 			repaint();
 		}
@@ -262,6 +437,16 @@ namespace Signalizer
 		cpl::Profiling::EWMAModel model;
 		juce::Point<double> viewOffsets {0, 1};
 		std::optional<double> priorDragPosition;
+
+		cpl::ExponentialRange<cpl::ValueT> pruneRange;
+		cpl::PercentageFormatter<cpl::ValueT> pruneFormatter;
+		cpl::SelfcontainedValue<> pruneValue;
+		cpl::CValueKnobSlider pruneControl;
+
+		cpl::ChoiceTransformer<cpl::ValueT> timeRange;
+		cpl::ChoiceFormatter<cpl::ValueT> timeChoices;
+		cpl::SelfcontainedValue<> timeAxisValue;
+		std::unique_ptr<cpl::CValueComboBox> timeAxisControl;
 	};
 
 	ProfilerWindow::ProfilerWindow(MainEditor* editor, std::shared_ptr<const SharedBehaviour> behaviour)
