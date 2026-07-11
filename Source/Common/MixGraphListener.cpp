@@ -198,6 +198,8 @@ namespace Signalizer
 
 	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, cpl::unique_lock<cpl::shared_mutex>& lock)
 	{
+		CPL_PROFILE("MixGraphListener::handleStructuralChange");
+
 		auto& realInfo = ctx.getInfo();
 
 		if (structuralChange)
@@ -253,6 +255,8 @@ namespace Signalizer
 
 	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
+		CPL_PROFILE("MixGraphListener::deliver");
+
 		cpl::unique_lock<cpl::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
 		handleStructuralChange(ctx, numSamples, graphLayoutAndDataLock);
@@ -268,6 +272,8 @@ namespace Signalizer
 		const auto hostSamples = static_cast<std::int64_t>(self->containedSamples.load());
 
 		bool seeminglySynchronized = true;
+
+		CPL_PROFILE_BEGIN("::align-inputs");
 
 		for (auto& g : graph)
 		{
@@ -333,6 +339,7 @@ namespace Signalizer
 			auto toSubtract = std::min(current, static_cast<std::int64_t>(numSamples));
 			state.containedSamples.store(current - toSubtract);
 		}
+		CPL_PROFILE_END;
 
 		this->isSynchronized = seeminglySynchronized;
 
@@ -357,6 +364,8 @@ namespace Signalizer
 
 		if (enabled)
 		{
+			CPL_PROFILE("MixGraphListener::copyToInputs");
+
 			cpl::shared_lock<cpl::shared_mutex> lock(dataMutex);
 
 			// certain conditions can cause callbacks to temporarily appear, even though we deregistrered from this source and no longer know it.
@@ -396,6 +405,8 @@ namespace Signalizer
 
 		if (isSelf)
 		{
+			CPL_PROFILE("MixGraphListener::processSelf");
+
 			updateTopologyCommands();
 
 			if (!enabled || graph.empty())
@@ -488,6 +499,8 @@ namespace Signalizer
 
 	void MixGraphListener::updateTopologyCommands()
 	{
+		CPL_PROFILE("MixGraphListener::updateTopologyCommands");
+
 		decltype(connectionCommands) localNewToplogy;
 
 		{

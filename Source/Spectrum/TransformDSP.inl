@@ -38,6 +38,7 @@ namespace Signalizer
 	template<typename T>
 	inline bool TransformPair<T>::prepareTransform(const Constant& constant, const AudioPair& views)
 	{
+		CPL_PROFILE("TransformPair::prepareTransform");
 		{
 			// we need the buffers to be same size, and at least equal or greater in size of ours (cant fill in information).
 			// this is a very rare condition that can be solved by locking the audio access during the flags update and this
@@ -505,6 +506,7 @@ namespace Signalizer
 	template<typename ISA>
 	inline void TransformPair<T>::mapToLinearSpace(const Constant& constant)
 	{
+		CPL_PROFILE("TransformPair::mapToLinearSpace");
 		using namespace cpl;
 
 		switch (constant.algo)
@@ -554,14 +556,19 @@ namespace Signalizer
 				csf[N >> 1] *= 0.5;
 
 				// TODO: Vectorize
+				CPL_PROFILE_BEGIN("::mono-magnitude-pass");
 				for (std::size_t i = 0; i < numBins; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
-				}
+				}				
+				CPL_PROFILE_END;
+
 
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
+
+				CPL_PROFILE_BEGIN("::mono-interpolation-segment");
 				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::None:
@@ -601,10 +608,12 @@ namespace Signalizer
 					break;
 				default:
 					break;
-				}
+				}				
+				CPL_PROFILE_END;
 
 				oldBin = static_cast<cpl::ssize_t>(constant.mappedFrequencies[x] * freqToBin);
 
+				CPL_PROFILE_BEGIN("::mono-decimation-segment");
 				for (; x < constant.axisPoints; ++x)
 				{
 					maxLMag = maxRMag = newLMag = newRMag = 0;
@@ -637,13 +646,15 @@ namespace Signalizer
 
 					oldBin = bin;
 				}
-
+				CPL_PROFILE_END;
 				break;
 			}
 			case SpectrumChannels::Phase:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
+				CPL_PROFILE_BEGIN("::phase-complex-separation");
 				dsp::separateTransformsIPL(csf);
+				}
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * consts::half;
@@ -666,6 +677,8 @@ namespace Signalizer
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
+
+				CPL_PROFILE_BEGIN("::phase-interpolation-segment");
 				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::Linear:
@@ -800,16 +813,15 @@ namespace Signalizer
 						wsp[x * 2 + 1] = T(1) - (mid > 0 ? (cancellation / mid) : 0);
 					}
 					break;
-				}
-
+				}				
+				CPL_PROFILE_END;
 
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
 				if (x < constant.axisPoints)
 					oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
-
-
+				CPL_PROFILE_BEGIN("::phase-decimation-segment");
 				for (; x < constant.axisPoints; ++x)
 				{
 					std::size_t maxBin = 0;
@@ -848,14 +860,16 @@ namespace Signalizer
 
 					oldBin = bin;
 				}
-
+				CPL_PROFILE_END;
 				break;
 			}
 			case SpectrumChannels::Separate:
 			case SpectrumChannels::MidSide:
 			{
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
+				CPL_PROFILE_BEGIN("::stereo-complex-separation");
 				dsp::separateTransformsIPL(csf.slice(0, N));
+				}
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * T(0.5);
@@ -863,10 +877,12 @@ namespace Signalizer
 				csf[N >> 1] *= T(0.5);
 				csf[(N >> 1) - 1] *= T(0.5);
 
+				CPL_PROFILE_BEGIN("::stereo-magnitude-pass");
 				for (decltype(N) i = 1; i < N; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
 				}
+				CPL_PROFILE_END;
 
 				// The index of the transform, where the bandwidth is higher than mapped pixels (so no more interpolation is needed)
 				// TODO: This can be calculated from view mapping scale and N pixels.
@@ -875,6 +891,8 @@ namespace Signalizer
 				double fftBandwidth = 1.0 / numBins;
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x;
+
+				CPL_PROFILE_BEGIN("::stereo-interpolation-segment");
 				switch (constant.binPolation)
 				{
 				case SpectrumContent::BinInterpolation::Linear:
@@ -934,13 +952,14 @@ namespace Signalizer
 					}
 					break;
 				}
-
+				CPL_PROFILE_END;
 
 				// the process after interpolation is much simpler, as we dont have to account
 				// for wrongly interpolation of phase-mangled vectors.
 
 				oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
+				CPL_PROFILE_BEGIN("::stereo-decimation-segment");
 				for (; x < constant.axisPoints; ++x)
 				{
 					maxLMag = maxRMag = newLMag = newRMag = 0;
@@ -982,6 +1001,7 @@ namespace Signalizer
 					csp[constant.axisPoints + x] = invSize * csf[maxRBin];
 					oldBin = bin;
 				}
+				CPL_PROFILE_END;
 			}
 			break;
 			case SpectrumChannels::Complex:
@@ -996,14 +1016,16 @@ namespace Signalizer
 				//double pxlBandwidth = 1.0 / numPoints;
 				cpl::Types::fint_t x = 0;
 
+				CPL_PROFILE_BEGIN("::complex-magnitude-pass");
 				for (decltype(N) i = 1; i < N; ++i)
 				{
 					csf[i] = std::abs(csf[i]);
 				}
+				CPL_PROFILE_END;
 
 				while (x < constant.axisPoints)
 				{
-
+					CPL_PROFILE_BEGIN("::complex-interpolation-segment");
 					switch (constant.binPolation)
 					{
 					case SpectrumContent::BinInterpolation::Linear:
@@ -1051,9 +1073,12 @@ namespace Signalizer
 						}
 						break;
 					}
+					CPL_PROFILE_END;
+
 					if (x != constant.axisPoints)
 						oldBin = static_cast<std::size_t>(constant.mappedFrequencies[x] * freqToBin);
 
+					CPL_PROFILE_BEGIN("::complex-decimation-segment");
 					for (; x < constant.axisPoints; ++x)
 					{
 						maxLMag = maxRMag = newLMag = newRMag = 0;
@@ -1093,6 +1118,7 @@ namespace Signalizer
 						csp[x] = invSize * csf[maxLBin];
 						oldBin = bin;
 					}
+					CPL_PROFILE_END;
 				}
 			}
 
@@ -1104,31 +1130,29 @@ namespace Signalizer
 		{
 			auto configurationChannels = constant.getStateConfigurationChannels();
 			auto wsp = getWork<std::complex<T>>(constant.resonator.getNumFilters() * configurationChannels);
+
 			std::size_t filtersPerChannel = copyResonatorStateInto<ISA>(constant, constant.dspWindow, wsp, configurationChannels) / configurationChannels;
 
 			switch (constant.configuration)
 			{
 			case SpectrumChannels::Phase:
 			{
+				CPL_PROFILE_BEGIN("::resonate-phase-fixup");
 				for (std::size_t x = 0; x < filtersPerChannel; ++x)
 				{
-
 					auto iLeft = wsp[x];
 					auto iRight = wsp[x + filtersPerChannel];
 
 					auto cancellation = std::sqrt(Math::square(iLeft + iRight));
 					auto mid = std::abs(iLeft) + std::abs(iRight);
 
-
 					wsp[x] = std::complex<T>(mid, T(1) - (mid > 0 ? (cancellation / mid) : 0));
-
 				}
-
+				CPL_PROFILE_END;
 				break;
 			}
 			// rest of cases do not need any handling
 			}
-
 		}
 		break;
 		}
@@ -1138,6 +1162,8 @@ namespace Signalizer
 	template<typename ISA>
 	inline void TransformPair<T>::addAudioFrame(const Constant& constant)
 	{
+		CPL_PROFILE("TransformPair::addAudioFrame");
+
 		mapToLinearSpace<ISA>(constant);
 		postProcessStdTransform(constant);
 
@@ -1151,6 +1177,8 @@ namespace Signalizer
 	template<typename ISA>
 	inline std::size_t TransformPair<T>::copyResonatorStateInto(const Constant& constant, cpl::dsp::WindowTypes windowType, cpl::uarray<std::complex<T>> output, std::size_t outChannels)
 	{
+		CPL_PROFILE("TransformPair::copyResonatorStateInto");
+
 		auto numResFilters = constant.resonator.getNumFilters();
 		// casts from std::complex<T> * to T * which is well-defined.
 		// TODO: std::ranges
@@ -1166,6 +1194,7 @@ namespace Signalizer
 	{
 		if (constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 		{
+			CPL_PROFILE("TransformPair::colourSpectrumEntryPoint");
 			std::int64_t n = numSamples;
 			std::size_t offset = 0;
 
@@ -1214,10 +1243,14 @@ namespace Signalizer
 	template<typename ISA>
 	inline void TransformPair<T>::resonatingDispatch(const Constant& constant, std::array<AFloat*, 2> buffer, std::size_t numSamples)
 	{
+		CPL_PROFILE("TransformPair::resonatingDispatch");
+
 		typedef AFloat TReso;
 
 		auto one = [&](auto fn)
 		{
+			CPL_PROFILE("::prepare-mono");
+
 			auto work = this->getWork<T>(numSamples);
 
 			for (std::size_t i = 0; i < numSamples; ++i)
@@ -1230,6 +1263,8 @@ namespace Signalizer
 
 		auto two = [&](auto fn)
 		{
+			CPL_PROFILE("::prepare-stereo");
+
 			auto work = this->getWork<T>(numSamples * 2);
 
 			for (std::size_t i = 0; i < numSamples; ++i)
@@ -1298,6 +1333,8 @@ namespace Signalizer
 	template<class V2>
 	void TransformPair<T>::mapAndTransformDFTFilters(const Constant& constant, const V2& newVals, std::size_t size)
 	{
+		CPL_PROFILE("TransformPair::mapAndTransformDFTFilters");
+
 		CPL_RUNTIME_ASSERTION(size == constant.axisPoints);
 
 		for (std::size_t k = 0; k < lineGraphs.size(); ++k)

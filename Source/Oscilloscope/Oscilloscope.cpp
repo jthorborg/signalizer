@@ -237,6 +237,8 @@ namespace Signalizer
 
 	bool Oscilloscope::handleFlagUpdates(Oscilloscope::StreamState& cs)
 	{
+		CPL_PROFILE("Oscilloscope::handleFlagUpdates");
+
 		if (!cs.audioStreamChangeVersion.wasEverBumped())
 			return false;
 

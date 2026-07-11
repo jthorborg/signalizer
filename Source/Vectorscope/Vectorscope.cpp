@@ -197,6 +197,7 @@ namespace Signalizer
 
 	bool VectorScope::handleFlagUpdates()
 	{
+		CPL_PROFILE("VectorScope::handleFlagUpdates");
 		auto&& streamState = processor->streamState.lock();
 
 		if (!streamState->audioStreamChangeVersion.wasEverBumped())
@@ -277,6 +278,8 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::Processor::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			CPL_PROFILE("VectorScope::audioProcessing");
+
 			typedef typename ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;

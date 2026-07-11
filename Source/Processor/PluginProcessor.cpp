@@ -207,14 +207,12 @@ namespace Signalizer
 		}
 
 		{
-			CPL_PROFILE("Realtime::SignalGenerator::Process");
+			CPL_PROFILE("SignalGenerator::Process");
 			signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
 		}
 
 		if (realtimeInput.isAnyoneListening())
 		{
-			CPL_PROFILE("Realtime::Input::ProcessIncomingAudio");
-
 			if (auto ph = getPlayHead())
 				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
 			else

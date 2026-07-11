@@ -354,6 +354,8 @@ namespace Signalizer
 
 	bool Spectrum::handleFlagUpdates(StreamState& stream)
 	{
+		CPL_PROFILE("Spectrum::handleFlagUpdates");
+
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;

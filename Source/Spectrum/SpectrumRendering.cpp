@@ -83,6 +83,8 @@ namespace Signalizer
 		{
 			if(!skipText)
 			{
+				CPL_PROFILE("Spectrum::paintTextDivisions");
+
 				auto complexScale = state.configuration == SpectrumChannels::Complex ? 2.0f : 1.0f;
 				g.setColour(state.colourGrid);
 
@@ -124,6 +126,8 @@ namespace Signalizer
 
 			if(!skipText)
 			{
+				CPL_PROFILE("Spectrum::paintTextDivisions");
+
 				g.setColour(state.colourGrid);
 				const auto & divs = frequencyGraph.getDivisions();
 
@@ -135,6 +139,7 @@ namespace Signalizer
 			}
 
 			// draw gradient
+			CPL_PROFILE("Spectrum::drawGradient");
 
 			juce::ColourGradient gradient = constant.generateSpectrogramGradient(0);
 
@@ -162,6 +167,8 @@ namespace Signalizer
 		
 		if (content->diagnostics.getTransformedValue() > 0.5)
 		{
+			CPL_PROFILE("Spectrum::drawDiagnostics");
+
 			char text[1000];
 			const auto perf = audioStream->getPerfMeasures();
 
@@ -186,6 +193,8 @@ namespace Signalizer
 
 	void Spectrum::drawFrequencyTracking(juce::Graphics & g, const float fps, const Constant& constant, TransformPair& transform)
 	{
+		CPL_PROFILE("Spectrum::drawFrequencyTracking");
+
 		auto graphN = state.frequencyTrackingGraph;
 		// TODO: feature request
 		// for adding colour spectrums, one would need to ensure correct concurrent access to the data structures
@@ -563,6 +572,7 @@ namespace Signalizer
 
 		g.setFont(juce::Font(juce::Font::getDefaultMonospacedFontName(), cpl::TextSize::normalText * 0.9f, 0));
 
+		CPL_PROFILE("::text-out");
 		g.drawFittedText(juce::CharPointer_UTF8(buf), rectInside, juce::Justification::centredLeft, 6);
 
 	}
@@ -591,7 +601,9 @@ namespace Signalizer
             CPL_DEBUGCHECKGL();
             juce::OpenGLHelpers::clear(state.colourBackground);
 
-			auto&& access = processor->streamState.lock();
+			CPL_PROFILE_EXPRESSION(
+				auto&& access = processor->streamState.lock();
+			);
 
 			if (!handleFlagUpdates(*access))
 				return;
@@ -618,8 +630,11 @@ namespace Signalizer
             case SpectrumContent::DisplayMode::LineGraph:
 			{
 				{
+					CPL_PROFILE("Spectrum::doParallelTransform");
+
 					auto views = audioStream->getAudioBufferViews();
 
+					// TODO: Sucks that we can't internally "migrate" our profiling frame into here:
 					cpl::jobs::parallel_for(
 						access->pairs.size(),
 						[&](std::size_t index)
@@ -672,6 +687,8 @@ namespace Signalizer
 	template<typename ISA>
 		void Spectrum::renderColourSpectrum(const Constant& constant, TransformPair& transform, cpl::OpenGLRendering::COpenGLStack & ogs)
 		{
+			CPL_PROFILE("Spectrum::renderColourSpectrum");
+
 			CPL_DEBUGCHECKGL();
 			auto pW = oglImage.getWidth();
 			if (!pW)
@@ -794,6 +811,8 @@ namespace Signalizer
 	template<typename ISA>
 	void Spectrum::renderTransformAsGraph(cpl::OpenGLRendering::COpenGLStack & ogs, const TransformPair& transform, const LineColours& one, const LineColours& two)
 	{
+		CPL_PROFILE("Spectrum::renderTransformAsGraph");
+
 		// render the flood fill with alpha
 		const auto renderingScale = oglc->getRenderingScale();
 		ogs.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -912,6 +931,8 @@ namespace Signalizer
 	{
 		if (state.colourGrid.getAlpha() == 0)
 			return;
+
+		CPL_PROFILE("Spectrum::renderLineGrid");
 
 		// TODO: Can be out of sync with transform?=
 		int points = getAxisPoints() - 1;

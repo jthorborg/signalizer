@@ -43,6 +43,8 @@ namespace Signalizer
 	template<typename ISA, typename Eval>
 	void Oscilloscope::analyseAndSetupState(const EvaluatorParams& params, Oscilloscope::StreamState& cs)
 	{
+		CPL_PROFILE("Oscilloscope::analyseAndSetupState");
+
 		calculateFundamentalPeriod<ISA, Eval>(params);
 		calculateTriggeringOffset<ISA, Eval>(params);
 
@@ -61,6 +63,8 @@ namespace Signalizer
 	template<typename ISA, typename Eval>
 	void Oscilloscope::calculateFundamentalPeriod(const EvaluatorParams& params)
 	{
+		CPL_PROFILE("Oscilloscope::calculateFundamentalPeriod");
+
 #ifdef PHASE_VOCODER
 		auto const TransformSize = OscilloscopeContent::LookaheadSize >> 1;
 #else
@@ -230,6 +234,8 @@ namespace Signalizer
 	template<typename ISA, typename Eval>
 	void Oscilloscope::calculateTriggeringOffset(const EvaluatorParams& params)
 	{
+		CPL_PROFILE("Oscilloscope::calculateTriggeringOffset");
+
 		if (state.triggerMode == OscilloscopeContent::TriggeringMode::EnvelopeHold || state.triggerMode == OscilloscopeContent::TriggeringMode::ZeroCrossing)
 		{
 			triggerState.cycleSamples = 0;
@@ -310,6 +316,8 @@ namespace Signalizer
 	template<typename ISA, class Analyzer>
 	void Oscilloscope::StreamState::executeSamplingWindows(AudioStream::ListenerContext& ctx, AFloat ** buffer, std::size_t numChannels, std::size_t numSamples)
 	{
+		CPL_PROFILE("Oscilloscope::executeSamplingWindows");
+
 		if (numChannels < 2)
 			return;
 
@@ -433,6 +441,8 @@ namespace Signalizer
 			ChannelData::Buffer& target
 		)
 		{
+			CPL_PROFILE("Oscilloscope::audioProcessing");
+
 			using namespace cpl::simd;
 			typedef AFloat T;
 
@@ -510,6 +520,8 @@ namespace Signalizer
 				// process envelopes so we're not thrashing the icache
 				if (envelopeMode != EnvelopeModes::None)
 				{
+					CPL_PROFILE("Oscilloscope::enveloping");
+
 					switch (mode)
 					{
 					case OscChannels::Right: offset = 1;
@@ -610,6 +622,8 @@ namespace Signalizer
 				// Process colours for each channel pair
 				for (std::size_t channelPair = 0; channelPair < numChannels; channelPair += 2)
 				{
+					CPL_PROFILE("::filter-pair-colours");
+
 					auto& leftMid = channelData.filterStates.channels[channelPair + fs::Left];
 					auto& rightSide = channelData.filterStates.channels[channelPair + fs::Right];
 
@@ -655,6 +669,8 @@ namespace Signalizer
 			}
 			else if (numChannels == 1)
 			{
+				CPL_PROFILE("::filter-mono-colours");
+
 				ChannelData::PixelType colour(channelData.filterStates.channels[0].defaultKey);
 
 				auto && lw = target.channels[fs::Left].colourData.createWriter();
@@ -699,6 +715,8 @@ namespace Signalizer
 
 			}
 
+			CPL_PROFILE("::save-audio-data");
+
 			// save audio data
 			for(std::size_t c = 0; c < target.channels.size(); ++c)
 				target.channels[c].audioData.createWriter().copyIntoHead(buffer[c], numSamples);
@@ -712,6 +730,8 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::runPeakFilter(ChannelData& data)
 		{
+			CPL_PROFILE("Oscilloscope::runPeakFilter");
+
 			// there is a number of optimisations we can do here, mostly that we actually don't care about
 			// timing, we are only interested in the current largest value in the set.
 			using namespace cpl;

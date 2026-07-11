@@ -304,7 +304,10 @@
 			{
 				template<typename ISA> static void dispatch(ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 				{
-					shell.streamState.lock()->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
+					CPL_PROFILE_EXPRESSION(
+						auto&& access = shell.streamState.lock();
+					);
+					access->audioEntryPoint<ISA>(source, buffer, numChannels, numSamples);
 				}
 			};
 
