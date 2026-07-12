@@ -183,15 +183,25 @@ namespace Signalizer
 
 			// Have the text clip to borders to it doesn't disappear
 			auto visibleRect = rect;
+			auto borderingRect = rect;
 
 			// early out if window completely culls
 			if (!bounds.intersectRectangle(visibleRect))
 				return;
 
+			auto leftDiff = bounds.getX() - rect.getX();
+			auto rightDiff = rect.getRight() - bounds.getRight();
+
+			if (leftDiff > 1)
+				borderingRect = borderingRect.withTrimmedLeft(leftDiff - 1);
+
+			if (rightDiff > 1)
+				borderingRect = borderingRect.withTrimmedRight(rightDiff - 1);
+
 			// no 'self' means we measure against the whole frame.
 			// really only here to reuse this function drawing for the root node.
 			const auto target = self ? data.duration() : data.budget();
-			auto selfProportion = self ? *self / total : total / target;
+			auto selfProportion = std::clamp(self ? *self / total : total / target, 0.0f, 1.0f);
 
 			const auto finalSpanColour = spanColour.interpolatedWith(hotColour, selfProportion);
 
@@ -199,7 +209,7 @@ namespace Signalizer
 			g->fillRect(visibleRect);
 
 			g->setColour(outlineColour);
-			g->drawRect(rect);
+			g->drawRect(borderingRect);
 
 			char buffer[2048];
 
@@ -251,7 +261,7 @@ namespace Signalizer
 			timeAxisControl = std::make_unique<cpl::CValueComboBox>(&timeAxisValue);
 
 			pruneControl.bSetTitle("Prune parents");
-			pruneControl.bSetDescription("Avoid showing parent profiler sections whos self-time is less than this");
+			pruneControl.bSetDescription("Avoid showing parent profiler sections whos self-time percentage is less than this");
 
 			timeAxisControl->bSetTitle("Axis scaling");
 			timeAxisControl->bSetDescription("Select how the lanes' time axes are scaled");

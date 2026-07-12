@@ -654,7 +654,7 @@ namespace Signalizer
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
 				CPL_PROFILE_BEGIN("::phase-complex-separation");
 				dsp::separateTransformsIPL(csf);
-				}
+				CPL_PROFILE_END;
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * consts::half;
@@ -869,7 +869,7 @@ namespace Signalizer
 				// two-for-one pass, first channel is 0... N/2 -1, second is N/2 .. N -1
 				CPL_PROFILE_BEGIN("::stereo-complex-separation");
 				dsp::separateTransformsIPL(csf.slice(0, N));
-				}
+				CPL_PROFILE_END;
 
 				// fix up DC and nyquist bins (see previous function documentation)
 				csf[N] = csf[0].imag() * T(0.5);

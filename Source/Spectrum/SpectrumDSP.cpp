@@ -120,7 +120,7 @@ namespace Signalizer
 		{
 			CPL_PROFILE("Spectrum::blendAndDispatchSpectrums");
 
-			if (state.pairs.size() < 0 || state.pairs[0].sfbuf.size() < 1)
+			if (state.pairs.size() < 1 || state.pairs[0].sfbuf.size() < 1)
 				return;
 
 			for (std::size_t i = 1; i < state.pairs.size(); ++i)
