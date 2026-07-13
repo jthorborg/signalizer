@@ -273,6 +273,17 @@ namespace Signalizer
 
 		bool seeminglySynchronized = true;
 
+		// We can't just directly forward the callback ctx (which stems from ourselves, ie. the monotonic realtime playback queue),
+		// it needs to be rebased to account for our synchronization shenanigans.
+		auto adjustedPlayhead = ctx.getPlayhead();
+		auto currentPlayheadPosition = adjustedPlayhead.getPositionInSamples();
+		auto timeAdjustment = (hostEndpoint - hostSamples) - currentPlayheadPosition;
+
+		if (NONTERMINAL_ASSUMPTION(timeAdjustment + static_cast<std::int64_t>(adjustedPlayhead.getSteadyClock()) >= 0))
+		{
+			adjustedPlayhead.advance(timeAdjustment);
+		}
+		
 		CPL_PROFILE_BEGIN("::align-inputs");
 
 		for (auto& g : graph)
@@ -280,7 +291,7 @@ namespace Signalizer
 			auto& state = g.second;
 			auto containedInState = state.containedSamples.load();
 
-			if (containedInState != 0 && ctx.getPlayhead().isPlaying())
+			if (containedInState != 0 && adjustedPlayhead.isPlaying())
 			{
 				const auto sampleDifference = containedInState - hostSamples;
 				const auto tlDifference = state.endpoint - hostEndpoint;
@@ -344,7 +355,7 @@ namespace Signalizer
 		this->isSynchronized = seeminglySynchronized;
 
 		// TODO: don't copy into a matrix, rig a provider from the read heads instead?
-		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, ctx.getPlayhead());
+		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, adjustedPlayhead);
 	}
 
 	void MixGraphListener::onStreamAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
