@@ -27,8 +27,6 @@
 
 *************************************************************************************/
 
-#include <algorithm>
-#include <cctype>
 #include <memory>
 
 #if CPL_PROFILING

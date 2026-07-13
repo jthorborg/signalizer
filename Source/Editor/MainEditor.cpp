@@ -252,8 +252,9 @@ namespace Signalizer
 				section->addControl(&khideTabs, 2);
 				section->addControl(&kstopProcessingOnSuspend, 0);
 				section->addControl(&khideWidgets, 1);
+#if CPL_PROFILING
 				section->addControl(&kopenProfiler, 2);
-
+#endif
 				page->addSection(section, "Options");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
