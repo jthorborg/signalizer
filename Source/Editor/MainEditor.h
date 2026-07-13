@@ -187,7 +187,7 @@
 			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk, kgraph;
 
 			// Editor controls
-			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog;
+			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog, kopenProfiler;
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias, klegendChoice;

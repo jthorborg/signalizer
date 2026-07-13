@@ -32,12 +32,13 @@
 
 	#include <memory>
 	#include <vector>
+	#include <cpl/Common.h>
 
 	namespace cpl
 	{
 		namespace Profiling
 		{
-			struct Lane;
+			class Lane;
 		}
 	}
 

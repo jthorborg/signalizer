@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
 - HiDPI support on Windows
 - Standalone development support
-- A signal generator in the general settings
+- A signal generator in the general settings under the wrench
+- A dsp/rendering flamegraph profiler you can open with a button in the general settings under the wrench, use this to understand why Signalizer might be performing poorly on your system
 
 ### Fixed
 

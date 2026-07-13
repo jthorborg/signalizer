@@ -152,10 +152,6 @@ namespace Signalizer
 			std::make_shared<cpl::Profiling::Lane>("Rendering", false)
 		);
 
-#if CPL_PROFILING
-		profilerWindow = new ProfilerWindow(this, { globalState->getRenderingProfilerLane(), engine->getRealtimeProfilerLane(), engine->getAsyncProfilerLane() });
-#endif
-
 		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(
 			e->getRealtimeOutput(), 
 			// previously accessed as a friend member 
@@ -256,6 +252,8 @@ namespace Signalizer
 				section->addControl(&khideTabs, 2);
 				section->addControl(&kstopProcessingOnSuspend, 0);
 				section->addControl(&khideWidgets, 1);
+				section->addControl(&kopenProfiler, 2);
+
 				page->addSection(section, "Options");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -679,6 +677,15 @@ namespace Signalizer
 				graphEditor = new GraphEditor(this, engine->getHostGraph());
 			else
 				graphEditor->toFront(true);
+		}
+		else if (c == &kopenProfiler)
+		{
+#if CPL_PROFILING
+			if (!profilerWindow)
+				profilerWindow = new ProfilerWindow(this, { globalState->getRenderingProfilerLane(), engine->getRealtimeProfilerLane(), engine->getAsyncProfilerLane() });
+			else
+				profilerWindow->toFront(true);
+#endif
 		}
 		else if (c == &kmaxHistorySize)
 		{
@@ -1604,6 +1611,7 @@ namespace Signalizer
 		kstopProcessingOnSuspend.bAddChangeListener(this);
 		khideWidgets.bAddChangeListener(this);
 		krevealExceptionLog.bAddChangeListener(this);
+		kopenProfiler.bAddChangeListener(this);
 
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1633,6 +1641,7 @@ namespace Signalizer
 		kstableFps.setSingleText("Stable FPS");
 		kvsync.setSingleText("Vertical Sync");
 		krevealExceptionLog.setSingleText("Reveal log");
+		kopenProfiler.setSingleText("Open profiler");
 
 		kstopProcessingOnSuspend.setSingleText("Suspend processing");
 		khideWidgets.setSingleText("Hide widgets");
@@ -1698,6 +1707,8 @@ namespace Signalizer
 		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
 		kgraphSerialization.bSetDescription(engine->getHostGraph().getGraphSerializationHelpText());
 		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
+		kopenProfiler.bSetDescription("Open a frame graph profiler to analyse Signalizer's runtime performance");
+
 		resized();
 	}
 };

@@ -31,7 +31,9 @@
 #include <cctype>
 #include <memory>
 
+#if CPL_PROFILING
 #include <cpl/profiling/JuceModelDisplay.h>
+#endif
 
 #include "ProfilerWindow.h"
 #include "MainEditor.h"
@@ -45,7 +47,9 @@ namespace Signalizer
 	{
 		setUsingNativeTitleBar(true);
 		setResizable(true, false);
+#if CPL_PROFILING
 		setContentOwned(new cpl::Profiling::EWMAProfilerComponent(lanes), false);
+#endif
 		centreWithSize(800, 500);
 		setVisible(true);
 	}
