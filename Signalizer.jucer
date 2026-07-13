@@ -118,6 +118,10 @@
     </GROUP>
     <GROUP id="{A9545CFA-DE33-D8B7-6C48-79AE135732F4}" name="cpl">
       <GROUP id="{98A801AE-209E-0B16-9557-4EF7F3F677DB}" name="profiling">
+        <FILE id="jqvmqd" name="JuceModelDisplay.cpp" compile="0" resource="0"
+              file="External/cpl/profiling/JuceModelDisplay.cpp"/>
+        <FILE id="okQYVv" name="JuceModelDisplay.h" compile="0" resource="0"
+              file="External/cpl/profiling/JuceModelDisplay.h"/>
         <FILE id="Bq8e47" name="Profiling.h" compile="0" resource="0" file="External/cpl/profiling/Profiling.h"/>
         <FILE id="YGmLER" name="ProfilingClock.h" compile="0" resource="0"
               file="External/cpl/profiling/ProfilingClock.h"/>

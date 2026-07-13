@@ -31,18 +31,25 @@
 	#define SIGNALIZER_PROFILERWINDOW_H
 
 	#include <memory>
-	#include <cpl/Common.h>
+	#include <vector>
+
+	namespace cpl
+	{
+		namespace Profiling
+		{
+			struct Lane;
+		}
+	}
 
 	namespace Signalizer
 	{
 		class MainEditor;
-		class SharedBehaviour;
 
 		class ProfilerWindow : public juce::DocumentWindow
 		{
 		public:
 
-			ProfilerWindow(MainEditor* editor, std::shared_ptr<const SharedBehaviour> behaviour);
+			ProfilerWindow(MainEditor* editor, const std::vector<std::shared_ptr<cpl::Profiling::Lane>>& lanes);
 			~ProfilerWindow();
 
 			void mainEditorDied();

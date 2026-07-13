@@ -148,14 +148,12 @@ namespace Signalizer
 		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
 		globalState = std::make_shared<SharedBehaviour>(
-			e->getRealtimeProfilingLane(),
-			e->getAsyncProfilingLane(),
 			// rendering lane - never used directly by us (yet, will change when we draw centralized overlays)
 			std::make_shared<cpl::Profiling::Lane>("Rendering", false)
 		);
 
 #if CPL_PROFILING
-		profilerWindow = new ProfilerWindow(this, globalState);
+		profilerWindow = new ProfilerWindow(this, { globalState->getRenderingProfilerLane(), engine->getRealtimeProfilerLane(), engine->getAsyncProfilerLane() });
 #endif
 
 		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(

@@ -39,22 +39,13 @@ namespace Signalizer
 	{
 	public:
 
-		SharedBehaviour(
-			std::shared_ptr<cpl::Profiling::Lane> realtimeLane, 
-			std::shared_ptr<cpl::Profiling::Lane> asyncDspLane,
-			std::shared_ptr<cpl::Profiling::Lane> renderingLane
-		)
-			: realtime(realtimeLane)
-			, async(asyncDspLane)
-			, rendering(renderingLane)
+		SharedBehaviour(std::shared_ptr<cpl::Profiling::Lane> renderingLane)
+			: rendering(renderingLane)
 		{
 
 		}
 
-		// TODO: Don't expose these in a global. Move overlay rendering to MainEditor instead.
-		cpl::Profiling::Lane& getRealtimeLane() const { return *realtime; }
-		cpl::Profiling::Lane& getAsyncDSPLane() const { return *async; };
-		std::shared_ptr<cpl::Profiling::Lane> getRenderingLane() const { return rendering; };
+		std::shared_ptr<cpl::Profiling::Lane> getRenderingProfilerLane() const { return rendering; };
 
 		cpl::relaxed_atomic<bool>
 			hideWidgetsOnMouseExit = false,
@@ -62,8 +53,7 @@ namespace Signalizer
 			showLegend = false;
 
 	private:
-		mutable std::shared_ptr<cpl::Profiling::Lane>
-			realtime, async, rendering;
+		std::shared_ptr<cpl::Profiling::Lane> rendering;
 	};
 };
 

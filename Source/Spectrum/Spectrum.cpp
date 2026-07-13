@@ -45,7 +45,7 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream,
 		std::shared_ptr<SpectrumContent> params
 	)
-		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingLane())
+		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingProfilerLane())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, state()

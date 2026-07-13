@@ -95,8 +95,8 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
-			std::shared_ptr<cpl::Profiling::Lane> getRealtimeProfilingLane() { return realtimeLane; }
-			std::shared_ptr<cpl::Profiling::Lane> getAsyncProfilingLane() { return asyncLane; }
+			std::shared_ptr<cpl::Profiling::Lane> getRealtimeProfilerLane() { return realtimeLane; }
+			std::shared_ptr<cpl::Profiling::Lane> getAsyncProfilerLane() { return asyncLane; }
 
 			HostGraph& getHostGraph() { return *graph; }
 			cpl::SignalGeneratorValue* getSignalGeneratorValue() { return &signalGeneratorValue; }

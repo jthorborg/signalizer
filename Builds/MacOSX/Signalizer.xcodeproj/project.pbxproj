@@ -166,6 +166,7 @@
 		227937B53C762A13E5D35502 /* StreamPreprocessing.h */ /* StreamPreprocessing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StreamPreprocessing.h; path = ../../Source/Oscilloscope/StreamPreprocessing.h; sourceTree = SOURCE_ROOT; };
 		22F411D1CBD09DB738D92570 /* pf_altivec_float.h */ /* pf_altivec_float.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = pf_altivec_float.h; path = ../../External/cpl/ffts/pffft/simd/pf_altivec_float.h; sourceTree = SOURCE_ROOT; };
 		2343D546BD36B3DEBA4878BB /* CSerializer.h */ /* CSerializer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CSerializer.h; path = ../../External/cpl/state/CSerializer.h; sourceTree = SOURCE_ROOT; };
+		23C0BCA3095502CA032CBC0F /* JuceModelDisplay.h */ /* JuceModelDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = JuceModelDisplay.h; path = ../../External/cpl/profiling/JuceModelDisplay.h; sourceTree = SOURCE_ROOT; };
 		23E9FDCEAB589D7C91A221CF /* CThread.h */ /* CThread.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = CThread.h; path = ../../External/cpl/CThread.h; sourceTree = SOURCE_ROOT; };
 		24DD729052BC99D928BFA060 /* VST3 Manifest Helper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = juce_vst3_helper; sourceTree = BUILT_PRODUCTS_DIR; };
 		2582C99FA4B01500061434BE /* CToolTip.cpp */ /* CToolTip.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = CToolTip.cpp; path = ../../External/cpl/gui/CToolTip.cpp; sourceTree = SOURCE_ROOT; };
@@ -312,6 +313,7 @@
 		7876937DB5137B0B6F07F61B /* OpenGLRendering.h */ /* OpenGLRendering.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = OpenGLRendering.h; path = ../../External/cpl/rendering/OpenGLRendering.h; sourceTree = SOURCE_ROOT; };
 		78A42654080140A61366CC43 /* MainEditor.cpp */ /* MainEditor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MainEditor.cpp; path = ../../Source/Editor/MainEditor.cpp; sourceTree = SOURCE_ROOT; };
 		79DCAEE818B7923CCAA7299B /* juce_events */ /* juce_events */ = {isa = PBXFileReference; lastKnownFileType = folder; name = juce_events; path = ../../External/juce/modules/juce_events; sourceTree = SOURCE_ROOT; };
+		7A21D5FABF97EB0860043F36 /* JuceModelDisplay.cpp */ /* JuceModelDisplay.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = JuceModelDisplay.cpp; path = ../../External/cpl/profiling/JuceModelDisplay.cpp; sourceTree = SOURCE_ROOT; };
 		7A2910A71A455FC797ABBE52 /* Common.h */ /* Common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Common.h; path = ../../External/cpl/Common.h; sourceTree = SOURCE_ROOT; };
 		7A2AF3F42A04FB47978487E6 /* SpectrumController.cpp */ /* SpectrumController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SpectrumController.cpp; path = ../../Source/Spectrum/SpectrumController.cpp; sourceTree = SOURCE_ROOT; };
 		7B917AF43C5953F3BE3CC253 /* simd_cast.h */ /* simd_cast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = simd_cast.h; path = ../../External/cpl/simd/simd_cast.h; sourceTree = SOURCE_ROOT; };
@@ -1011,6 +1013,8 @@
 		6ED3CADD36EB4380210BBBDE /* profiling */ = {
 			isa = PBXGroup;
 			children = (
+				7A21D5FABF97EB0860043F36,
+				23C0BCA3095502CA032CBC0F,
 				4532C9AA10B6EE969B9CF851,
 				8A16C3B3452136B9B02304F1,
 				029CCD4362BCA1EBC613C0CB,
