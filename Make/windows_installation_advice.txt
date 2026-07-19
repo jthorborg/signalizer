@@ -6,6 +6,9 @@ For VST 2:
 For VST 3:
 	Copy "Signalizer.vst3" into your VST3 folder.
 
+For standalone:
+	Copy "Signalizer" to any location you prefer.
+
 -------------------
 
 If you're unsure about where your VSTPlugins folder is, it can be very custom and I'd advise to research the internet for your particular DAW if you didn't choose it yourself.

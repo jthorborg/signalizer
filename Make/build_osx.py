@@ -58,7 +58,7 @@ def build(program):
 
 	# rewrite build plist
 	root_plist = cm.join("../Builds/MacOSX/Info")
-	plist_variants = [root_plist + list + ".plist" for list in ["-AU", "-VST", "-VST3", "-VST3_Manifest_Helper", ""]]
+	plist_variants = [root_plist + list + ".plist" for list in ["-AU", "-VST", "-VST3", "-VST3_Manifest_Helper", "-Standalone_Plugin", ""]]
 
 	for plist in plist_variants:
 		print("------> rewriting plist " + plist)
@@ -76,7 +76,7 @@ def build(program):
 	set_plist_option(aulist, "Set :AudioComponents:0:type aufx")
 	set_plist_option(aulist, "Set :AudioComponents:0:version " + str(version_int))
 
-	build_variants = ["AU", "VST3"]
+	build_variants = ["AU", "VST3", "Standalone Plugin"]
 
 	if not program.skipvst2:
 		build_variants = build_variants + ["VST"]

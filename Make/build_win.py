@@ -192,7 +192,16 @@ def build(program):
 	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
 	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-win"), dirs_exist_ok=True)
 	os.makedirs(cm.join("Symbols", "VST3"))
-	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST3", "Signalizer.pdb")) 
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "VST3", "Signalizer.pdb"))
+
+	# Standalone section
+	build_dir = cm.join(vcxpath, "x64", program.configString, "Standalone Plugin")
+	output_dir = cm.join(rootdir, "Signalizer")
+
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.exe"), cm.join(output_dir, "Signalizer.exe"))
+	os.makedirs(cm.join("Symbols", "Standalone"))
+	sh.copy(cm.join(build_dir, "Signalizer.pdb"), cm.join("Symbols", "Standalone", "Signalizer.pdb"))
 
 	print("------> Zipping output directories...")
 

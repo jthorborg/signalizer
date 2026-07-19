@@ -26,14 +26,23 @@ os.chdir('Make')
 try:
     if args.mode == 'dev':
         import Make.common as cm
-        # TODO: Implement development builds on other platforms.
-        import Make.build_win as bw
         config = cm.DevConfig(args)
         print(f"------> Building Signalizer Debug Standalone {config.arch} targets")
-        binary, log_path = bw.build_dev(config)
+
+        if cm.is_windows:
+            import Make.build_win as bw
+            binary, log_path = bw.build_dev(config)
+        elif cm.is_linux:
+            import Make.build_linux as bl
+            binary, log_path = bl.build_dev(config)
+        else:
+            # TODO: Implement development builds on macOS.
+            print("------> Dev builds are not yet implemented on this platform.")
+            exit(1)
+
         print("------> Built Signalizer successfully into:")
         print(binary)
-        if not config.verbose:
+        if log_path and not config.verbose:
             print(f"------> Build log: {log_path}")
 
     elif args.mode == 'release':

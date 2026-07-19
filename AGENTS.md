@@ -16,7 +16,7 @@ python build.py release          # All formats, packaged into /Releases
 ```
 By default output is quiet, full logs are printed and found in `Make/Logs/` or use `--verbose` for full compiler output (`--help` is also available).
 
-- `dev` is currently implemented for Windows only (see the TODO in `build.py`); `release` covers Windows/macOS/Linux.
+- `dev` is currently implemented for Windows and Linux (see the TODO in `build.py` for macOS); `release` covers Windows/macOS/Linux.
 - Windows requires Visual Studio 2022. VST2 formats need the SDK at `../SDKs/vstsdk2.4` (`release -s` skips VST2).
 
 ## Structure

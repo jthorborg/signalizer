@@ -11,12 +11,14 @@ You may need to restart your computer after you've done this.
 
 If you're unsure about where your Plug-Ins folder is, it can be very custom and I'd advise to research the internet for your particular operating system if you didn't choose it yourself.
 
+Note that the Signalizer.app is a self-contained runnable program, you would typically move this into your Applications.
+
 -------------------
 
 *** IF MACOS TELLS YOU THE PLUGIN IS DAMAGED AND CAN'T BE OPENED: ***
 
 First, make sure you downloaded this from the only official source:
-https://bitbucket.org/Mayae/signalizer/downloads/
+https://github.com/jthorborg/signalizer/releases
 
 Then you may need to execute the following command in Terminal:
 

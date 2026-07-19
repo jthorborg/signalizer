@@ -4,6 +4,8 @@ Select the "Signalizer" folder plugin:
 
 and copy into your ~/.vst or ~/.vst3 folder respectively - that should be it!
 
+Signalizer also comes as a standalone in a folder with an executable you can run directly, and set up your audio I/O as you prefer. This folder can be placed anywhere you prefer.
+
 This was only tested to work on Ubuntu24 lts. This release links against the following libs:
 
 - libasound2-dev
@@ -27,7 +29,7 @@ Assuming you have a C++17 setup and placed the VST sdks in ../SDKs/*, you can bu
 
 $ git clone https://github.com/jthorborg/signalizer
 $ python3 prepare.py
-$ python3 build.py
+$ python3 build.py release
 
 -------------------
 
