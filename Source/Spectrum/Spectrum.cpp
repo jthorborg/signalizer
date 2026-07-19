@@ -45,7 +45,7 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream,
 		std::shared_ptr<SpectrumContent> params
 	)
-		: GraphicsWindow(params->getName())
+		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingProfilerLane())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, state()
@@ -186,6 +186,10 @@ namespace Signalizer
 				break;
 		}
 
+		// exp() maps additive wheel travel to a multiplicative scale on the window span,
+		// so equal travel in and out composes to exactly identity (reciprocal for free)
+		auto zoomFactor = [](double travel) { return 1 - std::exp(-travel / 5); };
+
 		// shift down equals modification of dbs instead.
 		if (!event.mods.isShiftDown())
 		{
@@ -194,8 +198,7 @@ namespace Signalizer
 			auto right = content->viewRight.getTransformedValue();
 
 			auto delta = left - right;
-			auto inc = -delta * wheel.deltaY / 5;
-			// TODO: change to pow()
+			auto inc = -delta * zoomFactor(wheel.deltaY);
 			content->viewLeft.setTransformedValue(left + newFreqPos * inc);
 			content->viewRight.setTransformedValue(right - (1 - newFreqPos) * inc);
 
@@ -210,9 +213,9 @@ namespace Signalizer
 #ifdef CPL_MAC
 			// OS X internally is extremely inconsistent between drivers, mouses trackpads and what not
 			// best solution seems to be just to consider both axi and get some weird results once in a while
-			auto inc = delta * (wheel.deltaY + wheel.deltaX) / 5;
+			auto inc = delta * zoomFactor(wheel.deltaY + wheel.deltaX);
 #else
-			auto inc = delta * wheel.deltaY / 5;
+			auto inc = delta * zoomFactor(wheel.deltaY);
 #endif
 			dbs.low += newDBPos * inc;
 			dbs.high -= (1 - newDBPos) * inc;
@@ -351,6 +354,8 @@ namespace Signalizer
 
 	bool Spectrum::handleFlagUpdates(StreamState& stream)
 	{
+		CPL_PROFILE("Spectrum::handleFlagUpdates");
+
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;

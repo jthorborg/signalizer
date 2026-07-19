@@ -2,7 +2,7 @@
 
 	Signalizer - cross-platform audio visualization plugin - v. 0.x.y
 
-	Copyright (C) 2021 Janus Lynggaard Thorborg (www.jthorborg.com)
+	Copyright (C) 2026 Janus Lynggaard Thorborg (www.jthorborg.com)
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -21,41 +21,52 @@
 
 **************************************************************************************
 
-	file:GraphEditor.h
+	file:ProfilerWindow.cpp
 
-		An UI for editing the host graph connections feeding into this Signalizer.
+		Implementation of ProfilerWindow.cpp
 
 *************************************************************************************/
 
-#ifndef SIGNALIZER_GRAPHEDITOR_H
-	#define SIGNALIZER_GRAPHEDITOR_H
+#include <memory>
 
-	#include <memory>
-	#include <cpl/Common.h>
+#if CPL_PROFILING
+#include <cpl/profiling/JuceModelDisplay.h>
+#endif
 
-	namespace Signalizer
+#include "ProfilerWindow.h"
+#include "MainEditor.h"
+#include "../Common/SharedBehaviour.h"
+
+namespace Signalizer
+{
+	ProfilerWindow::ProfilerWindow(MainEditor* editor, const std::vector<std::shared_ptr<cpl::Profiling::Lane>>& lanes)
+		: juce::DocumentWindow("Profiler", juce::Colours::black, juce::DocumentWindow::TitleBarButtons::allButtons)
+		, editor(editor)
 	{
-		class AudioProcessor;
-		class MainEditor;
-		class GraphEditorContent;
-		class HostGraph;
-
-		class GraphEditor : public juce::DocumentWindow
-		{
-		public:
-
-			GraphEditor(MainEditor* editor, HostGraph& h);
-			~GraphEditor();
-
-			void mainEditorDied();
-			void closeButtonPressed() override;
-
-		private:
-			std::shared_ptr<GraphEditorContent> content;
-
-			MainEditor* editor;
-			HostGraph& host;
-		};
+		setUsingNativeTitleBar(true);
+		setResizable(true, false);
+#if CPL_PROFILING
+		setContentOwned(new cpl::Profiling::EWMAProfilerComponent(lanes), false);
+#endif
+		centreWithSize(800, 500);
+		setVisible(true);
 	}
 
-#endif
+	ProfilerWindow::~ProfilerWindow()
+	{
+		if (editor)
+			editor->profilerWindowDied();
+	}
+
+	void ProfilerWindow::mainEditorDied()
+	{
+		editor = nullptr;
+		delete this;
+	}
+
+	void ProfilerWindow::closeButtonPressed()
+	{
+		delete this;
+	}
+}
+

@@ -48,6 +48,7 @@
 	{
 		class AudioProcessor;
 		class GraphEditor;
+		class ProfilerWindow;
 
 		class MainEditor
 		:
@@ -108,6 +109,8 @@
 			void showAboutBox();
 
 			void graphEditorDied();
+
+			void profilerWindowDied();
 
 		protected:
 
@@ -184,7 +187,7 @@
 			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk, kgraph;
 
 			// Editor controls
-			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog;
+			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog, kopenProfiler;
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias, klegendChoice;
@@ -220,6 +223,7 @@
 			MixGraphListener::Handle mixGraph;
 			std::shared_ptr<AudioStream::Output> presentationOutput;
 			GraphEditor* graphEditor;
+			ProfilerWindow* profilerWindow;
 		};
 	};
 

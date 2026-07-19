@@ -61,6 +61,10 @@
       <FILE id="PColoF" name="GraphEditor.h" compile="0" resource="0" file="Source/Editor/GraphEditor.h"/>
       <FILE id="G3Hzx1" name="MainEditor.cpp" compile="1" resource="0" file="Source/Editor/MainEditor.cpp"/>
       <FILE id="QNbBSU" name="MainEditor.h" compile="0" resource="0" file="Source/Editor/MainEditor.h"/>
+      <FILE id="hIYePO" name="ProfilerWindow.cpp" compile="1" resource="0"
+            file="Source/Editor/ProfilerWindow.cpp"/>
+      <FILE id="v59hpf" name="ProfilerWindow.h" compile="0" resource="0"
+            file="Source/Editor/ProfilerWindow.h"/>
     </GROUP>
     <GROUP id="{7049AEF5-9362-E35B-098A-FE94006CAD94}" name="Oscilloscope">
       <FILE id="SnBRHE" name="ChannelData.h" compile="0" resource="0" file="Source/Oscilloscope/ChannelData.h"/>
@@ -113,6 +117,17 @@
             file="Source/Vectorscope/VectorscopeRendering.cpp"/>
     </GROUP>
     <GROUP id="{A9545CFA-DE33-D8B7-6C48-79AE135732F4}" name="cpl">
+      <GROUP id="{98A801AE-209E-0B16-9557-4EF7F3F677DB}" name="profiling">
+        <FILE id="jqvmqd" name="JuceModelDisplay.cpp" compile="0" resource="0"
+              file="External/cpl/profiling/JuceModelDisplay.cpp"/>
+        <FILE id="okQYVv" name="JuceModelDisplay.h" compile="0" resource="0"
+              file="External/cpl/profiling/JuceModelDisplay.h"/>
+        <FILE id="Bq8e47" name="Profiling.h" compile="0" resource="0" file="External/cpl/profiling/Profiling.h"/>
+        <FILE id="YGmLER" name="ProfilingClock.h" compile="0" resource="0"
+              file="External/cpl/profiling/ProfilingClock.h"/>
+        <FILE id="Vx6MKV" name="ProfilingModel.h" compile="0" resource="0"
+              file="External/cpl/profiling/ProfilingModel.h"/>
+      </GROUP>
       <GROUP id="{4AACA934-8BF5-1F76-92D4-8860EF369A8D}" name="octave">
         <GROUP id="{BAB811F8-7608-56B0-E83B-D76714B39B24}" name="signal">
           <FILE id="X4l8Bd" name="__ultrwin__.cc" compile="0" resource="0" file="External/cpl/octave/signal/__ultrwin__.cc"/>
@@ -426,7 +441,6 @@
         </GROUP>
         <FILE id="ZlhfRA" name="dustfft.cpp" compile="0" resource="0" file="External/cpl/ffts/dustfft.cpp"/>
         <FILE id="krZShf" name="dustfft.h" compile="0" resource="0" file="External/cpl/ffts/dustfft.h"/>
-        <FILE id="nsZoNn" name="Transforms.h" compile="0" resource="0" file="External/cpl/ffts/Transforms.h"/>
         <FILE id="R7ADId" name="unifft.h" compile="0" resource="0" file="External/cpl/ffts/unifft.h"/>
       </GROUP>
       <GROUP id="{65E7890C-2616-3372-D0EA-88E113D06D27}" name="gui">
@@ -597,7 +611,7 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" vstLegacyFolder="../SDKs/vstsdk2.4"
                customXcodeResourceFolders="make/Skeleton/licenses&#10;make/Skeleton/presets&#10;make/Skeleton/resources&#10;make/Skeleton/READ ME.txt"
-               xcodeValidArchs="arm64,arm64e,x86_64" extraDefs="CPL_TRACEGUARD_ENTRYPOINTS">
+               xcodeValidArchs="arm64,arm64e,x86_64" extraDefs="CPL_TRACEGUARD_ENTRYPOINTS&#10;CPL_PROFILING=1">
       <CONFIGURATIONS>
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" isDebug="1"
                        optimisation="1" targetName="Signalizer" fastMath="1"/>
@@ -622,7 +636,7 @@
       </MODULEPATHS>
     </XCODE_MAC>
     <VS2022 targetFolder="Builds/VisualStudio2022" vstLegacyFolder="../SDKs/vstsdk2.4"
-            extraDefs="JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1&#10;CPL_TRACEGUARD_ENTRYPOINTS">
+            extraDefs="JUCE_GUI_BASICS_INCLUDE_SCOPED_THREAD_DPI_AWARENESS_SETTER=1&#10;CPL_TRACEGUARD_ENTRYPOINTS&#10;CPL_PROFILING=1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" fastMath="1" enablePluginBinaryCopyStep="1"
                        vstBinaryLocation_x64="C:\Audio\VSTPlugins\Signalizer" winWarningLevel="3"
@@ -652,7 +666,7 @@
     </VS2022>
     <LINUX_MAKE targetFolder="Builds/LinuxMakefile" vstLegacyFolder="../SDKs/vstsdk2.4"
                 extraCompilerFlags="-Wno-ignored-attributes -flax-vector-conversions -DJUCE_MODAL_LOOPS_PERMITTED=1"
-                extraDefs="CPL_TRACEGUARD_ENTRYPOINTS">
+                extraDefs="CPL_TRACEGUARD_ENTRYPOINTS&#10;CPL_PROFILING=1">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug"/>
         <CONFIGURATION isDebug="0" name="Release"/>

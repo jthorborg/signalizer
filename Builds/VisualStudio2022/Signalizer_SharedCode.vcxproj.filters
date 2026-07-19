@@ -26,6 +26,9 @@
     <Filter Include="Signalizer\Vectorscope">
       <UniqueIdentifier>{26BE41C4-384B-7986-05F3-B1D3DB149F43}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Signalizer\cpl\profiling">
+      <UniqueIdentifier>{DE90D717-0E54-C3B4-A93B-B93AFE9A9E82}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Signalizer\cpl\octave\signal">
       <UniqueIdentifier>{B23E1463-A731-DA3A-C067-173FFB14B7D8}</UniqueIdentifier>
     </Filter>
@@ -832,6 +835,9 @@
     <ClCompile Include="..\..\Source\Editor\MainEditor.cpp">
       <Filter>Signalizer\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Source\Editor\ProfilerWindow.cpp">
+      <Filter>Signalizer\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\Oscilloscope\Oscilloscope.cpp">
       <Filter>Signalizer\Oscilloscope</Filter>
     </ClCompile>
@@ -864,6 +870,9 @@
     </ClCompile>
     <ClCompile Include="..\..\Source\Vectorscope\VectorscopeRendering.cpp">
       <Filter>Signalizer\Vectorscope</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\External\cpl\profiling\JuceModelDisplay.cpp">
+      <Filter>Signalizer\cpl\profiling</Filter>
     </ClCompile>
     <ClCompile Include="..\..\External\cpl\octave\signal\__ultrwin__.cc">
       <Filter>Signalizer\cpl\octave\signal</Filter>
@@ -4161,6 +4170,9 @@
     <ClInclude Include="..\..\Source\Editor\MainEditor.h">
       <Filter>Signalizer\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\Editor\ProfilerWindow.h">
+      <Filter>Signalizer\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\Oscilloscope\ChannelData.h">
       <Filter>Signalizer\Oscilloscope</Filter>
     </ClInclude>
@@ -4202,6 +4214,18 @@
     </ClInclude>
     <ClInclude Include="..\..\Source\Vectorscope\VectorscopeParameters.h">
       <Filter>Signalizer\Vectorscope</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\profiling\JuceModelDisplay.h">
+      <Filter>Signalizer\cpl\profiling</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\profiling\Profiling.h">
+      <Filter>Signalizer\cpl\profiling</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\profiling\ProfilingClock.h">
+      <Filter>Signalizer\cpl\profiling</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\External\cpl\profiling\ProfilingModel.h">
+      <Filter>Signalizer\cpl\profiling</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\cpl\octave\signal\octave_signal.h">
       <Filter>Signalizer\cpl\octave\signal</Filter>
@@ -4576,9 +4600,6 @@
       <Filter>Signalizer\cpl\ffts\pffft</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\cpl\ffts\dustfft.h">
-      <Filter>Signalizer\cpl\ffts</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\External\cpl\ffts\Transforms.h">
       <Filter>Signalizer\cpl\ffts</Filter>
     </ClInclude>
     <ClInclude Include="..\..\External\cpl\ffts\unifft.h">

@@ -62,9 +62,13 @@ namespace Signalizer
 	{
 		template<typename ISA> static void dispatch(Spectrum::ProcessorShell& shell, AudioStream::ListenerContext& source, AudioStream::DataType** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			CPL_PROFILE("Spectrum::audioDispatch");
+
 			CPL_RUNTIME_ASSERTION(numChannels % 2 == 0);
 
-			auto access = shell.streamState.lock();
+			CPL_PROFILE_EXPRESSION(
+				auto access = shell.streamState.lock();
+			);
 
 			if (!access->everConfigured || numChannels < 2 || access->pairs.empty())
 				return;
@@ -75,11 +79,14 @@ namespace Signalizer
 			std::optional<AudioStream::AudioBufferAccess> aba;
 			if (access->constant.algo == SpectrumContent::TransformAlgorithm::FFT)
 			{
-				aba.emplace(source.getAudioBufferViews(true));
+				CPL_PROFILE_EXPRESSION(
+					aba.emplace(source.getAudioBufferViews(true));
+				);
 			}
 
 			const auto authorityCounter = access->pairs[0].processedSamplesSinceLastFrame;
 
+			CPL_PROFILE_BEGIN("::parallel-audio-dispatch");
 			cpl::jobs::parallel_for(
 				numChannels / 2,
 				[&](auto i)
@@ -100,6 +107,7 @@ namespace Signalizer
 					);
 				}
 			);
+			CPL_PROFILE_END;
 
 			if (access->constant.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
 			{
@@ -110,7 +118,9 @@ namespace Signalizer
 		template<typename ISA>
 		static void blendAndDispatchSpectrums(Spectrum::ProcessorShell& shell, Spectrum::StreamState& state)
 		{
-			if (state.pairs.size() < 0 || state.pairs[0].sfbuf.size() < 1)
+			CPL_PROFILE("Spectrum::blendAndDispatchSpectrums");
+
+			if (state.pairs.size() < 1 || state.pairs[0].sfbuf.size() < 1)
 				return;
 
 			for (std::size_t i = 1; i < state.pairs.size(); ++i)
@@ -173,11 +183,13 @@ namespace Signalizer
 			{
 				colourBuffer.resize(state.constant.axisPoints);
 
+				CPL_PROFILE_BEGIN("::blend-inputs");
 				// render a frame for each pair and blend it into the buffer
 				for (std::size_t p = 0; p < state.pairs.size(); ++p)
 				{
 					renderSf(colourBuffer, state.pairs[p].sfbuf[s], state.constant.generateSpectrogramColourRotation(p));
 				}
+				CPL_PROFILE_END;
 
 				Spectrum::SFrameQueue::ElementAccess access;
 
@@ -190,6 +202,7 @@ namespace Signalizer
 
 				constexpr auto maxByte = std::numeric_limits<std::uint8_t>::max();
 
+				CPL_PROFILE_BEGIN("::normalize-frame");
 				for (std::size_t p = 0; p < state.constant.axisPoints; ++p)
 				{
 					pixels[p].pixel.r = static_cast<std::uint8_t>(colourBuffer[p][0] * maxByte);
@@ -197,7 +210,7 @@ namespace Signalizer
 					pixels[p].pixel.b = static_cast<std::uint8_t>(colourBuffer[p][2] * maxByte);
 					pixels[p].pixel.a = maxByte;
 				}
-
+				CPL_PROFILE_END;
 				colourBuffer.resize(0);
 			}
 
@@ -262,6 +275,7 @@ namespace Signalizer
 
 	double Spectrum::getScallopingLossAtCoordinate(std::size_t coordinate, const Constant& constant)
 	{
+		CPL_PROFILE("Spectrum::calculateScallopingLoss");
 		auto ret = 0.6366; // default absolute worst case (equivalent to sinc(0.5), ie. rectangular windows
 
 		if (state.axisPoints < 3)

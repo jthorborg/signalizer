@@ -48,18 +48,12 @@ namespace Signalizer
 
 	constexpr int supportedChannels = 2;
 
-	AudioProcessor::AudioProcessor()
-		: AudioProcessor(AudioStream::create(true, 16))
-	{
-
-	}
-
 	std::shared_ptr<const ConcurrentConfig> AudioProcessor::getConcurrentConfig()
 	{
 		return std::const_pointer_cast<const ConcurrentConfig>(config);
 	}
 
-	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
+	AudioProcessor::AudioProcessor(AudioStream::IO&& io, std::shared_ptr<cpl::Profiling::Lane> asyncProfilingLane)
 		: config(std::make_shared<ConcurrentConfig>())
 		, realtimeInput(std::move(std::get<0>(io)))
 		, realtimeOutput(std::get<1>(io))
@@ -70,6 +64,8 @@ namespace Signalizer
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
+		, realtimeLane(std::make_shared<cpl::Profiling::Lane>("Real-time host", true /* is realtime */))
+		, asyncLane(std::move(asyncProfilingLane))
 	{
 
 		SystemView view { getConcurrentConfig(), *this};
@@ -179,6 +175,9 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
+		cpl::Profiling::ProfilerFrame profilerFrame(realtimeLane.get());
+		profilerFrame.setWork(static_cast<float>(buffer.getNumSamples()), static_cast<float>(getSampleRate()));
+
 		int bufferSize = buffer.getNumSamples();
 
 		if (!NONTERMINAL_ASSUMPTION(lastRecordedInputCount == getNumInputChannels()))
@@ -207,7 +206,10 @@ namespace Signalizer
 			inputs[i] = surrogateArray.data();
 		}
 
-		signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+		{
+			CPL_PROFILE("SignalGenerator::Process");
+			signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+		}
 
 		if (realtimeInput.isAnyoneListening())
 		{
@@ -520,5 +522,14 @@ namespace Signalizer
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new Signalizer::AudioProcessor();
+	auto asyncLane = std::make_shared<cpl::Profiling::Lane>("Async Signal Processing", false /* is not realtime */);
+	return new Signalizer::AudioProcessor(
+		Signalizer::AudioStream::create(
+			true, // async
+			16, // buffer 16 packets initially
+			std::nullopt, // default max size
+			asyncLane
+		), 
+		asyncLane
+	);
 }

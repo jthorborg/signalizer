@@ -39,6 +39,7 @@
 #include "version.h"
 #include <cpl/Mathext.h>
 #include "GraphEditor.h"
+#include "ProfilerWindow.h"
 #include <set>
 
 // ADD OPTION TO NOT KILL FULLSCREEN WHEN LOOSING FOCUS
@@ -142,11 +143,22 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, globalState(std::make_shared<SharedBehaviour>())
+		, profilerWindow(nullptr)
 		, kgraphSerialization(e->getHostGraph().getGraphSerializationValue())
 		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
-		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
+		globalState = std::make_shared<SharedBehaviour>(
+			// rendering lane - never used directly by us (yet, will change when we draw centralized overlays)
+			std::make_shared<cpl::Profiling::Lane>("Rendering", false)
+		);
+
+		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(
+			e->getRealtimeOutput(), 
+			// previously accessed as a friend member 
+			// - this is the only place we give mutating access - ConcurrentConfig is a hack anyway, use onStreamPropertiesChanged.
+			*std::const_pointer_cast<ConcurrentConfig>(e->getConcurrentConfig())
+		);
+
 		e->getHostGraph().setMixGraph(mixGraph);
 
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
@@ -186,6 +198,9 @@ namespace Signalizer
 	{
 		if (graphEditor)
 			graphEditor->mainEditorDied();
+
+		if (profilerWindow)
+			profilerWindow->mainEditorDied();
 
 		suspendView(views[selTab]);
 		notifyDestruction();
@@ -237,6 +252,9 @@ namespace Signalizer
 				section->addControl(&khideTabs, 2);
 				section->addControl(&kstopProcessingOnSuspend, 0);
 				section->addControl(&khideWidgets, 1);
+#if CPL_PROFILING
+				section->addControl(&kopenProfiler, 2);
+#endif
 				page->addSection(section, "Options");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -660,6 +678,15 @@ namespace Signalizer
 				graphEditor = new GraphEditor(this, engine->getHostGraph());
 			else
 				graphEditor->toFront(true);
+		}
+		else if (c == &kopenProfiler)
+		{
+#if CPL_PROFILING
+			if (!profilerWindow)
+				profilerWindow = new ProfilerWindow(this, { globalState->getRenderingProfilerLane(), engine->getRealtimeProfilerLane(), engine->getAsyncProfilerLane() });
+			else
+				profilerWindow->toFront(true);
+#endif
 		}
 		else if (c == &kmaxHistorySize)
 		{
@@ -1554,6 +1581,11 @@ namespace Signalizer
 		graphEditor = nullptr;
 	}
 
+	void MainEditor::profilerWindowDied()
+	{
+		profilerWindow = nullptr;
+	}
+
 	void MainEditor::initUI()
 	{
 		auto & lnf = cpl::CLookAndFeel_CPL::defaultLook();
@@ -1580,6 +1612,7 @@ namespace Signalizer
 		kstopProcessingOnSuspend.bAddChangeListener(this);
 		khideWidgets.bAddChangeListener(this);
 		krevealExceptionLog.bAddChangeListener(this);
+		kopenProfiler.bAddChangeListener(this);
 
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1609,6 +1642,7 @@ namespace Signalizer
 		kstableFps.setSingleText("Stable FPS");
 		kvsync.setSingleText("Vertical Sync");
 		krevealExceptionLog.setSingleText("Reveal log");
+		kopenProfiler.setSingleText("Open profiler");
 
 		kstopProcessingOnSuspend.setSingleText("Suspend processing");
 		khideWidgets.setSingleText("Hide widgets");
@@ -1674,6 +1708,8 @@ namespace Signalizer
 		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
 		kgraphSerialization.bSetDescription(engine->getHostGraph().getGraphSerializationHelpText());
 		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
+		kopenProfiler.bSetDescription("Open a frame graph profiler to analyse Signalizer's runtime performance");
+
 		resized();
 	}
 };
