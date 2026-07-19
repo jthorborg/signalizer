@@ -4,11 +4,15 @@ import argparse
 parser = argparse.ArgumentParser(prog='build.py')
 sub = parser.add_subparsers(dest='mode', required=True)
 
-dev_p = sub.add_parser('dev', help='Debug Standalone build for development/testing')
+dev_p = sub.add_parser('dev', help='Standalone build for development/testing (Debug by default)')
 dev_p.add_argument('--arch', default='x64', choices=['x64', 'arm64'])
 dev_p.add_argument('--verbose', action='store_true', help='Stream full build output')
 dev_p.add_argument('--errors', type=int, default=3, metavar='N',
                    help='Max errors to print on failure (default: 3)')
+dev_p.add_argument('-o', '--optimized', action='store_true',
+                   help='Build with optimized (Release) code generation instead of Debug')
+dev_p.add_argument('--run', action='store_true',
+                   help='Launch the built Standalone if the build succeeds')
 
 rel_p = sub.add_parser('release', help='Full release build with packaging')
 rel_p.add_argument('-d', '--debug', action='store_true', help='Debug code generation')
@@ -27,7 +31,7 @@ try:
     if args.mode == 'dev':
         import Make.common as cm
         config = cm.DevConfig(args)
-        print(f"------> Building Signalizer Debug Standalone {config.arch} targets")
+        print(f"------> Building Signalizer {config.configString} Standalone {config.arch} targets")
 
         if cm.is_windows:
             import Make.build_win as bw
@@ -44,6 +48,11 @@ try:
         print(binary)
         if log_path and not config.verbose:
             print(f"------> Build log: {log_path}")
+
+        if args.run:
+            import subprocess
+            print("------> Launching " + binary)
+            subprocess.Popen([binary], cwd=os.path.dirname(binary))
 
     elif args.mode == 'release':
         import Make.common as cm

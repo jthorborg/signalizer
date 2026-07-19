@@ -56,6 +56,8 @@ class DevConfig:
 		self.verbose = args.verbose
 		self.max_errors = args.errors
 		self.logs_dir = "Logs"
+		self.optimized = args.optimized
+		self.configString = "Release" if self.optimized else "Debug"
 
 
 class ProgramConfig:

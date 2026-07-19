@@ -12,12 +12,12 @@ def compiler_invoke(args):
 	return os.system("make --directory=" + make_dir + " " + args)
 
 def build_dev(config):
-	"""Debug Standalone build for development/testing. Returns the path to the built executable."""
-	if compiler_invoke("CONFIG=Debug Standalone") != 0:
+	"""Standalone build for development/testing. Returns the path to the built executable."""
+	if compiler_invoke("CONFIG=" + config.configString + " Standalone") != 0:
 		print("------> Error building...")
 		exit(1)
 
-	build_dir = cm.join(make_dir, "build")
+	build_dir = os.path.abspath(cm.join(make_dir, "build"))
 
 	# merge the resource skeleton (presets/resources/licenses) next to the binary
 	# so the standalone is runnable straight out of its build location, mirroring

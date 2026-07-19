@@ -125,7 +125,7 @@ def setup_resource(outputfile, major, minor, build, name, description, company):
 		out.writelines(contents)
 
 def build_dev(config):
-	"""Debug Standalone build. Returns the path to the built executable."""
+	"""Standalone build for development. Returns the path to the built executable."""
 	vcxpath = os.path.abspath(cm.join("..", "Builds", "VisualStudio2022"))
 	solution_dir = vcxpath + "\\"
 
@@ -136,7 +136,7 @@ def build_dev(config):
 
 	env = get_msvc_env(config.arch)
 	success, errors, log_path = run_msbuild(
-		projects, 'Debug', config.arch,
+		projects, config.configString, config.arch,
 		env, config.verbose, config.max_errors, config.logs_dir,
 		solution_dir=solution_dir
 	)
@@ -147,7 +147,7 @@ def build_dev(config):
 			print(line)
 		exit(1)
 
-	return cm.join(vcxpath, config.arch, "Debug", "Standalone Plugin", "Signalizer.exe"), log_path
+	return cm.join(vcxpath, config.arch, config.configString, "Standalone Plugin", "Signalizer.exe"), log_path
 
 
 def build(program):
