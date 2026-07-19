@@ -5,9 +5,74 @@ import sys
 import shutil as sh
 import zipfile as zip
 import subprocess
+import platform
+import datetime
+import re
 import common as cm
 
 from datetime import date
+
+_ERROR_RE = re.compile(r': error:', re.IGNORECASE)
+
+def build_dev(config):
+	"""Standalone build for development/testing. Returns the path to the built executable."""
+	xcode_arch = {"x64": "x86_64", "arm64": "arm64"}[config.arch]
+	# ONLY_ACTIVE_ARCH restricts the build to the machine's own arch (fast, single-slice);
+	# it's keyed off the actual host arch, not ARCHS, so requesting the *other* arch needs
+	# ONLY_ACTIVE_ARCH=NO + an explicit ARCHS override instead.
+	only_active = "YES" if xcode_arch == platform.machine() else "NO"
+
+	command = [
+		"xcodebuild",
+		"-project", "../Builds/MacOSX/Signalizer.xcodeproj",
+		"-scheme", "Signalizer - Standalone Plugin",
+		"-configuration", config.configString,
+		"ONLY_ACTIVE_ARCH=" + only_active,
+		"ARCHS=" + xcode_arch,
+	]
+
+	if not config.verbose:
+		command.append("-quiet")
+
+	# Product > Archive (run manually in Xcode against this project) leaves a symlink at
+	# build/<Config>/Signalizer.app pointing into DerivedData's ArchiveIntermediates, which
+	# breaks mkdir -p for a normal build once DerivedData is cleaned. Clear it if present.
+	app_bundle = cm.join("..", "Builds", "MacOSX", "build", config.configString, "Signalizer.app")
+	if os.path.islink(app_bundle):
+		os.unlink(app_bundle)
+
+	os.makedirs(config.logs_dir, exist_ok=True)
+	timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+	log_path = cm.join(config.logs_dir, f'build_{timestamp}.log')
+
+	if config.verbose:
+		print("---------> Compiler invocation: \n" + " ".join(command))
+		proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+		lines = []
+		for line in proc.stdout:
+			print(line, end='')
+			lines.append(line)
+		proc.wait()
+		returncode = proc.returncode
+	else:
+		proc = subprocess.run(command, capture_output=True, text=True)
+		lines = proc.stdout.splitlines(keepends=True) + proc.stderr.splitlines(keepends=True)
+		returncode = proc.returncode
+
+	with open(log_path, 'w') as f:
+		f.writelines(lines)
+
+	if returncode != 0:
+		print(f"------> Build failed (full log: {log_path})")
+		if not config.verbose:
+			errors = [l for l in lines if _ERROR_RE.search(l)]
+			for line in errors[:config.max_errors]:
+				print(line, end='')
+		exit(1)
+
+	build_dir = cm.join("..", "Builds", "MacOSX", "build", config.configString)
+	binary = os.path.abspath(cm.join(build_dir, "Signalizer.app", "Contents", "MacOS", "Signalizer"))
+	return binary, (None if config.verbose else log_path)
 
 def compiler_invoke(scheme, vstring, reloutdir, config):
 	command = (

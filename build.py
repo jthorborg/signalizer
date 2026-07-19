@@ -39,8 +39,10 @@ try:
         elif cm.is_linux:
             import Make.build_linux as bl
             binary, log_path = bl.build_dev(config)
+        elif cm.is_mac:
+            import Make.build_osx as bo
+            binary, log_path = bo.build_dev(config)
         else:
-            # TODO: Implement development builds on macOS.
             print("------> Dev builds are not yet implemented on this platform.")
             exit(1)
 
@@ -52,7 +54,14 @@ try:
         if args.run:
             import subprocess
             print("------> Launching " + binary)
-            subprocess.Popen([binary], cwd=os.path.dirname(binary))
+            # Detach fully: an undetached child inherits our stdio and (on POSIX) our
+            # session, so whatever's reading this terminal/pty keeps blocking on it
+            # until the GUI app quits, even though this script has already exited.
+            subprocess.Popen(
+                [binary], cwd=os.path.dirname(binary),
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
 
     elif args.mode == 'release':
         import Make.common as cm
