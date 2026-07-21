@@ -13,11 +13,39 @@ import datetime
 _ERROR_RE = re.compile(r': error \w', re.IGNORECASE)
 
 
-_VCVARSALL = r'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat'
+_VSWHERE = r'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+_VS_EDITIONS = ('Community', 'Professional', 'Enterprise', 'BuildTools')
+
+
+def find_vcvarsall():
+	"""Locate vcvarsall.bat for VS2022, regardless of edition."""
+	if os.path.exists(_VSWHERE):
+		result = subprocess.run(
+			[_VSWHERE, '-latest', '-products', '*',
+			 '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+			 '-property', 'installationPath'],
+			capture_output=True, encoding='oem'
+		)
+		install_path = result.stdout.strip()
+		if install_path:
+			candidate = os.path.join(install_path, 'VC', 'Auxiliary', 'Build', 'vcvarsall.bat')
+			if os.path.exists(candidate):
+				return candidate
+
+	for edition in _VS_EDITIONS:
+		candidate = rf'C:\Program Files\Microsoft Visual Studio\2022\{edition}\VC\Auxiliary\Build\vcvarsall.bat'
+		if os.path.exists(candidate):
+			return candidate
+
+	raise RuntimeError(
+		"Could not locate vcvarsall.bat for VS2022 (checked vswhere and common install paths)"
+	)
+
 
 def get_msvc_env(arch='x64'):
 	"""Return os.environ copy with MSVC toolchain loaded for the given arch."""
-	cmd = f'"{_VCVARSALL}" {arch} && set'
+	vcvarsall = find_vcvarsall()
+	cmd = f'"{vcvarsall}" {arch} && set'
 	result = subprocess.run(cmd, capture_output=True, encoding='oem', shell=True)
 	env = {}
 	for line in result.stdout.splitlines():
