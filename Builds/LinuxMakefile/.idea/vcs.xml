@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$/../.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/external/filesystem" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/external/simde" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/external/simde/test/munit" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/ffts/pffft" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/ffts/pffft/greenffts" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/ffts/pffft/kissfft" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/cpl/ffts/pffft/pocketfft" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../External/juce" vcs="Git" />
+  </component>
+</project>
