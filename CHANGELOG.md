@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
+- Support and binaries for Ubuntu linux 24+, if you have a CPU with AVX support
 - HiDPI support on Windows
 - Standalone development support
 - A signal generator in the general settings under the wrench
