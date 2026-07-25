@@ -7,10 +7,14 @@
 # Usage: ./gold_disasm.sh <symbol-substring> [path-to-binary]
 #
 # For each matching symbol, writes:
-#   gold/<symbol-substring>/<mangled-name>.asm
+#   gold/<arch>/<symbol-substring>/<mangled-name>.asm
 # with the c++filt-demangled name as the first line, followed by the
 # output of:
 #   objdump -d -S -l -M intel -C --no-show-raw-insn --disassemble=<demangled-name> <binary>
+#
+# Output is separated by arch (uname -m) so cross-platform gold files
+# (see ../MacOSX/gold_disasm.sh) don't collide or overwrite one another,
+# since codegen differs by architecture.
 #
 # Note: nm matches are filtered to code symbols (T/t/W/w/I/i) since
 # --disassemble only produces output for those; data symbols (e.g. local
@@ -38,11 +42,15 @@ usage() {
 substring=$1
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 binary=${2:-"$script_dir/build/Signalizer"}
-out_dir="$script_dir/gold/$substring"
+arch=$(uname -m)
+out_dir="$script_dir/gold/$arch/$substring"
 
 [[ -f "$binary" ]] || { echo "error: binary not found: $binary" >&2; exit 1; }
 
-mapfile -t symbols < <(
+symbols=()
+while IFS= read -r sym; do
+    symbols+=("$sym")
+done < <(
     nm "$binary" | awk '$2 ~ /^[TtWwIi]$/ { print $3 }' | grep -F -- "$substring" | sort -u
 )
 
@@ -60,7 +68,11 @@ max_name_len=200
 
 for sym in "${symbols[@]}"; do
     if (( ${#sym} > max_name_len )); then
-        hash=$(printf '%s' "$sym" | sha1sum | cut -c1-10)
+        if command -v sha1sum >/dev/null 2>&1; then
+            hash=$(printf '%s' "$sym" | sha1sum | cut -c1-10)
+        else
+            hash=$(printf '%s' "$sym" | shasum -a 1 | cut -c1-10)
+        fi
         fname="${sym:0:$((max_name_len - 11))}_$hash.asm"
     else
         fname="$sym.asm"
@@ -69,7 +81,7 @@ for sym in "${symbols[@]}"; do
 
     demangled=$(c++filt "$sym")
 
-    echo "disassembling $sym -> gold/$substring/$fname"
+    echo "disassembling $sym -> gold/$arch/$substring/$fname"
     {
         echo "; $demangled"
         objdump -d -S -l -M intel -C --no-show-raw-insn --disassemble="$demangled" "$binary"

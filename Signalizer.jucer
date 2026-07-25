@@ -616,7 +616,7 @@
         <CONFIGURATION name="Debug" osxSDK="default" osxCompatibility="default" isDebug="1"
                        optimisation="1" targetName="Signalizer" fastMath="1"/>
         <CONFIGURATION name="Release" osxSDK="default" osxCompatibility="default" isDebug="0"
-                       optimisation="6" targetName="Signalizer" fastMath="1" stripLocalSymbols="1"/>
+                       optimisation="6" targetName="Signalizer" fastMath="1" stripLocalSymbols="0"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_core" path="External/juce/modules/"/>
