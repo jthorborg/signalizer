@@ -2,6 +2,16 @@
 <project version="4">
   <component name="MakefileBuildTargetsManager">
     <user-build-targets>
+      <build-target name="CONFIG=DebuggableRelease Standalone">
+        <build-configurations>
+          <build-configuration>
+            <make-targets>
+              <make-target>CONFIG=DebuggableRelease</make-target>
+              <make-target>Standalone</make-target>
+            </make-targets>
+          </build-configuration>
+        </build-configurations>
+      </build-target>
       <build-target name="CONFIG=Release Standalone">
         <build-configurations>
           <build-configuration>

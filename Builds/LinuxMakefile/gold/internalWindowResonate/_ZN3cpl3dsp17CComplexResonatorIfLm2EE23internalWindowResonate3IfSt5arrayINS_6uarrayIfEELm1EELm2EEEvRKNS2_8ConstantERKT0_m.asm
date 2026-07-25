@@ -13,440 +13,307 @@ Disassembly of section .plt.sec:
 
 Disassembly of section .text:
 
-0000000000949b30 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)>:
+0000000000961de0 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)>:
 void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long):
-  949b30:	endbr64
-  949b34:	push   r15
-  949b36:	push   r14
-  949b38:	push   r13
-  949b3a:	mov    r13,rsi
-  949b3d:	push   r12
-  949b3f:	mov    r12,rcx
-  949b42:	push   rbp
-  949b43:	mov    rbp,rdi
-  949b46:	push   rbx
-  949b47:	mov    rbx,rdx
-  949b4a:	sub    rsp,0x148
-  949b51:	mov    rax,QWORD PTR fs:0x28
-  949b5a:	mov    QWORD PTR [rsp+0x138],rax
-  949b62:	xor    eax,eax
-  949b64:	movzx  edx,BYTE PTR [rip+0x2d5572]        # c1f0dd <cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)::profilerCached49>
-  949b6b:	test   dl,dl
-  949b6d:	je     94a27a <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x74a>
-  949b73:	mov    BYTE PTR [rsp],dl
-  949b76:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
-  949b82:	cmp    QWORD PTR [rax-0x1d8],0x0
-  949b8a:	mov    r14,rax
-  949b8d:	lea    rcx,[rax-0x360]
-  949b94:	je     949bbf <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x8f>
-  949b96:	movzx  r15d,BYTE PTR [rax-0x1e0]
-  949b9e:	cmp    r15b,0xf
-  949ba2:	jbe    94a2dd <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x7ad>
-  949ba8:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
-  949bb4:	add    r15d,0x1
-  949bb8:	mov    BYTE PTR [rax-0x1e0],r15b
-  949bbf:	mov    rdx,QWORD PTR [r13+0x38]
-  949bc3:	mov    rcx,QWORD PTR [r13+0x48]
-  949bc7:	mov    r9,QWORD PTR [rbp+0x8]
-  949bcb:	mov    rdi,QWORD PTR [rbp+0x0]
-  949bcf:	mov    r8,rdx
-  949bd2:	imul   r8,rcx
-  949bd6:	mov    rax,r9
-  949bd9:	sub    rax,rdi
-  949bdc:	sar    rax,0x2
-  949be0:	lea    rsi,[r8*4+0x0]
-  949be8:	cmp    rax,rsi
-  949beb:	jb     94a2c5 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x795>
-  949bf1:	cmp    rsi,rax
-  949bf4:	jb     94a261 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x731>
-  949bfa:	mov    rax,QWORD PTR [r13+0x40]
-  949bfe:	lea    r9,[rcx+rcx*1]
-  949c02:	imul   rdx,r9
-  949c06:	mov    QWORD PTR [rsp+0xa0],rax
-  949c0e:	test   rax,rax
-  949c11:	je     94a103 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x5d3>
-  949c17:	mov    r10,QWORD PTR [r13+0x0]
-  949c1b:	mov    rdi,QWORD PTR [rbx]
-  949c1e:	lea    r11,[r9+rcx*1]
-  949c22:	xor    r15d,r15d
-  949c25:	mov    rsi,QWORD PTR [rbx+0x10]
-  949c29:	mov    rbx,rcx
-  949c2c:	mov    r8,QWORD PTR [rbp+0x0]
-  949c30:	shl    r11,0x2
-  949c34:	shl    rbx,0x4
-  949c38:	lea    r14,[rcx*4+0x0]
-  949c40:	lea    rcx,[r10+rbx*1]
-  949c44:	lea    rax,[r14+rdx*1]
-  949c48:	mov    QWORD PTR [rsp+0x18],rbx
-  949c4d:	mov    QWORD PTR [rsp+0xd8],rcx
-  949c55:	lea    rcx,[r8+rbx*1]
-  949c59:	mov    QWORD PTR [rsp+0xd0],rcx
-  949c61:	lea    rcx,[rdx*4+0x0]
-  949c69:	lea    rdx,[r8+rcx*1]
-  949c6d:	mov    QWORD PTR [rsp+0xa8],r14
-  949c75:	mov    QWORD PTR [rsp+0xc0],rdx
-  949c7d:	mov    rdx,rax
-  949c80:	lea    rax,[r8+rax*4]
-  949c84:	mov    QWORD PTR [rsp+0xb0],rax
-  949c8c:	lea    rax,[rsp+0x108]
-  949c94:	sub    rdx,r9
-  949c97:	mov    QWORD PTR [rsp+0x20],rax
-  949c9c:	lea    rax,[rsp+0x110]
-  949ca4:	mov    QWORD PTR [rsp+0x28],rax
-  949ca9:	lea    rax,[rsp+0x118]
-  949cb1:	mov    QWORD PTR [rsp+0x30],rax
-  949cb6:	lea    rax,[rsp+0x120]
-  949cbe:	mov    QWORD PTR [rsp+0x38],rax
-  949cc3:	lea    rax,[rsp+0x128]
-  949ccb:	mov    QWORD PTR [rsp+0xc8],rcx
-  949cd3:	lea    rcx,[r8+rdx*4]
-  949cd7:	xor    edx,edx
-  949cd9:	mov    QWORD PTR [rsp+0x40],rax
-  949cde:	lea    rax,[rsp+0x130]
-  949ce6:	mov    QWORD PTR [rsp+0xb8],rcx
-  949cee:	mov    rcx,r14
-  949cf1:	mov    QWORD PTR [rsp+0x48],rax
-  949cf6:	mov    rax,r12
-  949cf9:	mov    r12,r15
-  949cfc:	nop    DWORD PTR [rax+0x0]
-  949d00:	movss  xmm0,DWORD PTR [r10+rdx*4]
-  949d06:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d0b:	movaps xmm4,xmm0
-  949d0e:	movss  xmm0,DWORD PTR [r10+rcx*1]
-  949d14:	shufps xmm4,xmm4,0xe0
-  949d18:	movq   rbp,xmm4
-  949d1d:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d22:	movaps xmm15,xmm0
-  949d26:	movss  xmm0,DWORD PTR [r10+r9*4]
-  949d2c:	shufps xmm15,xmm15,0xe0
-  949d31:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d36:	movaps xmm10,xmm0
-  949d3a:	movss  xmm0,DWORD PTR [r10+r11*1]
-  949d40:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d45:	mov    rbx,QWORD PTR [rsp+0xd8]
-  949d4d:	movaps xmm9,xmm0
-  949d51:	movss  xmm0,DWORD PTR [rbx+rdx*4]
-  949d56:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d5b:	movaps xmm14,xmm0
-  949d5f:	movss  xmm0,DWORD PTR [rbx+rcx*1]
-  949d64:	shufps xmm14,xmm14,0xe0
-  949d69:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d6e:	movaps xmm13,xmm0
-  949d72:	movss  xmm0,DWORD PTR [r8+rdx*4]
-  949d78:	shufps xmm13,xmm13,0xe0
-  949d7d:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d82:	movaps xmm7,xmm0
-  949d85:	movss  xmm0,DWORD PTR [r8+rcx*1]
-  949d8b:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d90:	movaps xmm12,xmm0
-  949d94:	movss  xmm0,DWORD PTR [r8+r9*4]
-  949d9a:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949d9f:	movaps xmm5,xmm0
-  949da2:	movss  xmm0,DWORD PTR [r8+r11*1]
-  949da8:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949dad:	mov    rbx,QWORD PTR [rsp+0xd0]
-  949db5:	movaps xmm6,xmm0
-  949db8:	movss  xmm0,DWORD PTR [rbx+rdx*4]
-  949dbd:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949dc2:	movaps xmm2,xmm0
-  949dc5:	movss  xmm0,DWORD PTR [rbx+rcx*1]
-  949dca:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949dcf:	mov    rbx,QWORD PTR [rsp+0xc0]
-  949dd7:	movaps xmm8,xmm0
-  949ddb:	movss  xmm0,DWORD PTR [rbx+rdx*4]
-  949de0:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949de5:	unpcklps xmm7,xmm0
-  949de8:	movss  xmm0,DWORD PTR [rbx+rcx*1]
-  949ded:	movlps QWORD PTR [rsp+0x108],xmm7
-  949df5:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949dfa:	unpcklps xmm12,xmm0
-  949dfe:	movlps QWORD PTR [rsp+0x110],xmm12
-  949e07:	mov    rbx,QWORD PTR [rsp+0xb8]
-  949e0f:	movss  xmm0,DWORD PTR [rbx+rdx*4]
-  949e14:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949e19:	movaps xmm3,xmm0
-  949e1c:	movaps xmm0,xmm5
-  949e1f:	unpcklps xmm0,xmm3
-  949e22:	movlps QWORD PTR [rsp+0x118],xmm0
-  949e2a:	movss  xmm0,DWORD PTR [rbx+rcx*1]
-  949e2f:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949e34:	mov    rbx,QWORD PTR [rsp+0xb0]
-  949e3c:	movaps xmm4,xmm0
-  949e3f:	movaps xmm0,xmm6
-  949e42:	unpcklps xmm0,xmm4
-  949e45:	movlps QWORD PTR [rsp+0x120],xmm0
-  949e4d:	movss  xmm0,DWORD PTR [rbx+rdx*4]
-  949e52:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949e57:	unpcklps xmm2,xmm0
-  949e5a:	movss  xmm0,DWORD PTR [rbx+rcx*1]
-  949e5f:	xor    ebx,ebx
-  949e61:	movlps QWORD PTR [rsp+0x128],xmm2
-  949e69:	call   920600 <float cpl::simd::load<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949e6e:	unpcklps xmm8,xmm0
-  949e72:	movlps QWORD PTR [rsp+0x130],xmm8
-  949e7b:	test   rax,rax
-  949e7e:	je     949f9c <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x46c>
-  949e84:	nop    DWORD PTR [rax+0x0]
-  949e88:	movaps xmm0,xmm8
-  949e8c:	movaps xmm8,xmm2
-  949e90:	movaps xmm11,xmm10
-  949e94:	mulps  xmm8,xmm13
-  949e98:	movaps xmm1,xmm0
-  949e9b:	mulps  xmm1,xmm14
-  949e9f:	mulps  xmm0,xmm13
-  949ea3:	mulps  xmm2,xmm14
-  949ea7:	mulss  xmm11,xmm5
-  949eac:	mulss  xmm5,xmm9
-  949eb1:	addps  xmm8,xmm1
-  949eb5:	movq   xmm1,rbp
-  949eba:	subps  xmm2,xmm0
-  949ebd:	movaps xmm0,xmm12
-  949ec1:	movaps xmm12,xmm7
-  949ec5:	mulps  xmm1,xmm0
-  949ec8:	mulps  xmm12,xmm15
-  949ecc:	mulps  xmm0,xmm15
-  949ed0:	addps  xmm12,xmm1
-  949ed4:	movq   xmm1,rbp
-  949ed9:	mulps  xmm7,xmm1
-  949edc:	subps  xmm7,xmm0
-  949edf:	movss  xmm0,DWORD PTR [rdi+rbx*4]
-  949ee4:	call   9205f0 <float cpl::simd::broadcast<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949ee9:	movaps xmm1,xmm0
-  949eec:	movaps xmm0,xmm9
-  949ef0:	mulss  xmm0,xmm6
-  949ef4:	mulss  xmm6,xmm10
-  949ef9:	subss  xmm11,xmm0
-  949efe:	movss  xmm0,DWORD PTR [rsi+rbx*4]
-  949f03:	add    rbx,0x1
-  949f07:	addss  xmm6,xmm5
-  949f0b:	call   9205f0 <float cpl::simd::broadcast<float>(cpl::simd::scalar_of<float, 4ul>::type const*) [clone .isra.0]>
-  949f10:	movaps xmm5,xmm11
-  949f14:	movaps xmm11,xmm10
-  949f18:	addss  xmm5,xmm1
-  949f1c:	mulss  xmm11,xmm3
-  949f21:	unpcklps xmm1,xmm0
-  949f24:	addps  xmm2,xmm1
-  949f27:	addps  xmm7,xmm1
-  949f2a:	movaps xmm1,xmm4
-  949f2d:	mulss  xmm1,xmm9
-  949f32:	mulss  xmm3,xmm9
-  949f37:	mulss  xmm4,xmm10
-  949f3c:	subss  xmm11,xmm1
-  949f41:	addss  xmm4,xmm3
-  949f45:	movaps xmm3,xmm0
-  949f48:	addss  xmm3,xmm11
-  949f4d:	cmp    rax,rbx
-  949f50:	jne    949e88 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x358>
-  949f56:	movss  DWORD PTR [rsp+0x120],xmm6
-  949f5f:	movss  DWORD PTR [rsp+0x118],xmm5
-  949f68:	movlps QWORD PTR [rsp+0x110],xmm12
-  949f71:	movlps QWORD PTR [rsp+0x108],xmm7
-  949f79:	movss  DWORD PTR [rsp+0x124],xmm4
-  949f82:	movss  DWORD PTR [rsp+0x11c],xmm3
-  949f8b:	movlps QWORD PTR [rsp+0x130],xmm8
-  949f94:	movlps QWORD PTR [rsp+0x128],xmm2
-  949f9c:	mov    rbx,r9
-  949f9f:	mov    r13,r8
-  949fa2:	mov    QWORD PTR [rsp+0x50],rdx
-  949fa7:	lea    rbp,[r8+rcx*1]
-  949fab:	sub    rbx,rdx
-  949fae:	mov    QWORD PTR [rsp+0x60],r9
-  949fb3:	sub    r13,r12
-  949fb6:	shl    rbx,0x2
-  949fba:	mov    QWORD PTR [rsp+0x68],r10
-  949fbf:	mov    QWORD PTR [rsp],rbx
-  949fc3:	mov    rbx,QWORD PTR [rsp+0xa8]
-  949fcb:	mov    QWORD PTR [rsp+0x70],rdi
-  949fd0:	lea    r15,[rbx+rcx*1]
-  949fd4:	lea    r14,[rbx+r11*1]
-  949fd8:	mov    QWORD PTR [rsp+0x78],r8
-  949fdd:	xor    ebx,ebx
-  949fdf:	mov    QWORD PTR [rsp+0x80],rsi
-  949fe7:	add    r15,r12
-  949fea:	add    r14,r12
-  949fed:	mov    QWORD PTR [rsp+0x88],r11
-  949ff5:	mov    QWORD PTR [rsp+0x90],rcx
-  949ffd:	mov    QWORD PTR [rsp+0x98],rax
-  94a005:	mov    QWORD PTR [rsp+0x58],r12
-  94a00a:	mov    r12,QWORD PTR [rsp+0xc8]
-  94a012:	mov    rax,QWORD PTR [rsp+0x20]
-  94a017:	mov    rdi,r13
-  94a01a:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a01f:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a024:	mov    rax,QWORD PTR [rsp+0x28]
-  94a029:	mov    rdi,rbp
-  94a02c:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a031:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a036:	mov    rax,QWORD PTR [rsp+0x30]
-  94a03b:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a040:	mov    rax,QWORD PTR [rsp]
-  94a044:	lea    rdi,[rax+r13*1]
-  94a048:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a04d:	mov    rax,QWORD PTR [rsp+0x38]
-  94a052:	lea    rdi,[r15+rbp*1]
-  94a056:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a05b:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a060:	mov    rax,QWORD PTR [rsp+0x40]
-  94a065:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a06a:	mov    rax,QWORD PTR [rsp+0x18]
-  94a06f:	lea    rdi,[rax+r13*1]
-  94a073:	add    r13,r12
-  94a076:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a07b:	mov    rax,QWORD PTR [rsp+0x48]
-  94a080:	lea    rdi,[r14+rbp*1]
-  94a084:	add    rbp,r12
-  94a087:	movss  xmm0,DWORD PTR [rax+rbx*4]
-  94a08c:	call   85fb30 <cpl::simd::store(float*, float)>
-  94a091:	test   rbx,rbx
-  94a094:	jne    94a0a0 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x570>
-  94a096:	mov    ebx,0x1
-  94a09b:	jmp    94a012 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x4e2>
-  94a0a0:	mov    rdx,QWORD PTR [rsp+0x50]
-  94a0a5:	mov    r12,QWORD PTR [rsp+0x58]
-  94a0aa:	mov    r9,QWORD PTR [rsp+0x60]
-  94a0af:	mov    r11,QWORD PTR [rsp+0x88]
-  94a0b7:	mov    rcx,QWORD PTR [rsp+0x90]
-  94a0bf:	add    rdx,0x1
-  94a0c3:	mov    r10,QWORD PTR [rsp+0x68]
-  94a0c8:	sub    r12,0x4
-  94a0cc:	mov    rdi,QWORD PTR [rsp+0x70]
-  94a0d1:	mov    rbx,QWORD PTR [rsp+0xa0]
-  94a0d9:	add    r9,0x1
-  94a0dd:	add    r11,0x4
-  94a0e1:	mov    r8,QWORD PTR [rsp+0x78]
-  94a0e6:	mov    rsi,QWORD PTR [rsp+0x80]
-  94a0ee:	add    rcx,0x4
-  94a0f2:	mov    rax,QWORD PTR [rsp+0x98]
-  94a0fa:	cmp    rdx,rbx
-  94a0fd:	jne    949d00 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x1d0>
-  94a103:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
-  94a10f:	lea    rbp,[rax-0x360]
-  94a116:	mov    r12,rax
-  94a119:	mov    r13,QWORD PTR [rbp+0x188]
-  94a120:	test   r13,r13
-  94a123:	je     94a143 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x613>
-  94a125:	movzx  eax,BYTE PTR [rbp+0x180]
-  94a12c:	lea    ebx,[rax-0x1]
-  94a12f:	mov    BYTE PTR [rbp+0x180],bl
-  94a135:	cmp    bl,0xf
-  94a138:	jbe    94a16c <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x63c>
-  94a13a:	add    WORD PTR [r13+0xfe2],0x1
-  94a143:	mov    rax,QWORD PTR [rsp+0x138]
-  94a14b:	sub    rax,QWORD PTR fs:0x28
-  94a154:	jne    94a370 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x840>
-  94a15a:	add    rsp,0x148
-  94a161:	pop    rbx
-  94a162:	pop    rbp
-  94a163:	pop    r12
-  94a165:	pop    r13
-  94a167:	pop    r14
-  94a169:	pop    r15
-  94a16b:	ret
-  94a16c:	call   e25b0 <std::chrono::_V2::steady_clock::now()@plt>
-  94a171:	movzx  r15d,bl
-  94a175:	lea    rdx,[r15+r15*2]
-  94a179:	mov    rcx,rax
-  94a17c:	movq   xmm0,rax
-  94a181:	shl    rdx,0x3
-  94a185:	movdqu xmm1,XMMWORD PTR [r12+rdx*1-0x360]
-  94a18f:	sub    rcx,QWORD PTR [rbp+rdx*1+0x0]
-  94a194:	movq   xmm6,rcx
-  94a199:	movzx  r12d,BYTE PTR [rbp+0x181]
-  94a1a1:	punpcklqdq xmm0,xmm6
-  94a1a5:	psubq  xmm0,xmm1
-  94a1a9:	cmp    r12b,bl
-  94a1ac:	jae    94a1cc <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x69c>
-  94a1ae:	lea    eax,[r15-0x1]
-  94a1b2:	movdqa xmm1,xmm0
-  94a1b6:	cdqe
-  94a1b8:	lea    rax,[rax+rax*2]
-  94a1bc:	movq   xmm2,QWORD PTR [rbp+rax*8+0x8]
-  94a1c2:	paddq  xmm1,xmm2
-  94a1c6:	movq   QWORD PTR [rbp+rax*8+0x8],xmm1
-  94a1cc:	movzx  ebp,WORD PTR [r13+0xfe0]
-  94a1d4:	cmp    bp,0x7f
-  94a1d8:	je     94a336 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x806>
-  94a1de:	movaps XMMWORD PTR [rsp],xmm0
-  94a1e2:	sub    ebx,r12d
-  94a1e5:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
-  94a1f1:	lea    rdx,[r15+r15*2]
-  94a1f5:	movdqa xmm0,XMMWORD PTR [rsp]
-  94a1fa:	mov    DWORD PTR [rsp+0xf8],0x0
-  94a205:	movups XMMWORD PTR [rsp+0xe8],xmm0
-  94a20d:	lea    rdx,[rax+rdx*8-0x360]
-  94a215:	mov    rax,QWORD PTR [rdx]
-  94a218:	mov    QWORD PTR [rsp+0xe0],rax
-  94a220:	movzx  eax,BYTE PTR [rdx+0x10]
-  94a224:	lea    edx,[rbp+0x1]
-  94a227:	movdqa xmm6,XMMWORD PTR [rsp+0xe0]
-  94a230:	mov    WORD PTR [r13+0xfe0],dx
-  94a238:	mov    ah,bl
-  94a23a:	mov    WORD PTR [rsp+0xfc],ax
-  94a242:	movzx  eax,bp
-  94a245:	shl    rax,0x5
-  94a249:	add    rax,r13
-  94a24c:	movups XMMWORD PTR [rax],xmm6
-  94a24f:	movdqu xmm6,XMMWORD PTR [rsp+0xee]
-  94a258:	movups XMMWORD PTR [rax+0xe],xmm6
-  94a25c:	jmp    94a143 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x613>
-  94a261:	shl    r8,0x4
-  94a265:	add    rdi,r8
-  94a268:	cmp    r9,rdi
-  94a26b:	je     949bfa <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xca>
-  94a271:	mov    QWORD PTR [rbp+0x8],rdi
-  94a275:	jmp    949bfa <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xca>
-  94a27a:	mov    eax,0x1
-  94a27f:	lock xadd DWORD PTR [rip+0x2c98d9],eax        # c13b60 <cpl::Profiling::registerRegion(char const*)::counter>
-  94a287:	mov    ecx,0x1
-  94a28c:	mov    edx,0x1
-  94a291:	add    eax,0x2
-  94a294:	cmp    eax,0xfe
-  94a299:	ja     94a2b3 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x783>
-  94a29b:	mov    ecx,eax
-  94a29d:	lea    rdx,[rip+0x2c7d7c]        # c12020 <cpl::Profiling::regions>
-  94a2a4:	lea    rsi,[rip+0x9de9b]        # 9e8146 <_IO_stdin_used+0x18146>
-  94a2ab:	mov    QWORD PTR [rdx+rcx*8],rsi
-  94a2af:	mov    edx,eax
-  94a2b1:	mov    ecx,eax
-  94a2b3:	xor    eax,eax
-  94a2b5:	lock cmpxchg BYTE PTR [rip+0x2d4e20],cl        # c1f0dd <cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)::profilerCached49>
-  94a2bd:	cmovne edx,eax
-  94a2c0:	jmp    949b73 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x43>
-  94a2c5:	sub    rsi,rax
-  94a2c8:	mov    rdi,rbp
-  94a2cb:	call   91d820 <std::vector<float, cpl::CAlignedAllocator<float, 32ul> >::_M_default_append(unsigned long)>
-  94a2d0:	mov    rdx,QWORD PTR [r13+0x38]
-  94a2d4:	mov    rcx,QWORD PTR [r13+0x48]
-  94a2d8:	jmp    949bfa <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xca>
-  94a2dd:	mov    QWORD PTR [rsp+0x18],rcx
-  94a2e2:	call   e25b0 <std::chrono::_V2::steady_clock::now()@plt>
-  94a2e7:	movzx  edx,BYTE PTR [rsp]
-  94a2eb:	mov    rcx,QWORD PTR [rsp+0x18]
-  94a2f0:	mov    QWORD PTR [rsp+0xe8],0x0
-  94a2fc:	mov    QWORD PTR [rsp+0xe0],rax
-  94a304:	lea    rax,[r15+r15*2]
-  94a308:	movdqa xmm6,XMMWORD PTR [rsp+0xe0]
-  94a311:	shl    rax,0x3
-  94a315:	mov    BYTE PTR [rsp+0xf0],dl
-  94a31c:	movups XMMWORD PTR [r14+rax*1-0x360],xmm6
-  94a325:	mov    BYTE PTR [rax+rcx*1+0x10],dl
-  94a329:	movzx  r15d,BYTE PTR [rcx+0x180]
-  94a331:	jmp    949ba8 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x78>
-  94a336:	movzx  eax,WORD PTR [r13+0xfe2]
-  94a33e:	cmp    ax,0xffff
-  94a342:	je     94a143 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x613>
-  94a348:	add    eax,0x1
-  94a34b:	mov    WORD PTR [r13+0xfe2],ax
-  94a353:	jmp    94a143 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x613>
-  94a358:	call   920350 <cpl::Profiling::exit(unsigned int) [clone .constprop.0]>
-  94a35d:	mov    rax,QWORD PTR [rsp+0x138]
-  94a365:	sub    rax,QWORD PTR fs:0x28
-  94a36e:	je     94a37e <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x84e>
-  94a370:	call   e0f90 <__stack_chk_fail@plt>
-  94a375:	endbr64
-  94a379:	mov    rbx,rax
-  94a37c:	jmp    94a358 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x828>
-  94a37e:	mov    rdi,rbx
-  94a381:	call   e1b80 <_Unwind_Resume@plt>
+  961de0:	endbr64
+  961de4:	push   r15
+  961de6:	push   r14
+  961de8:	push   r13
+  961dea:	mov    r13,rsi
+  961ded:	push   r12
+  961def:	mov    r12,rdi
+  961df2:	push   rbp
+  961df3:	push   rbx
+  961df4:	mov    rbx,rcx
+  961df7:	sub    rsp,0x58
+  961dfb:	mov    QWORD PTR [rsp],rdx
+  961dff:	movzx  ebp,BYTE PTR [rip+0x2d12d7]        # c330dd <cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)::profilerCached49>
+  961e06:	test   bpl,bpl
+  961e09:	je     962289 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x4a9>
+  961e0f:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
+  961e1b:	cmp    QWORD PTR [rax-0x1d8],0x0
+  961e23:	mov    r14,rax
+  961e26:	lea    rcx,[rax-0x360]
+  961e2d:	je     961e58 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x78>
+  961e2f:	movzx  r15d,BYTE PTR [rax-0x1e0]
+  961e37:	cmp    r15b,0xf
+  961e3b:	jbe    9622ef <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x50f>
+  961e41:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
+  961e4d:	add    r15d,0x1
+  961e51:	mov    BYTE PTR [rax-0x1e0],r15b
+  961e58:	mov    rdx,QWORD PTR [r13+0x38]
+  961e5c:	mov    r8,QWORD PTR [r13+0x48]
+  961e60:	mov    r9,QWORD PTR [r12+0x8]
+  961e65:	mov    rsi,QWORD PTR [r12]
+  961e69:	mov    rdi,rdx
+  961e6c:	imul   rdi,r8
+  961e70:	mov    rax,r9
+  961e73:	sub    rax,rsi
+  961e76:	sar    rax,0x2
+  961e7a:	lea    rcx,[rdi*4+0x0]
+  961e82:	cmp    rax,rcx
+  961e85:	jb     9622d4 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x4f4>
+  961e8b:	cmp    rcx,rax
+  961e8e:	jb     96226f <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x48f>
+  961e94:	mov    rsi,QWORD PTR [r13+0x40]
+  961e98:	lea    rax,[r8+r8*1]
+  961e9c:	imul   rdx,rax
+  961ea0:	mov    QWORD PTR [rsp+0x28],rsi
+  961ea5:	test   rsi,rsi
+  961ea8:	je     962140 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x360>
+  961eae:	mov    rsi,QWORD PTR [rsp]
+  961eb2:	lea    rcx,[r8*4+0x0]
+  961eba:	shl    r8,0x3
+  961ebe:	mov    r9,QWORD PTR [r12]
+  961ec2:	lea    r11,[rcx+rdx*1]
+  961ec6:	mov    r14,QWORD PTR [r13+0x0]
+  961eca:	mov    rdi,QWORD PTR [rsi]
+  961ecd:	mov    rsi,QWORD PTR [rsi+0x10]
+  961ed1:	lea    r12,[r9+rdx*4]
+  961ed5:	mov    rdx,r11
+  961ed8:	lea    r13,[r14+r8*1]
+  961edc:	sub    rdx,rax
+  961edf:	lea    r10,[r9+r8*1]
+  961ee3:	lea    r15,[r13+r8*1+0x0]
+  961ee8:	add    r8,r10
+  961eeb:	lea    rbp,[r9+rdx*4]
+  961eef:	xor    edx,edx
+  961ef1:	lea    r11,[r9+r11*4]
+  961ef5:	nop    DWORD PTR [rax]
+  961ef8:	vmovss xmm1,DWORD PTR [r9+rcx*1]
+  961efe:	vmovss xmm0,DWORD PTR [r8+rcx*1]
+  961f04:	vmovss xmm2,DWORD PTR [r10+rcx*1]
+  961f0a:	vmovss DWORD PTR [rsp+0x24],xmm1
+  961f10:	vmovss xmm12,DWORD PTR [r11+rcx*1]
+  961f16:	vmovss DWORD PTR [rsp+0x18],xmm0
+  961f1c:	vmovss xmm1,DWORD PTR [r12+rcx*1]
+  961f22:	vmovss DWORD PTR [rsp],xmm2
+  961f27:	vmovss xmm0,DWORD PTR [rbp+rcx*1+0x0]
+  961f2d:	vmovss DWORD PTR [rsp+0x10],xmm12
+  961f33:	vmovss DWORD PTR [rsp+0x20],xmm1
+  961f39:	vmovss xmm6,DWORD PTR [r14+rdx*4]
+  961f3f:	vmovss DWORD PTR [rsp+0x1c],xmm0
+  961f45:	vmovss xmm7,DWORD PTR [r14+rcx*1]
+  961f4b:	vmovss xmm9,DWORD PTR [r13+rdx*4+0x0]
+  961f52:	vmovss xmm10,DWORD PTR [r13+rcx*1+0x0]
+  961f59:	vmovss xmm11,DWORD PTR [r15+rdx*4]
+  961f5f:	vmovss xmm8,DWORD PTR [r15+rcx*1]
+  961f65:	vmovss xmm5,DWORD PTR [r9+rdx*4]
+  961f6b:	vmovss xmm4,DWORD PTR [r10+rdx*4]
+  961f71:	vmovss xmm3,DWORD PTR [r8+rdx*4]
+  961f77:	vmovss xmm2,DWORD PTR [r12+rdx*4]
+  961f7d:	vmovss xmm1,DWORD PTR [rbp+rdx*4+0x0]
+  961f83:	vmovss xmm0,DWORD PTR [r11+rdx*4]
+  961f89:	test   rbx,rbx
+  961f8c:	je     9620bf <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x2df>
+  961f92:	xor    eax,eax
+  961f94:	nop    DWORD PTR [rax+0x0]
+  961f98:	vmovss xmm15,DWORD PTR [rsp+0x24]
+  961f9e:	vmulss xmm14,xmm5,xmm7
+  961fa2:	vmulss xmm5,xmm5,xmm6
+  961fa6:	vmovss xmm12,DWORD PTR [rdi+rax*4]
+  961fab:	vmulss xmm13,xmm7,xmm15
+  961fb0:	vmulss xmm15,xmm6,xmm15
+  961fb5:	vaddss xmm5,xmm5,xmm12
+  961fba:	vaddss xmm15,xmm14,xmm15
+  961fbf:	vmovss xmm14,DWORD PTR [rsp]
+  961fc4:	vsubss xmm5,xmm5,xmm13
+  961fc9:	vmulss xmm13,xmm10,xmm14
+  961fce:	vmovss DWORD PTR [rsp+0x24],xmm15
+  961fd4:	vmulss xmm14,xmm9,xmm14
+  961fd9:	vmulss xmm15,xmm10,xmm4
+  961fdd:	vmulss xmm4,xmm9,xmm4
+  961fe1:	vaddss xmm15,xmm15,xmm14
+  961fe6:	vmovss xmm14,DWORD PTR [rsp+0x18]
+  961fec:	vaddss xmm4,xmm4,xmm12
+  961ff1:	vmovss DWORD PTR [rsp],xmm15
+  961ff6:	vmulss xmm15,xmm8,xmm3
+  961ffa:	vsubss xmm4,xmm4,xmm13
+  961fff:	vmulss xmm3,xmm11,xmm3
+  962003:	vmulss xmm13,xmm8,xmm14
+  962008:	vmulss xmm14,xmm11,xmm14
+  96200d:	vaddss xmm3,xmm3,xmm12
+  962012:	vmovss xmm12,DWORD PTR [rsi+rax*4]
+  962017:	add    rax,0x1
+  96201b:	vaddss xmm15,xmm15,xmm14
+  962020:	vmovss xmm14,DWORD PTR [rsp+0x20]
+  962026:	vsubss xmm3,xmm3,xmm13
+  96202b:	vmulss xmm13,xmm7,xmm14
+  962030:	vmovss DWORD PTR [rsp+0x18],xmm15
+  962036:	vmulss xmm14,xmm6,xmm14
+  96203b:	vmulss xmm15,xmm7,xmm2
+  96203f:	vmulss xmm2,xmm6,xmm2
+  962043:	vaddss xmm15,xmm15,xmm14
+  962048:	vmovss xmm14,DWORD PTR [rsp+0x1c]
+  96204e:	vaddss xmm2,xmm2,xmm12
+  962053:	vmovss DWORD PTR [rsp+0x20],xmm15
+  962059:	vmulss xmm15,xmm1,xmm10
+  96205e:	vsubss xmm2,xmm2,xmm13
+  962063:	vmulss xmm1,xmm1,xmm9
+  962068:	vmulss xmm13,xmm10,xmm14
+  96206d:	vmulss xmm14,xmm9,xmm14
+  962072:	vaddss xmm1,xmm1,xmm12
+  962077:	vaddss xmm15,xmm15,xmm14
+  96207c:	vmovss xmm14,DWORD PTR [rsp+0x10]
+  962082:	vsubss xmm1,xmm1,xmm13
+  962087:	vmulss xmm13,xmm8,xmm14
+  96208c:	vmovss DWORD PTR [rsp+0x1c],xmm15
+  962092:	vmulss xmm14,xmm11,xmm14
+  962097:	vmulss xmm15,xmm0,xmm8
+  96209c:	vmulss xmm0,xmm0,xmm11
+  9620a1:	vaddss xmm15,xmm15,xmm14
+  9620a6:	vaddss xmm0,xmm0,xmm12
+  9620ab:	vmovss DWORD PTR [rsp+0x10],xmm15
+  9620b1:	vsubss xmm0,xmm0,xmm13
+  9620b6:	cmp    rbx,rax
+  9620b9:	jne    961f98 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x1b8>
+  9620bf:	vmovss xmm6,DWORD PTR [rsp+0x24]
+  9620c5:	vmovss DWORD PTR [r9+rdx*4],xmm5
+  9620cb:	vmovss xmm7,DWORD PTR [rsp]
+  9620d0:	vmovss DWORD PTR [r9+rcx*1],xmm6
+  9620d6:	vmovss xmm6,DWORD PTR [rsp+0x18]
+  9620dc:	vmovss DWORD PTR [r10+rdx*4],xmm4
+  9620e2:	mov    rax,QWORD PTR [rsp+0x28]
+  9620e7:	vmovss DWORD PTR [r10+rcx*1],xmm7
+  9620ed:	vmovss xmm7,DWORD PTR [rsp+0x20]
+  9620f3:	vmovss DWORD PTR [r8+rdx*4],xmm3
+  9620f9:	vmovss DWORD PTR [r8+rcx*1],xmm6
+  9620ff:	vmovss xmm6,DWORD PTR [rsp+0x1c]
+  962105:	vmovss DWORD PTR [r12+rdx*4],xmm2
+  96210b:	vmovss DWORD PTR [r12+rcx*1],xmm7
+  962111:	vmovss xmm7,DWORD PTR [rsp+0x10]
+  962117:	vmovss DWORD PTR [rbp+rdx*4+0x0],xmm1
+  96211d:	vmovss DWORD PTR [rbp+rcx*1+0x0],xmm6
+  962123:	vmovss DWORD PTR [r11+rdx*4],xmm0
+  962129:	add    rdx,0x1
+  96212d:	vmovss DWORD PTR [r11+rcx*1],xmm7
+  962133:	add    rcx,0x4
+  962137:	cmp    rdx,rax
+  96213a:	jne    961ef8 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x118>
+  962140:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
+  96214c:	lea    rbp,[rax-0x360]
+  962153:	mov    r12,rax
+  962156:	mov    r13,QWORD PTR [rbp+0x188]
+  96215d:	test   r13,r13
+  962160:	je     962180 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x3a0>
+  962162:	movzx  eax,BYTE PTR [rbp+0x180]
+  962169:	lea    ebx,[rax-0x1]
+  96216c:	mov    BYTE PTR [rbp+0x180],bl
+  962172:	cmp    bl,0xf
+  962175:	jbe    96218f <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x3af>
+  962177:	add    WORD PTR [r13+0xfe2],0x1
+  962180:	add    rsp,0x58
+  962184:	pop    rbx
+  962185:	pop    rbp
+  962186:	pop    r12
+  962188:	pop    r13
+  96218a:	pop    r14
+  96218c:	pop    r15
+  96218e:	ret
+  96218f:	call   e2540 <std::chrono::_V2::steady_clock::now()@plt>
+  962194:	movzx  r15d,bl
+  962198:	lea    rdx,[r15+r15*2]
+  96219c:	mov    rcx,rax
+  96219f:	vmovq  xmm6,rax
+  9621a4:	shl    rdx,0x3
+  9621a8:	sub    rcx,QWORD PTR [rbp+rdx*1+0x0]
+  9621ad:	vpinsrq xmm0,xmm6,rcx,0x1
+  9621b3:	vpsubq xmm0,xmm0,XMMWORD PTR [r12+rdx*1-0x360]
+  9621bd:	movzx  r12d,BYTE PTR [rbp+0x181]
+  9621c5:	cmp    r12b,bl
+  9621c8:	jae    9621de <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x3fe>
+  9621ca:	lea    eax,[r15-0x1]
+  9621ce:	vmovq  rdx,xmm0
+  9621d3:	cdqe
+  9621d5:	lea    rax,[rax+rax*2]
+  9621d9:	add    QWORD PTR [rbp+rax*8+0x8],rdx
+  9621de:	movzx  ebp,WORD PTR [r13+0xfe0]
+  9621e6:	cmp    bp,0x7f
+  9621ea:	je     96233b <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x55b>
+  9621f0:	vmovdqa XMMWORD PTR [rsp],xmm0
+  9621f5:	sub    ebx,r12d
+  9621f8:	data16 data16 data16 mov rax,QWORD PTR fs:0x0
+  962204:	lea    rdx,[r15+r15*2]
+  962208:	vmovdqa xmm0,XMMWORD PTR [rsp]
+  96220d:	mov    DWORD PTR [rsp+0x48],0x0
+  962215:	vmovdqu XMMWORD PTR [rsp+0x38],xmm0
+  96221b:	lea    rdx,[rax+rdx*8-0x360]
+  962223:	mov    rax,QWORD PTR [rdx]
+  962226:	mov    QWORD PTR [rsp+0x30],rax
+  96222b:	movzx  eax,BYTE PTR [rdx+0x10]
+  96222f:	lea    edx,[rbp+0x1]
+  962232:	vmovdqa xmm7,XMMWORD PTR [rsp+0x30]
+  962238:	mov    WORD PTR [r13+0xfe0],dx
+  962240:	mov    ah,bl
+  962242:	mov    WORD PTR [rsp+0x4c],ax
+  962247:	movzx  eax,bp
+  96224a:	vmovdqu xmm6,XMMWORD PTR [rsp+0x3e]
+  962250:	shl    rax,0x5
+  962254:	add    rax,r13
+  962257:	vmovdqu XMMWORD PTR [rax],xmm7
+  96225b:	vmovdqu XMMWORD PTR [rax+0xe],xmm6
+  962260:	add    rsp,0x58
+  962264:	pop    rbx
+  962265:	pop    rbp
+  962266:	pop    r12
+  962268:	pop    r13
+  96226a:	pop    r14
+  96226c:	pop    r15
+  96226e:	ret
+  96226f:	shl    rdi,0x4
+  962273:	add    rsi,rdi
+  962276:	cmp    r9,rsi
+  962279:	je     961e94 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xb4>
+  96227f:	mov    QWORD PTR [r12+0x8],rsi
+  962284:	jmp    961e94 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xb4>
+  962289:	mov    eax,0x1
+  96228e:	lock xadd DWORD PTR [rip+0x2c58ca],eax        # c27b60 <cpl::Profiling::registerRegion(char const*)::counter>
+  962296:	mov    ecx,0x1
+  96229b:	mov    ebp,0x1
+  9622a0:	add    eax,0x2
+  9622a3:	cmp    eax,0xfe
+  9622a8:	ja     9622c2 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x4e2>
+  9622aa:	lea    rdx,[rip+0x2c3d6f]        # c26020 <cpl::Profiling::regions>
+  9622b1:	mov    ecx,eax
+  9622b3:	mov    ebp,eax
+  9622b5:	lea    rdi,[rip+0x9eff6]        # a012b2 <_IO_stdin_used+0x182b2>
+  9622bc:	mov    QWORD PTR [rdx+rcx*8],rdi
+  9622c0:	mov    ecx,eax
+  9622c2:	xor    eax,eax
+  9622c4:	lock cmpxchg BYTE PTR [rip+0x2d0e11],cl        # c330dd <cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)::profilerCached49>
+  9622cc:	cmovne ebp,eax
+  9622cf:	jmp    961e0f <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x2f>
+  9622d4:	mov    rsi,rcx
+  9622d7:	mov    rdi,r12
+  9622da:	sub    rsi,rax
+  9622dd:	call   939bb0 <std::vector<float, cpl::CAlignedAllocator<float, 32ul> >::_M_default_append(unsigned long)>
+  9622e2:	mov    rdx,QWORD PTR [r13+0x38]
+  9622e6:	mov    r8,QWORD PTR [r13+0x48]
+  9622ea:	jmp    961e94 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0xb4>
+  9622ef:	mov    QWORD PTR [rsp+0x10],rcx
+  9622f4:	call   e2540 <std::chrono::_V2::steady_clock::now()@plt>
+  9622f9:	mov    rcx,QWORD PTR [rsp+0x10]
+  9622fe:	mov    BYTE PTR [rsp+0x40],bpl
+  962303:	mov    QWORD PTR [rsp+0x30],rax
+  962308:	lea    rax,[r15+r15*2]
+  96230c:	mov    QWORD PTR [rsp+0x38],0x0
+  962315:	vmovdqa xmm7,XMMWORD PTR [rsp+0x30]
+  96231b:	shl    rax,0x3
+  96231f:	vmovdqu XMMWORD PTR [r14+rax*1-0x360],xmm7
+  962329:	mov    BYTE PTR [rax+rcx*1+0x10],bpl
+  96232e:	movzx  r15d,BYTE PTR [rcx+0x180]
+  962336:	jmp    961e41 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x61>
+  96233b:	movzx  eax,WORD PTR [r13+0xfe2]
+  962343:	cmp    ax,0xffff
+  962347:	je     962180 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x3a0>
+  96234d:	add    eax,0x1
+  962350:	mov    WORD PTR [r13+0xfe2],ax
+  962358:	jmp    962180 <void cpl::dsp::CComplexResonator<float, 2ul>::internalWindowResonate3<float, std::array<cpl::uarray<float>, 1ul>, 2ul>(cpl::dsp::CComplexResonator<float, 2ul>::Constant const&, std::array<cpl::uarray<float>, 1ul> const&, unsigned long)+0x3a0>
+  96235d:	endbr64
+  962361:	mov    rbx,rax
+  962364:	vzeroupper
+  962367:	call   93c790 <cpl::Profiling::exit(unsigned int) [clone .constprop.0]>
+  96236c:	mov    rdi,rbx
+  96236f:	call   e1b10 <_Unwind_Resume@plt>
 
 Disassembly of section .fini:
