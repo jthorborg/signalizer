@@ -8,8 +8,32 @@ import subprocess
 
 make_dir = cm.join("..", "Builds", "LinuxMakefile")
 
+def select_toolchain():
+	"""
+	Returns make arguments pinning CXX/CC to a new enough GCC (see cm.MINIMUM_GCC_MAJOR),
+	or an empty string when the default already qualifies. Both are set so the C and C++
+	objects come from the same GCC generation.
+	"""
+	if (cm.gcc_major("g++") or 0) >= cm.MINIMUM_GCC_MAJOR:
+		return ""
+
+	for major in range(cm.MINIMUM_GCC_MAJOR, cm.MINIMUM_GCC_MAJOR + 8):
+		cxx, cc = "g++-" + str(major), "gcc-" + str(major)
+
+		if cm.gcc_major(cxx) is not None and cm.gcc_major(cc) is not None:
+			print("------> Default g++ is too old, building with " + cxx)
+			return " CXX=" + cxx + " CC=" + cc
+
+	print("------> Error: need g++ " + str(cm.MINIMUM_GCC_MAJOR) + " or newer, none found.")
+	print("------> Install one, e.g.: sudo apt install g++-" + str(cm.MINIMUM_GCC_MAJOR))
+	exit(-1)
+
+
+toolchain_args = select_toolchain()
+
+
 def compiler_invoke(args):
-	return os.system("make --directory=" + make_dir + " " + args)
+	return os.system("make --directory=" + make_dir + " " + args + toolchain_args)
 
 def build_dev(config):
 	"""Standalone build for development/testing. Returns the path to the built executable."""

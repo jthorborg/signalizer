@@ -68,7 +68,7 @@
 		public:
 			typedef AudioStream::DataType fpoint;
 
-			typedef TransformPair<float> TransformPair;
+			typedef Signalizer::TransformPair<float> TransformPair;
 			typedef TransformPair::Constant Constant;
 			typedef TransformPair::ProcessingType ProcessingType;
 
