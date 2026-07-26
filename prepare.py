@@ -3,6 +3,26 @@ import shutil
 import sys
 import Make.common as cm
 
+def reject_sudo():
+	"""
+	This script elevates only the package installation, so it must not be run under sudo
+	wholesale: the submodule checkout below would run as root and leave the working tree
+	and .git/modules owned by root, i.e. read-only for the developer afterwards.
+
+	Genuine root sessions (containers, CI images) have no SUDO_UID and are left alone.
+	"""
+	if os.geteuid() != 0 or "SUDO_UID" not in os.environ:
+		return
+
+	print(">> Error: do not run this script with sudo.")
+	print(">> It elevates the package installation on its own, and running the whole script")
+	print(">> as root makes root own the submodule checkout, leaving it read-only for you.")
+	print(">> Run it as yourself instead: python3 prepare.py")
+	sys.exit(-1)
+
+
+reject_sudo()
+
 print(">> Updating submodules...")
 
 os.system("git submodule sync")
