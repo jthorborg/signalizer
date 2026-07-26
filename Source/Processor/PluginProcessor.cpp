@@ -74,7 +74,7 @@ namespace Signalizer
 		{
 			auto state = ContentCreationList[i].second(parameterMap.numParams(), view);
 
-			cpl::bridgeJuceAudioProcessorParameters(*this, state->getParameterSet());
+			addParameterGroup(cpl::createJuceParameterGroup(state->getParameterSet()));
 
 			parameterMap.insert({
 				ContentCreationList[i].first,
