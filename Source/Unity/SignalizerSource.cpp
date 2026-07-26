@@ -21,7 +21,7 @@
 
 **************************************************************************************
 
-	file:LumpedSignalizer.cpp
+	file:SignalizerSource.cpp
 
 		Direct include for a unity-build-embed version of Signalizer. Use the headers
 		as you normally would.

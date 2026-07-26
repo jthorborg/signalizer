@@ -54,6 +54,8 @@
 
 			void update(std::uint64_t currentSteadyClock)
 			{
+				CPL_PROFILE("Oscilloscope::pruneTriggerPoints");
+
 				steadyClock = currentSteadyClock;
 				if (windowChanged)
 				{
@@ -78,6 +80,8 @@
 			template<typename ISA>
 			void processMutating(Oscilloscope::StreamState &o, const AudioStream::ListenerContext& ctx, AFloat** localPointers, std::size_t numChannels, std::size_t numSamples)
 			{
+				CPL_PROFILE("Oscilloscope::processTriggeredBatches");
+
 				if (frontOrigin + bufferedSamples < steadyClock)
 				{
 					frontOrigin = steadyClock;

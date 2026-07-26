@@ -35,7 +35,8 @@
 	#include <cpl/AudioStream.h>
 	#include <cpl/state/Serialization.h>
 	#include <cpl/gui/CViews.h>
-	#include <cpl/gui/widgets/CPresetWidget.h>
+	#include <cpl/infrastructure/values/SignalGeneratorValue.h>
+	#include <cpl/profiling/Profiling.h>
 	#include "../Editor/MainEditor.h"
 	#include "../Common/HostGraph.h"
 	#include <memory>
@@ -51,14 +52,10 @@
 			, cpl::DestructionNotifier
 			, ParameterSet::AutomatedProcessor
 		{
-			friend class MixGraphListener;
-
 		public:
 
-			typedef cpl::CPresetWidget::SerializerType SerializerType;
-
 			//==============================================================================
-			AudioProcessor();
+			AudioProcessor(AudioStream::IO&& io, std::shared_ptr<cpl::Profiling::Lane> asyncProfilerLane);
 			~AudioProcessor() noexcept;
 
 			//==============================================================================
@@ -73,14 +70,6 @@
 
 			//==============================================================================
 			const juce::String getName() const override;
-
-			int getNumParameters() override;
-
-			float getParameter(int index) override;
-			void setParameter(int index, float newValue) override;
-
-			const juce::String getParameterName(int index) override;
-			const juce::String getParameterText(int index) override;
 
 			const juce::String getInputChannelName(int channelIndex) const override;
 			const juce::String getOutputChannelName(int channelIndex) const override;
@@ -106,13 +95,15 @@
 			void deserialize(cpl::CSerializer & se, cpl::Version version) override;
 			void serialize(cpl::CSerializer & se, cpl::Version version) override;
 
+			std::shared_ptr<cpl::Profiling::Lane> getRealtimeProfilerLane() { return realtimeLane; }
+			std::shared_ptr<cpl::Profiling::Lane> getAsyncProfilerLane() { return asyncLane; }
+
 			HostGraph& getHostGraph() { return *graph; }
+			cpl::SignalGeneratorValue* getSignalGeneratorValue() { return &signalGeneratorValue; }
 			std::shared_ptr<AudioStream::Output>& getRealtimeOutput() { return realtimeOutput; }
 			std::shared_ptr<const ConcurrentConfig> getConcurrentConfig();
 
 		private:
-
-			AudioProcessor(AudioStream::IO&& io);
 
 			virtual void automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value) override;
 			virtual void automatedBeginChangeGesture(int parameter) override;
@@ -125,12 +116,15 @@
 			AudioStream::Input realtimeInput;
 			std::shared_ptr<AudioStream::Output> realtimeOutput;
 			std::vector<AFloat> surrogateArray;
+			cpl::dsp::SignalGenerator signalGenerator;
+			cpl::CompleteSignalGeneratorValue signalGeneratorValue;
 			bool hasAnyLayoutBeenApplied{};
 			int lastRecordedInputCount{}, lastRecordedBufferSize{};
 			ParameterMap parameterMap;
 			DecoupledStateObject<MainEditor> dsoEditor;
 			std::mutex editorCreationMutex;
 			std::shared_ptr<HostGraph> graph;
+			std::shared_ptr<cpl::Profiling::Lane> realtimeLane, asyncLane;
 		};
 	};
 #endif

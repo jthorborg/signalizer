@@ -9,30 +9,47 @@ More info can be found at this page: www.jthorborg.com/index.html?ipage=signaliz
 
 ## Building Signalizer
 
-The currently supported build platforms are Windows and OS X. If you haven't yet, run:
-`$ python prepare.py`
+First-time setup:
 
-Then from `/Make`, run:
-`$ python build_[win|linux|osx].py [-inc:major|minor|patch]`
+```
+python prepare.py
+```
 
-And a zipped Signalizer release will be built into `/Releases`.
+**Development build** (Debug Standalone, fastest - good for iteration and testing):
 
-Linux support is experimental and only confirmed to work on Ubuntu 16. See Make/LinuxInstructions.txt for instructions.
-For OS X, you will need Xcode 5.1.1+ as well as the audio unit SDKs installed.
-If you want to use the build scripts you need to have the Xcode command line tools installed.
+```
+python build.py dev [--optimized] [--run]
+```
 
-If you wish to compile VSTs, you will need to acquire the VST3 SDK. Similarly for other proprietary platforms.
-For Windows, you will need Visual Studio 2022+.
+**Release build** (all plugin formats, packaged into `/Releases`):
 
-Additionally, you may need to set up include directories to point to your specific SDK locations.
+```
+python build.py release
+```
+
+Both commands accept `--verbose` to stream the full compiler output. Run `python3 build.py dev --help` or `release --help` for all options.
+
+Platform notes:
+- Windows: requires Visual Studio 2022, targets Windows 10+
+- macOS: requires Xcode command line tools, targets 10.13+
+- Linux: any apt-based distribution. Requires GCC 12 or newer; `prepare.py` installs it when the distribution default is older. Verified on Ubuntu 22.04 and 24.04.
+
+VST2 requires the SDK at `../SDKs/vstsdk2.4`.
+
+### Linux binary compatibility
+
+The build host bounds the compatibility of the resulting binaries.
+
+| Built on | Requires | Covers |
+| --- | --- | --- |
+| Ubuntu 22.04 | glibc 2.35, `GLIBCXX_3.4.30` | Ubuntu 22.04+, Debian 12+, Fedora 36+, and derivatives |
+| Ubuntu 24.04 | glibc 2.38, `GLIBCXX_3.4.32` | Ubuntu 23.10+, Debian 13+, Fedora 39+ |
+
+Verify what a given build actually requires with `readelf -V <binary>`.
+
+See more repository / workflow information in [AGENTS.md](AGENTS.md).
 
 ## Performance
-
-Program maxing out a whole core with VSync enabled? If you are using NVidia graphics, it is a driver issue.. Or, "feature", as they call it. 
-Check this out: http://www.retrocopy.com/blog/29/nvidia-threaded-optimization-oxymoron.aspx
-
-Notice, that it is not actually using all of the CPU, it is merely busywaiting (but yielding). What this means in reality is, that your core will be maxed out, but everything will remain as responsive. 
-See this: http://forum.openscenegraph.org/viewtopic.php?t=3653#18283
 
 ## Known issues
 

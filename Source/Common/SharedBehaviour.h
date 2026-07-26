@@ -31,6 +31,7 @@
 #define SIGNALIZER_SHAREDBEHAVIOUR_H
 
 #include <cpl/lib/weak_atomic.h>
+#include "cpl/profiling/Profiling.h"
 
 namespace Signalizer
 {
@@ -38,10 +39,21 @@ namespace Signalizer
 	{
 	public:
 
+		SharedBehaviour(std::shared_ptr<cpl::Profiling::Lane> renderingLane)
+			: rendering(renderingLane)
+		{
+
+		}
+
+		std::shared_ptr<cpl::Profiling::Lane> getRenderingProfilerLane() const { return rendering; };
+
 		cpl::relaxed_atomic<bool>
 			hideWidgetsOnMouseExit = false,
 			stopProcessingOnSuspend = false,
 			showLegend = false;
+
+	private:
+		std::shared_ptr<cpl::Profiling::Lane> rendering;
 	};
 };
 

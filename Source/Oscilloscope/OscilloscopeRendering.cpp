@@ -89,6 +89,8 @@ namespace Signalizer
 	{
 		if (content->diagnostics.getNormalizedValue() > 0.5)
 		{
+			CPL_PROFILE("Oscilloscope::drawDiagnostics");
+
 			g.setColour(juce::Colours::blue);
 
 			const auto perf = audioStream->getPerfMeasures();
@@ -156,6 +158,8 @@ namespace Signalizer
 
 		if (state.drawCursorTracker && mouseCheck && getEffectiveChannels() > 0 /* HACK */)
 		{
+			CPL_PROFILE("Oscilloscope::drawCursorTracker");
+
 			g.setColour(state.colourWidget);
 
 			const auto mouseX = currentMouse.x.load(), mouseY = currentMouse.y.load();
@@ -264,7 +268,9 @@ namespace Signalizer
 		{
             CPL_DEBUGCHECKGL();
 			{
-				auto cs = processor->streamState.lock();
+				CPL_PROFILE_EXPRESSION(
+					auto cs = processor->streamState.lock()
+				);
 				auto& streamState = *cs;
                 handleFlagUpdates(streamState);
                 
@@ -377,6 +383,8 @@ namespace Signalizer
 	template<typename ISA>
 		void Oscilloscope::drawWireFrame(juce::Graphics & g, const juce::Rectangle<float> rect, const float gain)
 		{
+			CPL_PROFILE("Oscilloscope::drawWireFrame");
+
 			const auto xoff = rect.getX();
 			const auto yoff = rect.getY();
 
@@ -439,6 +447,8 @@ namespace Signalizer
 	template<typename ISA>
 	void Oscilloscope::drawTimeDivisions(juce::Graphics & g, juce::Rectangle<float> rect)
 	{
+		CPL_PROFILE("Oscilloscope::drawTimeDivisions");
+
 		auto const horizontalDelta = (state.viewOffsets[VO::Right] - state.viewOffsets[VO::Left]);
 		auto const minVerticalSpacing = (rect.getWidth() / (state.timeMode == OscilloscopeContent::TimeMode::Time ? 75 : 110)) / horizontalDelta;
 		auto const wantedVerticalLines = (std::size_t)(0.5 + (1 - content->pctForDivision.getNormalizedValue()) * minVerticalSpacing);
@@ -514,6 +524,7 @@ namespace Signalizer
 				float offset = 10;
 
 				auto textOut = [&](auto format, auto... args) {
+					CPL_PROFILE("::text-out");
 					cpl::sprintfs(textBuf, format, args...);
 					g.drawSingleLineText(textBuf, std::floor(x + 5), yoff + rect.getHeight() - offset, juce::Justification::left);
 					offset += 15;
@@ -551,6 +562,7 @@ namespace Signalizer
 	template<typename ISA, typename Evaluator>
 		void Oscilloscope::drawWavePlot(cpl::OpenGLRendering::COpenGLStack& openGLStack, const EvaluatorParams& params, Oscilloscope::StreamState& cs)
 		{
+			CPL_PROFILE("Oscilloscope::drawWavePlot");
 
 			typedef cpl::OpenGLRendering::PrimitiveDrawer<1024> Renderer;
 
@@ -621,12 +633,12 @@ namespace Signalizer
 			matrixMod.scale(2, 1, 1);
 
 			// apply horizontal transformation
-			matrixMod.scale(1 / (horizontalDelta), 1, 1);
-			matrixMod.translate(-left, 0, 0);
+			matrixMod.scale(static_cast<GLfloat>(1 / (horizontalDelta)), 1, 1);
+			matrixMod.translate(static_cast<GLfloat>(-left), 0, 0);
 
 			// apply vertical transformation
-			matrixMod.scale(1, 1.0 / verticalDelta, 0);
-			matrixMod.translate(0, top + (bottom - 1), 0);
+			matrixMod.scale(1, static_cast<GLfloat>(1.0 / verticalDelta), 0);
+			matrixMod.translate(0, static_cast<GLfloat>(top + (bottom - 1)), 0);
 			matrixMod.scale(1, gain, 0);
 
 			const GLfloat endCondition = static_cast<GLfloat>(roundedWindow + quantizedCycleSamples /* + 2 */);
@@ -886,11 +898,8 @@ namespace Signalizer
 						} while (unitSpacePos < (right + inc));
 					}
 
-
 					break;
 				}
-
 			}
-
 		}
 };

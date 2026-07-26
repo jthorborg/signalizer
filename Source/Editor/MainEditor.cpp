@@ -35,10 +35,14 @@
 #include "../Common/MixGraphListener.h"
 #include <cpl/CPresetManager.h>
 #include <cpl/LexicalConversion.h>
+#include <cpl/PlatformMisc.h>
 #include "version.h"
 #include <cpl/Mathext.h>
 #include "GraphEditor.h"
+#include "ProfilerWindow.h"
 #include <set>
+
+// ADD OPTION TO NOT KILL FULLSCREEN WHEN LOOSING FOCUS
 
 namespace cpl
 {
@@ -139,10 +143,22 @@ namespace Signalizer
 		, mouseHoversTabArea(false)
 		, tabBarIsVisible(true)
 		, graphEditor(nullptr)
-		, globalState(std::make_shared<SharedBehaviour>())
+		, profilerWindow(nullptr)
 		, kgraphSerialization(e->getHostGraph().getGraphSerializationValue())
+		, ksignalGenerator(e->getSignalGeneratorValue())
 	{
-		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(*e);
+		globalState = std::make_shared<SharedBehaviour>(
+			// rendering lane - never used directly by us (yet, will change when we draw centralized overlays)
+			std::make_shared<cpl::Profiling::Lane>("Rendering", false)
+		);
+
+		std::tie(mixGraph, presentationOutput) = MixGraphListener::create(
+			e->getRealtimeOutput(), 
+			// previously accessed as a friend member 
+			// - this is the only place we give mutating access - ConcurrentConfig is a hack anyway, use onStreamPropertiesChanged.
+			*std::const_pointer_cast<ConcurrentConfig>(e->getConcurrentConfig())
+		);
+
 		e->getHostGraph().setMixGraph(mixGraph);
 
 		// TODO: figure out why moving a viewstate causes corruption (or early deletion of moved object)
@@ -183,6 +199,9 @@ namespace Signalizer
 		if (graphEditor)
 			graphEditor->mainEditorDied();
 
+		if (profilerWindow)
+			profilerWindow->mainEditorDied();
+
 		suspendView(views[selTab]);
 		notifyDestruction();
 		exitFullscreen();
@@ -217,9 +236,7 @@ namespace Signalizer
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
 			{
 				section->addControl(&krenderEngine, 0);
-
 				section->addControl(&kantialias, 1);
-
 				page->addSection(section, "Quality");
 			}
 			if (auto section = new Signalizer::CContentPage::MatrixSection())
@@ -235,7 +252,15 @@ namespace Signalizer
 				section->addControl(&khideTabs, 2);
 				section->addControl(&kstopProcessingOnSuspend, 0);
 				section->addControl(&khideWidgets, 1);
-				page->addSection(section, "Globals");
+#if CPL_PROFILING
+				section->addControl(&kopenProfiler, 2);
+#endif
+				page->addSection(section, "Options");
+			}
+			if (auto section = new Signalizer::CContentPage::MatrixSection())
+			{
+				section->addControl(&ksignalGenerator, 0);
+				page->addSection(section, "SignalGenerator");
 			}
 		}
 		if (auto page = content->addPage("Colours", "icons/svg/brush.svg"))
@@ -512,24 +537,42 @@ namespace Signalizer
 					preFullScreenSize = getBounds().withZeroOrigin();
 
 					removeChildComponent(activeView().getWindow());
-					activeView().getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
-					activeView().getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
-					bool useMenusAndBars = false;
-					#ifdef CPL_MAC
-						useMenusAndBars = true;
-					#endif
-					juce::Desktop::getInstance().setKioskModeComponent(activeView().getWindow(), useMenusAndBars);
-					activeView().setFullScreenMode(true);
-					activeView().getWindow()->setWantsKeyboardFocus(true);
-					activeView().getWindow()->grabKeyboardFocus();
-					// add listeners.
+					// TODO: When respawning from a just-opened editor, wait a bit with entering full screen! The window handle for the scoped DPI thing doesn't quite exist yet.
+					auto enterKiosk = [this] () {
+						// Required to avoid hitting DPI awareness mismatch assertion when creating new peer
+#if JUCE_WINDOWS
+						const juce::ScopedThreadDPIAwarenessSetter scope{ getWindowHandle() };
+#endif
+						activeView().getWindow()->addToDesktop(juce::ComponentPeer::StyleFlags::windowAppearsOnTaskbar);
 
-					activeView().getWindow()->addKeyListener(this);
-					activeView().getWindow()->addComponentListener(this);
+						activeView().getWindow()->setTopLeftPosition(kioskCoords.x, kioskCoords.y);
+						bool useMenusAndBars = false;
+						#ifdef CPL_MAC
+							useMenusAndBars = true;
+						#endif
+						juce::Desktop::getInstance().setKioskModeComponent(activeView().getWindow(), useMenusAndBars);
+						activeView().setFullScreenMode(true);
+						activeView().getWindow()->setWantsKeyboardFocus(true);
+						activeView().getWindow()->grabKeyboardFocus();
+						// add listeners.
+
+						activeView().getWindow()->addKeyListener(this);
+						activeView().getWindow()->addComponentListener(this);
+					};
 
 					// sets a minimal view when entering full screen
-					setBounds(getBounds().withBottom(getViewTopCoordinate()));
+					cpl::GUIUtils::FutureMainEvent(
+						10,
+						[this, enterKiosk]()
+						{
+							// This being slightly delayed fixes initial wrong DPI scale on windows in live when the original window doesn't exist yet
+							enterKiosk();
+							// TODO: This triggers the resize issue in live (UNLESS this is inside a future event)
+							setBounds(getBounds().withBottom(getViewTopCoordinate()));
+						},
+						this
+					);
 				}
 				else
 				{
@@ -635,6 +678,15 @@ namespace Signalizer
 				graphEditor = new GraphEditor(this, engine->getHostGraph());
 			else
 				graphEditor->toFront(true);
+		}
+		else if (c == &kopenProfiler)
+		{
+#if CPL_PROFILING
+			if (!profilerWindow)
+				profilerWindow = new ProfilerWindow(this, { globalState->getRenderingProfilerLane(), engine->getRealtimeProfilerLane(), engine->getAsyncProfilerLane() });
+			else
+				profilerWindow->toFront(true);
+#endif
 		}
 		else if (c == &kmaxHistorySize)
 		{
@@ -834,10 +886,11 @@ namespace Signalizer
 
 	}
 
-	void MainEditor::initiateView(SentientViewState & view, bool spawnNewEditor)
+	void MainEditor::initiateView(SentientViewState& view, bool spawnNewEditor)
 	{
 		currentView = &view;
-		addAndMakeVisible(activeView().getWindow());
+		auto activeWindow = activeView().getWindow();
+		addAndMakeVisible(activeWindow);
 
 		if ((RenderTypes)getRenderEngine() == RenderTypes::openGL)
 		{
@@ -1026,14 +1079,22 @@ namespace Signalizer
 				juce::Desktop::getInstance().setKioskModeComponent(nullptr);
 			}
 
-			activeView().getWindow()->setTopLeftPosition(0, 0);
+			activeView().getWindow()->setTopLeftPosition(0, getViewTopCoordinate());
 			addChildComponent(activeView().getWindow());
 			activeView().setFullScreenMode(false);
 
 			if (preFullScreenSize.getWidth() > 0 && preFullScreenSize.getHeight() > 0)
 			{
 				// restores from minimal window
-				setBounds(preFullScreenSize);
+				cpl::GUIUtils::FutureMainEvent(
+					10,
+					[this]() 
+					{
+						// Triggers live incorrect size bug! UNLESS this is inside a "future main event"
+						setSize(preFullScreenSize.getWidth(), preFullScreenSize.getHeight());
+					},
+					this
+				); 
 			}
 			else
 			{
@@ -1141,9 +1202,10 @@ namespace Signalizer
 		}
 
 		// sanitize bounds...
-		setBounds(bounds.constrainedWithin(
-			juce::Desktop::getInstance().getDisplays().getDisplayContaining(bounds.getPosition()).userArea
-		).withZeroOrigin());
+        if (auto display = juce::Desktop::getInstance().getDisplays().getDisplayForPoint(bounds.getPosition()))
+        {
+            setBounds(bounds.constrainedWithin(display->userArea).withZeroOrigin());
+        }
 
 		// reinitiate any current views (will not be done through tab selection further down)
 		for (auto & viewState : views)
@@ -1316,6 +1378,10 @@ namespace Signalizer
 			}
 			return tabs.getHeight() + maxHeight + elementBorder;
 		}
+		else if (!tabBarIsVisible)
+		{
+			return 0;
+		}
 		else
 		{
 			return tabs.getBottom() + elementBorder;
@@ -1354,7 +1420,6 @@ namespace Signalizer
 			elementSize - elementBorder * 2
 		);
 
-
 		auto editor = getTopEditor();
 		if (editor)
 		{
@@ -1367,12 +1432,12 @@ namespace Signalizer
 				maxHeight = std::max(0, std::min(maxHeight, signalizerEditor->getSuggestedSize(possibleBounds).second));
 			}
 			editor->setBounds(elementBorder, tabs.getBottom(), possibleBounds.first, maxHeight);
-			viewTopCoord = tabs.getHeight() + maxHeight + elementBorder;
+			viewTopCoord = tabs.getHeight() + maxHeight + bottomBorder;
 		}
 		else
 		{
 			if (tabBarIsVisible)
-				viewTopCoord = tabs.getBottom() + elementBorder;
+				viewTopCoord = tabs.getBottom() + bottomBorder;
 			else
 				viewTopCoord = 0;
 		}
@@ -1469,8 +1534,13 @@ namespace Signalizer
 	{
 		if (mtFlags.swapIntervalChanged.cas())
 		{
-			oglc.setSwapInterval(newc.swapInterval);
-			view->setSwapInterval(newc.swapInterval);
+            int swap = newc.swapInterval;
+            
+#ifdef CPL_MAC
+            swap = std::clamp(swap, 0, 1);
+#endif
+			oglc.setSwapInterval(swap);
+			view->setSwapInterval(swap);
 		}
 	}
 
@@ -1487,11 +1557,14 @@ namespace Signalizer
 	void MainEditor::showAboutBox()
 	{
 		khelp.bSetInternal(1);
+
+		auto pluginFormat = engine->getWrapperTypeDescription(engine->wrapperType);
+
 		using namespace cpl;
 		std::string contents =
-			programInfo.name + " " + programInfo.version.toString() + newl +
+			programInfo.name + " " + pluginFormat + " " + programInfo.version.toString() + newl +
 			"Build info: \n" + programInfo.customBuildInfo + newl +
-			"Written by Janus Lynggaard Thorborg, (C) 2023" + newl +
+			"Written by Janus Lynggaard Thorborg, (C) 2026" + newl +
 			programInfo.name + " is free and open source (GPL v3), see more at the home page: " + newl + "www.jthorborg.com/index.html?ipage=signalizer" + newl + newl +
 			"Open the readme file (contains information you must read upon first use)?";
 
@@ -1506,6 +1579,11 @@ namespace Signalizer
 	void MainEditor::graphEditorDied()
 	{
 		graphEditor = nullptr;
+	}
+
+	void MainEditor::profilerWindowDied()
+	{
+		profilerWindow = nullptr;
 	}
 
 	void MainEditor::initUI()
@@ -1534,6 +1612,7 @@ namespace Signalizer
 		kstopProcessingOnSuspend.bAddChangeListener(this);
 		khideWidgets.bAddChangeListener(this);
 		krevealExceptionLog.bAddChangeListener(this);
+		kopenProfiler.bAddChangeListener(this);
 
 		// design
 		kfreeze.setImage("icons/svg/freeze.svg");
@@ -1563,6 +1642,7 @@ namespace Signalizer
 		kstableFps.setSingleText("Stable FPS");
 		kvsync.setSingleText("Vertical Sync");
 		krevealExceptionLog.setSingleText("Reveal log");
+		kopenProfiler.setSingleText("Open profiler");
 
 		kstopProcessingOnSuspend.setSingleText("Suspend processing");
 		khideWidgets.setSingleText("Hide widgets");
@@ -1628,6 +1708,8 @@ namespace Signalizer
 		klegendChoice.bSetDescription("Select when to show a legend of what named Signalizers and their colours are being shown");
 		kgraphSerialization.bSetDescription(engine->getHostGraph().getGraphSerializationHelpText());
 		krevealExceptionLog.bSetDescription("Open the folder of the exception log and highlight the file");
+		kopenProfiler.bSetDescription("Open a frame graph profiler to analyse Signalizer's runtime performance");
+
 		resized();
 	}
 };

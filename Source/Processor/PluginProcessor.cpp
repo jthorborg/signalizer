@@ -29,32 +29,31 @@
 
 #include "PluginProcessor.h"
 #include "../Editor/MainEditor.h"
+#include <cpl/PlatformMisc.h>
 #include <cpl/CPresetManager.h>
 #include <cpl/Protected.h>
 #include <cpl/Mathext.h>
 #include <cpl/infrastructure/values/Values.h>
+#include <cpl/infrastructure/parameters/JuceAudioParameterBridge.h>
 #include <array>
+#include <cpl/gui/widgets/CPresetWidget.h>
 
 namespace Signalizer
 {
+	typedef cpl::CPresetWidget::SerializerType SerializerType;
+
 	extern std::vector<std::pair<std::string, ContentCreater>> ContentCreationList;
 	extern std::string MainPresetName;
 	extern std::string DefaultPresetName;
 
 	constexpr int supportedChannels = 2;
 
-	AudioProcessor::AudioProcessor()
-		: AudioProcessor(AudioStream::create(true, 16))
-	{
-
-	}
-
 	std::shared_ptr<const ConcurrentConfig> AudioProcessor::getConcurrentConfig()
 	{
 		return std::const_pointer_cast<const ConcurrentConfig>(config);
 	}
 
-	AudioProcessor::AudioProcessor(AudioStream::IO&& io)
+	AudioProcessor::AudioProcessor(AudioStream::IO&& io, std::shared_ptr<cpl::Profiling::Lane> asyncProfilingLane)
 		: config(std::make_shared<ConcurrentConfig>())
 		, realtimeInput(std::move(std::get<0>(io)))
 		, realtimeOutput(std::get<1>(io))
@@ -65,19 +64,23 @@ namespace Signalizer
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.serializeObject(sz, v); },
 			[](MainEditor & editor, cpl::CSerializer & sz, cpl::Version v) { editor.deserializeObject(sz, v); }
 		)
+		, realtimeLane(std::make_shared<cpl::Profiling::Lane>("Real-time host", true /* is realtime */))
+		, asyncLane(std::move(asyncProfilingLane))
 	{
 
 		SystemView view { getConcurrentConfig(), *this};
 
 		for (std::size_t i = 0; i < ContentCreationList.size(); ++i)
 		{
+			auto state = ContentCreationList[i].second(parameterMap.numParams(), view);
+
+			addParameterGroup(cpl::createJuceParameterGroup(state->getParameterSet()));
+
 			parameterMap.insert({
 				ContentCreationList[i].first,
-				ContentCreationList[i].second(parameterMap.numParams(), view)
+				std::move(state)
 			});
 		}
-
-		juce::File location;
 
 		// load the default preset
 		try
@@ -86,8 +89,7 @@ namespace Signalizer
 
 			cpl::CPresetManager::instance().loadPreset(
 				cpl::CPresetManager::instance().getPresetDirectory() + "default." + MainPresetName + "." + cpl::programInfo.programAbbr,
-				serializer,
-				location
+				serializer
 			);
 
 			if (!serializer.isEmpty())
@@ -115,17 +117,26 @@ namespace Signalizer
 
 	void AudioProcessor::automatedTransmitChangeMessage(int parameter, ParameterSet::FrameworkType value)
 	{
-		sendParamChangeMessageToListeners(parameter, value);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->sendValueChangedMessageToListeners(value);
 	}
 
 	void AudioProcessor::automatedBeginChangeGesture(int parameter)
 	{
-		beginParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->beginChangeGesture();
 	}
 
 	void AudioProcessor::automatedEndChangeGesture(int parameter)
 	{
-		endParameterChangeGesture(parameter);
+		// Before legacy parameter map is build internally by JUCE, this can be empty!
+		auto& parameters = getParameters();
+		if (parameter < parameters.size())
+			getParameters().getUnchecked(parameter)->endChangeGesture();
 	}
 
 	AudioProcessor::~AudioProcessor() noexcept
@@ -149,6 +160,8 @@ namespace Signalizer
 			}
 		);
 
+		signalGenerator.reset(supportedChannels, sampleRate);
+
 		if (!hasAnyLayoutBeenApplied)
 		{
 			hasAnyLayoutBeenApplied = true;
@@ -162,6 +175,9 @@ namespace Signalizer
 
 	void AudioProcessor::processBlock(juce::AudioSampleBuffer& buffer, juce::MidiBuffer& midiMessages)
 	{
+		cpl::Profiling::ProfilerFrame profilerFrame(realtimeLane.get());
+		profilerFrame.setWork(static_cast<float>(buffer.getNumSamples()), static_cast<float>(getSampleRate()));
+
 		int bufferSize = buffer.getNumSamples();
 
 		if (!NONTERMINAL_ASSUMPTION(lastRecordedInputCount == getNumInputChannels()))
@@ -173,37 +189,39 @@ namespace Signalizer
 		if (!NONTERMINAL_ASSUMPTION(bufferSize <= lastRecordedBufferSize))
 			return;
 
-		if (realtimeInput.isAnyoneListening())
-		{
-			// TODO: Fix this when the mix graph listener supports dynamically changing channels
-			std::array<const float*, supportedChannels> inputs;
-			auto readPointers = buffer.getArrayOfReadPointers();
-
-			const auto available = std::min(getNumInputChannels(), supportedChannels);
-
-			int i = 0;
-			for (; i < available; ++i)
-			{
-				inputs[i] = readPointers[i];
-			}
-
-			for (; i < supportedChannels; ++i)
-			{
-				inputs[i] = surrogateArray.data();
-			}
-
-			if (auto ph = getPlayHead())
-				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
-			else
-				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), AudioStream::Playhead::empty());
-		}
-
 		// In case we have more outputs than inputs, we'll clear any output
 		// channels that didn't contain input data, (because these aren't
 		// guaranteed to be empty - they may contain garbage).
 		for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
 		{
 			buffer.clear(i, 0, buffer.getNumSamples());
+		} 
+
+		// TODO: Fix this when the mix graph listener supports dynamically changing channels
+		std::array<float*, supportedChannels> inputs;
+		auto writePointers = buffer.getArrayOfWritePointers();
+
+		const auto available = std::min(getNumOutputChannels(), supportedChannels);
+
+		int i = 0;
+		for (; i < available; ++i)
+		{
+			inputs[i] = writePointers[i];
+		}
+
+		for (; i < supportedChannels; ++i)
+		{
+			inputs[i] = surrogateArray.data();
+		}
+
+		signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
+
+		if (realtimeInput.isAnyoneListening())
+		{
+			if (auto ph = getPlayHead())
+				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
+			else
+				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), AudioStream::Playhead::empty());
 		}
 	}
 
@@ -335,9 +353,15 @@ namespace Signalizer
 		}
 
 		auto& engineState = serializer.getContent("Engine");
-		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::programInfo.version)
+		if (!engineState.isEmpty() && engineState.getLocalVersion() >= cpl::Version::fromParts(0, 3, 5))
 		{
 			engineState >> config->historyCapacity;
+		}
+
+		auto& signalGeneratorState = serializer.getContent("SignalGenerator");
+		if (!signalGeneratorState.isEmpty())
+		{
+			signalGeneratorState >> signalGeneratorValue;
 		}
 
 	}
@@ -403,38 +427,18 @@ namespace Signalizer
 		engineState.setMasterVersion(cpl::programInfo.version);
 
 		engineState << config->historyCapacity;
+
+		auto& signalGeneratorState = serializer.getContent("SignalGenerator");
+		signalGeneratorState.clear();
+		signalGeneratorState.setMasterVersion(cpl::programInfo.version);
+
+		signalGeneratorState << signalGeneratorValue;
 	}
 
 	//==============================================================================
 	const juce::String AudioProcessor::getName() const
 	{
 		return cpl::programInfo.name;
-	}
-
-	int AudioProcessor::getNumParameters()
-	{
-		return static_cast<int>(parameterMap.numParams());
-	}
-
-	float AudioProcessor::getParameter(int index)
-	{
-		return parameterMap.findParameter(index)->getValueNormalized<float>();
-
-	}
-
-	void AudioProcessor::setParameter(int index, float newValue)
-	{
-		return parameterMap.findParameter(index)->updateFromHostNormalized(newValue);
-	}
-
-	const juce::String AudioProcessor::getParameterName(int index)
-	{
-		return parameterMap.findParameter(index)->getExportedName();
-	}
-
-	const juce::String AudioProcessor::getParameterText(int index)
-	{
-		return parameterMap.findParameter(index)->getDisplayText();
 	}
 
 	const juce::String AudioProcessor::getInputChannelName(int channelIndex) const
@@ -501,7 +505,7 @@ namespace Signalizer
 
 	const juce::String AudioProcessor::getProgramName(int index)
 	{
-		return juce::String::empty;
+		return {};
 	}
 
 	void AudioProcessor::changeProgramName(int index, const juce::String& newName)
@@ -515,5 +519,14 @@ namespace Signalizer
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new Signalizer::AudioProcessor();
+	auto asyncLane = std::make_shared<cpl::Profiling::Lane>("Async Signal Processing", false /* is not realtime */);
+	return new Signalizer::AudioProcessor(
+		Signalizer::AudioStream::create(
+			true, // async
+			16, // buffer 16 packets initially
+			std::nullopt, // default max size
+			asyncLane
+		), 
+		asyncLane
+	);
 }

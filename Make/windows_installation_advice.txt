@@ -1,11 +1,19 @@
-Choose a build variant, like x86 if you are running a 32-bit DAW or x64 if you're running 64-bit.
+This release only includes 64-bit plugins.
 
-For instance, for 64-bit, open the "Release x.y.z x64" folder.
+For VST 2:
+	Copy "Signalizer.vst" into your VSTPlugins folder.
 
-Select the "Signalizer" folder and copy the folder (and not just the .DLL inside!) into your VSTPlugins folder. That's it!
+For VST 3:
+	Copy "Signalizer.vst3" into your VST3 folder.
+
+For standalone:
+	Copy "Signalizer" to any location you prefer.
 
 -------------------
 
 If you're unsure about where your VSTPlugins folder is, it can be very custom and I'd advise to research the internet for your particular DAW if you didn't choose it yourself.
 
-If you're having issues, you can try above again but use the "Debug" variant that can provide better error messages.
+Typically VST3 folder will be at: C:\Program Files\Common Files\VST3
+
+If you're having issues, you can try above again but download the debug PDBs and place the associated .pdb file next to Signalizer.dll inside the Signalizer.vst[3] folder.
+This will produce more precise error messages and log output.

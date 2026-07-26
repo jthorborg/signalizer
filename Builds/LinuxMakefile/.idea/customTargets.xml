@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CLionExternalBuildManager">
+    <target id="b9c82f80-4291-4a2e-a0b6-023704678594" name="Debuggable Standalone Release" defaultType="MAKE">
+      <configuration id="2d678117-7a1b-424b-bcd4-5f954a0c275a" name="Debuggable Standalone Release">
+        <build type="MAKE">
+          <make targetName="CONFIG=DebuggableRelease Standalone" />
+        </build>
+        <clean type="MAKE">
+          <make targetName="clean" />
+        </clean>
+      </configuration>
+    </target>
+    <target id="f3c8a667-54c4-4ded-8c0c-a6647e62220c" name="Standalone Release" defaultType="MAKE">
+      <configuration id="d5bea2cd-5c28-40b6-afb4-edbff36284da" name="Standalone Release">
+        <build type="MAKE">
+          <make targetName="CONFIG=Release Standalone" />
+        </build>
+        <clean type="MAKE">
+          <make targetName="clean" />
+        </clean>
+      </configuration>
+    </target>
+  </component>
+</project>

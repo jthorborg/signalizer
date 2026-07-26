@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.0 - 2026-05-10
+
+### Added
+- Universal binary support on macOS for x86 and arm (native "Apple Silicon" support)
+- Support and binaries for Ubuntu linux 24+, if you have a CPU with AVX support
+- HiDPI support on Windows
+- Standalone application
+- VST3 versions on all platforms
+- A signal generator in the general settings under the wrench
+- A dsp/rendering flamegraph profiler you can open with a button in the general settings under the wrench, use this to understand why Signalizer might be performing poorly on your system
+
+### Fixed
+
+- Resonating modes (typically spectrogram / constant Q transforms) being completely black on initial project open/restore in the spectrum
+- Preset file openers on macOS are not native anymore but prevents opening wrong file types now
+- DSP window widget generating undefined windows on invalid parameter combinations (fixes visualization / spectrum disappearing)
+- Initial wrong blip on gradient fill / spectrogram when selecting it initially
+- Presets / saved state with non-default "history size" loading incorrectly if saved with an earlier version of Signalizer
+- Zooming in/out in views accurately returning to their old position instead of just almost
+- A jittering synchronization issue when sidechaining multiple signalizers together with the "Window" triggering mode in the Oscilloscope
+
+### Changed
+- Minimum macOS version increased to 10.13 (up from 10.8)
+- Minimum Windows version increased to 10
+- Minimum Ubuntu version increased to 24 (LTS)
+
+
 ## 0.4.3 - 2023-12-22
 
 ### Fixed

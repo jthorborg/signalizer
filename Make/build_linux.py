@@ -1,5 +1,4 @@
 import io
-import ConfigParser
 import os
 import sys
 import shutil as sh
@@ -7,79 +6,95 @@ import zipfile as zip
 import common as cm
 import subprocess
 
+make_dir = cm.join("..", "Builds", "LinuxMakefile")
+
+def select_toolchain():
+	"""
+	Returns make arguments pinning CXX/CC to a new enough GCC (see cm.MINIMUM_GCC_MAJOR),
+	or an empty string when the default already qualifies. Both are set so the C and C++
+	objects come from the same GCC generation.
+	"""
+	if (cm.gcc_major("g++") or 0) >= cm.MINIMUM_GCC_MAJOR:
+		return ""
+
+	for major in range(cm.MINIMUM_GCC_MAJOR, cm.MINIMUM_GCC_MAJOR + 8):
+		cxx, cc = "g++-" + str(major), "gcc-" + str(major)
+
+		if cm.gcc_major(cxx) is not None and cm.gcc_major(cc) is not None:
+			print("------> Default g++ is too old, building with " + cxx)
+			return " CXX=" + cxx + " CC=" + cc
+
+	print("------> Error: need g++ " + str(cm.MINIMUM_GCC_MAJOR) + " or newer, none found.")
+	print("------> Install one, e.g.: sudo apt install g++-" + str(cm.MINIMUM_GCC_MAJOR))
+	exit(-1)
+
+
+toolchain_args = select_toolchain()
+
+
 def compiler_invoke(args):
-	return os.system("codeblocks ../Builds/CodeBlocks/Signalizer.cbp " + args + " --rebuild")
+	return os.system("make --directory=" + make_dir + " " + args + toolchain_args)
 
-# parse config
-config = ConfigParser.ConfigParser()
-config.read("config.ini")
+def build_dev(config):
+	"""Standalone build for development/testing. Returns the path to the built executable."""
+	if compiler_invoke("CONFIG=" + config.configString + " Standalone") != 0:
+		print("------> Error building...")
+		exit(1)
 
-parameters = []
+	build_dir = os.path.abspath(cm.join(make_dir, "build"))
 
-# handle cmd arguments
-if len(sys.argv) > 1:
-	for arg in sys.argv[1:]:
-		inc = arg.find("-inc:")
-		if inc != -1:
-			parameters.append(arg[inc + 5:])
+	# merge the resource skeleton (presets/resources/licenses) next to the binary
+	# so the standalone is runnable straight out of its build location, mirroring
+	# what the VS2022 exporter's postbuildCommand does on Windows.
+	sh.copytree("Skeleton", build_dir, dirs_exist_ok=True)
 
-flush_parameters = False
+	return cm.join(build_dir, "Signalizer"), None
 
-# handle operations
-for param in parameters:
-	config.set("version", param, str(int(config.get("version", param)) + 1))
-	print("------> Increasing " + param + " to " + config.get("version", param))
+def build(program):
+	zipoutput = "../Releases/Signalizer_Linux_VST_" + program.version_string
 
-# write new configuration?
-if len(parameters) > 0:
-	flush_parameters = True
+	#run targets
+	if program.release:
+		if compiler_invoke("clean") != 0:
+			print("------> Error cleaning...")
+			exit(-1)
 
-#configurations
-major = config.get("version", "major")
-minor = config.get("version", "minor")
-build = config.get("version", "build")
-desc = config.get("info", "description")
-name = config.get("info", "productname")
+	if compiler_invoke("CONFIG=" + program.configString) != 0:
+		print("------> Error building...")
 
+	print("\n------> All builds finished, generating skeletons...")
 
-version_string = major + "." + minor + "." + build
-zipoutput = "../Releases/Signalizer Linux VST " + version_string
-#diagnostic
-print("------> Building Signalizer v. " + version_string + " release targets")
+	# output dirs
+	rootdir = "Signalizer Linux"
 
-cm.rewrite_version_header("../Source/version.h", major, minor, build)
+	# build skeleton
+	program.make_release_folder_with_goodies(rootdir, "linux_installation_advice.txt")
 
-#run targets
+	build_dir = cm.join(make_dir, "build")
 
-compiler_invoke("--target=Release")
+	# VST2
+	output_dir = cm.join(rootdir, "Signalizer.vst")
 
-# output dirs
-release_dir = "Signalizer Linux Release " + version_string
+	sh.copytree("Skeleton", output_dir)
+	sh.copyfile(cm.join(build_dir, "Signalizer.so"), cm.join(output_dir, "Signalizer.so"))
 
-cm.create_build_file("Build.log", version_string)
+	# VST3 section
+	output_dir = cm.join(rootdir, "Signalizer.vst3")
 
-# build skeleton
-sh.copytree("Skeleton", release_dir)
-sh.copyfile("Build.log", cm.join(release_dir, "Build.log"))
+	sh.copytree(cm.join(build_dir, "Signalizer.vst3"), output_dir)
+	sh.copytree("Skeleton", cm.join(output_dir, "Contents", "x86_64-linux"), dirs_exist_ok=True)
 
+	# Standalone section
+	output_dir = cm.join(rootdir, "Signalizer")
 
-print("\n------> All builds finished, generating skeletons...")
+	sh.copytree("Skeleton", output_dir)
+	sh.copy(cm.join(build_dir, "Signalizer"), cm.join(output_dir, "Signalizer"))
 
-# copy in builds
-sh.copy("../Builds/CodeBlocks/bin/Release/libSignalizer.so", cm.join(release_dir, "Signalizer.so"))
+	print("------> Zipping output directories...")
 
-print("------> Zipping output directories...")
+	zx = sh.make_archive(zipoutput, "zip", rootdir)
 
-zx = sh.make_archive(zipoutput, "zip", release_dir)
+	# clean up dirs
+	sh.rmtree(rootdir)
 
-print("------> Builded Signalizer successfully into:")
-print("------> " + zx)
-
-# clean up dirs
-sh.rmtree(release_dir)
-os.remove("Build.log")
-# done, if we made it here, increase the conf build
-
-if flush_parameters:
-	with open("config.ini", "w") as f:
-		config.write(f, True)
+	return zx

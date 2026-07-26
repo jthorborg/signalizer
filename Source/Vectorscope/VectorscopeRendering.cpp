@@ -59,6 +59,7 @@ namespace Signalizer
 		bool paintDiag = content->diagnostics.getNormalizedValue() > 0.5;
 		if (paintDiag)
 		{
+			CPL_PROFILE("VectorScope::paintDiagnostics");
 			g.setColour(juce::Colours::blue);
 
 			const auto perf = audioStream->getPerfMeasures();
@@ -106,7 +107,7 @@ namespace Signalizer
 				juce::Graphics g(letter);
 				g.fillAll(juce::Colours::transparentBlack);
 				g.setColour(juce::Colours::white);
-				g.setFont(letter.getHeight() * fontToPixelScale * 0.5);
+				g.setFont(letter.getHeight() * fontToPixelScale * 0.5f);
 				g.drawText(ChannelDescriptions[i], letter.getBounds().toFloat(), juce::Justification::centred, false);
 			}
 			textures.push_back(std::unique_ptr<juce::OpenGLTexture>((new juce::OpenGLTexture())));
@@ -203,6 +204,8 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::drawGraphText(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & view)
 		{
+			CPL_PROFILE("VectorScope::drawGraphText");
+
 			openGLStack.enable(GL_TEXTURE_2D);
 			openGLStack.setBlender(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			using consts = cpl::simd::consts<float>;
@@ -302,6 +305,8 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::drawWireFrame(cpl::OpenGLRendering::COpenGLStack & openGLStack)
 		{
+			CPL_PROFILE("VectorScope::drawWireFrame");
+
 			openGLStack.setBlender(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 			Conditional01To11HeightTransform m(state.scalePolar && state.isPolar);
 			cpl::OpenGLRendering::PrimitiveDrawer<128> drawer(openGLStack, GL_LINES);
@@ -444,6 +449,8 @@ namespace Signalizer
 	template<typename ISA, typename ColourArray>
 		void VectorScope::drawRectPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
+			CPL_PROFILE("VectorScope::drawRectPlot");
+
 			cpl::OpenGLRendering::MatrixModification matrixMod;
 			// apply the custom rotation to the waveform
 			matrixMod.rotate(state.rotation * 360, 0, 0, 1);
@@ -500,6 +507,8 @@ namespace Signalizer
 	template<typename ISA, typename ColourArray>
 		void VectorScope::drawPolarPlot(cpl::OpenGLRendering::COpenGLStack & openGLStack, const AudioStream::AudioBufferAccess & audio, std::size_t offset, const ColourArray& colours)
 		{
+			CPL_PROFILE("VectorScope::drawPolarPlot");
+
 			typedef typename ISA::V V;
 			AudioStream::AudioBufferView views[2] = { audio.getView(0 + offset), audio.getView(1 + offset) };
 
@@ -751,6 +760,8 @@ namespace Signalizer
 			if (state.colourMeter.getBrightness() == 0)
 				return;
 
+			CPL_PROFILE("VectorScope::drawStereoMeters");
+
 			using namespace cpl;
 			OpenGLRendering::MatrixModification m;
 			m.loadIdentityMatrix();
@@ -825,6 +836,7 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::runPeakFilter(const AudioStream::AudioBufferAccess & audio)
 		{
+			CPL_PROFILE("VectorScope::runPeakFilter");
 			typedef typename ISA::V V;
 
 			double currentEnvelope = 1;

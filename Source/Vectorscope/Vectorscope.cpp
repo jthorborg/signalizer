@@ -54,7 +54,7 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream, 
 		std::shared_ptr<VectorScopeContent> params
 	)
-		: GraphicsWindow(params->getName())
+		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingProfilerLane())
 		, state()
 		, processor(std::make_shared<Processor>(globalBehaviour))
 		, config(config)
@@ -116,23 +116,26 @@ namespace Signalizer
 		if (event.mods.isCtrlDown())
 		{
 			// increase gain
-			// TODO: fix to pow()
+			// normalized space is linear in dB (ExponentialRange), so additive here is multiplicative in gain
 			content->inputGain.setNormalizedValue(content->inputGain.getNormalizedValue() + amount / 20);
 		}
 		else /* zoom graph */
 		{
 			auto & tsX = content->transform;
-			auto Z = tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue();
-			auto actualAmount = (1 + amount / 5) * Z;
-			auto deltaIncrease = (actualAmount - Z) / Z;
-			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(actualAmount);
+			// exp() maps additive wheel travel to a multiplicative scale factor,
+			// so equal travel in and out composes to exactly identity (reciprocal for free)
+			auto factor = std::exp(amount / 5);
+
+			tsX.getValueIndex(tsX.Scale, tsX.Z).setTransformedValue(
+				tsX.getValueIndex(tsX.Scale, tsX.Z).getTransformedValue() * factor
+			);
 
 			tsX.getValueIndex(tsX.Scale, tsX.X).setTransformedValue(
-				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * (1 + deltaIncrease)
+				tsX.getValueIndex(tsX.Scale, tsX.X).getTransformedValue() * factor
 			);
 
 			tsX.getValueIndex(tsX.Scale, tsX.Y).setTransformedValue(
-				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * (1 + deltaIncrease)
+				tsX.getValueIndex(tsX.Scale, tsX.Y).getTransformedValue() * factor
 			);
 		}
 
@@ -192,14 +195,20 @@ namespace Signalizer
 		}
 	}
 
-	void VectorScope::handleFlagUpdates()
+	bool VectorScope::handleFlagUpdates()
 	{
-		bool calculateLegend = processor->streamPropertiesChanged.cas();
+		CPL_PROFILE("VectorScope::handleFlagUpdates");
+		auto&& streamState = processor->streamState.lock();
+
+		if (!streamState->audioStreamChangeVersion.wasEverBumped())
+			return false;
+
+		bool calculateLegend = state.audioStreamChanged.consumeChanges(streamState->audioStreamChangeVersion);
 
 		processor->envelopeMode = cpl::enum_cast<EnvelopeModes>(content->autoGain.param.getTransformedValue());
 		processor->normalizeGain = processor->envelopeMode != EnvelopeModes::None;
-		processor->envelopeCoeff = std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate));
-		processor->stereoCoeff = std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate));
+		processor->envelopeCoeff = static_cast<float>(std::exp(-1.0 / (content->envelopeWindow.getNormalizedValue() * config->sampleRate)));
+		processor->stereoCoeff = static_cast<float>(std::exp(-1.0 / (content->stereoWindow.getNormalizedValue() * config->sampleRate)));
 
 		state.isPolar = cpl::enum_cast<OperationalModes>(content->operationalMode.param.getTransformedValue()) == OperationalModes::Polar;
 		state.antialias = content->antialias.getTransformedValue() > 0.5;
@@ -246,17 +255,18 @@ namespace Signalizer
 		}
 
 		if (calculateLegend)
-			recalculateLegend();
+			recalculateLegend(*streamState);
+
+		return streamState->wasEverConfigured = true;
 	}
 
-	void VectorScope::recalculateLegend()
+	void VectorScope::recalculateLegend(const StreamState& streamState)
 	{
 		state.legend.reset({ 10, 10 });
 
-		auto streamState = processor->streamState.lock();
-		auto& names = streamState->channelNames;
+		const auto& names = streamState.channelNames;
 
-		const auto numPairs = streamState->numChannels / 2;
+		const auto numPairs = streamState.numChannels / 2;
 
 		ColourRotation primaryRotation(state.colourWaveform, numPairs, false);
 
@@ -268,6 +278,8 @@ namespace Signalizer
 	template<typename ISA>
 		void VectorScope::Processor::audioProcessing(AudioStream::DataType ** buffer, std::size_t numChannels, std::size_t numSamples)
 		{
+			CPL_PROFILE("VectorScope::audioProcessing");
+
 			typedef typename ISA::V V;
 			using namespace cpl::simd;
 			typedef typename scalar_of<V>::type T;
@@ -386,10 +398,13 @@ namespace Signalizer
 
 	void VectorScope::Processor::onStreamPropertiesChanged(AudioStream::ListenerContext& ctx, const AudioStream::AudioStreamInfo & before)
 	{
-		streamPropertiesChanged = true;
 		auto stream = streamState.lock();
+		const auto& info = ctx.getInfo();
+		NONTERMINAL_ASSUMPTION(info.sampleRate > 0);
+
 		stream->channelNames = ctx.getChannelNames();
-		stream->numChannels = ctx.getInfo().channels;
+		stream->numChannels = info.channels;
+		stream->audioStreamChangeVersion.bump();
 	}
 
 };

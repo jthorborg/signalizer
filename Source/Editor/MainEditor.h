@@ -48,6 +48,7 @@
 	{
 		class AudioProcessor;
 		class GraphEditor;
+		class ProfilerWindow;
 
 		class MainEditor
 		:
@@ -109,11 +110,12 @@
 
 			void graphEditorDied();
 
+			void profilerWindowDied();
+
 		protected:
 
-			static const int elementSize = 25;
-			// border around all elements, from which the background shines through'
-			static const int elementBorder = 1;
+			static constexpr int bottomBorder = elementBorder;
+
 
 			int getViewTopCoordinate() const noexcept;
 			void onOGLRendering(cpl::COpenGLView * view) noexcept override;
@@ -185,13 +187,14 @@
 			cpl::CSVGButton ksettings, kfreeze, khelp, kkiosk, kgraph;
 
 			// Editor controls
-			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog;
+			cpl::CButton kstableFps, kvsync, krefreshState, kidle, khideTabs, khideWidgets, kstopProcessingOnSuspend, krevealExceptionLog, kopenProfiler;
 			cpl::CInputControl kmaxHistorySize;
 			cpl::CKnobSlider krefreshRate, kswapInterval;
 			cpl::CComboBox krenderEngine, kantialias, klegendChoice;
 			cpl::CValueComboBox kgraphSerialization;
 			cpl::CPresetWidget kpresets;
 			std::array<cpl::CColourControl, cpl::CLookAndFeel_CPL::numColours> colourControls;
+			cpl::CSignalGeneratorWidget ksignalGenerator;
 
 			// state variables.
 			int refreshRate;
@@ -220,6 +223,7 @@
 			MixGraphListener::Handle mixGraph;
 			std::shared_ptr<AudioStream::Output> presentationOutput;
 			GraphEditor* graphEditor;
+			ProfilerWindow* profilerWindow;
 		};
 	};
 

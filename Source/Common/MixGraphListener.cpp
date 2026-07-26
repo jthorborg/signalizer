@@ -30,7 +30,6 @@
 #include "MixGraphListener.h"
 #include <atomic>
 #include <memory>
-#include "../Processor/PluginProcessor.h"
 #include "CommonSignalizer.h"
 
 namespace Signalizer
@@ -121,15 +120,15 @@ namespace Signalizer
 	{
 	}
 
-	MixGraphListener::MixGraphListener(AudioProcessor& p, AudioStream::IO&& presentation)
-		: realtime(p.getRealtimeOutput())
+	MixGraphListener::MixGraphListener(std::shared_ptr<AudioStream::Output>&& realtimeOutput, AudioStream::IO&& presentation, ConcurrentConfig& config)
+		: realtime(realtimeOutput)
 		, presentationInput(std::move(std::get<0>(presentation)))
 		, weakPresentationOutput(std::get<1>(presentation))
 		, presentationOutput(std::get<1>(presentation)->getHandle())
 		, structuralChange(false)
 		, enabled(true)
 		, self(nullptr)
-		, concurrentConfig(*p.config)
+		, concurrentConfig(config)
 		, id(mgCounter.fetch_add(1))
 	{
 		auto& output = std::get<1>(presentation);
@@ -156,11 +155,16 @@ namespace Signalizer
 		}
 	}
 
-	std::pair<MixGraphListener::Handle, std::shared_ptr<AudioStream::Output>> MixGraphListener::create(AudioProcessor& p)
+	std::pair<MixGraphListener::Handle, std::shared_ptr<AudioStream::Output>> MixGraphListener::create(
+		std::shared_ptr<AudioStream::Output> realtimeOutput,
+		ConcurrentConfig& config
+	)
 	{
-		auto io = AudioStream::create(false);
+		// No profiling lane for the presentation output - the realtime output instead is profiled.
+		// This is to incorporate all the work in the mix graph listener.
+		auto io = AudioStream::create(false); 
 		auto presentationOutput = std::get<1>(io);
-		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(p, std::move(io)));
+		auto mixGraph = std::shared_ptr<MixGraphListener>(new MixGraphListener(std::move(realtimeOutput), std::move(io), config));
 		mixGraph->assignSelf();
 		return { Handle(mixGraph), presentationOutput };
 	}
@@ -194,10 +198,14 @@ namespace Signalizer
 
 	void MixGraphListener::handleStructuralChange(AudioStream::ListenerContext& ctx, std::size_t numSamples, cpl::unique_lock<cpl::shared_mutex>& lock)
 	{
+		CPL_PROFILE("MixGraphListener::handleStructuralChange");
+
 		auto& realInfo = ctx.getInfo();
 
 		if (structuralChange)
 		{
+			AudioStream::InputFrameBatch batch(presentationInput);
+
 			PinInt maxDestinationPort = -1;
 			std::int64_t setPorts = 0;
 			for (auto& g : graph)
@@ -207,7 +215,7 @@ namespace Signalizer
 					maxDestinationPort = std::max(maxDestinationPort, entry.first.Destination);
 					setPorts |= 1ll << static_cast<std::int64_t>(entry.first.Destination);
 					auto nameCopy = entry.second.originName;
-					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy));
+					presentationInput.enqueueChannelName(entry.first.Destination, std::move(nameCopy), batch);
 				}
 			}
 
@@ -225,7 +233,8 @@ namespace Signalizer
 					info.channels = maxDestinationPort;
 					info.sampleRate = realInfo.sampleRate;
 					info.anticipatedSize = static_cast<std::uint32_t>(numSamples);
-				}
+				},
+				batch
 			);
 
 
@@ -233,7 +242,7 @@ namespace Signalizer
 			{
 				if ((setPorts & (1ll << i)) == 0)
 				{
-					presentationInput.enqueueChannelName(i, "nothing");
+					presentationInput.enqueueChannelName(i, "nothing", batch);
 				}
 			}
 
@@ -246,6 +255,8 @@ namespace Signalizer
 
 	void MixGraphListener::deliver(AudioStream::ListenerContext& ctx, std::size_t numSamples)
 	{
+		CPL_PROFILE("MixGraphListener::deliver");
+
 		cpl::unique_lock<cpl::shared_mutex> graphLayoutAndDataLock(dataMutex);
 
 		handleStructuralChange(ctx, numSamples, graphLayoutAndDataLock);
@@ -262,12 +273,25 @@ namespace Signalizer
 
 		bool seeminglySynchronized = true;
 
+		// We can't just directly forward the callback ctx (which stems from ourselves, ie. the monotonic realtime playback queue),
+		// it needs to be rebased to account for our synchronization shenanigans.
+		auto adjustedPlayhead = ctx.getPlayhead();
+		auto currentPlayheadPosition = adjustedPlayhead.getPositionInSamples();
+		auto timeAdjustment = (hostEndpoint - hostSamples) - currentPlayheadPosition;
+
+		if (NONTERMINAL_ASSUMPTION(timeAdjustment + static_cast<std::int64_t>(adjustedPlayhead.getSteadyClock()) >= 0))
+		{
+			adjustedPlayhead.advance(timeAdjustment);
+		}
+		
+		CPL_PROFILE_BEGIN("::align-inputs");
+
 		for (auto& g : graph)
 		{
 			auto& state = g.second;
 			auto containedInState = state.containedSamples.load();
 
-			if (containedInState != 0 && ctx.getPlayhead().isPlaying())
+			if (containedInState != 0 && adjustedPlayhead.isPlaying())
 			{
 				const auto sampleDifference = containedInState - hostSamples;
 				const auto tlDifference = state.endpoint - hostEndpoint;
@@ -326,11 +350,12 @@ namespace Signalizer
 			auto toSubtract = std::min(current, static_cast<std::int64_t>(numSamples));
 			state.containedSamples.store(current - toSubtract);
 		}
+		CPL_PROFILE_END;
 
 		this->isSynchronized = seeminglySynchronized;
 
 		// TODO: don't copy into a matrix, rig a provider from the read heads instead?
-		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, ctx.getPlayhead());
+		presentationInput.processIncomingRTAudio(matrix.data(), matrix.size(), numSamples, adjustedPlayhead);
 	}
 
 	void MixGraphListener::onStreamAudio(AudioStream::ListenerContext& ctx, AFloat** buffer, std::size_t numChannels, std::size_t numSamples)
@@ -350,6 +375,8 @@ namespace Signalizer
 
 		if (enabled)
 		{
+			CPL_PROFILE("MixGraphListener::copyToInputs");
+
 			cpl::shared_lock<cpl::shared_mutex> lock(dataMutex);
 
 			// certain conditions can cause callbacks to temporarily appear, even though we deregistrered from this source and no longer know it.
@@ -389,6 +416,8 @@ namespace Signalizer
 
 		if (isSelf)
 		{
+			CPL_PROFILE("MixGraphListener::processSelf");
+
 			updateTopologyCommands();
 
 			if (!enabled || graph.empty())
@@ -421,7 +450,7 @@ namespace Signalizer
 					const auto available = g.second.endpoint - hostOrigin;
 
 					if(available < containedInState)
-						containedInState = std::min(containedInState, std::max(0ll, available));
+						containedInState = std::min(containedInState, std::max<std::int64_t>(0ll, available));
 				}
 
 				if (containedInState > 0)
@@ -481,6 +510,8 @@ namespace Signalizer
 
 	void MixGraphListener::updateTopologyCommands()
 	{
+		CPL_PROFILE("MixGraphListener::updateTopologyCommands");
+
 		decltype(connectionCommands) localNewToplogy;
 
 		{

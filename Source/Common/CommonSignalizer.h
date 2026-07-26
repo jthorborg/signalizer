@@ -133,8 +133,8 @@
 		{
 		protected:
 
-			GraphicsWindow(std::string name) 
-				: COpenGLView(std::move(name)) 
+			GraphicsWindow(std::string name, std::shared_ptr<cpl::Profiling::Lane>&& profilerLane) 
+				: COpenGLView(std::move(name), profilerLane)
 			{
 			
 			}
@@ -354,7 +354,7 @@
 			
 		protected:
 
-			virtual bool format(const ValueType & val, std::string & buf) override
+			virtual bool format(const ValueType & val, std::string & buf, cpl::FormattingFlags flags) override
 			{
 				char buffer[100];
 
@@ -923,7 +923,7 @@
 			ColourRotation() : base(), size(), stereo() {}
 
 			ColourRotation(juce::Colour base, std::size_t size, bool stereo)
-				: base(base), size(size), stereo(stereo)
+				: base(base), size(static_cast<float>(size)), stereo(stereo)
 			{
 
 			}
@@ -977,6 +977,11 @@
 			private:
 				int version {};
 			};
+
+			bool wasEverBumped() const noexcept
+			{
+				return version != 0;
+			}
 
 			void bump() 
 			{
@@ -1035,6 +1040,7 @@
 
 			void paint(juce::Graphics& g, juce::Colour front, juce::Colour back)
 			{
+				CPL_PROFILE("LegendCache::paint");
 				auto bounds = arrangement.getBoundingBox(0, -1, true).reduced(-offset).withTrimmedRight(-strokeSize);
 				auto lineHeight = font.getHeight();
 
@@ -1043,8 +1049,11 @@
 				g.setColour(front);
 				g.drawRoundedRectangle(bounds, offset, 1);
 
+				CPL_PROFILE_BEGIN("::draw-text-arrangement");
 				arrangement.draw(g);
+				CPL_PROFILE_END;
 
+				CPL_PROFILE("::draw-lines");
 				for (std::size_t i = 0; i < colours.size(); ++i)
 				{
 					auto y = startingY + i * (offset + lineHeight) - lineHeight * 0.33f;

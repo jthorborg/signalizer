@@ -45,7 +45,7 @@ namespace Signalizer
 		std::shared_ptr<AudioStream::Output>& stream,
 		std::shared_ptr<SpectrumContent> params
 	)
-		: GraphicsWindow(params->getName())
+		: GraphicsWindow(params->getName(), globalBehaviour->getRenderingProfilerLane())
 		, globalBehaviour(globalBehaviour)
 		, audioStream(stream)
 		, state()
@@ -88,6 +88,7 @@ namespace Signalizer
 		}
 		audioStream->addListener(processor);
 
+		// TODO: No control for this?
 		state.antialias = true;
 		state.primitiveSize = 0.1f;
 		resetStaticViewAssumptions();
@@ -185,6 +186,10 @@ namespace Signalizer
 				break;
 		}
 
+		// exp() maps additive wheel travel to a multiplicative scale on the window span,
+		// so equal travel in and out composes to exactly identity (reciprocal for free)
+		auto zoomFactor = [](double travel) { return 1 - std::exp(-travel / 5); };
+
 		// shift down equals modification of dbs instead.
 		if (!event.mods.isShiftDown())
 		{
@@ -193,8 +198,7 @@ namespace Signalizer
 			auto right = content->viewRight.getTransformedValue();
 
 			auto delta = left - right;
-			auto inc = -delta * wheel.deltaY / 5;
-			// TODO: change to pow()
+			auto inc = -delta * zoomFactor(wheel.deltaY);
 			content->viewLeft.setTransformedValue(left + newFreqPos * inc);
 			content->viewRight.setTransformedValue(right - (1 - newFreqPos) * inc);
 
@@ -209,9 +213,9 @@ namespace Signalizer
 #ifdef CPL_MAC
 			// OS X internally is extremely inconsistent between drivers, mouses trackpads and what not
 			// best solution seems to be just to consider both axi and get some weird results once in a while
-			auto inc = delta * (wheel.deltaY + wheel.deltaX) / 5;
+			auto inc = delta * zoomFactor(wheel.deltaY + wheel.deltaX);
 #else
-			auto inc = delta * wheel.deltaY / 5;
+			auto inc = delta * zoomFactor(wheel.deltaY);
 #endif
 			dbs.low += newDBPos * inc;
 			dbs.high -= (1 - newDBPos) * inc;
@@ -348,12 +352,19 @@ namespace Signalizer
 		return state.windowSize;
 	}
 
-	void Spectrum::handleFlagUpdates(StreamState& stream)
+	bool Spectrum::handleFlagUpdates(StreamState& stream)
 	{
+		CPL_PROFILE("Spectrum::handleFlagUpdates");
+
 		bool remapResonator = false;
 		bool remapFrequencies = false;
 		bool glImageHasBeenResized = false;
 		bool calculateLegend = false;
+
+		// did we yet even initialize the audio stream?
+		if (!stream.audioStreamChangeVersion.wasEverBumped())
+			return false;
+
 		// did audio stream change since last sync?
 		if (state.audioStreamChanged.consumeChanges(stream.audioStreamChangeVersion))
 		{
@@ -393,19 +404,6 @@ namespace Signalizer
 			stream.constant.filter[i].setDecayAsFraction(content->lines[i].decay.getTransformedValue(), 0.1);
 		}
 
-		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
-		{
-			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
-
-			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
-			{
-				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
-			}
-
-			calculateSpectrumColourRatios(stream.constant);
-		}
-
-
 		state.primitiveSize = content->primitiveSize.getTransformedValue();
 		state.alphaFloodFill = content->floodFillAlpha.getTransformedValue();
 
@@ -441,7 +439,20 @@ namespace Signalizer
 			flags.resetStateBuffers = true;
 			calculateLegend = true;
 		}
+		
+		if (state.displayMode == SpectrumContent::DisplayMode::ColourSpectrum)
+		{
+			calculateLegend |= assignAndChanged(stream.constant.colourSpecs[0], ColourRotation(state.colourBackground, pairs, false));
 
+			for (std::size_t i = 0; i < SpectrumContent::numSpectrumColours; ++i)
+			{
+				calculateLegend |= assignAndChanged(stream.constant.colourSpecs[i + 1], ColourRotation(content->specColours[i].getAsJuceColour(), pairs, false));
+			}
+
+			calculateSpectrumColourRatios(stream.constant);
+		}
+
+		// TODO: Handle axisPoints being 0! Causes assertion in TransformConstant::remapFrequencies.
 		std::size_t axisPoints = state.displayMode == SpectrumContent::DisplayMode::LineGraph ? getWidth() : getHeight();
 
 		if (axisPoints != state.axisPoints)
@@ -613,6 +624,8 @@ namespace Signalizer
 
 		if (calculateLegend)
 			recalculateLegend(stream);
+
+		return stream.everConfigured = true;
 	}
 
 

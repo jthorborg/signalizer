@@ -30,17 +30,15 @@
 #ifndef SIGNALIZER_GRAPHEDITOR_H
 	#define SIGNALIZER_GRAPHEDITOR_H
 
-	#include "../Common/HostGraph.h"
-	#include <cpl/Common.h>
-	#include <cpl/gui/GUI.h>
-	#include <vector>
 	#include <memory>
+	#include <cpl/Common.h>
 
 	namespace Signalizer
 	{
 		class AudioProcessor;
 		class MainEditor;
-		class Content;
+		class GraphEditorContent;
+		class HostGraph;
 
 		class GraphEditor : public juce::DocumentWindow
 		{
@@ -53,7 +51,7 @@
 			void closeButtonPressed() override;
 
 		private:
-			std::shared_ptr<Content> content;
+			std::shared_ptr<GraphEditorContent> content;
 
 			MainEditor* editor;
 			HostGraph& host;

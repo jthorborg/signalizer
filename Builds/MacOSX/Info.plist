@@ -32,14 +32,14 @@
 	<key>CFBundlePackageType</key>
 	<string>TDMw</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.3</string>
+	<string>0.5.0</string>
 	<key>CFBundleSignature</key>
 	<string>PTul</string>
 	<key>CFBundleVersion</key>
-	<string>0.4.3</string>
+	<string>0.5.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (c) 2023 Janus Lynggaard Thorborg</string>
+	<string>Copyright (c) 2026 Janus Lynggaard Thorborg</string>
 </dict>
 </plist>
