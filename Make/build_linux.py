@@ -51,7 +51,7 @@ def build_dev(config):
 	return cm.join(build_dir, "Signalizer"), None
 
 def build(program):
-	zipoutput = "../Releases/Signalizer Linux VST " + program.version_string
+	zipoutput = "../Releases/Signalizer_Linux_VST_" + program.version_string
 
 	#run targets
 	if program.release:

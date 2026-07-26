@@ -108,7 +108,7 @@ def set_plist_option(rel_plist_path, command):
 def build(program):
 
 	version_int = (int(program.major) << 16) | (int(program.minor) << 8) | int(program.build)
-	zipoutput = "../Releases/Signalizer_macOS_" + program.version_string
+	zipoutput = "../Releases/Signalizer_MacOS_" + program.version_string
 
 	#diagnostic
 	print("------> Cleaning prior builds... ")
