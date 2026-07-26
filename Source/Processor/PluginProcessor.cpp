@@ -189,16 +189,24 @@ namespace Signalizer
 		if (!NONTERMINAL_ASSUMPTION(bufferSize <= lastRecordedBufferSize))
 			return;
 
+		// In case we have more outputs than inputs, we'll clear any output
+		// channels that didn't contain input data, (because these aren't
+		// guaranteed to be empty - they may contain garbage).
+		for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
+		{
+			buffer.clear(i, 0, buffer.getNumSamples());
+		} 
+
 		// TODO: Fix this when the mix graph listener supports dynamically changing channels
 		std::array<float*, supportedChannels> inputs;
-		auto readPointers = buffer.getArrayOfWritePointers();
+		auto writePointers = buffer.getArrayOfWritePointers();
 
-		const auto available = std::min(getNumInputChannels(), supportedChannels);
+		const auto available = std::min(getNumOutputChannels(), supportedChannels);
 
 		int i = 0;
 		for (; i < available; ++i)
 		{
-			inputs[i] = readPointers[i];
+			inputs[i] = writePointers[i];
 		}
 
 		for (; i < supportedChannels; ++i)
@@ -206,10 +214,7 @@ namespace Signalizer
 			inputs[i] = surrogateArray.data();
 		}
 
-		{
-			CPL_PROFILE("SignalGenerator::Process");
-			signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
-		}
+		signalGenerator.process(inputs.data(), buffer.getNumSamples(), signalGeneratorValue.deriveProcessingConfig());
 
 		if (realtimeInput.isAnyoneListening())
 		{
@@ -217,14 +222,6 @@ namespace Signalizer
 				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), *ph);
 			else
 				realtimeInput.processIncomingRTAudio(inputs.data(), supportedChannels, buffer.getNumSamples(), AudioStream::Playhead::empty());
-		}
-
-		// In case we have more outputs than inputs, we'll clear any output
-		// channels that didn't contain input data, (because these aren't
-		// guaranteed to be empty - they may contain garbage).
-		for (int i = getNumInputChannels(); i < getNumOutputChannels(); ++i)
-		{
-			buffer.clear(i, 0, buffer.getNumSamples());
 		}
 	}
 
