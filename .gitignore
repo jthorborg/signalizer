@@ -41,3 +41,4 @@ Builds/MacOSX/Signalizer.xcodeproj/xcuserdata
 Builds/LinuxMakefile/build
 Builds/VisualStudio2022/Win32
 .claude/
+Make/__pycache__
